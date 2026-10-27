@@ -1,0 +1,613 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFELSendPassLevelProcess.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFELSendPassLevelProcess.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/processFlow/flowNode/UBFELSendPassLevelProcess.lua<br>SHA-256 4e6fccbf04cb07774e7f58105f8ffe925bb9c89dd772d2e94a1cb709ed6bf73c · 613 行 · 恢复原文，未经改写</p><a href="UBFELSendPassLevelProcess-742716ac.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>local FeedContext = require(&quot;amf.middleware.feed.FeedContext&quot;)</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>local VsmSwitch = require &quot;ubf.UBFPlay.views.vsm.VsmSwitch&quot;</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a></span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>local UBFELSendPassLevelProcess = class2(&quot;UBFELSendPassLevelProcess&quot;, UBFProcessNode)</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a></span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>function UBFELSendPassLevelProcess:doProcess()</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>    self:passLevel()</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>end</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a></span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>function UBFELSendPassLevelProcess:isFailByGiveUp()</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>    local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>	local win = runtime:isWin()</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>	if not win then</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>		local failReason = runtime:getLevelFailReason()</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>		return failReason == _G.UBFGameFailReason.kDropout</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>	end</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a></span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>	return false</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>end</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a></span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>function UBFELSendPassLevelProcess:isNeedRetry( ... )</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>	local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>	local win = runtime:isWin()</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>	if not win then</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>		local failReason = runtime:getLevelFailReason()</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>		return failReason == _G.UBFGameFailReason.kRetry</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>	end</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a></span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>	return false</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>end</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a></span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a></span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>function UBFELSendPassLevelProcess:genBaseRequest()</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>    local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>    local prevSceneMgr = runtime:getPrevSceneManager()</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>	local coin = prevSceneMgr:getLevelCoinCount()</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>	local league = runtime:getLeague()</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>	local costMove = league.moveCountWithRevert</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a></span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>    local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>	local levelScene = runtime:getLevelScene() or UBFLevelSceneType.kMain</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>	local star = runtime:getStar()</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>	local score = runtime:getTotalScore()</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a></span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>	local stageTime = runtime:getStageTime()</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>	local targetCount = runtime:getTargetCount()</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>	local opLog = runtime:getReplayLog()</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>	local levelType = runtime:getLevelType()</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>	local leftMoves = runtime:getLeftMove()</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>	local seed = runtime:getSeed()</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>	local oldScore = runtime:getOldScore()</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>	local oldStar = runtime:getOldStar()</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>	local playLevelMode = runtime:getPlayLevelMode()</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>	local staticSteps = runtime:getStaticMove()</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>	local playInfo = prevSceneMgr:getPlayInfoDCObj()</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>	local extraData = {}</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>	extraData.playInfo = playInfo</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>	extraData.leftMoves = leftMoves</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>	extraData.costMove = costMove</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>	extraData.realCostMove = league.moveCount</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>	extraData.moveCountWithoutExtraMove = league.moveCountWithoutExtraMove</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a></span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>	local hadPassed = runtime:getLevelHasAlreadyPassed()</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>	local guideLevel = runtime:isGuideLevel()</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>	</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>	-- replayModeWhenStart</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>	local replayModeWhenStart = 0</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>    if runtime:isWonderfulReplayMode() then replayModeWhenStart = ReplayMode and ReplayMode.kReview or 13 end</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a></span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>	-- 道具</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>	local usedProps = {}</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>	local usePropList = runtime:getUsePropList()</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>	local usePropMap = {}</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>	for i, propData in ipairs(usePropList) do</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>        local itemId = propData.propId</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>		if itemId then </span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>			usePropMap[itemId] = (usePropMap[itemId] or 0) + 1</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>		end</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>    end</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>	for itemId, num in pairs(usePropMap) do </span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>		table.insert(usedProps, {itemId = itemId, num = num})</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>	end</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a></span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>	local hasUsedProp = false</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>	if #usedProps &gt; 0 then hasUsedProp = true end</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>	local hasRealUseProp = 3</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a></span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>	-- 不知道是啥</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>	local extraStr = &quot;0&quot;</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>	if costMove &gt;= 5 or star &gt; 0 then</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>		extraStr = &quot;1&quot;</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>	end</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a></span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>	local farmingType = runtime:getLevelFarmingType()</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>	local clientStreakWinScene</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>	if levelScene == UBFLevelSceneType.kFullLevelLibrary then</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>		clientStreakWinScene = &quot;FLFSLL&quot;</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>	elseif levelScene == UBFLevelSceneType.kMain then</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>		if farmingType == UBFLevelFarmingType.NORMAL then</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>			clientStreakWinScene = &quot;MLT&quot;</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>		elseif farmingType == UBFLevelFarmingType.FARM_STAR then</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>			--满级补星</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>			local userStateManager = _G.amfBean(&quot;UserStateManager&quot;)</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>			if userStateManager and not userStateManager:isFMJ() then</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>				clientStreakWinScene = &quot;FLCCS&quot;</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>			end</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>		end</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>	end</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a></span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>	--生成request</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>	local request = {</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>		method = UBFGameMethodType.kPassLevel,</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>		tip = false,</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>		body = {</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>			levelId = levelId,</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>			score = score,</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>			star = star,</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>			oldStar = oldStar,</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>			stageTime = stageTime,</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>			coin = coin,</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>			targetCount = targetCount,</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>			levelType = levelType,</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>			step = costMove,</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>			realStep = league.moveCount,</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>			staticSteps = staticSteps,</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>			sfFlag = 0,</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>			seed = seed or 0,</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>			opLog = opLog,</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>			levelLeftMoves = leftMoves,</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>			levelScene = levelScene,</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>			usedProps = usedProps,</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>			hasUsedProp = hasUsedProp,</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>			hasRealUseProp = hasRealUseProp,</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>			requestTime = Localhost:time(),</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>			extraData = extraData,</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>			extraRewards = {},</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>			clientStreakWinScene = clientStreakWinScene,</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>			extra = extraStr,</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>			guideLevel = guideLevel,</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>			giveUp = false,</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>			logicalFail = false,</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>			lastEnterTime = runtime:getStartLevelStartTime() or runtime:getStageStartTime() or 0,</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>			version = _G.bundleVersion,</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>			curMd5 = ResourceLoader.getCurVersion(),</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>			levelUniqueKey = UBFGamePlayBridgeInvoker:getCurrLevelUniqueKey(),</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>			-- metaConfig = UBFGamePlayBridgeInvoker:getCurrUBFLevelGroupInfo(levelId),</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>			replayModeWhenStart = replayModeWhenStart,</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>			useSmallRes = _G.__use_small_res, --也不知道干啥用的，补上</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>		},</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>	}</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a></span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>	UBFGamePlayBridgeInvoker:injectUBFLevelGroupData(request.body, levelId, levelScene)</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a></span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>	-- fuuu 数据</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>	local UBFEndLevelData = require &#x27;ubf.UBFPlay.data.UBFEndLevelData&#x27;</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>	local endLevelData = UBFEndLevelData.new()</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>	endLevelData:fromLua(runtime:getEndLevelData())</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>	local ubfuuu = endLevelData:getUBFuuuDcData()</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>	if ubfuuu then </span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>		local dataEx = { diffFix = ubfuuu.diffFix, endData = endLevelData }</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>		dataEx.diffFix = ubfuuu.diffFix</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>		dataEx.preAddSteps = ubfuuu.preAddSteps</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>		dataEx.addSteps = ubfuuu.addSteps</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>		dataEx.payTag = ubfuuu.payTag</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>		dataEx.activityTag = ubfuuu.activityTag</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>		dataEx.useOtherPreProp = ubfuuu.useOtherPreProp</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>		dataEx.selfFeedbackCollect = ubfuuu.selfFeedbackCollect</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>		dataEx.passCollectByUseProp = ubfuuu.passCollectByUseProp</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>		self:_injectFuuu(request.body, levelId, dataEx, levelScene) </span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>	end</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a></span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>	return request</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>end</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a></span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a></span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>function UBFELSendPassLevelProcess:beforeSend(request)</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>	self:_beforeSendAMF(request)</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>	return</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>end</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a></span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>function UBFELSendPassLevelProcess:_beforeSendAMF(request)</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>	local opLog = request.body.opLog</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a></span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>	local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>	self:dispatchModEvent(UBFGameModEventEnum.kBeforeSendPassLevel, {</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>		body = request.body,</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>		jsonTable = request.body.jsonTable,</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>		overData = runtime:getEndLevelData(),</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>	})</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>	if type(opLog) == &quot;table&quot; then</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>		xpcall(function() request.body.opLog = table.serialize(opLog) end,</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>	    function(err)</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>	        if _G.isLocalDevelopMode then</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>		        local traceback = debug.traceback(&quot;&quot;, 2)</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>		        print(table.tostring(opLog))</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>		        print(err,traceback)</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>		    end</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>			local str = &quot;&quot;</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>			pcall(function() str = tts(opLog) end)</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>			he_log_error(&quot;passLevel oplog serialize fail.&quot; .. tostring(err) .. &quot; - &quot; .. tostring(str))</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>		end)</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>	end</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>	local jsonTableNew = {}</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>	for k, v in pairs(request.body.jsonTable or {} ) do</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>		jsonTableNew[tostring(k)] = v</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>	end</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>	request.body.json = table.serialize(jsonTableNew)</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>end</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a></span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>function UBFELSendPassLevelProcess:passLevel()</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>    if FeedContext.shouldPlayTrialLevel() then -- 体验关不需要真实过关流程</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>        self:success()</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>        return</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>    end</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a></span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>    local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>	local win = runtime:isWin()</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a></span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>	--云游戏失败成功不发请求，重玩退出发</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>	if _G.isYunGame then</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>		local giveUp = self:isFailByGiveUp()</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>		local needRetry = self:isNeedRetry()</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>		if giveUp then</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>			self:passLevelGiveUp()</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>		elseif needRetry then</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>			self:passLevelRetry()</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>		else</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>			self:success()</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>		end</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>	else</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>		if win then</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>			self:passLevelWin()</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>		else</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>			local giveUp = self:isFailByGiveUp()</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>			local needRetry = self:isNeedRetry()</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>			-- printx(16,giveUp,needRetry,&quot;-----------------------&quot;)</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>			if giveUp then</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>				self:passLevelGiveUp()</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>			elseif needRetry then</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>				self:passLevelRetry()</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>			else</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>				self:passLevelFail()</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>			end</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>		end</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>	end</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>end</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a></span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a></span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a></span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>function UBFELSendPassLevelProcess:passLevelWin()</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>    local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>	local request = self:genBaseRequest()</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>	-- 过关记录写入进关时冻结的视图模式，而不是下局调试开关。</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>	request.body.viewmode = VsmSwitch:getViewMode()</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>	request.body.logicalWin = false</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>	local opLog = request.body.opLog</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>	local result = opLog and opLog.result</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>	if result then</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>		request.body.logicalWin = opLog.result.logicalWin</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>	end</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>	request.body.logicalFail = false</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>	request.body.giveUp = false</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a></span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>	local netMgr = runtime:getNetworkMgr()</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a></span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>	--发送事件</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>	netMgr:dispatch(request)</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a></span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>	--生成标识</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>	request.body.cacheCode = self:calcSig(request.body)</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a></span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>	--发送！</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>	self:_dumpPassLevelToFile(request)</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>	self:beforeSend(request)</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>	netMgr:send(request):next(function(reponse)		</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>		if reponse.err then</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>			self:dispatchGlobalEvent(UBFProcessEventEnum.AFTER_REQUEST_SEND, reponse)</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>			local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>			UBFError(&quot;levelId=&quot; .. tostring(levelId) .. &quot; onPassLevelMsgFailed:&quot; .. table.tostring(reponse.errMsg))</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>			if _G.isLocalDevelopMode then CommonTip:showTip(&quot;过关请求返回失败！！这不应该走到！！ 是不是没有配关卡奖励？？！！&quot;) end</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>			self:abort(&quot;pass level http fail&quot;)</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>			return</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>		else</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>			self:afterSendMessage(runtime, reponse)</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>			self:success()</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>		end</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>	end)</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>end</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a></span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>function UBFELSendPassLevelProcess:calcSig(body)</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>	local params = {}</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>	params.levelId = body.levelId</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>	params.score = body.score</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>	params.star = body.star</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>	params.coin = body.coin</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>	params.targetCount = body.targetCount</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>	params.requestTime = body.requestTime</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>	params.opLog = body.opLog and true or false</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>	params.version = body.version</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>	params.curMd5 = body.curMd5</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>	params.curConfigMd5 = body.curConfigMd5</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>	params.udid = MetaInfo:getInstance():getUdid()</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a></span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>    local paramKeys = {}</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>    for k, v in pairs(params) do</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>        table.insert(paramKeys, k)</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>    end</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>    table.sort(paramKeys)</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>    local md5Src = &quot;&quot;</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>    for _, v in pairs(paramKeys) do</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>        md5Src = md5Src..tostring(params[v])</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>    end</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>    local secret = &quot;q6kkSK1ZTdXRE8XuSnXDAvpgQNU!CcaH&quot;</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>    return HeMathUtils:md5(md5Src .. secret)</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>end</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a></span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>function UBFELSendPassLevelProcess:_dumpPassLevelToFile(request)</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>	if not EnvUtil:isCoderDevice() then return end</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>	pcall(function()</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>		local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>		local outputData = {</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>			playId = runtime:getPlayId(),</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>			time = os.date(&quot;%Y-%m-%d %H:%M:%S&quot;),</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>			data = request.body,</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>		}</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>		local content = table.serialize(outputData)</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>		local path = CCFileUtils:sharedFileUtils():getWritablePath() .. &quot;pass_level_data.json&quot;</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>		local f = io.open(path, &quot;w&quot;)</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>		if f then</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>			f:write(content)</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>			f:close()</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>		end</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>	end)</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>end</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a></span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>function UBFELSendPassLevelProcess:passLevelGiveUp( )</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>    local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>	local request = self:genBaseRequest()</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>	local levelScene = runtime:getLevelScene()</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>	request.body.giveUp = true</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>	request.body.star = 0</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>	request.body.score = 0</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>	request.body.coin = 0</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>	request.body.targetCount = 0</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>	if not UBFLevelSceneFunc:isPassLevelGiveUpForceSendOpLog(levelScene) then </span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>		request.body.opLog = nil</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>	end</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a></span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>	local step = request.body.step</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>	local staticSteps = request.body.staticSteps</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>	if staticSteps and staticSteps &gt; 0 and step / staticSteps &gt;= 0.5 then</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>		request.body.logicalFail = true</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>	end</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a></span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>	local netMgr = runtime:getNetworkMgr()</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a></span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>	--发送事件</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>	netMgr:dispatch(request)</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a></span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>	--生成标识</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>	request.body.cacheCode = self:calcSig(request.body)</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a></span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>	--发送！</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>	self:_dumpPassLevelToFile(request)</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>	self:beforeSend(request)</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>	netMgr:send(request):next(function(reponse)		</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>		if reponse.err then</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>			self:dispatchGlobalEvent(UBFProcessEventEnum.AFTER_REQUEST_SEND, reponse)</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>			local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>			UBFError(&quot;levelId=&quot; .. tostring(levelId) .. &quot; onPassLevelMsgFailed:&quot; .. tostring(reponse.body))</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>			if _G.isLocalDevelopMode then CommonTip:showTip(&quot;过关请求返回失败！！这不应该走到！！ 是不是没有配关卡奖励？？！！&quot;) end</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>			self:abort(&quot;pass level http fail&quot;)</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>			return</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>		else</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>			self:afterSendMessage(runtime, reponse)</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>			self:success()</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>		end</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>	end)</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a></span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>end</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a></span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a></span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>function UBFELSendPassLevelProcess:passLevelRetry()</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>    local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>	local request = self:genBaseRequest()</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>	request.body.giveUp = true</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>	request.body.star = 0</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>	request.body.score = 0</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>	request.body.coin = 0</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>	request.body.targetCount = 0</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>	request.body.opLog = nil</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a></span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a></span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>	local step = request.body.step</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>	local staticSteps = request.body.staticSteps</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>	if staticSteps and staticSteps &gt; 0 and step / staticSteps &gt;= 0.5 then</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>		request.body.logicalFail = true</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>	end</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a></span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>	local netMgr = runtime:getNetworkMgr()</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a></span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>	--发送事件</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>	netMgr:dispatch(request)</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a></span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>	--生成标识</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>	request.body.cacheCode = self:calcSig(request.body)</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a></span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>	--发送！</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>	self:_dumpPassLevelToFile(request)</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>	self:beforeSend(request)</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>	netMgr:send(request):next(function(reponse)		</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>		if reponse.err then</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>			self:dispatchGlobalEvent(UBFProcessEventEnum.AFTER_REQUEST_SEND, reponse)</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>			local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>			UBFError(&quot;levelId=&quot; .. tostring(levelId) .. &quot; onPassLevelMsgFailed:&quot; .. tostring(reponse.body))</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>			if _G.isLocalDevelopMode then CommonTip:showTip(&quot;过关请求返回失败！！这不应该走到！！ 是不是没有配关卡奖励？？！！&quot;) end</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>			self:abort(&quot;pass level http fail&quot;)</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>			return</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>		else</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>			self:afterSendMessage(runtime, reponse)</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>			self:success()</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>		end</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>	end)</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a></span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>end</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a></span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>function UBFELSendPassLevelProcess:passLevelFail()</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>    local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>	local request = self:genBaseRequest()</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>	request.body.giveUp = false</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>	request.body.logicalFail = true</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>	request.body.star = 0</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a></span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a></span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>	local netMgr = runtime:getNetworkMgr()</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>	--发送事件</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>	netMgr:dispatch(request)</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a></span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>	--生成标识</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>	request.body.cacheCode = self:calcSig(request.body)</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a></span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>	--发送！</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>	self:_dumpPassLevelToFile(request)</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>	self:beforeSend(request)</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>	netMgr:send(request):next(function(reponse)		</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>		if reponse.err then</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>			self:dispatchGlobalEvent(UBFProcessEventEnum.AFTER_REQUEST_SEND, reponse)</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>			local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>			UBFError(&quot;levelId=&quot; .. tostring(levelId) .. &quot; onPassLevelMsgFailed:&quot; .. tostring(reponse.body))</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>			if _G.isLocalDevelopMode then CommonTip:showTip(&quot;过关请求返回失败！！这不应该走到！！ 是不是没有配关卡奖励？？！！&quot;) end</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>			self:abort(&quot;pass level http fail&quot;)</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>			return</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>		else</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>			self:afterSendMessage(runtime, reponse)</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>			self:success()</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>		end</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>	end)</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>end</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a></span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a>function UBFELSendPassLevelProcess:afterSendMessage(runtime, reponse)</span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>	xpcall(function() UBFSectionResumeHelper:removeSavedSection() end, debug.traceback)</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>	if not reponse then</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>		self:abort(&quot;no pass level reponse&quot;)</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>	else			</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>		runtime:setPassLevelReponse(reponse)</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>		self:dispatchModEvent(UBFGameModEventEnum.REQUEST_SEND_SUCCESS, reponse)</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a>		self:dispatchGlobalEvent(UBFProcessEventEnum.AFTER_REQUEST_SEND, reponse)</span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>	end	</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>end</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a></span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>function UBFELSendPassLevelProcess:doRevert()</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>	</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>end</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a></span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>function UBFELSendPassLevelProcess:_injectFuuu(cacheHttp, levelId, DataEx, levelScene)</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>	if DataEx then</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a></span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>		local adjustFixInfo = nil</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>		local ubfuuCheckResult = nil</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a></span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>		if DataEx.endData then</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>			ubfuuCheckResult = DataEx.endData:getUBFuuCheckResult()</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>			if ubfuuCheckResult then</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>				adjustFixInfo = ubfuuCheckResult.adjustFixInfo</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>			end</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>		end</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a></span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>		local _needCollect = nil</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>		local _hasExplicitCollectFlag = false</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>		if adjustFixInfo and adjustFixInfo[UBFuuuFixType.kSelfFeedbackEnableFlag] then</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>			_needCollect = adjustFixInfo[UBFuuuFixType.kSelfFeedbackEnableFlag]</span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>			_hasExplicitCollectFlag = true</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>		end</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a></span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>		if not _needCollect then</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>			_needCollect = {}</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>			_needCollect.enableFlag = ( DataEx.selfFeedbackCollect and DataEx.selfFeedbackCollect &gt; 0 ) and not( DataEx.useOtherPreProp or DataEx.passCollectByUseProp )</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>		end </span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a></span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>		if not _hasExplicitCollectFlag and ubfuuCheckResult and ubfuuCheckResult.stepFixEnable then</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>			_needCollect.enableFlag = true</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>		end</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a></span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>		if _needCollect.enableFlag then</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>			</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>			if DataEx.diffFix then</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>				local _ubfdata = {}</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>				-- _ubfdata.preAddSteps = DataEx.preAddSteps</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>				_ubfdata.preAddSteps = 0 --临时线上测试</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a></span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>				_ubfdata.addSteps = DataEx.addSteps</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>				_ubfdata.diffFix = DataEx.diffFix</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>				_ubfdata.payTag = DataEx.payTag</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a>				_ubfdata.actTag = DataEx.activityTag</span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a></span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>				if ubfuuCheckResult then</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>					_ubfdata.stepFixEnable = ubfuuCheckResult.stepFixEnable</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>					_ubfdata.stepFixCollect = _ubfdata.stepFixEnable</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>					_ubfdata.desiredStep = ubfuuCheckResult.desiredStep</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>					_ubfdata.stepFix = ubfuuCheckResult.stepFix</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>				end</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a></span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>				if DataEx.endData then</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>					_ubfdata.moveCount = DataEx.endData:getMoveCount()</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>					_ubfdata.staticMoveCount = DataEx.endData:getStaticMoveCount()</span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a></span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a>					local fuuuData = DataEx.endData:getUBFuuuDcData()</span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a></span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>					if fuuuData then</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>						_ubfdata.stepMoveN0 = fuuuData.maxDiffMoveOnStepN0</span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>						_ubfdata.stepMoveN3 = fuuuData.maxDiffMoveOnStepN3</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a></span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a>						if _ubfdata.stepMoveN0 then _ubfdata.stepMoveN0 = _ubfdata.stepMoveN0 * -1 end</span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>						if _ubfdata.stepMoveN3 then _ubfdata.stepMoveN3 = _ubfdata.stepMoveN3 * -1 end</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>					end</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a>				end</span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a></span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>				-- local levelGroup = UBFPlaySwitch:getLevelGroup(levelId)</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>				-- local ret, meetGroup, uuid = UBFLevelConfigManager:traversalDefault(levelGroup, levelId)</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>				local levelKeyData = UBFLevelIdUtil:createLevelKeyDataWithAutoLevelGroup(levelId, levelScene)</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>				local ret, meetGroup, uuid = levelKeyData:fallback()</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>				local _arr = string.split(meetGroup, &quot;:&quot;)</span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a></span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>				local UBFuuuAdjustManager = require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuAdjustManager&quot;</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a></span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>				local _ver = UBFuuuAdjustManager:getSelfFeedbackVer() or 1 --todo 读取env数据更好</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>				local _usePreProp = 0</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>				if _ubfdata.preAddSteps &gt; 0 then _usePreProp = 1 end</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a></span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>				local _poolKey = nil</span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a>				if adjustFixInfo and adjustFixInfo[UBFuuuFixType.kSelfFeedbackPoolkey] then</span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>					_poolKey = adjustFixInfo[UBFuuuFixType.kSelfFeedbackPoolkey].collectKey</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>				end</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a></span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>				_ubfdata.levelKey = UBFuuuAdjustManager:createLevelKey(</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>					tostring(levelId),</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a>					_arr[1] or &quot;default&quot;,</span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>					_arr[2] or &quot;default&quot;,</span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>					_usePreProp,</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a>					_ver,</span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>					{poolkey = _poolKey},</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>					levelScene</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a>				)</span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a></span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a></span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>				cacheHttp.ubFuuuCollectMeta = _ubfdata	</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a>				--</span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>--</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>--</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a>--</span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a></span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>			end</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>		end</span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a></span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a>		if ubfuuCheckResult then</span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>			local _data = nil</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>			if ubfuuCheckResult.calculateDiffIndexResult and (not ubfuuCheckResult.stepFixEnable) then</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a>				_data = table.clone(ubfuuCheckResult.calculateDiffIndexResult)</span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>	</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a>				if _data.desiredDiffAvgFix1 then _data.desiredDiffAvgFix1 = ubfuuCheckResult.desiredDiffAvgFix1 * 1000 end</span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a>				if _data.desiredDiffAvgFix2 then _data.desiredDiffAvgFix2 = ubfuuCheckResult.desiredDiffAvgFix2 * 1000 end</span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>				_data.desiredDiffAvgFix = ubfuuCheckResult.desiredDiffAvgFix * 1000</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>				_data.fixedDesiredDiffAvg = ubfuuCheckResult.fixedDesiredDiffAvg * 1000</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>				_data.desiredDiffAvg = ubfuuCheckResult.desiredDiffAvg * 1000</span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a>				_data.ubfuuuAdjustSelectEnable = ubfuuCheckResult.ubfuuuAdjustSelectEnable</span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>				_data.diffFix = DataEx.diffFix</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>				_data.adjustFixInfo = adjustFixInfo</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a>				_data.realDiffAvgByDiffFix = ubfuuCheckResult.realDiffAvgByDiffFix</span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a></span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>				local UBFuuuSelfFeedback = require(&quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuSelfFeedback&quot;)</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>				if UBFuuuSelfFeedback and UBFuuuSelfFeedback.getDiffAvgByDiffFix then</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a>					_data.diffAvgByDiffFix = UBFuuuSelfFeedback:getDiffAvgByDiffFix(</span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>						levelId, </span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>						DataEx.diffFix, </span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a>						{poolkey = _G.SelfFeedbackPoolkey.kSuperBird}, </span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>						levelScene</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a>					)</span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>				end</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a>			end</span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>			</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>			cacheHttp.ubfuuCheckResult = _data</span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>			--</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>--</span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a>--</span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a>--</span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a></span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a>	</span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>		end</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a>	end</span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a>	</span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>end</span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a></span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a>return UBFELSendPassLevelProcess</span></code></pre></main></body></html>

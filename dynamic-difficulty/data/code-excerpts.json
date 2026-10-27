@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "audit_date": "2026-10-21",
+  "basis": "Recovered Lua from com.happyelements.AndroidAnimal.1.162.he.apk; offline static audit, no account or server execution",
+  "source_root": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded",
+  "audited_documents": [
+    {
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/difficulty-semantics/personal-target-walkthrough.md",
+      "sha256": "e916c0df0a4f71b74aa750082a867d9fc95e12caea944eb8aa0450840f053f8a"
+    },
+    {
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/difficulty-semantics/lifecycle-walkthrough.md",
+      "sha256": "fcc6758aeb7990b11a258d87ced521729bfd0002a76316863b972fce898a2f13"
+    },
+    {
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/difficulty-semantics/execution-walkthrough.md",
+      "sha256": "46dccb0047640b9d8938cc97b28cab3ff6e7950647a0a8eee0652cf2a3677102"
+    },
+    {
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/difficulty-semantics/完整机制讲解.md",
+      "sha256": "cfbb15749354f8606580b14ac9f41c4e015945ee9eb11b2f4977392a6bd40d4f"
+    }
+  ],
+  "line_numbering": "one-based inclusive",
+  "excerpt_count": 15,
+  "excerpts": [
+    {
+      "id": 1,
+      "slug": "personal-index",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+      "start": 1573,
+      "end": 1612,
+      "purpose": "活跃/价值矩阵读取、能力修正的正向上限、活动指数及区域限幅；证明个人输入确实进入目标选择前的指数。",
+      "source_sha256": "4a373289086e8e8f99c9e7a919f89f125f856c72f79fb0dc24742b1fe85e6eaa",
+      "excerpt_sha256": "ab5188102e5f5e9f274afbd3a98013ba921087f602e4c4c3944ca0de587dbe04",
+      "quote": "    local diffIndex1 = self:findDiffIndexInMap( UBFuuuDiffIndexMap, activityIndex, paymentIndex, self:__getConfigGroupByFileName( adjustContext, _ubfuuu_diff_index_map_name ) )\n\n    local _playerAbility = levelStatisticInfo.playerAbility or 0\n    -- if not adjustContext.B1 then\n    --     local UBFuuuDefaultAbilityMap = require(\"ubf.metaConfig.ubfuuu_player_ability_default_map_config\")\n    --     _playerAbility = self:findDefaultAbilityInMap(adjustContext, UBFuuuDefaultAbilityMap, adjustContext.areaId)\n    -- end\n    local fixByAbility = 0\n\n    local UBFuuuAbilityFixValueMap = require(\"ubf.metaConfig.ubfuuu_player_ability_fixvalue_map_config\")\n    fixByAbility = self:findAbilityFixValueInMap(adjustContext, UBFuuuAbilityFixValueMap, adjustContext.areaId, _playerAbility, adjustContext.cfgGroup[UBFuuuConfigNameId[\"ubfuuu_player_ability_fixvalue_map\"]] )\n\n    local diffIndex2 = diffIndex1\n    if fixByAbility > 0 then\n        if diffIndex1 < 6 then\n            if diffIndex1 + fixByAbility > 6 then\n                diffIndex2 = 6\n            else\n                diffIndex2 = diffIndex1 + fixByAbility\n            end\n        end\n    else\n        diffIndex2 = diffIndex1 + fixByAbility\n    end\n        \n    if diffIndex2 < diffIndexMin then diffIndex2 = diffIndexMin end\n    if diffIndex2 > diffIndexMax then diffIndex2 = diffIndexMax end\n\n    local diffIndex3 = diffIndex2\n\n    if adjustContext.adjustFixInfo and adjustContext.adjustFixInfo[UBFuuuFixType.kDiffIndex] then\n        for k,v in ipairs(adjustContext.adjustFixInfo[UBFuuuFixType.kDiffIndex]) do\n            diffIndex3 = self:changeValueByAdjustFixInfo(adjustContext, v, diffIndex3)\n        end\n    end\n\n    local diffIndex4 = self:applyAreaDiffIndexLimit(adjustContext, diffIndex3)\n\n    if diffIndex4 < diffIndexMin then diffIndex4 = diffIndexMin end\n    if diffIndex4 > diffIndexMax then diffIndex4 = diffIndexMax end\n"
+    },
+    {
+      "id": 2,
+      "slug": "failure-baodi",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+      "start": 1754,
+      "end": 1811,
+      "purpose": "首闯0星保底资格、锁定状态、失败阈值及仅覆盖为更低目标；避免解读成失败次数直接写胜利。",
+      "source_sha256": "4a373289086e8e8f99c9e7a919f89f125f856c72f79fb0dc24742b1fe85e6eaa",
+      "excerpt_sha256": "5f68cdc39b277b225ab3f4aadb037f39f267140b96a9d2104fc1ac887fe8ea77",
+      "quote": "    if adjustContext.levelId == adjustContext.topLevel then\n\n        if adjustContext.levelStar == 0 then\n\n            local _enableBaoDi = false\n\n            -- 尝试检测是否需要保底\n            local UBFuuuBaoDiMap = require(\"ubf.metaConfig.ubfuuu_baodi_count_map_config\")\n            -- _resultData.baodiDiffAvg = self:findBaoDiCountInMap( UBFuuuBaoDiMap, desiredDiffAvgFix, adjustContext.cfgGroup[UBFuuuConfigNameId[\"ubfuuu_baodi_count_map\"]]  ) or desiredDiffAvgFix\n            local baodiLookupDiffAvg = self:getBaoDiLookupDiffAvg(adjustContext, desiredDiffAvgFix2)\n            local baodiConfig = self:findBaoDiCountInMap( \n                                                            UBFuuuBaoDiMap, \n                                                            baodiLookupDiffAvg,\n                                                            adjustContext.topLevelFailCount, \n                                                            adjustContext.cfgGroup[UBFuuuConfigNameId[\"ubfuuu_baodi_count_map\"]]  \n                                                        ) \n            if self.debugMode then printx(1, \"UBFuuuSelectAdjust:__getDesiredDiffAvgFix \", \"baodiConfig =\" , tts(baodiConfig), \"desiredDiffAvgFix2 =\", desiredDiffAvgFix2, \"baodiLookupDiffAvg =\", baodiLookupDiffAvg, \"topLevelFailCount =\" , adjustContext.topLevelFailCount ) end\n\n            if _resultData.toplevelBaoDiFlag then\n                if _resultData.toplevelBaoDiLevel == adjustContext.topLevel then\n                    -- 锁定保底状态，在 _resultData.toplevelBaoDiLevel 上持续生效\n                    _enableBaoDi = true\n                else\n                    -- _resultData.toplevelBaoDiLevel 已发生变化，不执行保底\n                    _resultData.toplevelBaoDiFlag = false\n                    _resultData.toplevelBaoDiLevel = nil\n                end\n            else\n                \n                \n                if baodiConfig and baodiConfig.baodiCount then\n                    _resultData.baodiDiffAvg = baodiConfig.baodiCount \n                else\n                    _resultData.baodiDiffAvg = desiredDiffAvgFix2\n                end\n\n                _enableBaoDi = adjustContext.topLevelFailCount >= _resultData.baodiDiffAvg\n\n                if _enableBaoDi then\n                    _resultData.toplevelBaoDiFlag = true\n                    _resultData.toplevelBaoDiLevel = adjustContext.topLevel\n                else\n                    _resultData.toplevelBaoDiFlag = false\n                    _resultData.toplevelBaoDiLevel = nil\n                end\n            end\n\n            if self.debugMode then printx(1, \"UBFuuuSelectAdjust:__getDesiredDiffAvgFix \", \"_enableBaoDi =\" , _enableBaoDi) end\n            if self.debugMode then \n                if baodiConfig then printx(1, \"UBFuuuSelectAdjust:__getDesiredDiffAvgFix \", \"baodiConfig.diffAvg =\" , baodiConfig.diffAvg) end\n            end\n\n            if _enableBaoDi then\n                -- 执行保底策略\n                local _diffindex_BaoDi = nil\n\n                if baodiConfig and baodiConfig.diffAvg and baodiConfig.diffAvg < desiredDiffAvgFix then\n                    desiredDiffAvgFix = baodiConfig.diffAvg\n"
+    },
+    {
+      "id": 3,
+      "slug": "feedback-distance",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelfFeedback.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelfFeedback.lua",
+      "start": 52,
+      "end": 70,
+      "purpose": "上下候选距离加权的第一阶段随机公式；必须与相邻选档后续扰动一起阅读。",
+      "source_sha256": "77a3d91f1a92e4d85d3addfe3b7acea46fe361b61c633ad8308f26c23e307a07",
+      "excerpt_sha256": "626386bba496b93cb91cfcb8f982ebf2c74ee759b18297b07c4a81db37010dbc",
+      "quote": "local function randomUpOrLow( updv, lowdv )\n    -- updv = 28.984\n    -- lowdv = 0.095\n\n    local _r = updv / (updv + lowdv) --差值越大，随机到的概率越低\n    -- 1 - ( 28.984 / ( 28.984 + 0.095 ) )\n    -- 1 - ( 28.984 / ( 29.079 ) )\n    -- 1 - 0.99673\n    -- 0.0033\n    \n    if UBFuuuSelfFeedback.debugMode then printx(1,\"selfFeedback ---------- randomUpOrLow  updv:\" , updv, \"lowdv:\", lowdv) end\n    local _random = math.random()\n    if UBFuuuSelfFeedback.debugMode then printx(1,\"selfFeedback ---------- randomUpOrLow  _r = 1 - (_updv / (_updv + lowdv) = \" , _r , \"  _random =\" , _random ) end\n\n    -- _random > 0.99673\n    if _random > _r then\n        return 1\n    else\n        return 2\n"
+    },
+    {
+      "id": 4,
+      "slug": "feedback-branches",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelfFeedback.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelfFeedback.lua",
+      "start": 246,
+      "end": 314,
+      "purpose": "低目标直选最低档、等值路径、相邻候选先选档再98/1/1扰动；保留完整语义边界。",
+      "source_sha256": "77a3d91f1a92e4d85d3addfe3b7acea46fe361b61c633ad8308f26c23e307a07",
+      "excerpt_sha256": "7502aebab9f073449f6d2045d3c28c05538443b1716933957aef9c3f407fb2f7",
+      "quote": "        if desiredDiff <= 1 then\n            -- 跳线，直接返回 -16\n            _finalDiffFix = minDiffFix -- _finalDiffFix = -16\n            _feedpath = 34\n        elseif desiredDiff <= 1.03 then\n            -- 跳线，返回一个不高于 1.08 难度，且diffFix尽可能接近 0 的档位\n            --[[\n                从diffFix0档开始尝试（当前diffFix设置为0）\n                    如果 查表后难度 > 1.05\n                        diffFix降低一档，重新比对\n                    如果 1.03 <= 查表后难度 <= 1.05\n                        如果 当前diffFix >= -2\n                            diffFix降低一档，重新比对\n                        否则\n                            使用当前diffFix档位\n                    如果 查表后难度 < 1.03\n                        使用当前diffFix档位\n            ]]\n            _finalDiffFix = checkDiffFixByLowDiff(0, _checkmap)\n            _feedpath = 35\n        else\n\n            if upDV == 0 or lowDV == 0 then\n                --目标难度 和某个档位的难度 相同，直接使用这个档位\n                local _r = math.random()\n\n                if upDV == 0 then\n                    if self.debugMode then printx(1,\"selfFeedback ---------- random 000.1 upDV:\" , upDV, \"diffFix:\", upK) end\n                    if _r < 0.98 then\n                        _finalDiffFix = upK \n                        _feedpath = 1\n                    elseif _r < 0.99 then\n                        _finalDiffFix = upK + 1\n                        _feedpath = 2\n                    else\n                        _finalDiffFix = upK - 1\n                        _feedpath = 3\n                    end\n                else\n                    if self.debugMode then printx(1,\"selfFeedback ---------- random 000.2 lowDV:\" , lowDV, \"diffFix:\", lowK) end\n                    _finalDiffFix = lowK \n                    _feedpath = 4\n                end\n                \n            elseif upK and lowK then\n                if math.abs(upK - lowK) == 1 then\n                    --最好的情况，目标难度在两个相邻的档位之间，直接随机这两个档位即可\n                    local _r = randomUpOrLow( upDV, lowDV )\n                    if _r == 1 then \n                        if self.debugMode then printx(1,\"selfFeedback ---------- random 111 upDV:\" , upDV, \"diffFix:\", upK) end\n                        _finalDiffFix = upK \n                        _feedpath = 5\n                    else\n                        if self.debugMode then printx(1,\"selfFeedback ---------- random 111 lowDV:\" , lowDV, \"diffFix:\", lowK) end\n                        _finalDiffFix = lowK \n                        _feedpath = 6\n                    end\n\n                    local _r2 = math.random()\n                    if _r2 < 0.98 then\n                        -- to nothing\n                        _feedpath = 7\n                    elseif _r2 < 0.99 then\n                        _finalDiffFix = _finalDiffFix + 1\n                        _feedpath = 8\n                    else\n                        _finalDiffFix = _finalDiffFix - 1\n                        _feedpath = 9\n                    end\n"
+    },
+    {
+      "id": 5,
+      "slug": "config-diff0",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/configs/UBFuuuDiffLogicConfigSetMap.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/configs/UBFuuuDiffLogicConfigSetMap.lua",
+      "start": 83,
+      "end": 93,
+      "purpose": "实际diffFix0配置：lineFix0、defaultDsFix0、末段修正与−5…15限幅。",
+      "source_sha256": "3c99025f5095817ea16431e03f130b847be1ed9452a6f4928dcb970e2a4a860e",
+      "excerpt_sha256": "4804bcc54fa8b970aa13e7869f4aa76bf8d7f48f984cbd7543f09fb248ab5f27",
+      "quote": "    [0] = {\n        lineFix = 0,        --平移期望线\n        defaultDsFix = 0,   --ds强度整体偏移\n        stepDiffFix = {     --不同step区间内，ds的偏移值\n            {stepDiff = 3, rate = 4, dsFix = 1},\n            {stepDiff = 5, rate = 10, dsFix = 2},\n            {stepDiff = 10, rate = 15, dsFix = 1},\n        },\n        maxDs = 15,\n        minDs = -5,\n    },\n"
+    },
+    {
+      "id": 6,
+      "slug": "config-diff-minus16",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/configs/UBFuuuDiffLogicConfigSetMap.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/configs/UBFuuuDiffLogicConfigSetMap.lua",
+      "start": 261,
+      "end": 270,
+      "purpose": "实际diffFix−16配置：lineFix9、defaultDsFix12、末段修正与−5…15限幅。",
+      "source_sha256": "3c99025f5095817ea16431e03f130b847be1ed9452a6f4928dcb970e2a4a860e",
+      "excerpt_sha256": "f2f94fb2a6ae279af86b3d2c8042d785ec9260be7b201e1c4350b1fda7aadbaf",
+      "quote": "    [-16] = {\n        lineFix = 9,        --平移期望线\n        defaultDsFix = 12,   --ds强度整体偏移\n        stepDiffFix = {     --不同step区间内，ds的偏移值\n            {stepDiff = 3, rate = 4, dsFix = 5},\n            {stepDiff = 5, rate = 6, dsFix = 5},\n            {stepDiff = 10, rate = 10, dsFix = 4},\n        },\n        maxDs = 15,\n        minDs = -5,\n"
+    },
+    {
+      "id": 7,
+      "slug": "lag-normalization",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuDiffLogic.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuDiffLogic.lua",
+      "start": 790,
+      "end": 812,
+      "purpose": "期望线偏移与标准化偏差；数字是内部进度控制量，不是在玩家界面直接加步。",
+      "source_sha256": "39782bb84108ac9eb0b0f8fb94647ee82794b010c7dc329c6992ab66146d03b1",
+      "excerpt_sha256": "56679aee844b1aecb848c85ef328b4cde133fe7bbfed710078fbd93b2859f8d8",
+      "quote": "    fixedMaxDiffMove = fixedMaxDiffMove + fixedLineFix\n    if _debug then printx( 1 , \"[U5] UBFuuuDiffLogic:calculateDeviation  S2 fixedMaxDiffMove:\", fixedMaxDiffMove, \"lineFix:\", fixedLineFix ) end\n    \n\n    resultData.originDiffMove = maxDiffMove\n    resultData.lineFix = fixedLineFix\n    resultData.diffMove = fixedMaxDiffMove\n    resultData.currExpect = _fixedMoveCount / staticMoveCount\n    resultData.curProgress = (_fixedMoveCount - fixedMaxDiffMove) / staticMoveCount\n\n    local _diffmove = math.abs(fixedMaxDiffMove) \n    if _diffmove > staticMoveCount then\n        _diffmove = staticMoveCount\n    end\n\n    if adJustRawData.lockedDeviation then\n        resultData.deviation = adJustRawData.lockedDeviation\n    else\n        if fixedMaxDiffMove > 0 then\n            resultData.deviation = _diffmove / staticMoveCount\n        else\n            resultData.deviation = _diffmove / staticMoveCount * -1\n        end\n"
+    },
+    {
+      "id": 8,
+      "slug": "base-ds",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuDiffLogic.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuDiffLogic.lua",
+      "start": 1102,
+      "end": 1129,
+      "purpose": "currRate到基础ds的实际分段公式；保留ceil中的epsilon和负向严格边界。",
+      "source_sha256": "39782bb84108ac9eb0b0f8fb94647ee82794b010c7dc329c6992ab66146d03b1",
+      "excerpt_sha256": "02c4f829745e403915d9da9354eea25bf04a47b5ab268a0c1e293b51a792a1bc",
+      "quote": "    local _ds1 = 0\n\n    if _currRate > 0 then\n        if _currRate <= 30 then\n            _ds1 = math.ceil( (_currRate / 3) + 0.0001 )\n        elseif _currRate <= 35 then\n            _ds1 = 11\n        elseif _currRate <= 40 then\n            _ds1 = 12\n        elseif _currRate <= 45 then\n            _ds1 = 13\n        elseif _currRate <= 50 then\n            _ds1 = 14\n        else\n            _ds1 = 15\n        end\n    else\n        if _currRate < -30 then\n            _ds1 = -5\n        elseif _currRate < -20 then\n            _ds1 = -4\n        elseif _currRate < -15 then\n            _ds1 = -3\n        elseif _currRate < -10 then\n            _ds1 = -2\n        elseif _currRate < -5 then\n            _ds1 = -1\n        end\n"
+    },
+    {
+      "id": 9,
+      "slug": "final-ds",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuDiffLogic.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuDiffLogic.lua",
+      "start": 1231,
+      "end": 1267,
+      "purpose": "默认强度偏移、剩余步数首个命中修正、最终限幅；解释基础12+12为何最终15。",
+      "source_sha256": "39782bb84108ac9eb0b0f8fb94647ee82794b010c7dc329c6992ab66146d03b1",
+      "excerpt_sha256": "d410bfcb13c74444df5a960ca6a5eb86f79d0396edf42e19c4f491312dc6d43c",
+      "quote": "    local _stepDiff = _staticMove - moveCountWithRevert\n\n    local fixedDsFix = _configSet.defaultDsFix\n    local _fixedDsFixUp = math.ceil(fixedDsFix) \n    local _fixedDsFixDown = math.floor(fixedDsFix) \n\n    if _fixedDsFixUp ~= _fixedDsFixDown then\n\n        local boardContext = levelContext:getBoardContext(1)\n        local randomSeed = boardContext:nextSeed(\"UBFuuu\")\n\n        fixedDsFix = self:randomByUpLowNumber(_fixedDsFixDown, _fixedDsFixUp, _configSet.defaultDsFix, randomSeed)\n    end\n\n    currDs = currDs + fixedDsFix\n\n    if _debug then printx( 1 , \"_ds3 ===========\" , currDs, \"_configSet.defaultDsFix =\", _configSet.defaultDsFix, \"fixedDsFix =\", fixedDsFix ) end\n    \n    if _configSet.stepDiffFix then\n        for k,v in ipairs(_configSet.stepDiffFix) do\n            if _stepDiff <= v.stepDiff then\n                if _currRate > v.rate then \n                    currDs = currDs + v.dsFix \n                    if _debug then printx( 1 , \"_ds4 ===========\" , currDs , \"_currRate =\" , _currRate, \"v.rate =\" , v.rate, \"v.dsFix  =\" , v.dsFix  ) end\n                    break\n                end\n            end\n        end\n    end\n    \n    \n    if currDs < (_configSet.minDs or minDsCount) then\n        currDs = _configSet.minDs or minDsCount \n    end\n    if currDs > (_configSet.maxDs or maxDsCount) then\n        currDs = _configSet.maxDs or maxDsCount \n    end\n"
+    },
+    {
+      "id": 10,
+      "slug": "waiting-dataset",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFPlay/logics/product/UBFProductItemDiffChangeLogicV2.lua",
+      "relative_path": "ubf/UBFPlay/logics/product/UBFProductItemDiffChangeLogicV2.lua",
+      "start": 145,
+      "end": 180,
+      "purpose": "waiting时重估ds并保存dataset；与随后生成动物时消费dataset的时序相接。",
+      "source_sha256": "0faefb684f9e3eaba5d120809dcba27af54acd27712306e743cedbbb2595302f",
+      "excerpt_sha256": "fddd0dfdd03cb71cce7c4dbec5748efa20f38aa40522e3d5440bb3890c5ac008",
+      "quote": "function UBFProductItemDiffChangeLogicV2:onEnterWaiting(boardContext)\n\tself:setDataset(nil)\n\tself:setCurrDS(0)\n\n\tlocal levelAdjustData = self:getAdjustData()\n\n\tif log then log( \"UBFProductItemDiffChangeLogicV2:onEnterWaiting  levelAdjustData =\" , levelAdjustData ) end\n\n\tif levelAdjustData then\n\t\t-- local deviation, datas = self.gameBoardLogic:callById( self.gameBoardLogic.fuuuGraphLogicId , \"getFuuuDeviation\" , true , false )\n\t\tif log then _G.UBFuuuDebugCore.showPrintInfo = {} end\n\n\t\tself.ubfuuuLogic:onEnterWaiting(self.gameBoardLogic, self.levelContext)\n\t\t\n\t\t-- calculate_curr_ds\n\t\tlocal resultData = self.ubfuuuLogic:calculateCurrDs(self.levelContext)\n\n\t\tself.ubfuuuLogic:setCurrDs(self.levelContext, resultData)\n\n\t\tif log then \n\t\t\t-- if levelAdjustData.enableAdjust then\n\t\t\t-- \tlocal _str = \"\"\n\t\t\t-- \tfor k,v in ipairs(_G.UBFuuuDebugCore.showPrintInfo) do\n\t\t\t-- \t\t_str = _str .. v\n\t\t\t-- \tend\n\t\t\t-- \tUBFThreadBridge:sendMainThreadDebugGlobalCall(\"UBFuuuDebug\", \"showPrint\", _str)\n\t\t\t-- end\n\t\t\t_G.UBFuuuDebugCore.showPrintInfo = {}\n\t\tend\n\n\t\tif resultData then\n\t\t\t\n\t\t\tlocal _dataset = self.ubfuuuLogic:tryGetCurrDatasetByDs(resultData.currDs)\n\t\t\tself:setDataset(_dataset)\n\t\t\t-- levelAdjustData.currDs = _currDs\n\t\t\tself:setCurrDS(resultData.currDs)\n"
+    },
+    {
+      "id": 11,
+      "slug": "positive4",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/configs/UBFuuuFalsifyConfig.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/configs/UBFuuuFalsifyConfig.lua",
+      "start": 142,
+      "end": 169,
+      "purpose": "当前有效Positive4整组A/B/C参数；A第一段名义阈值40/100，不能拿旧App表替代。",
+      "source_sha256": "e9f2d2bad1a846087cc41e22afd36c28cbb4cd0bbf0cb2cf58ec365b150268c1",
+      "excerpt_sha256": "4ba373be0135e771ad14246b48f41a9c7289147fb7d13ab4c2347681a26b8077",
+      "quote": "\t\t[4] = {\n\t\t\truleA_m1 = 40,\n\t\t\truleA_m2 = 30,\n\t\t\truleA_m3 = 20,\n\t\t\truleA_m4 = 20,\n\t\t\truleA_n1 = 3,\n\t\t\truleA_n2 = 5,\n\t\t\truleA_n3 = 10,\n\t\t\truleA_n4 = 9999,\n\n\t\t\truleB_m1 = 5,\n\t\t\truleB_m2 = 7,\n\t\t\truleB_m3 = 10,\n\t\t\truleB_m4 = 15,\n\t\t\truleB_n1 = 5,\n\t\t\truleB_n2 = 10,\n\t\t\truleB_n3 = 15,\n\t\t\truleB_n4 = 20,\n\n\t\t\truleC_m1 = 15,\n\t\t\truleC_m2 = 20,\n\t\t\truleC_m3 = 30,\n\t\t\truleC_m4 = 9999,\n\t\t\truleC_n1 = 1,\n\t\t\truleC_n2 = 2,\n\t\t\truleC_n3 = 3,\n\t\t\truleC_n4 = 5,\n\t\t},\n"
+    },
+    {
+      "id": 12,
+      "slug": "positive15",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/configs/UBFuuuFalsifyConfig.lua",
+      "relative_path": "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/configs/UBFuuuFalsifyConfig.lua",
+      "start": 458,
+      "end": 485,
+      "purpose": "当前有效Positive15整组A/B/C参数；A第一段名义阈值85/100及其他配额。",
+      "source_sha256": "e9f2d2bad1a846087cc41e22afd36c28cbb4cd0bbf0cb2cf58ec365b150268c1",
+      "excerpt_sha256": "5af7225dd4ad0a996ab30f82f4b471ccf4144065cbbfdd519e14f1a16a12d073",
+      "quote": "\t\t[15] = {\n\t\t\truleA_m1 = 85,\n\t\t\truleA_m2 = 80,\n\t\t\truleA_m3 = 75,\n\t\t\truleA_m4 = 65,\n\t\t\truleA_n1 = 3,\n\t\t\truleA_n2 = 5,\n\t\t\truleA_n3 = 10,\n\t\t\truleA_n4 = 9999,\n\n\t\t\truleB_m1 = 5,\n\t\t\truleB_m2 = 7,\n\t\t\truleB_m3 = 10,\n\t\t\truleB_m4 = 15,\n\t\t\truleB_n1 = 5,\n\t\t\truleB_n2 = 10,\n\t\t\truleB_n3 = 15,\n\t\t\truleB_n4 = 20,\n\n\t\t\truleC_m1 = 35,\n\t\t\truleC_m2 = 50,\n\t\t\truleC_m3 = 70,\n\t\t\truleC_m4 = 9999,\n\t\t\truleC_n1 = 1,\n\t\t\truleC_n2 = 2,\n\t\t\truleC_n3 = 3,\n\t\t\truleC_n4 = 5,\n\t\t},\n"
+    },
+    {
+      "id": 13,
+      "slug": "rule-a",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFPlay/logics/product/UBFProductItemDiffChangeLogicV2.lua",
+      "relative_path": "ubf/UBFPlay/logics/product/UBFProductItemDiffChangeLogicV2.lua",
+      "start": 273,
+      "end": 313,
+      "purpose": "按目标色已生成数分档并检查随机值；原色已是目标色时走同色保留标记。",
+      "source_sha256": "0faefb684f9e3eaba5d120809dcba27af54acd27712306e743cedbbb2595302f",
+      "excerpt_sha256": "a1eb8fe86fdbad7db034273fd22e290c483f3a29f37ad93862bc86ebc48bf138",
+      "quote": "function UBFProductItemDiffChangeLogicV2:changeColorRuleA( boardContext , maxColorIndex , oringinColorIndex , adjustStepData , dataset )\n\tlocal result = {}\n\tresult.result = true\n\t-- if log then log( \"ProductItemDiffChangeLogic:changeColorRuleA  \" , maxColorIndex ,oringinColorIndex , cannonType ,  tts(adjustStepData) , tts(dataset)) end\n\n\n\tif maxColorIndex ~= oringinColorIndex then\n\t\tlocal maxColorCount = adjustStepData.resultColorMap[maxColorIndex] or 0\n\t\tlocal ruleA_m = 0\n\t\tlocal ri = 0\n\t\t\n\t\tfor i = 1 , 4 do\n\t\t\t-- if log then log( \"i\" .. tostring(i) , \"maxColorIndex = \" , maxColorIndex , \"maxColorCount = \" , maxColorCount ) end\n\t\t\t-- if log then log( table.tostring(adjustStepData.resultColorMap)) end\n\t\t\tif maxColorCount <= dataset[\"ruleA_n\" .. tostring(i)] then\n\t\t\t\truleA_m = dataset[\"ruleA_m\" .. tostring(i)]\n\t\t\t\tri = i\n\t\t\t\tbreak\n\t\t\tend\n\t\tend\n\t\t\n\t\tlocal num1 = 100\n\n\t\tif UBFRandom:calcValue( boardContext:nextSeed( \"diffAdjust\" ) , 1 , num1 ) <= ruleA_m then\n\t\t\t-- if log then log( \"RuleA  return 111  ruleA_m =\" , ruleA_m , \"result.result =\" , result.result) end\n\t\t\treturn result\n\t\telse\n\t\t\tresult.result = false\n\t\t\tresult.ruleIndex = ri\n\t\t\tresult.m = ruleA_m\n\t\t\t-- if log then log( \"RuleA  return 222  ruleA_m =\" , ruleA_m , \"ruleIndex =\" , result.ruleIndex ) end\n\t\t\treturn result\n\t\tend\n\telse\n\t\t-- if log then log( \"ProductItemDiffChangeLogic:changeColorRuleA   maxColorIndex ~= oringinColorIndex !!!!!!!!!!!!!!!!!!!!\") end\n\t\tresult.result = true\n\t\tresult.isSameColor = true\n\t\tresult.oringinColorIndex = oringinColorIndex\n\tend\n\n\treturn result\n"
+    },
+    {
+      "id": 14,
+      "slug": "plus-color-write",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFPlay/logics/product/UBFProductItemDiffChangeLogicV2.lua",
+      "relative_path": "ubf/UBFPlay/logics/product/UBFProductItemDiffChangeLogicV2.lua",
+      "start": 676,
+      "end": 729,
+      "purpose": "正向A/B/C检查的真实顺序、拒绝时非目标色分支、自然同色保留和实际调用改色。",
+      "source_sha256": "0faefb684f9e3eaba5d120809dcba27af54acd27712306e743cedbbb2595302f",
+      "excerpt_sha256": "37e2b4a2ab23dcc1b945f6ebdc8a88ab74df31e127979072c5c0895d2097769e",
+      "quote": "\tlocal function doPlusColor()\n\n\t\tlocal result = self:changeColorRuleA( boardContext , maxColorIndex , oringinColorIndex , adjustStepData , dataset )\n\t\t-- if log then log(table.tostring0(result)) end\n\t\t\n        local isSameColor = false\n\t\t\n        if not result.result then\n\n\t\t\tself:_doPassChangeColor( oringinColorIndex , adjustStepData , dataset , colorLogList )\n\t\t\treturn\n\t\telse\n\t\t\tif result.isSameColor then\n\t\t\t\t-- if log then log( \"maxColorIndex == oringinColorIndex , so ignore it\") end\n\t\t\t\tisSameColor = true\n\t\t\tend\n\t\tend\n\n\t\tif not isSameColor then\n\t\t\tresult = self:changeColorRuleB( maxColorIndex , colorLogList , dataset )\n\t\t\t-- if log then log( \"UBFProductItemDiffChangeLogicV2:__falsify changeColorRuleB result\" , table.tostring0(result) ) end\n\t\t\tif not result.result then\n\t\t\t\t-- if true then \n\t\t\t\t-- \tif log then log( \"UBFProductItemDiffChangeLogicV2:__falsify  NOT MAX BY B  at\" , cannonPosKey ) end\n\t\t\t\t-- \tif log then log( \"ruleIndex:\" , result.ruleIndex , \"maxColorIndex:\" , result.maxColorIndex , \"maxColorNum:\" , result.maxColorNum , \"oringinColorIndex:\" , oringinColorIndex) end\n\t\t\t\t-- end\n\t\t\t\t-- printx( 1 ,\"+++ doPlusColor +++   _doChangeNotMaxColor 111 -> \" , maxColorIndex , oringinColorIndex, \"_currDs = \" , _currDs)\n\t\t\t\tself:_doChangeNotMaxColor( \n                        boardContext , itemContext , maxColorIndex  , oringinColorIndex , produceColorList , adjustStepData , dataset , colorLogList)\n\t\t\t\t-- if log then log( \"--------------------------------------\") end\n\t\t\t\treturn\n\t\t\tend\n\n\t\t\tresult = self:changeColorRuleC( maxColorIndex , dataset , moveCountWithRevert )\n\t\t\tif not result.result then\n\t\t\t\t-- printx( 1 ,\"+++ doPlusColor +++   _doChangeNotMaxColor 222 -> \" , maxColorIndex , oringinColorIndex, \"_currDs = \" , _currDs)\n\t\t\t\tself:_doChangeNotMaxColor( \n                        boardContext , itemContext , maxColorIndex  , oringinColorIndex , produceColorList , adjustStepData , dataset , colorLogList )\n\t\t\t\t-- if log then log( \"UBFProductItemDiffChangeLogicV2:__falsify  NOT MAX BY C\" ) end\n\t\t\t\t-- if log then log( \"ruleIndex:\" , result.ruleIndex , \"changeColorCountInSomeSteps:\" , result.count) end\n\t\t\t\t-- if log then log( \"--------------------------------------\") end\n\t\t\t\treturn\n\t\t\tend\n\t\tend\n\t\t\n\n\t\tif isSameColor then\n\t\t\t-- if log then log( \"UBFProductItemDiffChangeLogicV2:__falsify  PASS BY Same Color Ignore  oringinColorIndex:\" , oringinColorIndex , \" oringinColorNum:\" , stepContext.resultColorMap[oringinColorIndex] ) end\n\t\t\tself:_doPassChangeColor( oringinColorIndex , adjustStepData , dataset , colorLogList )\n\t\telse\n\t\t\t-- if log then log( \"UBFProductItemDiffChangeLogicV2:__falsify  doChangeColor  oringinColorIndex\" , oringinColorIndex , \"  maxColorIndex:\" , maxColorIndex , \"maxColorNum:\"  , stepContext.resultColorMap[maxColorIndex] ) end\n\t\t\t-- printx( 1 ,\"+++ doPlusColor +++   maxColorIndex = \" , maxColorIndex , \"_currDs = \" , _currDs)\n\t\t\tself:_doChangeColor( itemContext , maxColorIndex , true , adjustStepData , dataset , colorLogList)\n\t\tend\n"
+    },
+    {
+      "id": 15,
+      "slug": "produce-falsify-place",
+      "path": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21/analysis/native_decode/decoded/ubf/UBFPlay/logics/falling/UBFFallingItemLogicV2_1.lua",
+      "relative_path": "ubf/UBFPlay/logics/falling/UBFFallingItemLogicV2_1.lua",
+      "start": 1416,
+      "end": 1457,
+      "purpose": "候选生成→forbiddenFalsify门禁→falsify→设置落点；证明是落地前实际补棋颜色控制。",
+      "source_sha256": "5c9bc2601e5acdec02bdeebd5961b03fb9e8939564ee00e76a69f675a3ce4dd5",
+      "excerpt_sha256": "5a07c89cb11857ec2ec1fb0c73dc549765f4a026b88321e2bea2a2143f7e58fb",
+      "quote": "function UBFFallingItemLogicV2_1:doFallingByCannon(boardContext, r, c, viewActlist)\n\n\tlocal gridPos = { r = r , c = c }\n\n\tlocal gameBoardLogic = self.gameBoardLogic\n\tlocal prData = gameBoardLogic:callById(gameBoardLogic.productItemLogicId, \"checkAndGetRule\", boardContext, gridPos)\n\tif not prData then return false end\n\n\tlocal generator = gameBoardLogic:callById(gameBoardLogic.productItemLogicId, \"doProduceByRuleData\", boardContext, prData)\n\tif not generator then return false end\n\n\tlocal itemList = generator(gameBoardLogic, true)\n\n\tif not itemList then return false end\n\n\tif not prData.forbiddenFalsify then\n\t\tlocal importantSiteMap = gameBoardLogic.levelContext:getValue(\"importantSiteMap\")\n\t\tif importantSiteMap.onCannonFalsify then \n\t\t\tlocal params = { \n\t\t\t\titemList = itemList,\n\t\t\t\tgridPos = gridPos,\n\t\t\t\tsetBlock = setBlock,\n\t\t\t}\n\t\t\tfor _, runner in ipairs(importantSiteMap.onCannonFalsify) do \n\t\t\t\tUBFFeatureHelper:doCommonRunner(gameBoardLogic, boardContext, runner, params)\n\t\t\t\tif params.isBlock then break end\n\t\t\tend\n\t\t\titemList = params.itemList\n\t\tend\n\t\tgameBoardLogic:callById(gameBoardLogic.levelDiffChangeLogicId, \"falsify\", boardContext, itemList) \n\tend\n\n\tlocal itemRawDataList = {}\n\n\t--\n--\n\n\n\tfor k , v in ipairs(itemList) do \n\t\tv:setItemPos({ r = r , c = c })\n\t\tlocal itemContextRaw = v:getRawData()\n\t\ttable.insert(itemRawDataList, itemContextRaw)\n"
+    }
+  ]
+}

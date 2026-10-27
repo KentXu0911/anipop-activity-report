@@ -1,0 +1,744 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFPlayConst.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFPlayConst.lua</h1><p class="src-meta">ubf/UBFPlay/declares/UBFPlayConst.lua<br>SHA-256 ecc8fb84922700d5bfa58e6c00dedfbcd5534fa3f15b4debeae322571ef39eda · 744 行 · 恢复原文，未经改写</p><a href="UBFPlayConst-4d25a360.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>--确保所有地方的颜色枚举一致UBFConst.GameItemColorType</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>_G.UBFAnimalColorType = {</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>    kRandom = 0 ,</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>    kBlue = 1 ,   </span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>    kGreen= 2 , </span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>    kOrange = 3 ,</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>    kPurple = 4 ,</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    kRed = 5 , </span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    kYellow = 6 ,</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>    kManual = -1,   -- 手动，某些状态需要保持置灰，区别于随机</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>}</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a></span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>_G.UBFAnimalColorTypeNameMap = {</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>    [_G.UBFAnimalColorType.kBlue] = &quot;蓝&quot;,</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>    [_G.UBFAnimalColorType.kGreen] = &quot;绿&quot;,</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>    [_G.UBFAnimalColorType.kOrange] = &quot;棕&quot;,</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>    [_G.UBFAnimalColorType.kPurple] = &quot;紫&quot;,</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>    [_G.UBFAnimalColorType.kRed] = &quot;红&quot;,</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    [_G.UBFAnimalColorType.kYellow] = &quot;黄&quot;,</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>}</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a></span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>--格子上下文模式，对应坐标的d</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>_G.GridContextDimension = {</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>    kNormal = 0,</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>    kVertex = 1,</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>}</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>_G.UBFAnimalSpecialType = {</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>    kNone = 0 ,   --无特效</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>    kRandom = 1 , --随机特效</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    kLineH = 2 ,  --横线特效</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>    kLineV = 3 , --竖线特效</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>    kBomb = 4 , --爆炸特效</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>    kRandomHV = 10, --随机横竖</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>}</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>_G.UBFSwapResultType = {</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>    kTryMatch = 1 ,</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>    kLineLineSwap = 2 ,</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>    kLineBoomSwap = 3 ,</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>    kBoomBoomSwap = 4 ,</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>    kBridlikeItemSwap = 5 ,     -- 鸟 + 非鸟/非特效动物/非普通小动物</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>    kBridlikeLineSwap = 6 ,</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>    kBridlikeBoomSwap = 7 ,</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>    kBridlikeBridlikeSwap = 8 ,</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>    kBridlikeCommonAnimalSwap = 9,     -- 鸟 + 普通小动物</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>    kBTreeCustomSwap = 99 ,</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>}</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a></span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a></span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>_G.UBF_MATCH_STATISTIC_CLASSIFY = -1</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>_G.UBFMatchMixResult = {</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>    kDefault = 0 ,   --缺省值，表示尚未经过合成计算</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>    kNormalMatch = 1 , --普通匹配三消，不合成特效</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>    kLineH = 2 ,  --横线特效</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>    kLineV = 3 , --竖线特效</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>    kBomb = 4 , --爆炸特效</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>    kBird = 5 , --魔力鸟特效</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>}</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a></span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>--什么行为产生了攻击</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>_G.AttackSource = { </span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>    kMatch = 1 ,        --普通匹配消除（特指可匹配消除的物体）</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>    kMix = 2 ,          --匹配合成（当前格子参与了匹配合成，对当前格子产生的额外攻击）</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>    kEffect = 3 ,       --特效击打</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>    kFeature = 4 ,      --障碍的特殊放招击打</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>    kProp = 5 ,         --道具击打</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>    kExtraAtk = 6 ,     --Item（通常是小动物）被销毁时触发的攻击</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>    kFunctionality = 7, --功能性打击，比如魔力鸟要替换小动物，先要打击，这种打击不会触发额外攻击</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>    kCrush = 8,          --碾格子！ </span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>    Virtual = 9,        --这个是rust中的占位，因为虚拟攻击是后做的，简单补了个额外字段，但其实是可以合并的</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>}</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a></span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>_G.AttackGroupFlagType = { </span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>    kDefault = &quot;&quot;,           --默认</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>    kTwoBirdsCasting = &quot;birdbird&quot;,      --双鸟放招打全屏</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>    kBirdAttackColor = &quot;birdattack&quot;,    --魔力鸟与颜色item交换或被打，攻击所有同色item</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>    kActiveStarJarAttack = &quot;activestarjarattack&quot;,   --星星瓶和颜色item换</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>    kSnowMonsterSuperCasting = &quot;snowMonsterSuperCasting&quot;,   --双雪怪全屏放招</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>}</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a></span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>--攻击类型(grid,around)</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>_G.AttackType = { </span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>    kGrid = 1 ,   --本格内单格攻击</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>    kAround= 2 ,  --旁消攻击</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>}</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a></span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>_G.GridFallingState = {</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>	kNormal = 1 ,</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>	kFalling = 2 , </span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>	kJustArrive = 3 ,</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>    kHalfStable = 4 ,</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>}</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a></span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>--默认方向是顺时针的，和重力方向判断略有不同</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>_G.UBFDirection = {</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>    kUp = 0,</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>    kRightUp = 5,</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>    kRight = 10,</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>    kRightDown = 15,</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>    kDown = 20,</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>    kLeftDown = 25,</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>    kLeft = 30,</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>    kLeftUp = 35,</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>    clockwise = function(dir, rotation)</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>        while rotation &lt; 0 do rotation = rotation + 360 end</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>        return (dir + rotation * 20 / 180 ) % 40</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>    end,</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>    toRoatation = function(dir)</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>        return dir * 90 / 10</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>    end,</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>    isLine = function(dir1 , dir2)</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>        return (dir1 - dir2) % 20 == 0</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>    end,</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>    isAxis = function(dir)</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>        return dir % 10 == 0</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>    end,</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>    isObtuse = function(dir1, dir2)</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>        dir2 = dir2 + 20</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>        local lower = (dir1 - 5) % 40</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>        local upper = (dir1 + 5) % 40</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>        if lower &gt; upper then upper = upper + 40 end</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>        if dir2 &lt;= upper and dir2 &gt;= lower then return true end</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>        return dir2 &lt;= upper + 40 and dir2 &gt;= lower + 40</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>    end,</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>    from = function(key)</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>        if _G.type(key) == &quot;number&quot; then return key end</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>        return _G.UBFDirectionKeyMap[string.lower(key)] or _G.UBFDirection.kUp</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>    end</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>}</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a></span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>UBFDynamicExpression.DefaultField.Direction = UBFDirection</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a></span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>_G.UBFDirectionFourLink = {</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>    [UBFDirection.kUp] = {UBFDirection.kLeft,UBFDirection.kRight},</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>    [UBFDirection.kRight] = {UBFDirection.kUp,UBFDirection.kDown},</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>    [UBFDirection.kDown] = {UBFDirection.kLeft,UBFDirection.kRight},</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>    [UBFDirection.kLeft] = {UBFDirection.kUp,UBFDirection.kDown},</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>}</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a></span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>_G.UBFDirectionEightLink = {</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>    [UBFDirection.kUp] = {UBFDirection.kLeftUp,UBFDirection.kRightUp},</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>    [UBFDirection.kRightUp] = {UBFDirection.kUp,UBFDirection.kRight},</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>    [UBFDirection.kRight] = {UBFDirection.kRightUp,UBFDirection.kRightDown},</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>    [UBFDirection.kRightDown] = {UBFDirection.kRight,UBFDirection.kDown},</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>    [UBFDirection.kDown] = {UBFDirection.kLeftDown,UBFDirection.kRightDown},</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>    [UBFDirection.kLeftDown] = {UBFDirection.kLeft,UBFDirection.kDown},</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>    [UBFDirection.kLeft] = {UBFDirection.kLeftUp,UBFDirection.kLeftDown},</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>    [UBFDirection.kLeftUp] = {UBFDirection.kLeft,UBFDirection.kUp},</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>}</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a></span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>_G.UBFDirectionVecMap = {</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>    [_G.UBFDirection.kUp] = { r = -1 , c = 0 },</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>    [_G.UBFDirection.kDown] = { r = 1 , c = 0 },</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>    [_G.UBFDirection.kLeft] = { r = 0 , c = -1 },</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>    [_G.UBFDirection.kRight] = { r = 0 , c = 1 },</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>    [_G.UBFDirection.kLeftUp] = { r = -1 , c = -1 },</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>    [_G.UBFDirection.kLeftDown] = { r = 1 , c = -1 },</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>    [_G.UBFDirection.kRightUp] = { r = -1 , c = 1 },</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>    [_G.UBFDirection.kRightDown] = { r = 1 , c = 1 },</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>} </span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a></span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>_G.UBFDirectionPartMap = {</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>    [UBFDirection.kLeftUp] = { UBFDirection.kLeft, UBFDirection.kUp },</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>    [UBFDirection.kLeftDown] = { UBFDirection.kLeft, UBFDirection.kDown },</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>    [UBFDirection.kRightUp] = { UBFDirection.kRight, UBFDirection.kUp },</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>    [UBFDirection.kRightDown] = { UBFDirection.kRight, UBFDirection.kDown },</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>}</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a></span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>-- Direction的反方向</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>_G.UBFCounterDirection = {</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>    [UBFDirection.kUp] = UBFDirection.kDown,</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>    [UBFDirection.kDown] = UBFDirection.kUp,</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>    [UBFDirection.kLeft] = UBFDirection.kRight,</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>    [UBFDirection.kRight] = UBFDirection.kLeft,</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>    [UBFDirection.kLeftUp] = UBFDirection.kRightDown,</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>    [UBFDirection.kLeftDown] = UBFDirection.kLeftDown,</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>    [UBFDirection.kRightUp] = UBFDirection.kRightUp,</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>    [UBFDirection.kRightDown] = UBFDirection.kLeftUp,</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>}</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a></span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>_G.UBFDirectionKeyMap = {</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>    [&quot;right&quot;] = UBFDirection.kRight,</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>    [&quot;left&quot;] = UBFDirection.kLeft,</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>    [&quot;up&quot;] = UBFDirection.kUp,</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>    [&quot;down&quot;] = UBFDirection.kDown,</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>}</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a></span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a></span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>_G.UBFDirection.baseMap = {</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>    [UBFDirection.kUp] = true,</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>	[UBFDirection.kRight] = true,</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>	[UBFDirection.kDown] = true,</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>	[UBFDirection.kLeft] = true,</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>}</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>_G.UBFDirection.baseList = { UBFDirection.kUp , UBFDirection.kRight , UBFDirection.kDown , UBFDirection.kLeft }</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>_G.UBFDirection.baseVecList = { </span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>    UBFDirectionVecMap[UBFDirection.kUp], </span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>    UBFDirectionVecMap[UBFDirection.kRight], </span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>    UBFDirectionVecMap[UBFDirection.kDown],</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>    UBFDirectionVecMap[UBFDirection.kLeft], </span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>}</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a></span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>_G.UBFDirection.list = { </span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>    UBFDirection.kUp, </span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>    UBFDirection.kRightUp, </span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>    UBFDirection.kRight, </span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>    UBFDirection.kRightDown, </span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>    UBFDirection.kDown, </span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>    UBFDirection.kLeftDown, </span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>    UBFDirection.kLeft,</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>    UBFDirection.kLeftUp, </span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>}</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a></span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>UBFGameFallingSpdMap = { 7, 3, 2, 2, 1 }</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a></span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>--根据旧的写的，视图用</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>_G.UBFGameFallingConfig = {</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>    SPEED_ADD = 16,</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>    SPEED_MAX = 340,</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>    SPEED_START = 20,</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>    SPEED_PORTAL_START = 80,</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>    UNIT_GRID = 700,</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>}</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>_G.UBFGameFallingChangeType = {</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>	kNew = 1,</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>}</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>_G.UBFGameFallingType = {</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>	kPortal = 1,</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>	kStraight = 3,</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>	kCannon = 5,</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>	kAfterSide = 7,</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>	kSide = 8,</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>	kStop = 9,</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>}</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>_G.GravityDirection = {</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>	kUp = 1 ,</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>	kDown = 2 , </span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>	kLeft = 3 ,</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>	kRight = 4 ,</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>}</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a></span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>_G.GravityDirectionVecMap = {</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>    [_G.GravityDirection.kUp] = { r = -1 , c = 0 },</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>    [_G.GravityDirection.kDown] = { r = 1 , c = 0 },</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>    [_G.GravityDirection.kLeft] = { r = 0 , c = -1 },</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>    [_G.GravityDirection.kRight] = { r = 0 , c = 1 }</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>} </span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a></span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>_G.GravityDirectionToDirection = {</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>    [GravityDirection.kDown] = UBFDirection.kDown,</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>    [GravityDirection.kUp] = UBFDirection.kUp,</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>    [GravityDirection.kLeft] = UBFDirection.kLeft,</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>    [GravityDirection.kRight] = UBFDirection.kRight,</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>}</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a></span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>_G.UBFDirectionToGravityDirection = {</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>    [UBFDirection.kDown] = GravityDirection.kDown,</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>    [UBFDirection.kUp] = GravityDirection.kUp,</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>    [UBFDirection.kLeft] = GravityDirection.kLeft,</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>    [UBFDirection.kRight] = GravityDirection.kRight,</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>}</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a></span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>--生成口更新触发时机枚举</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>_G.UBFProduceTriggerEvent = {</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>    kInit = 1,</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>    kMoveStep = 2,</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>    kUseProp = 3,</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>    kEnterAlmostWin = 4,</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>}</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a></span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>--筛选器相关操作状态枚举</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>_G.UBFBoardFilterConst = { </span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a></span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>    kValue = 1,</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>    kRange = 2,</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>    kAny = 3,</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>    kSubItem = 4,</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>    kNoDeathing = 5,</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a></span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>    kAroundExist = 21,</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>    kNonCoexistence = 22,</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>    kCoexistence = 23,</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a></span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>    --和UBFGamePlayConstraint里面的stateCond保持同步</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>    -- kNoLocked = &quot;noLocked&quot;, </span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>    kRequireFollowMaster = &quot;requireFollowMaster&quot;,</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>    kCheckBySelector = &quot;checkBySelector&quot;,</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>}</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a></span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a></span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>--棋盘各种状态key枚举</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>_G.UBFBoardStateKey = {</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>    kSMKey = &quot;SMKey&quot; ,      --状态机当前状态的key</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>    kCanSwap = &quot;Swap&quot;,      --是否可交换的flag</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>    kPlayState = &quot;PlayState&quot;--当前游戏状态</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>}</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a></span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>_G.UBFOperationType = {</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>    kInit = 0,      --开局操作，初始化各种buff</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>    kSwap = 1,      --交换操作</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>    kProp = 2,      --使用道具操作，这包括前置道具后置推荐</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>    kMod = 3,       --模块</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>    kAbandon = 4,   --放弃游戏操作</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>    kUseBuff = 5,   --追加buff操作，比如前置道具推荐！</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>    kDestiny = 6,   --?</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>}</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a></span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>--</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>--</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>--</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>--</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a></span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a></span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>_G.UBFDestinyDisturber = {</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>    kHell = 13,</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>    kForward = 6,</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>}</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a></span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>_G.UBFOperationAbandonType = {</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>    kGiveUp = 1,    --放弃，不继续加步数了</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>    kDropout = 2,   --中途退出</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>    kRetry = 3,     --重玩</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>}</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a></span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>--用于标记section的类型，决定是给谁用，并不是代表section的本质内容有差距</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>_G.UBFSectionType = {</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>    kStep = 1,</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>    kFast = 2,</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>    kKeyPoint = 3,</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>}</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a></span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>_G.UBFResumeType = {</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>    kComplete = 1,</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>    kBackStep = 2,</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>    kDestiny = 3,</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>}</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a></span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>_G.UBFGamePlayState = {</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>    kRun = 1,</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>    kFail = 2,</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>    kWin = 3,</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>    kAlmostFail = 4,</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>    kAlmostWin = 5,</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>}</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a></span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>_G.UBFGameViewAtionClassify = {</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>    kStatus = 1,</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>    kStatusEffect = 2,</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>    kEffect = -1,</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>}</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a></span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>_G.UBFAutoCollectMode = {</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>    kNone = 0,          --没有</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>    kDestroy = 1,       --销毁（默认）</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>    kRelegate = 2,      --降级</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>}</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a></span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>_G.UBFGameFailReason = {</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>    kUnknown = &quot;unknown&quot;,</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>    kNoLife = &quot;nolife&quot;,         --没有生命了，步数模式就是没有步数了</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>    kDeadBoard = &quot;deadBoard&quot;,   --死棋盘，刷新后仍然无可交换</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>    kDropout = &quot;dropout&quot;,       --玩家退出</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>    kRetry = &quot;retry&quot;,           --玩家重试了</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>    kStarLack = &quot;starLack&quot;,     --虽然胜利了，但星级不足1星</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>}</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a></span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>--分数源枚举</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>_G.UBFScoreSourceType = {</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>    kOwnerless = &quot;ownerless&quot;,</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>    kItem = &quot;item&quot;,</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>    kMix = &quot;mix&quot;,</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>    kSwap = &quot;swap&quot;,</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>}</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a></span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a></span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>_G.UBFGameReplayEndType = {</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>    kNormal = &quot;normal&quot;,</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>    kQuit = &quot;quit&quot;,             --主动退出</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>}</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a></span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a></span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>--通用的错误码</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>UBFCommonErrorCode = {</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>    kUnknown = -2,</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>    kCrash = -1,</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>}</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>--回放的错误码，原则上是继承UBFCommonErrorCode的</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>UBFReplayErrorCode = {</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>    kUnknown = UBFCommonErrorCode.kUnknown,</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>    kCrash = UBFCommonErrorCode.kCrash,</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>    kFrameErorr = 1,</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>    kABTickLeading = 2,</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>    kABTickLagging = 3,</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>    kHalfway = 4,   --中途而非</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>    kVoidProp = 5,  --无效道具</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>    kGoldenFinger = 6,   --魔法操作(交换)</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>}</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>UBFFightErrorCode = {</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>    kUnknown = UBFCommonErrorCode.kUnknown,</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>    kCrash = UBFCommonErrorCode.kCrash,</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>    kBadIdea = 1,       --不合理的交换</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a>    kHugeStep = 2,      --大掉落</span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>    kStableMatch = 3,   --棋盘稳定有匹配</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>}</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a></span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a></span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>UBFBorderAttackMode = {</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>    kNone = 0,</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>    kAournd = 1,</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>    kLine = 2,</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>    kAdjacent = 3,</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>    kDir = 4,</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>    kFixDir = 5,</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>}</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a></span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>UBFCalcColorOccasion = {</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>    kManual = -1,</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>    kInit = 0,</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>    kCommonRefresh = 1,</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>}</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a></span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>--------------------------------****** *↓* ******--------------------------------</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>--				                    Feature枚举</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>--------------------------------****** *↑* ******--------------------------------</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a></span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>UBFDesireReturnType = {</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>    GRID_POS = 1,</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>    GRID_POS_LIST = 2,</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>    ITEM = 3,</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>    ITEM_LIST = 4,</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>    MASTER = 5,</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>    MASTER_LIST = 6,</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>    BOOLEAN = 7,</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>}</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a></span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>UBFDesireReturnTypeDefaultValueMap = {</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>    [UBFDesireReturnType.GRID_POS] = nil,</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>    [UBFDesireReturnType.GRID_POS_LIST] = {},</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a>    [UBFDesireReturnType.ITEM] = nil,</span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>    [UBFDesireReturnType.ITEM_LIST] = {},</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>    [UBFDesireReturnType.MASTER] = nil,</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>    [UBFDesireReturnType.MASTER_LIST] = {},</span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>    [UBFDesireReturnType.BOOLEAN] = false,</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>}</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a></span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>UBFDesireTypeIsListMap = {</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>    [UBFDesireReturnType.GRID_POS_LIST] = true,</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>    [UBFDesireReturnType.ITEM_LIST] = true,</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>    [UBFDesireReturnType.MASTER_LIST] = true,</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>}</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a></span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>UBFAttackReturnMode = {</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>    --返还剩余的</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>    RETURN_LEFT = 1,</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>    --返还原始的</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>    RETURN_ORIGIN = 2,</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>    --返还0</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>    RETURN_ZERO = 3,</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>    --返还特定值</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>    RETURN_VALUE = 4,</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a>}</span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a></span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>UBFLevelChangeMode = {</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>    --根据攻击力减少，使用不超过当前level的攻击力</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>    REDUCE_BY_ATTACK = 1,</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>    --减少1，使用全部可使用的攻击力</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>    REDUCE_ONE = 2,</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a>    --到0，使用全部可使用的攻击力</span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>    TO_ZERO = 3,</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>    --减少固定值</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a>    REDUCE_FIXED_VALUE = 4,</span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>    --根据攻击力增加</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>    INCREASE_BY_ATTACK = 5,</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>}</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a></span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>UBFFieldChangeMode = {</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>    -- 设置固定值</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>    SET_TO = 1,</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>    -- 0 -&gt; 1  |  1 -&gt; 0</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>    SWITCH = 2, </span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>    -- 追加</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>    INCREASE_ONE = 3, </span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>    -- 减少</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>    DECREASE_ONE = 4,</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>}</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a></span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a></span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a>UBFScoreCollectMode = {</span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>    --减层时收集</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>    ON_REDUCE_LEVEL = 1,</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>    --被摧毁时收集</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>    ON_DESTROYED = 2, </span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>}</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a></span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>UBFTargetCollectMode = {</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>    --减层时收集</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>    ON_REDUCE_LEVEL = 1,  </span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>    --被摧毁时收集</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>    ON_DESTROYED = 2,</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>    --当state变化</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>    ON_STAGE_CHANGR = 3,</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>}</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a></span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>UBFTargetType = {</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>    --收集目标</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>    NORMAL = 1,  </span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>    --影子目标</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>    SHADOW = 2,</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>    -- 连带收集</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>    COLLAB = 3,</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>}</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a></span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>UBFInteractiveSelectFlag = {</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>    FORBIDDEN = 0,</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a>    VERY_LOW = 1,</span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>    LOW = 2,</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>    NORMAL = 3,</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>    HIGH = 4,</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>    VERY_HIGH = 5,</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>}</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a></span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>UBFInteractiveSelectorRangeMode = {</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>    --活动区域内</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>    IN_BORDER = 1,</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>    --全部</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>    ALL = 2,</span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>}</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a></span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>-- UBFInteractiveSelectPrinciple = {</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>--     --默认原则，选就选，不选拉到</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>--     NORMAL = 1,</span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>--     --沉船原则，如果被选上，整个格子包括自身全不能被选</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>--     WRECK = 2,</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a>--     --领导原则，如果没被选上，整个格子全不能被选（不支持）</span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>--     LEADER = 3,</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>-- }</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a></span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>UBFInteractiveSelectUpgradeMode = {</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>    --重力沿线</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>    GRAVITY_LINE = 1,</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>    --自身属性</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>    SEFL_ATTR = 2,</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>    --棋盘r坐标</span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a>    AXIS_FRONT = 3</span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>}</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a></span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>UBFInteractiveOrderMode = {</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>    --不进行特殊排序</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>    NONE = 1, </span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>    --随机</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>    RANDOM = 2, </span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a>    --坐标从左到右 从上到下</span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>    COORDINATE = 3,</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>    --表盘，顺时针，逆时针</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>    DIAL = 4,</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>}</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a></span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a>UBFTargetInitCountMode = {</span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>    -- 使用关卡配置中的静态值</span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>    USE_LEVEL_CONFIG = 1,</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a>    -- 统计棋盘特定ItemType的数量</span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>    COUNT_BY_ITEM_TYPE = 2,</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>    -- 统计棋盘特定ItemType每个level之合数量</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a>    COUNT_BY_ITEM_TYPE_TIMES_LEVEL = 3,</span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a>}</span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a></span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>UBFScoreAdditionMode = {</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a>    --当创建</span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>    ON_CREATE = 1,</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>}</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a></span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a></span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>UBFShadawTargetActionMode = {</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>    NUM_CHANGE = 1,             --数字变化 需要自定义数字</span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>    FIELD_DIFF = 2,             --字段变化</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a>    CUR_LEVEL = 3,              --取当前等级</span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>    PATH_POS = 4,               --取在路径上的位置</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>    INIT_PATH_LEN = 6,          --路径消失的长度</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a>    PATH_POS_TO_END = 7,        -- 当前距离路径终点的距离</span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>}</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a></span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a></span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>-- 难度调节模式</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>ProductItemDiffChangeMode = {</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>	kNone = 0 ,</span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a>	kDropEff = 1 ,</span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>	kDropEffAndBird = 2 ,</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>	kAddColor = 3 , -- 颜色干预</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a>	kAIAddColor = 4 , -- FUUU颜色调节。产品管7~9叫 FUUU2</span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>	kNewFUUU = 5, -- Fuuu3</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>	kDecreaseColor = 6, -- 负向干预</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>	kAIDecreaseColor = 7,</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a>	kAIADColor = 8,</span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>	kAld2023 = 9,</span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>	-- AI组外部干预</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a>	kAIDiff = 10,</span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>	kUBFuuu = 11,</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a>}</span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a></span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a></span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>-- 连胜玩法的逻辑类型</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>UBFWinningStreakLogicType = {</span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>	kAddScore = &quot;addScore&quot; ,                                          --加分</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>	kAddEffectOnBoard = &quot;addEffectOnBoard&quot; ,                          --往棋盘扔特效、障碍</span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a>	kAddPropToBar = &quot;addPropToBar&quot; ,                                  --往道具栏扔临时道具</span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a>	kAddRewardBoxArfterPassLevel = &quot;addRewardBoxArfterPassLevel&quot; ,    --过关后获得额外奖励（形式不限，比如攒搜集物开宝箱） </span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a>}</span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a></span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>UBInitRuleScene = {</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a>    PREV_BUILD = 0, --最前面，再颜色等初始化的前面</span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a>    BUILD = 1, --正常的障碍首次出现的构建，再颜色初始化后面</span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>    RUNTIME = 2, --运行时，当这个障碍有新的出现的时候，需要刷新构建状态</span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a>}</span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a></span>
+<span class="source-line" id="L614"><a class="line-num" href="#L614">614</a></span>
+<span class="source-line" id="L615"><a class="line-num" href="#L615">615</a>-- UBFuuu调节的活动篡改模式</span>
+<span class="source-line" id="L616"><a class="line-num" href="#L616">616</a>-----------------------------------</span>
+<span class="source-line" id="L617"><a class="line-num" href="#L617">617</a></span>
+<span class="source-line" id="L618"><a class="line-num" href="#L618">618</a>_G.UBFuuuConfigNameId = {</span>
+<span class="source-line" id="L619"><a class="line-num" href="#L619">619</a>    [&quot;ubfuuu_ds_avg_map&quot;] = 1,</span>
+<span class="source-line" id="L620"><a class="line-num" href="#L620">620</a>    [&quot;ubfuuu_activity_index_map&quot;] = 2,</span>
+<span class="source-line" id="L621"><a class="line-num" href="#L621">621</a>    [&quot;ubfuuu_payment_index_map&quot;] = 3,</span>
+<span class="source-line" id="L622"><a class="line-num" href="#L622">622</a>    [&quot;ubfuuu_diff_index_map&quot;] = 4,</span>
+<span class="source-line" id="L623"><a class="line-num" href="#L623">623</a>    [&quot;ubfuuu_final_diff_map&quot;] = 5,</span>
+<span class="source-line" id="L624"><a class="line-num" href="#L624">624</a>    [&quot;ubfuuu_player_ability_map&quot;] = 6,</span>
+<span class="source-line" id="L625"><a class="line-num" href="#L625">625</a>    [&quot;ubfuuu_baodi_count_map&quot;] = 7,</span>
+<span class="source-line" id="L626"><a class="line-num" href="#L626">626</a>    [&quot;ubfuuu_player_ability_fixvalue_map&quot;] = 8,</span>
+<span class="source-line" id="L627"><a class="line-num" href="#L627">627</a>    ---------------------------</span>
+<span class="source-line" id="L628"><a class="line-num" href="#L628">628</a>    [&quot;ubfuuu_payment_area_fix_by_return_user&quot;] = &quot;CA3&quot;,</span>
+<span class="source-line" id="L629"><a class="line-num" href="#L629">629</a>    [&quot;ubfuuu_activity_index_limit_by_return_user&quot;] = &quot;CA4&quot;,</span>
+<span class="source-line" id="L630"><a class="line-num" href="#L630">630</a>    [&quot;ubfuuu_super_magic_bird_charge_diff&quot;] = &quot;CA5&quot;,</span>
+<span class="source-line" id="L631"><a class="line-num" href="#L631">631</a>    [&quot;ubfuuu_activity_index_fix_rule&quot;] = &quot;CA6&quot;,</span>
+<span class="source-line" id="L632"><a class="line-num" href="#L632">632</a>    [&quot;ubfuuu_callback_level_new_diff&quot;] = &quot;CA7&quot;,</span>
+<span class="source-line" id="L633"><a class="line-num" href="#L633">633</a>    [&quot;ubfuuu_activity_index_map_by_28activeday_playcount_v202604&quot;] = &quot;CA8&quot;,</span>
+<span class="source-line" id="L634"><a class="line-num" href="#L634">634</a>    [&quot;ubfuuu_diff_index_map_nohardmark&quot;] = &quot;CA9&quot;,</span>
+<span class="source-line" id="L635"><a class="line-num" href="#L635">635</a>    [&quot;ubfuuu_activity_index_map_by_returnday_playcount&quot;] = &quot;CA10&quot;,</span>
+<span class="source-line" id="L636"><a class="line-num" href="#L636">636</a>    [&quot;pet_wing_mapping&quot;] = &quot;CA11&quot;,</span>
+<span class="source-line" id="L637"><a class="line-num" href="#L637">637</a>}</span>
+<span class="source-line" id="L638"><a class="line-num" href="#L638">638</a></span>
+<span class="source-line" id="L639"><a class="line-num" href="#L639">639</a>_G.UBFuuuFixType = {</span>
+<span class="source-line" id="L640"><a class="line-num" href="#L640">640</a>    kActivityIndex = &quot;activityIndex&quot;,                                   --篡改 活跃指数</span>
+<span class="source-line" id="L641"><a class="line-num" href="#L641">641</a>    kPaymentIndex = &quot;paymentIndex&quot;,                                     --篡改 付费指数</span>
+<span class="source-line" id="L642"><a class="line-num" href="#L642">642</a>    kDiffIndex = &quot;diffIndex&quot;,                                           --篡改 难度指数</span>
+<span class="source-line" id="L643"><a class="line-num" href="#L643">643</a>    kDesiredDiffAvgBeforeBaodi = &quot;desiredDiffAvgBeforeBaodi&quot;,           --篡改 保底前生效预期难度</span>
+<span class="source-line" id="L644"><a class="line-num" href="#L644">644</a>    kFixedDesiredDiffAvg = &quot;fixedDesiredDiffAvg&quot;,                       --篡改 生效预期难度</span>
+<span class="source-line" id="L645"><a class="line-num" href="#L645">645</a>    kDiffFix = &quot;diffFix&quot;,                                               --篡改 难度偏移档位 DiffFix</span>
+<span class="source-line" id="L646"><a class="line-num" href="#L646">646</a>    kAddStepFix = &quot;addStepFix&quot;,                                         --篡改 加步数时的干预逻辑</span>
+<span class="source-line" id="L647"><a class="line-num" href="#L647">647</a>    kPreAddStepIntervalFix = &quot;preAddStepIntervalFix&quot;,                   --篡改 前置加三步区间的干预逻辑</span>
+<span class="source-line" id="L648"><a class="line-num" href="#L648">648</a>    kPostAddStepIntervalFix = &quot;postAddStepIntervalFix&quot;,                 --篡改 后置加步数区间的干预逻辑</span>
+<span class="source-line" id="L649"><a class="line-num" href="#L649">649</a>    kSelfFeedbackEnableFlag = &quot;selfFeedbackEnableFlag&quot;,                 --强行设置 自反馈的采集状态</span>
+<span class="source-line" id="L650"><a class="line-num" href="#L650">650</a>    kSelfFeedbackPoolkey = &quot;selfFeedbackPoolkey&quot;,                       --设置 自反馈的采集池的key（按key单独开一个统计池）</span>
+<span class="source-line" id="L651"><a class="line-num" href="#L651">651</a>    kDesiredStep = &quot;desiredStep&quot;,                                       --篡改 期望步数</span>
+<span class="source-line" id="L652"><a class="line-num" href="#L652">652</a>    kStepFix = &quot;stepFix&quot;,                                               --篡改 步数偏移档位 stepFix</span>
+<span class="source-line" id="L653"><a class="line-num" href="#L653">653</a>    kReplaceUBFuuuConfigFile = &quot;replaceUBFuuuConfigFile_v2&quot;,               --替换 UBFuuu的配置文件</span>
+<span class="source-line" id="L654"><a class="line-num" href="#L654">654</a>}</span>
+<span class="source-line" id="L655"><a class="line-num" href="#L655">655</a></span>
+<span class="source-line" id="L656"><a class="line-num" href="#L656">656</a>require(&quot;ubf.UBFPlay.declares.SelfFeedbackPoolkey&quot;)</span>
+<span class="source-line" id="L657"><a class="line-num" href="#L657">657</a></span>
+<span class="source-line" id="L658"><a class="line-num" href="#L658">658</a>_G.SelfFeedbackPoolType = {</span>
+<span class="source-line" id="L659"><a class="line-num" href="#L659">659</a>    kOnSelect = &quot;select&quot;, </span>
+<span class="source-line" id="L660"><a class="line-num" href="#L660">660</a>    kOnCollect = &quot;collect&quot;, </span>
+<span class="source-line" id="L661"><a class="line-num" href="#L661">661</a>    kOnSelectAndCollect = &quot;select_and_collect&quot;</span>
+<span class="source-line" id="L662"><a class="line-num" href="#L662">662</a>}</span>
+<span class="source-line" id="L663"><a class="line-num" href="#L663">663</a></span>
+<span class="source-line" id="L664"><a class="line-num" href="#L664">664</a>_G.UBFuuuFixMode = {</span>
+<span class="source-line" id="L665"><a class="line-num" href="#L665">665</a>    kSetVaule = &quot;setValue&quot;,                               --直接设值</span>
+<span class="source-line" id="L666"><a class="line-num" href="#L666">666</a>    kaddVaule = &quot;addValue&quot;,                               --在原值上加上value</span>
+<span class="source-line" id="L667"><a class="line-num" href="#L667">667</a>    kMultiplyVaule = &quot;multiplyValue&quot;,                     --在原值上乘以value</span>
+<span class="source-line" id="L668"><a class="line-num" href="#L668">668</a>    kMapping = &quot;mapping&quot;,                                 --此模式下，value为配置表的key，使用对应的配置表进行查表操作，传入原值，获取并使用返回值</span>
+<span class="source-line" id="L669"><a class="line-num" href="#L669">669</a>    kMappingAddVaule = &quot;mappingAddValue&quot;,                 --此模式下，value为配置表的key，使用对应的配置表进行查表操作，传入原值，获取返回值，并将返回值加到原值上</span>
+<span class="source-line" id="L670"><a class="line-num" href="#L670">670</a>    kMappingMultiplyValue = &quot;mappingMultiplyValue&quot;,       --此模式下，value为配置表的key，使用对应的配置表进行查表操作，传入原值，获取返回值，并将返回值乘到原值上</span>
+<span class="source-line" id="L671"><a class="line-num" href="#L671">671</a>}</span>
+<span class="source-line" id="L672"><a class="line-num" href="#L672">672</a></span>
+<span class="source-line" id="L673"><a class="line-num" href="#L673">673</a>_G.UBFuuuAddStepAdjustMode = {</span>
+<span class="source-line" id="L674"><a class="line-num" href="#L674">674</a>    kDoNothing = &quot;doNothing&quot;,                             --什么也不做，即不干预</span>
+<span class="source-line" id="L675"><a class="line-num" href="#L675">675</a>    kLockLastDs = &quot;lockLastDs&quot;,                           --锁定为之前的强度，一直保持这个强度干预，即强度不再计算更新</span>
+<span class="source-line" id="L676"><a class="line-num" href="#L676">676</a>    kAddMaxDiffMoveByStep = &quot;addMaxDiffMoveByStep&quot;,       --每多走一步，MaxDiffMove就加1</span>
+<span class="source-line" id="L677"><a class="line-num" href="#L677">677</a>    kAddMaxDiffMoveByFixedValue = &quot;addMaxDiffMoveByFixedValue&quot;, --将 MaxDiffMove 增加固定值</span>
+<span class="source-line" id="L678"><a class="line-num" href="#L678">678</a>    kLockMaxDiffMove = &quot;lockMaxDiffMove&quot;,                 --将 MaxDiffMove 锁定到固定目标值</span>
+<span class="source-line" id="L679"><a class="line-num" href="#L679">679</a>}</span>
+<span class="source-line" id="L680"><a class="line-num" href="#L680">680</a>------------------------------------</span>
+<span class="source-line" id="L681"><a class="line-num" href="#L681">681</a></span>
+<span class="source-line" id="L682"><a class="line-num" href="#L682">682</a>--充能模式</span>
+<span class="source-line" id="L683"><a class="line-num" href="#L683">683</a>_G.UBFChargeMode ={</span>
+<span class="source-line" id="L684"><a class="line-num" href="#L684">684</a>    BY_STEP = 1,    --按步数充能</span>
+<span class="source-line" id="L685"><a class="line-num" href="#L685">685</a>    COLLECT_TARGET = 2,  --按收集计数充能</span>
+<span class="source-line" id="L686"><a class="line-num" href="#L686">686</a>}</span>
+<span class="source-line" id="L687"><a class="line-num" href="#L687">687</a></span>
+<span class="source-line" id="L688"><a class="line-num" href="#L688">688</a>--格子标记类型</span>
+<span class="source-line" id="L689"><a class="line-num" href="#L689">689</a>_G.UBFGridFlagType = {</span>
+<span class="source-line" id="L690"><a class="line-num" href="#L690">690</a>    kEffect=&quot;Prop:Effect&quot;,</span>
+<span class="source-line" id="L691"><a class="line-num" href="#L691">691</a>    kMagicBird=&quot;Prop:MagicBird&quot;,</span>
+<span class="source-line" id="L692"><a class="line-num" href="#L692">692</a>    kFirecracker=&quot;Prop:Firecracker&quot;,</span>
+<span class="source-line" id="L693"><a class="line-num" href="#L693">693</a>    kSuperMagicBird=&quot;SuperMagicBird&quot;,</span>
+<span class="source-line" id="L694"><a class="line-num" href="#L694">694</a>}</span>
+<span class="source-line" id="L695"><a class="line-num" href="#L695">695</a></span>
+<span class="source-line" id="L696"><a class="line-num" href="#L696">696</a>--玩家操作类型</span>
+<span class="source-line" id="L697"><a class="line-num" href="#L697">697</a>_G.UBFPlayerOperateType = {</span>
+<span class="source-line" id="L698"><a class="line-num" href="#L698">698</a>    kAll = 0,</span>
+<span class="source-line" id="L699"><a class="line-num" href="#L699">699</a>    kSwap = 1,</span>
+<span class="source-line" id="L700"><a class="line-num" href="#L700">700</a>    kProp = 2,</span>
+<span class="source-line" id="L701"><a class="line-num" href="#L701">701</a>}</span>
+<span class="source-line" id="L702"><a class="line-num" href="#L702">702</a></span>
+<span class="source-line" id="L703"><a class="line-num" href="#L703">703</a>--FUUU进度判断模式</span>
+<span class="source-line" id="L704"><a class="line-num" href="#L704">704</a>_G.UBFuuuProgressJudgmentMode = {</span>
+<span class="source-line" id="L705"><a class="line-num" href="#L705">705</a>    --落后</span>
+<span class="source-line" id="L706"><a class="line-num" href="#L706">706</a>    kBehind = 1,</span>
+<span class="source-line" id="L707"><a class="line-num" href="#L707">707</a>    --领先</span>
+<span class="source-line" id="L708"><a class="line-num" href="#L708">708</a>    kAhead = 2,</span>
+<span class="source-line" id="L709"><a class="line-num" href="#L709">709</a>}</span>
+<span class="source-line" id="L710"><a class="line-num" href="#L710">710</a></span>
+<span class="source-line" id="L711"><a class="line-num" href="#L711">711</a>--创建itembuilder的模式</span>
+<span class="source-line" id="L712"><a class="line-num" href="#L712">712</a>_G.UBFItemBuilderCreateMode = {</span>
+<span class="source-line" id="L713"><a class="line-num" href="#L713">713</a>    FromStandardConfig = 1,   --从标准配置创建</span>
+<span class="source-line" id="L714"><a class="line-num" href="#L714">714</a>    FromActivityConfig = 2,   --从活动配置创建</span>
+<span class="source-line" id="L715"><a class="line-num" href="#L715">715</a>}</span>
+<span class="source-line" id="L716"><a class="line-num" href="#L716">716</a></span>
+<span class="source-line" id="L717"><a class="line-num" href="#L717">717</a>--选位置模式</span>
+<span class="source-line" id="L718"><a class="line-num" href="#L718">718</a>_G.UBFSelectPosMode = {</span>
+<span class="source-line" id="L719"><a class="line-num" href="#L719">719</a>    ByGridScore = 1,    --根据格子分数选位置</span>
+<span class="source-line" id="L720"><a class="line-num" href="#L720">720</a>}</span>
+<span class="source-line" id="L721"><a class="line-num" href="#L721">721</a></span>
+<span class="source-line" id="L722"><a class="line-num" href="#L722">722</a>--评分排序模式</span>
+<span class="source-line" id="L723"><a class="line-num" href="#L723">723</a>_G.UBFScoreSortMode = {</span>
+<span class="source-line" id="L724"><a class="line-num" href="#L724">724</a>    Descending = 0,     --降序</span>
+<span class="source-line" id="L725"><a class="line-num" href="#L725">725</a>    Ascending = 1,      --升序</span>
+<span class="source-line" id="L726"><a class="line-num" href="#L726">726</a>}</span>
+<span class="source-line" id="L727"><a class="line-num" href="#L727">727</a></span>
+<span class="source-line" id="L728"><a class="line-num" href="#L728">728</a></span>
+<span class="source-line" id="L729"><a class="line-num" href="#L729">729</a>_G.UBFFastUseEnum = {</span>
+<span class="source-line" id="L730"><a class="line-num" href="#L730">730</a>    operationDataKey = &quot;oDatas&quot;,</span>
+<span class="source-line" id="L731"><a class="line-num" href="#L731">731</a>    operationLogsKey = &quot;oLogs&quot;,</span>
+<span class="source-line" id="L732"><a class="line-num" href="#L732">732</a>    gameEnvKey = &quot;gEnv&quot;,</span>
+<span class="source-line" id="L733"><a class="line-num" href="#L733">733</a>    runtimeLogKey = &quot;rtl&quot;,</span>
+<span class="source-line" id="L734"><a class="line-num" href="#L734">734</a>    debugInfoKey = &quot;debugInfo&quot;,</span>
+<span class="source-line" id="L735"><a class="line-num" href="#L735">735</a>    playLogsKey = &quot;playLogs&quot;,</span>
+<span class="source-line" id="L736"><a class="line-num" href="#L736">736</a>    dcDataKey = &quot;dcData&quot;,</span>
+<span class="source-line" id="L737"><a class="line-num" href="#L737">737</a>    adjustDataKey = &quot;adjustData&quot;,</span>
+<span class="source-line" id="L738"><a class="line-num" href="#L738">738</a>}</span>
+<span class="source-line" id="L739"><a class="line-num" href="#L739">739</a></span>
+<span class="source-line" id="L740"><a class="line-num" href="#L740">740</a>-- _G.MACRO_POS_STRIDE = 10000 -- 不要删，这个注释为了方便搜索宏定义</span>
+<span class="source-line" id="L741"><a class="line-num" href="#L741">741</a>--相对坐标会出现负数，所以坐标在不同象限的取值范围在[1,5000)</span>
+<span class="source-line" id="L742"><a class="line-num" href="#L742">742</a>_G[&quot;MACRO_&quot; ..&quot;POS_&quot; .. &quot;STRIDE&quot;] = 10000</span>
+<span class="source-line" id="L743"><a class="line-num" href="#L743">743</a>_G[&quot;MACRO_&quot; ..&quot;POS_&quot; .. &quot;DIMENSION&quot;] = _G[&quot;MACRO_&quot; ..&quot;POS_&quot; .. &quot;STRIDE&quot;] * 10000</span>
+<span class="source-line" id="L744"><a class="line-num" href="#L744">744</a>-- int 最大 2147483647 ，目前因为dimension只有1，所以不会被撑爆</span></code></pre></main></body></html>

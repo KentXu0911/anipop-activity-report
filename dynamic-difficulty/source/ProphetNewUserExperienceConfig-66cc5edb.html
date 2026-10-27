@@ -1,0 +1,183 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ProphetNewUserExperienceConfig.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>ProphetNewUserExperienceConfig.lua</h1><p class="src-meta">ubf/UBFPlay/rust/ProphetNewUserExperienceConfig.lua<br>SHA-256 51a91a72d2ceb9ec3ebe3879890b7a24c9a8ed3f4ade5422282b65da64615b23 · 183 行 · 恢复原文，未经改写</p><a href="ProphetNewUserExperienceConfig-66cc5edb.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>local prophet = rawget(_G, &quot;RustProphet&quot;)</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>if not prophet then</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>    require &quot;ubf.UBFPlay.rust.RustProphet&quot;</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>    prophet = rawget(_G, &quot;RustProphet&quot;)</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>end</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a></span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>local function stepBudget(maxPositiveSteps, maxNegativeSteps, maxAbsoluteSteps)</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    return {</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>        enabled = true,</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>        max_positive_steps = maxPositiveSteps,</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>        max_negative_steps = maxNegativeSteps,</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>        max_absolute_steps = maxAbsoluteSteps,</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>        overflow_policy = &quot;RejectCandidate&quot;,</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>    }</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>end</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a></span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>local function buildConfig(behaviorConfig)</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>    -- 只保留线上业务需要的两项，性能参数由 Rust 默认配置统一管理。</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    if prophet and prophet.makeComposableProgressV2Config then</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>        return prophet.makeComposableProgressV2Config(behaviorConfig)</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>    end</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>    return {</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>        evaluator_preset_name = &quot;composable_progress_v2&quot;,</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>        behavior_config = behaviorConfig,</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>    }</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>end</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a></span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>local function buildBehaviorConfig(tracking, operationPositiveSteps, board)</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>    return {</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>        schema_version = 2,</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>        tracking = {</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>            enabled = true,</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>            endpoint_shift_moves = tracking.endpoint_shift_moves,</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>            fit_algorithm = &quot;Linear&quot;,</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>            require_source_line = true,</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>            require_all_targets = false,</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>            default_positive_strength = 10,</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>            default_negative_strength = tracking.default_negative_strength,</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>        },</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>        fixed_adjustment = {</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>            enabled = true,</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>            rules = {</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>                {</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>                    id = &quot;relative_config_steps&quot;,</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>                    ranges = {</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>                        {</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>                            type = &quot;RelativeInterval&quot;,</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>                            start = -5,</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>                            [&quot;end&quot;] = 0,</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>                        },</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>                    },</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>                    direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>                    strength = 10,</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>                },</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>            },</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>            budget = {</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>                level = {</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>                    step = stepBudget(5, 0, 20),</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>                },</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>            },</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>        },</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>        prop_adjustment = {</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>            enabled = false,</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>            direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>            strength = 0,</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>            max_trigger_count = 0,</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>            trigger_scope = &quot;CurrentOperationOnly&quot;,</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>        },</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>        exciting_operation_adjustment = {</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>            enabled = true,</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>            max_trigger_count = 10,</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>            operations = {</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>                swap_trigger_special = {</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>                    enabled = true,</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>                    direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>                    strength = 10,</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>                    per_operation_step_budget = 3,</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>                    per_operation_combo_budget = 7,</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>                },</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>                double_special_swap = {</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>                    enabled = true,</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>                    direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>                    strength = 10,</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>                    per_operation_step_budget = 3,</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>                    per_operation_combo_budget = 7,</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>                },</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>                magic_bird_animal_swap = {</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>                    enabled = true,</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>                    direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>                    strength = 10,</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>                    per_operation_step_budget = 3,</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>                    per_operation_combo_budget = 7,</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>                },</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>                magic_bird_special_swap = {</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>                    enabled = true,</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>                    direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>                    strength = 10,</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>                    per_operation_step_budget = 5,</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>                    per_operation_combo_budget = 7,</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>                },</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>                magic_bird_magic_bird_swap = {</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>                    enabled = true,</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>                    direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>                    strength = 10,</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>                    per_operation_step_budget = 5,</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>                    per_operation_combo_budget = 7,</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>                },</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>            },</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>            budget = {</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>                per_operation = {</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>                    step = stepBudget(operationPositiveSteps, 1, 40),</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>                },</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>            },</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>        },</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>        exciting_board_adjustment = board,</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>    }</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>end</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a></span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>local ordinaryBoard = {</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>    enabled = true,</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>    ranges = {</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>        {</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>            type = &quot;RelativeInterval&quot;,</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>            start = -5,</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>            [&quot;end&quot;] = -4,</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>        },</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>    },</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>    weights = {</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>        magic_bird_count = 1,</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>        special_count = 1,</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>        adjacent_double_magic_bird = 1,</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>        adjacent_magic_bird_special = 1,</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>        one_move_special = 1,</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>        one_move_magic_bird = 3,</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>        one_move_double_special = 1,</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>        one_move_magic_bird_special = 3,</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>    },</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>}</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a></span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>local smoothBoard = {</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>    enabled = true,</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>    ranges = {</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>        {</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>            type = &quot;Interval&quot;,</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>            start = 5,</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>            [&quot;end&quot;] = 8,</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>        },</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>    },</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>    weights = {</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>        magic_bird_count = 3,</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>        special_count = 3,</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>        adjacent_double_magic_bird = 3,</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>        adjacent_magic_bird_special = 3,</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>        one_move_special = 3,</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>        one_move_magic_bird = 5,</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>        one_move_double_special = 5,</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>        one_move_magic_bird_special = 8,</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>    },</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>    budget = {</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>        per_operation = {</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>            step = stepBudget(4, 1, 40),</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>        },</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>    },</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>}</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a></span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>return {</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>    ordinary = buildConfig(buildBehaviorConfig(</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>        {</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>            endpoint_shift_moves = -4,</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>            default_negative_strength = 4,</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>        },</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>        1,</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>        ordinaryBoard</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>    )),</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>    smooth = buildConfig(buildBehaviorConfig(</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>        {</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>            endpoint_shift_moves = -12,</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>            default_negative_strength = 3,</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>        },</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>        4,</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>        smoothBoard</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>    )),</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>}</span></code></pre></main></body></html>

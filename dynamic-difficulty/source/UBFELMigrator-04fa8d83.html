@@ -1,0 +1,859 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFELMigrator.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFELMigrator.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/processFlow/module/UBFELMigrator.lua<br>SHA-256 0312f7dfac64cce2083c2df2a974a1074302d462cd40bef5b115fb0efd569d92 · 859 行 · 恢复原文，未经改写</p><a href="UBFELMigrator-04fa8d83.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>--! 这里面的，要不然是要删的，要不然是关卡外业务</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a></span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>--[[</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>	迁移等价标~</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>    GamePlayContext:getInstance().levelInfo.playType = runtime:migrateGet(&quot;levelGameMode&quot;)</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>	GamePlayContext:getInstance().levelInfo.levelType = runtime:getLevelType()</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>	GamePlayContext:getInstance():getTotalEndLevelCount() = runtime:migrateGet(&quot;totalEndLevelCount&quot;)</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    ResourceLoader.getCurVersion = runtime:getGameCurrMd5()</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>]]</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a></span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>local UBFELMigrator = {}</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a></span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>do </span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>	local after = {}</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>	local before = {}</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>	UBFELMigrator.passNormal = {}</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>	UBFELMigrator.passNormal.after = after</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>	UBFELMigrator.passNormal.before = before</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a></span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>	after[UBFProcessNodeEnum.PLAY_DATA_REPORT] = function(runtime)</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>		if runtime:isPlayerStateSandbox() then return end</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a></span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>		local prevSceneMgr = runtime:getPrevSceneManager()</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a></span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>		xpcall(function()</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>            if not StageInfoLocalLogic then return end</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>			local stageInfo = StageInfoLocalLogic:getStageInfo(runtime:getUid())</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>			if stageInfo then stageInfo.stepProgressDataList = prevSceneMgr:getFormatedStepProgressDataList() end</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>		end, debug.traceback)</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a></span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>		pcall(function()</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>			local sceneMgr = prevSceneMgr:getLastSceneManager()</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>			local endLevelData = prevSceneMgr:getEndLevelData()</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>			</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>			PlayRecord:onGameDefiniteFinish(endLevelData.win, {</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>				getModelLevel = function() return runtime:getLevelId() end</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>			})</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>		end)</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a></span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>		pcall(function()</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>            if not GamePlayContext then return end</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>			local gamePlayContext = GamePlayContext:getInstance()</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>			local playInfo = gamePlayContext:getPlayInfo()</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>			local infoMap = prevSceneMgr:getFormatedMatchStatisticalInfo()</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>			for k, v in pairs(infoMap) do </span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>				playInfo[k] = v</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>			end</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>		end)</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>	end</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>end</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a></span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>do </span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>	local after = {}</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>	local before = {}</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>	UBFELMigrator.failNormal = {}</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>	UBFELMigrator.failNormal.after = after</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>	UBFELMigrator.failNormal.before = before</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a></span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>	after[UBFProcessNodeEnum.PLAY_DATA_REPORT] = UBFELMigrator.passNormal.after[UBFProcessNodeEnum.PLAY_DATA_REPORT]</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>end</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a></span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>local getter = {}</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>UBFELMigrator.getter = getter</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a></span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>getter.levelGameMode = function(runtime) </span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>	local baseInfo = UBFLevelConfigManager:userConfig():getLevelBaseInfo(runtime:getLevelId(), runtime:getLevelScene())</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>	return baseInfo and baseInfo[UBFLevelBaseInfoKey.GAME_MODE_ID] or 0</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>end</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>getter.totalEndLevelCount = function(runtime) </span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>	return UBFPrevSceneManager:getTotalEndLevelCount(runtime:getLevelId())</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>end</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a></span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>local gListener = {}</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>UBFELMigrator.gListener = gListener</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a></span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>gListener[UBFProcessEventEnum.BEFORE_DC_EVENT] = function(event, datas)</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>	-- 已全切AMF分支，不需要了</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>end</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a></span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>gListener[UBFProcessEventEnum.BEFORE_REQUEST_SEND] = function(event, datas)</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>	local runtime = datas.runtime</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>	local body = datas.body</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>	if datas.method ~= UBFGameMethodType.kPassLevel then return end</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a></span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>end</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a></span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>gListener[UBFProcessEventEnum.AFTER_REQUEST_SEND] = function(event, datas)</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>end</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a></span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>local modListener = {}</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>UBFELMigrator.modListener = modListener</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a></span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>modListener[UBFGameModEventEnum.MODIFY_DC_DATA] = function(runtime, data)</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>    local dcDatas = data.dcDatas</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>    if data.isEndStage then </span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>        local prevSceneMgr = runtime:getPrevSceneManager()</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>        local levelInfo = prevSceneMgr:getLevelInfo() or {}</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>        local sceneData = prevSceneMgr:getSceneData() or {}</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>        local currentStage = dcDatas.current_stage</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>        local endLevelData = runtime:getEndLevelData()</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>        -- local star_buffGetNum = 0</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a></span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>        -- if StarBuffYEManager and StarBuffYEManager.getInstance():isBuffEffectiveForPassLevel() then</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>        --     local oldStarForCollectStar = dcDatas.old_star</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>        --     local star = endLevelData.star</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>        --     star_buffGetNum = StarBuffYEManager.getInstance():getPassLevelCanGetBuffNum(oldStarForCollectStar , star)</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>        --     star_buffGetNum = star_buffGetNum or 0</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>        -- end</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a></span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>        -- dcDatas.star_buff = star_buffGetNum</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a></span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>		dcDatas.use_score_buff = 0</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a></span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>		for _, mod in ipairs(levelInfo.modList or {}) do </span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>			if mod.mType == UBFPlayModBuilder.BuffBuilderEnum.kImproveBuff and mod.buildData then </span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>				for _, info in ipairs(mod.buildData.buffInfo or {}) do </span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>					if info.btt == UBFGameItemType.kBuffStarBottle then dcDatas.use_score_buff = 1 end</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>				end</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>			end</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>		end</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a></span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>        -- 连胜 </span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>        if winRepeatedlyManager then </span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>            dcDatas.win_num = winRepeatedlyManager:getInstance():getWinNum() </span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>        end</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a></span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>        --下面是 LevelDifficultyAdjustManager mod 应该处理的部分</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>		local adjustData = levelInfo.adjustData</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a></span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>		-- ☆ 调节相关参数</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>		if adjustData then</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>			dcDatas.adjust_mode = adjustData.mode</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>			dcDatas.adjust_ds = adjustData.ds</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>			dcDatas.adjust_gap = adjustData.gap and table.serialize(adjustData.gap)</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>			dcDatas.adjust_front_half = adjustData.frontHalf and table.serialize(adjustData.frontHalf)</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>		end</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a></span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>		if LevelDifficultyAdjustManager then</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>			local colorFuuuResult = false</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>			local b1 = false</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>			local b2 = false</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>			if adjustData and adjustData.mode == ProductItemDiffChangeMode.kAIAddColor then</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>				b2 = true</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>			end</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>			if b1 or b2 then</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>				colorFuuuResult = true</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>			end</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>			-- local strategyID = LevelDifficultyAdjustManager:getStrategyIDListByDCString()</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>			-- local strategyReason = adjustData and adjustData.reason</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>			local userInterference = false</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>			-- if (strategyID and strategyID ~= &quot;&quot;) then userInterference = true end</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>			</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>			-- todo 没数据&gt;&gt; 没见过的数据</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>			local fuuuOverView = &quot;none&quot;</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>			local fuuuAverageValue = -1</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>			-- todo 不知道啥玩意，LevelDifficultyAdjustManager是关卡内增再用的东西，迁移到mod</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a></span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>			-- todo 难度调整相关上下文数据 迁移mod</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>  </span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>			dcDatas.top_wins = UserManager:getInstance().userExtend.topLevelWinCount or 0</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>			dcDatas.top_wins_logical = UserManager:getInstance().userExtend:getTopLevelLogicalWinCount()</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a></span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>			-- dcDatas.top_logical_fails = levelDiffCtx.failCount--todo reast</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>			-- dcDatas.top3_continue_fails = levelDiffCtx.top3LevelContinueFails--todo reast</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>			dcDatas.colorFuuuResult = colorFuuuResult</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>			dcDatas.user_interference = userInterference</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>			dcDatas.fuuu_overview = fuuuOverView</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>			dcDatas.fuuu_average = fuuuAverageValue</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>			-- dcDatas.diff_adjust_algorithm_id = diffV2AlgorithmId</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a></span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>			dcDatas.strategyUnactivateReason = LevelDifficultyAdjustManager:getLastUnactivateReason()</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>			dcDatas.strategyFuuuUnactivateReason = LevelDifficultyAdjustManager:getLastFuuuUnactivateReason()</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>			dcDatas.intervene_seq_rec = LevelDifficultyAdjustManager:getDcAIColorProbsRec()</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>			dcDatas.diff_adjust_exp_tag = LevelDifficultyAdjustManager:getExpName()</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>			dcDatas.play_id_create_time = runtime:getStartLevelStartTime()</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>		end</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>      </span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>		-- local failCount1, failCount2 = PlayRecord:getLevelFailNumBeforeFirstPass(currentStage)</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>		local failCount2 = runtime:getTopLevelFailCount()</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>		local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>		local topLevelId = runtime:getTopLevelId()</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>		if topLevelId ~= levelId or not UBFLevelSceneFunc:isMainLevel(levelInfo.levelScene) then</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>			failCount2 = 0</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>		else</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>			if runtime:isWin() then</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>				failCount2 = math.max(0,failCount2-1)</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>			end</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>		end</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a></span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>		dcDatas.sum2 = failCount2 -- 这个字段是仅前端维护的首次过关前失败次数，每一关都有值</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>		dcDatas.cont_fail_count = PlayRecord:getLevelContinuousFailNum(currentStage)--开发中，要改为前后端一起维护</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>		dcDatas.start_level_total_count = PlayRecord:getLevelTotalPlayed(currentStage) --开发中，要改为前后端一起维护</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>		dcDatas.end_level_total_count = runtime:migrateGet(&quot;totalEndLevelCount&quot;) or 0</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>		-- if FUUUTopLevelAdjustLogic then FUUUTopLevelAdjustLogic:dcStageEnd(dcDatas) end</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>        local passLevelData = {</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>            levelId = runtime:getLevelId(),</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>            levelScene = runtime:getLevelScene(),</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>            star = runtime:getStar(),</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>            hadPassed = runtime:getLevelHasAlreadyPassed(),</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>        }</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>        local _ = LocalActCoreModel and LocalActCoreModel.getInstance():notify(ActInterface.kPassLevelBeforeDcStageEnd, passLevelData)</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a></span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>    end</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>end</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a></span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>modListener[UBFGameModEventEnum.BEFORE_PASS_LEVEL] = function(runtime, data)</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>    local levelId = data.levelId</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>    local levelType = data.levelType</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>    local score = data.score</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>    local oldScore = data.oldScore</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>    local levelScene = data.levelScene</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>    local star = data.star</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>    --暂时放在这里 todo</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>    local _ = LocalActCoreModel and LocalActCoreModel:getOrCreateInstance():notify(ActInterface.kBeforePassLevel, data)</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>    -- ActInLevelManagerHelper.getInstance():notify(ActInLevelInterface.kBeforePassLevel, data)</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>    if levelType == GameLevelType.kMainLevel and PrePropImproveLogic then </span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>        PrePropImproveLogic:onLevelEnd(true,levelId)</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>    end</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>    --满级满星刷分</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>	if FullLevelScoringManager then </span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>		FullLevelScoringManager:getInstance():onPassLevel(levelId, levelType, score, oldScore, levelScene)</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>	end</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a></span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>    local checkScoreAndCompleteAchievement = function ( score )</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>        local oldScore = UserManager:getInstance():getUserScore(levelId, levelScene)</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>        local maxTopLevel</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>        -- TODO @siyang app要不要？</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>        maxTopLevel = _G.amfBean(&quot;LevelUnLockManager&quot;):getMaxNormalLevelByLevelArea()</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>        local topLevelId = UserManager:getInstance():getUserRef():getTopLevelId()</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>        local function onCompleteSuccess(evt)</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>            -- local num = 10000</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>            -- if evt.data and evt.data.passNum  then</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>            --  num = evt.data.passNum</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>            -- end</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>            -- setTimeOut(function()</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>            --      if not self.isDisposed then </span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>            --          --ShareManager:setShareData(ShareManager.ConditionType.PASS_NUM, num)</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>            --          --ShareManager:shareWithID(ShareManager.HIGHEST_LEVEL)</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>            --       end</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>            --  end, 1 / 60)</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>        end</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>        local function onRankSuccess(evt)</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>            local share = false</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>            if evt.data and evt.data.share then</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>                share = evt.data.share</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>            end</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>            setTimeOut(function()</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>                Notify:dispatch(&quot;AchiEventDataUpdate&quot;, AchiDataType.kOverSelfRank, share)</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>            end, 1 / 60)</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>        end</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>        local completeRequest = levelId == maxTopLevel and </span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>            levelId == topLevelId and UBFLevelSceneFunc:isMainLevel(levelScene) and</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>            (not oldScore or not oldScore.score)</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>        local rankRequest = not oldScore or not oldScore.score or oldScore.score &lt; score</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>        if completeRequest and rankRequest then ConnectionManager:block() end</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>        if completeRequest then</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>            local completeHttp = GetPassNumHttp.new()</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>            completeHttp:addEventListener(Events.kComplete, onCompleteSuccess)</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>            completeHttp:load(levelId, levelScene)</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>        else</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>            onCompleteSuccess({})</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>        end</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>        if completeRequest and rankRequest then ConnectionManager:flush() end</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>    end</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>	</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>end</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a></span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a></span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>modListener[UBFGameModEventEnum.AFTER_PASS_LEVEL] = function (runtime, data)</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>	-- 已全切AMF分支，不需要了</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>end</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a></span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>local function old_pass_level_update_star(levelId, star, levelScene)</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>	if star &gt;= 3 then</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>		local isNewFullStarArea = nil</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>		-- Record full star area</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>		local score = UserManager:getInstance():getUserScore(levelId, levelScene)</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>		if not score or score.star &lt; 3 then</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>			local _,numFullStarArea = UserManager:getInstance():getAreaStarInfo()</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>			local oldStar = nil</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>			if score then</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>				oldStar = score.star</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>				score.star = star</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>			else</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>				local newLevelScore = ScoreRef and ScoreRef.new() or {}</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>				newLevelScore.levelId = levelId</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>				newLevelScore.star = star</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>                newLevelScore.levelScene = levelScene</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>				UserManager:getInstance():addUserScore(newLevelScore)</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>			end</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>			local _,numFullStarAreaNew = UserManager:getInstance():getAreaStarInfo()</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>			if oldStar then</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>				score.star = oldStar</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>			else</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>				UserManager:getInstance():removeUserScore(levelId, levelScene)</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>			end</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>			isNewFullStarArea = numFullStarAreaNew&gt;numFullStarArea</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>		end</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>		return isNewFullStarArea</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>	end</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>end</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a></span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>modListener[UBFGameModEventEnum.BEFORE_REQUEST_SEND] = function(runtime, data)</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>	-- local runtime = data.runtime</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>	local body = data.body</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>	if data.method == UBFGameMethodType.kPassLevel then</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>    	local prevSceneMgr = runtime:getPrevSceneManager()</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>    	local playInfo = prevSceneMgr:getFormatedMatchStatisticalInfo()</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>		local sceneData = prevSceneMgr:getSceneData()</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>		local levelInfo = prevSceneMgr:getLevelInfo()</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>		local birdDestroyCount = prevSceneMgr:getBirdDestroyCount()</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>		local opLog = body.opLog</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>		local uid = body.uid</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>		local levelId = body.levelId</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>    	local levelType = body.levelType</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>    	local star = body.star</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>    	local isGiveUp = body.isGiveUp</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>    	local extraData = body.extraData</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>    	local levelScene = body.levelScene</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>    	local logicalFail = body.logicalFail</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>    	local score = body.score</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>    	local stageTime = body.stageTime</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>    	local costMove = body.step</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>    	local isWin = runtime:isWin()</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a></span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>    	-- printx(16,tts(playInfo))</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a></span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>		local levelDifficultyFlag</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a></span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>		-- 部分需求有要知晓关卡难度设定的需求，难度标签</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>		local MetaManager = UBFHelper:getGlobalLogic(&quot;MetaManager&quot;)</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>		local difficultyFlag = MetaManager:getLevelDifficultFlag(levelId, levelScene)</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>		if difficultyFlag then levelDifficultyFlag = difficultyFlag end</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>		body.levelDifficultyFlag = levelDifficultyFlag</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>		if levelDifficultyFlag then body[&quot;difficultyFlag&quot;] = levelDifficultyFlag end</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a></span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>		-- 星？</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>		if star &lt; 1  then body.targetCount = 0 end</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>		</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>		-- local cv12 , cv13 = UpdatePassLevelHttpRPData(76, levelId, opLog)</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>		-- RandomFactoryDebugHelper:sendPassLevelStart( { opLog = opLog } )</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a></span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>		--旧分数</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>		local oldStarForCollectStar = 0 </span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>		local oldScoreForCollectStar = 0 </span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>		local oldLevelPassed = UserManager:getInstance():hasPassedLevelEx(levelId, levelScene)</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>		local scoreNode = UserManager:getInstance():getUserScore(levelId, levelScene)</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>		if scoreNode then</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>			oldStarForCollectStar = scoreNode.star or 0</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>			oldScoreForCollectStar = scoreNode.score or 0</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>		end</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a></span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>		-- ! 不知道是啥，看上去旧逻辑在这里更新了星级，实在有些坑人坑人坑人坑人</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>		local isNewFullStarArea = false</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>		local isFullLevelMode = LevelSceneFunc and LevelSceneFunc:isFullLevelLib(levelScene)</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>		if not isFullLevelMode then isNewFullStarArea = old_pass_level_update_star(levelId, star, levelScene) end</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a></span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>		--也不知是啥数据</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>		local levelModeType = runtime:getLevelGameMode()</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>		local extraStr = &quot;0&quot;</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>		if costMove &gt;= 5 or star &gt; 0 then extraStr = &quot;1&quot; end</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a></span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>		--活动！</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>		local jsonTable = {}</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a></span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>        if _G.__FarmStarRanking_FLAG then</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>        	local uid = UserManager.getInstance().uid or &quot;12345&quot;</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>		    local open = MaintenanceManager:getInstance():isEnabledInGroup(&quot;farmStarRank&quot; , &quot;ON&quot; , uid)</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>		    if open then jsonTable[&quot;7006&quot;] = &quot;&quot; end </span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>        end</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a></span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>        local _data = {</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>			levelId = levelId,</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>			levelType = levelType,</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>			star = star,</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>			score = score,</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>			isGiveUp = isGiveUp,</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>			usedProps = body.usedProps,</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>			jsonTable = jsonTable,</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>			oldStarForCollectStar = oldStarForCollectStar,</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>			oldScoreForCollectStar = oldScoreForCollectStar,</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>			extra = extraData,</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>			opLog = opLog,</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>			levelScene = levelScene,</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>			isWin = isWin,</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>		}</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a></span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>		local _ = LocalActCoreModel and	LocalActCoreModel.getOrCreateInstance():notify(ActInterface.kSendPassLevelStart, _data)</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>		-- ActInLevelManagerHelper.getInstance():notify(ActInLevelInterface.kSendPassLevelStart, _data)</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a></span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>        if not isGiveUp then</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>        	if WeeklyRace2020Mgr and WeeklyRace2020Mgr.getInstance():passLevelCanAddProgress() then</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>        		jsonTable[&#x27;8015&#x27;] = { matched = true }</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>        	end</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>        end</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a></span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a></span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>        if levelType == GameLevelType.kWeeklyRace2020 then</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>	    	local extraData2 = WeeklyRace2020Logic:getWeeklyRace2020PasslevelExtraData(star)</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>	    	jsonTable[&quot;8015&quot;] = extraData2</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a>	    end</span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a></span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a></span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a>	   	jsonTable[&quot;-9999&quot;] = {</span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>			color1 = playInfo.killed_animal_1,</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>			color2 = playInfo.killed_animal_2,</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>			color3 = playInfo.killed_animal_3,</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>			color4 = playInfo.killed_animal_4,</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>			color5 = playInfo.killed_animal_5,</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>			color6 = playInfo.killed_animal_6,</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>			magicBird = birdDestroyCount,</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>			--todo 代打点</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>			-- line = gamePlayContext:getPlayInfoKilledLine(),</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>			-- wrap = gamePlayContext:getPlayInfoKilledWrap(),</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>			-- bird = gamePlayContext:getPlayInfoKilledBird(),</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>		}</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>		jsonTable[&quot;3017&quot;] = table.clone(jsonTable[&quot;-9999&quot;], true)</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a></span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>		if StarBuffYEManager and StarBuffYEManager.getInstance():isBuffEffectiveForPassLevel() then</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>			if StarBuffManager.getInstance():isMaintenanceOn() then</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>				if not StarBuffYEManager.getInstance():getUnfulllevelStarBuffEnable() or StarBuffManager.getInstance():isFullLevel() then</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>					jsonTable[ &quot;&quot;..StarBuffYEManager.UseBuffOffLineID ] = &quot;true&quot;</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>					StarBuffYEManager.getInstance():doAutoAddBuff(oldStarForCollectStar , star)</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a>				end</span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>			end</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>		end</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a></span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>		if StarBuffYEManager and StarBuffYEManager.getInstance():isBuffStateForPassLevel(levelId, levelScene) then</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>			if StarBuffYEManager.getInstance().curUsePropId ~= 0 and StarBuffYEManager.getInstance().curUsePropId == UPropId.INFINITE_STARBUFF_THIRTY_MINUTE then</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>				StarBuffYEManager.getInstance():addConsumeBuffStateTime(Localhost:timeInSec() - (StarBuffYEManager.getInstance().lastEnterLevelTime or 0))</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>			end</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>		end</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a></span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>		-- todo 新棋盘没这个数据了</span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>		local levelMd5 = &quot;&quot;</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>		local initAdjustData = nil</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>		-- initAdjustData = gameBoardLogic:getBoardModel().initAdjustData</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a></span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>		local shouldCalcPrebuff = false</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>		if PreBuffLogic then shouldCalcPrebuff = PreBuffLogic:isActOn() end</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a></span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>		-- 序列化oplog</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>		if opLog then</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>			if _G.isLocalDevelopMode then  opLog.passLevelJsonData = jsonTable end	</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>			opLog.hasUsedProp = body.hasUsedProp</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>			-- 	xpcall(function()</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>			-- 		opLog = table.serialize(opLog)</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>			--     end,</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>			--     function(err)</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>			--         if _G.isLocalDevelopMode then</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>			--             local traceback = debug.traceback(&quot;&quot;, 2)</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>			--             print(table.tostring(opLog))</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>			--             print(err,traceback)</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>			--         end</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>			-- 		local str = &quot;&quot;</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>			-- 		pcall(function() str = tts(opLog) end)</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>			-- 		he_log_error(&quot;passLevel oplog serialize fail.&quot; .. tostring(err) .. &quot; - &quot; .. tostring(str))</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>			--     end)</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>		end</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a></span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>		--</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>--</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a></span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a></span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>		local hideLevelVersion = 0</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>		local staticLevelMoves = runtime:getStaticMove()</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a></span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>		body.activityFlag = levelType</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>		body.extraStr = extraStr</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a>		-- body.curConfigMd5 = LevelMapNoCompatible.getInstance():getLevelUpdateVersion() --没有关卡调整了</span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>		body.levelMd5 = levelMd5</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>		body.levelVersion = GamePlayClientVersion -- 新分组应该早就不用了</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>		body.guideLevel = (not shouldCalcPrebuff)</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>        -- TODO @siyang app要不要？</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>        if EnvUtil:isMiniGame() then</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>		    body.isNewFullStarArea = isNewFullStarArea</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>        else</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>		    body.newFullStarArea = isNewFullStarArea</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>        end</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>		body.jsonTable = jsonTable</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>		body.orderIds = levelInfo.paymentOrderIds or {}</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>		body.hideLevelVersion = 0</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>		body.extraData = table.serialize(body.extraData)</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>		body.protocolVersion = CollectionProtocolVersion</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>		runtime.__jsonTable__ = jsonTable</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>		if IngamePropGuideManager then </span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a>			body.propGuideItem = IngamePropGuideManager:getInstance():getPassLevelParamAndClear() or 0</span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>		end</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a></span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>		-- todo 成就部分，关卡外</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>		if AchiId then </span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>			local achiInfo = {</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>				[AchiId.kTotalLineEffectCount] = playInfo.line_create,</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>				[AchiId.kTotalBombEffectCount] = playInfo.wrap_create,</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>				[AchiId.kTotalMagicBirdCount] = playInfo.bird_create,</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>				[AchiId.kTotalChangeEffectCount] = playInfo.line_line_swap </span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>													+ playInfo.line_wrap_swap </span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>													+ playInfo.wrap_wrap_swap </span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>													+ playInfo.bird_line_swap </span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>													+ playInfo.bird_wrap_swap</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>													+ playInfo.bird_bird_swap,</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>			}</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>			local achievementValues = {}</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>			for id,count in pairs(achiInfo) do</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>				table.insert(achievementValues, {first = id, second = count})</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>			end</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a></span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>			body.achievementValues = achievementValues</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a></span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>			for id,count in pairs(achiInfo) do</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>				local _ = Notify and Notify:dispatch(&quot;AchiEventDataUpdate&quot;, id, count)</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>			end</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>		end</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a></span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>		-- dev oplog 回放flag</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>		if EnvUtil:isDevelopMode() then</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>			_G.needCheckReplayOplog = 1</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>			if _G._hasCheatedInLevel then</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>				_G._hasCheatedInLevel = nil</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>				_G.needCheckReplayOplog = 0</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>			end</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>			if EnvUtil:isUnityEditor() or __WIN32 then</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>				_G.needCheckReplayOplog = 0</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>			end</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>			--失败不发</span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>			if star &lt;= 0 then</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a>				-- 检查是否有活动想强行校验，不清除标记</span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>				local keepFlag = UBFLevelSceneFunc:isPassLevelGiveUpForceSendOpLog(levelScene)</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>				if not keepFlag then</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>					_G.needCheckReplayOplog = nil</span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>				end</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>			end</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a>		end</span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>		if _G.forceCheckReplayOplog then</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>			_G.needCheckReplayOplog = 1</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a>			_G.forceCheckReplayOplog = nil</span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>		end</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>		body.oplogFlag = _G.needCheckReplayOplog</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>		_G.needCheckReplayOplog = 0</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a></span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>		-- 难度相关</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>		if LevelDifficultyAdjustManager then </span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a>			body.eventId = LevelDifficultyAdjustManager:getAIEventID()</span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a></span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a>			body.strategy = LevelDifficultyAdjustManager:getCurrStrategyID() or 0</span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>			body.strategyReason = LevelDifficultyAdjustManager:getStrategyDataListByDCString()</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a></span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>			LevelDifficultyAdjustManager:onBeforeSendPassLevel(levelId, score, star, logicalFail)</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>			LevelDifficultyAdjustManager:clearCurrStrategyID()</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a></span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a>		end</span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a></span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>		local beforeSendPassLevelEventData = {</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>			ubfELRuntime = runtime,</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>		}</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>		UBFGlobalEventBus:dispatch( UBFGlobalEventEnum.kBeforeSendPassLevelMsg , beforeSendPassLevelEventData )</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a></span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>		local topLevelId = UserService:getInstance().user:getTopLevelId()</span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>		if logicalFail and topLevelId == levelId and UBFLevelSceneFunc:isMainLevel(levelScene) and UserTagManager then</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a>			local c1 = UserTagManager:getTopLevelLogicalFailCounts() or 0</span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>			UserTagManager:updateTopLevelLogicalFailCounts( c1 + 1 )</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>		end</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a></span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a>	elseif data.method == UBFGameMethodType.kSubsPassLevel then</span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a>    	-- local prevSceneMgr = runtime:getPrevSceneManager()</span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>    	-- local playInfo = prevSceneMgr:getFormatedMatchStatisticalInfo()</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a></span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>		-- local opLog = body.opLog</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>		-- local uid = body.uid</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a>		-- local levelId = body.levelId</span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a>    	-- local levelType = body.levelType</span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>    	-- local star = body.star</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>    	-- local isGiveUp = body.isGiveUp</span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>    	-- local extraData = body.extraData</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a>    	-- local levelScene = body.levelScene</span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>    	-- local logicalFail = body.logicalFail</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>    	-- local score = body.score</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a>    	-- local stageTime = body.stageTime</span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>    	-- local costMove = body.step</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a></span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a>		-- local levelModeType = runtime:getLevelGameMode()</span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a></span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>		-- if AchiId then</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>		-- 	local achiInfo = {</span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a>		-- 		[AchiId.kTotalLineEffectCount] = playInfo.line_create,</span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>		-- 		[AchiId.kTotalBombEffectCount] = playInfo.wrap_create,</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>		-- 		[AchiId.kTotalMagicBirdCount] = playInfo.bird_create,</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a>		-- 		[AchiId.kTotalChangeEffectCount] = playInfo.line_line_swap</span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>		-- 											+ playInfo.line_wrap_swap</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>		-- 											+ playInfo.wrap_wrap_swap</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>		-- 											+ playInfo.bird_line_swap</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a>		-- 											+ playInfo.bird_wrap_swap</span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>		-- 											+ playInfo.bird_bird_swap,</span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>		-- 	}</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a>		-- 	local achievementValues = {}</span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>		-- 	for id,count in pairs(achiInfo) do</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a>		-- 		table.insert(achievementValues, {first = id, second = count})</span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>		-- 	end</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a>		-- 	body.achievementValues = achievementValues</span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>		-- 	for id,count in pairs(achiInfo) do</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>		-- 		Notify:dispatch(&quot;AchiEventDataUpdate&quot;, id, count)</span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>		-- 	end</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>		-- end</span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a></span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a>	</span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a>		-- local levelDifficultyFlag</span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a>		-- -- 部分需求有要知晓关卡难度设定的需求</span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>		-- if MetaManager and MetaManager.getInstance() then</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a>		-- 	local difficultyFlag = MetaManager.getInstance():getLevelDifficultFlag(levelId, levelScene)</span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a>		-- 	if difficultyFlag then</span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>		-- 		levelDifficultyFlag = difficultyFlag</span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a>		-- 	end</span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a>		-- end</span>
+<span class="source-line" id="L614"><a class="line-num" href="#L614">614</a>		-- body[&quot;difficultyFlag&quot;] = levelDifficultyFlag</span>
+<span class="source-line" id="L615"><a class="line-num" href="#L615">615</a></span>
+<span class="source-line" id="L616"><a class="line-num" href="#L616">616</a>		-- local extraStr = &quot;0&quot;</span>
+<span class="source-line" id="L617"><a class="line-num" href="#L617">617</a>		-- if costMove &gt;= 5 or star &gt; 0 or (levelModeType == GameModeType.CLASSIC and stageTime &gt;= 30) then</span>
+<span class="source-line" id="L618"><a class="line-num" href="#L618">618</a>		-- 	extraStr = &quot;1&quot;</span>
+<span class="source-line" id="L619"><a class="line-num" href="#L619">619</a>		-- end</span>
+<span class="source-line" id="L620"><a class="line-num" href="#L620">620</a>		-- body.extra = extraStr</span>
+<span class="source-line" id="L621"><a class="line-num" href="#L621">621</a></span>
+<span class="source-line" id="L622"><a class="line-num" href="#L622">622</a>		-- local usedProps = {}</span>
+<span class="source-line" id="L623"><a class="line-num" href="#L623">623</a>		-- local stageInfo = StageInfoLocalLogic:getStageInfo( UserManager:getInstance().uid )</span>
+<span class="source-line" id="L624"><a class="line-num" href="#L624">624</a>		-- if stageInfo and stageInfo.propsUsedInLevel then</span>
+<span class="source-line" id="L625"><a class="line-num" href="#L625">625</a>		-- 	for itemId, num in pairs(stageInfo.propsUsedInLevel) do</span>
+<span class="source-line" id="L626"><a class="line-num" href="#L626">626</a>		-- 		table.insert(usedProps, {itemId = itemId, num = num})</span>
+<span class="source-line" id="L627"><a class="line-num" href="#L627">627</a>		-- 	end</span>
+<span class="source-line" id="L628"><a class="line-num" href="#L628">628</a>		-- end</span>
+<span class="source-line" id="L629"><a class="line-num" href="#L629">629</a>		-- body.usedProps = usedProps</span>
+<span class="source-line" id="L630"><a class="line-num" href="#L630">630</a>		-- local jsonTable = {}</span>
+<span class="source-line" id="L631"><a class="line-num" href="#L631">631</a>		-- jsonTable[&quot;-9999&quot;] = {</span>
+<span class="source-line" id="L632"><a class="line-num" href="#L632">632</a>		-- 	color1 = playInfo.killed_animal_1,</span>
+<span class="source-line" id="L633"><a class="line-num" href="#L633">633</a>		-- 	color2 = playInfo.killed_animal_2,</span>
+<span class="source-line" id="L634"><a class="line-num" href="#L634">634</a>		-- 	color3 = playInfo.killed_animal_3,</span>
+<span class="source-line" id="L635"><a class="line-num" href="#L635">635</a>		-- 	color4 = playInfo.killed_animal_4,</span>
+<span class="source-line" id="L636"><a class="line-num" href="#L636">636</a>		-- 	color5 = playInfo.killed_animal_5,</span>
+<span class="source-line" id="L637"><a class="line-num" href="#L637">637</a>		-- 	color6 = playInfo.killed_animal_6,</span>
+<span class="source-line" id="L638"><a class="line-num" href="#L638">638</a>		-- 	-- line = gamePlayContext:getPlayInfoKilledLine(),</span>
+<span class="source-line" id="L639"><a class="line-num" href="#L639">639</a>		-- 	-- wrap = gamePlayContext:getPlayInfoKilledWrap(),</span>
+<span class="source-line" id="L640"><a class="line-num" href="#L640">640</a>		-- 	-- bird = gamePlayContext:getPlayInfoKilledBird(),</span>
+<span class="source-line" id="L641"><a class="line-num" href="#L641">641</a>		-- }</span>
+<span class="source-line" id="L642"><a class="line-num" href="#L642">642</a>		-- jsonTable[&quot;3017&quot;] = table.clone(jsonTable[&quot;-9999&quot;], true)</span>
+<span class="source-line" id="L643"><a class="line-num" href="#L643">643</a>		-- body.cacheCode = AFHPassLevelHttp:calcSig(body)</span>
+<span class="source-line" id="L644"><a class="line-num" href="#L644">644</a>		-- UBFGamePlayBridgeInvoker:injectUBFLevelGroupData(body, levelId)</span>
+<span class="source-line" id="L645"><a class="line-num" href="#L645">645</a>	end</span>
+<span class="source-line" id="L646"><a class="line-num" href="#L646">646</a>end</span>
+<span class="source-line" id="L647"><a class="line-num" href="#L647">647</a></span>
+<span class="source-line" id="L648"><a class="line-num" href="#L648">648</a>modListener[UBFGameModEventEnum.BEFORE_FAIL_LEVEL] = function (runtime,data)</span>
+<span class="source-line" id="L649"><a class="line-num" href="#L649">649</a>	local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L650"><a class="line-num" href="#L650">650</a>	local levelScene = runtime:getLevelScene()</span>
+<span class="source-line" id="L651"><a class="line-num" href="#L651">651</a>	local score = runtime:getTotalScore()</span>
+<span class="source-line" id="L652"><a class="line-num" href="#L652">652</a>	local star = runtime:getStar()</span>
+<span class="source-line" id="L653"><a class="line-num" href="#L653">653</a>	local coin = runtime:getLevelCoin()</span>
+<span class="source-line" id="L654"><a class="line-num" href="#L654">654</a>	local targetCount = runtime:getTargetCount()</span>
+<span class="source-line" id="L655"><a class="line-num" href="#L655">655</a>	local uid = runtime:getUid()</span>
+<span class="source-line" id="L656"><a class="line-num" href="#L656">656</a>	local currStrategyID = LevelDifficultyAdjustManagerv and LevelDifficultyAdjustManager:getCurrStrategyID()</span>
+<span class="source-line" id="L657"><a class="line-num" href="#L657">657</a>	local costMove = runtime:getMoveCount()</span>
+<span class="source-line" id="L658"><a class="line-num" href="#L658">658</a>	local stageTime = runtime:getStageTime()</span>
+<span class="source-line" id="L659"><a class="line-num" href="#L659">659</a>	local guideLevel = runtime:isGuideLevel()</span>
+<span class="source-line" id="L660"><a class="line-num" href="#L660">660</a>	local opLog = runtime:getReplayLog()</span>
+<span class="source-line" id="L661"><a class="line-num" href="#L661">661</a>	local failReason = runtime:getLevelFailReason()</span>
+<span class="source-line" id="L662"><a class="line-num" href="#L662">662</a></span>
+<span class="source-line" id="L663"><a class="line-num" href="#L663">663</a></span>
+<span class="source-line" id="L664"><a class="line-num" href="#L664">664</a>	local beforeFailLevelData = {</span>
+<span class="source-line" id="L665"><a class="line-num" href="#L665">665</a>		levelId = levelId,</span>
+<span class="source-line" id="L666"><a class="line-num" href="#L666">666</a>		levelScene = levelScene,</span>
+<span class="source-line" id="L667"><a class="line-num" href="#L667">667</a>		score = score,</span>
+<span class="source-line" id="L668"><a class="line-num" href="#L668">668</a>		star = star,</span>
+<span class="source-line" id="L669"><a class="line-num" href="#L669">669</a>		coin = coin,</span>
+<span class="source-line" id="L670"><a class="line-num" href="#L670">670</a>		targetCount = targetCount,</span>
+<span class="source-line" id="L671"><a class="line-num" href="#L671">671</a>	}</span>
+<span class="source-line" id="L672"><a class="line-num" href="#L672">672</a>	local _ = LocalActCoreModel and LocalActCoreModel:getOrCreateInstance():notify(ActInterface.kBeforeFailLevel, beforeFailLevelData)</span>
+<span class="source-line" id="L673"><a class="line-num" href="#L673">673</a>	-- ActInLevelManagerHelper.getInstance():notify(ActInLevelInterface.kBeforeFailLevel, beforeFailLevelData)</span>
+<span class="source-line" id="L674"><a class="line-num" href="#L674">674</a></span>
+<span class="source-line" id="L675"><a class="line-num" href="#L675">675</a></span>
+<span class="source-line" id="L676"><a class="line-num" href="#L676">676</a>	if PrePropImproveLogic then </span>
+<span class="source-line" id="L677"><a class="line-num" href="#L677">677</a>		PrePropImproveLogic:onLevelEnd(false,levelId)</span>
+<span class="source-line" id="L678"><a class="line-num" href="#L678">678</a>	end</span>
+<span class="source-line" id="L679"><a class="line-num" href="#L679">679</a>	-- if LevelStrategyManager then </span>
+<span class="source-line" id="L680"><a class="line-num" href="#L680">680</a>	-- 	LevelStrategyManager.getInstance():setLevelFail(levelId)</span>
+<span class="source-line" id="L681"><a class="line-num" href="#L681">681</a>	-- end</span>
+<span class="source-line" id="L682"><a class="line-num" href="#L682">682</a>end</span>
+<span class="source-line" id="L683"><a class="line-num" href="#L683">683</a></span>
+<span class="source-line" id="L684"><a class="line-num" href="#L684">684</a>modListener[UBFGameModEventEnum.AFTER_FAIL_LEVEL] = function (runtime,data)</span>
+<span class="source-line" id="L685"><a class="line-num" href="#L685">685</a>end</span>
+<span class="source-line" id="L686"><a class="line-num" href="#L686">686</a></span>
+<span class="source-line" id="L687"><a class="line-num" href="#L687">687</a></span>
+<span class="source-line" id="L688"><a class="line-num" href="#L688">688</a>modListener[UBFGameModEventEnum.BEFORE_QUIT_LEVEL] = function (runtime,data)</span>
+<span class="source-line" id="L689"><a class="line-num" href="#L689">689</a>	local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L690"><a class="line-num" href="#L690">690</a>	local levelScene = runtime:getLevelScene()</span>
+<span class="source-line" id="L691"><a class="line-num" href="#L691">691</a></span>
+<span class="source-line" id="L692"><a class="line-num" href="#L692">692</a>	if not LevelSceneFunc:isFullLevelLib(levelScene) then</span>
+<span class="source-line" id="L693"><a class="line-num" href="#L693">693</a>		UserService.getInstance():onQuitLevel(levelId, levelScene)</span>
+<span class="source-line" id="L694"><a class="line-num" href="#L694">694</a>	end</span>
+<span class="source-line" id="L695"><a class="line-num" href="#L695">695</a>end</span>
+<span class="source-line" id="L696"><a class="line-num" href="#L696">696</a></span>
+<span class="source-line" id="L697"><a class="line-num" href="#L697">697</a></span>
+<span class="source-line" id="L698"><a class="line-num" href="#L698">698</a>modListener[UBFGameModEventEnum.AFTER_QUIT_LEVEL] = function (runtime,data)</span>
+<span class="source-line" id="L699"><a class="line-num" href="#L699">699</a>	local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L700"><a class="line-num" href="#L700">700</a>	local levelType = runtime:getLevelType()</span>
+<span class="source-line" id="L701"><a class="line-num" href="#L701">701</a>	local levelScene = runtime:getLevelScene()</span>
+<span class="source-line" id="L702"><a class="line-num" href="#L702">702</a>	local realCostMove = runtime:getTotalCostMove()</span>
+<span class="source-line" id="L703"><a class="line-num" href="#L703">703</a>	local staticMove = runtime:getStaticMove()</span>
+<span class="source-line" id="L704"><a class="line-num" href="#L704">704</a>	local playLevelMode = runtime:getPlayLevelMode()</span>
+<span class="source-line" id="L705"><a class="line-num" href="#L705">705</a>	local score = runtime:getTotalScore()</span>
+<span class="source-line" id="L706"><a class="line-num" href="#L706">706</a>	local star = runtime:getStar()</span>
+<span class="source-line" id="L707"><a class="line-num" href="#L707">707</a></span>
+<span class="source-line" id="L708"><a class="line-num" href="#L708">708</a>	if InciteManager then </span>
+<span class="source-line" id="L709"><a class="line-num" href="#L709">709</a>		InciteManager:onPassLevel()</span>
+<span class="source-line" id="L710"><a class="line-num" href="#L710">710</a>	end</span>
+<span class="source-line" id="L711"><a class="line-num" href="#L711">711</a></span>
+<span class="source-line" id="L712"><a class="line-num" href="#L712">712</a>	if ProductItemDiffChangeLogic then </span>
+<span class="source-line" id="L713"><a class="line-num" href="#L713">713</a>		ProductItemDiffChangeLogic:endLevel()</span>
+<span class="source-line" id="L714"><a class="line-num" href="#L714">714</a>	end</span>
+<span class="source-line" id="L715"><a class="line-num" href="#L715">715</a></span>
+<span class="source-line" id="L716"><a class="line-num" href="#L716">716</a>	if GameInitDiffChangeLogic then </span>
+<span class="source-line" id="L717"><a class="line-num" href="#L717">717</a>		GameInitDiffChangeLogic:endLevel()</span>
+<span class="source-line" id="L718"><a class="line-num" href="#L718">718</a>	end</span>
+<span class="source-line" id="L719"><a class="line-num" href="#L719">719</a></span>
+<span class="source-line" id="L720"><a class="line-num" href="#L720">720</a>	local data = {</span>
+<span class="source-line" id="L721"><a class="line-num" href="#L721">721</a>		levelId = levelId,</span>
+<span class="source-line" id="L722"><a class="line-num" href="#L722">722</a>		levelType = levelType,</span>
+<span class="source-line" id="L723"><a class="line-num" href="#L723">723</a>		strategyID = LevelDifficultyAdjustManager and LevelDifficultyAdjustManager:getCurrStrategyID(),</span>
+<span class="source-line" id="L724"><a class="line-num" href="#L724">724</a></span>
+<span class="source-line" id="L725"><a class="line-num" href="#L725">725</a>		realCostMove = realCostMove,</span>
+<span class="source-line" id="L726"><a class="line-num" href="#L726">726</a>		staticLevelMoves = staticMove,</span>
+<span class="source-line" id="L727"><a class="line-num" href="#L727">727</a>		levelScene = levelScene,</span>
+<span class="source-line" id="L728"><a class="line-num" href="#L728">728</a>		playLevelMode = playLevelMode,</span>
+<span class="source-line" id="L729"><a class="line-num" href="#L729">729</a></span>
+<span class="source-line" id="L730"><a class="line-num" href="#L730">730</a>		score = score,</span>
+<span class="source-line" id="L731"><a class="line-num" href="#L731">731</a>		star = star,</span>
+<span class="source-line" id="L732"><a class="line-num" href="#L732">732</a>		isQuit = true,</span>
+<span class="source-line" id="L733"><a class="line-num" href="#L733">733</a>	}</span>
+<span class="source-line" id="L734"><a class="line-num" href="#L734">734</a></span>
+<span class="source-line" id="L735"><a class="line-num" href="#L735">735</a>end</span>
+<span class="source-line" id="L736"><a class="line-num" href="#L736">736</a></span>
+<span class="source-line" id="L737"><a class="line-num" href="#L737">737</a>modListener[UBFGameModEventEnum.BEFORE_RETRY_LEVEL] = function (runtime,data)</span>
+<span class="source-line" id="L738"><a class="line-num" href="#L738">738</a>	</span>
+<span class="source-line" id="L739"><a class="line-num" href="#L739">739</a>	printx(16,&quot;BEFORE_RETRY_LEVEL&quot;)</span>
+<span class="source-line" id="L740"><a class="line-num" href="#L740">740</a>	local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L741"><a class="line-num" href="#L741">741</a>	local levelType = runtime:getLevelType()</span>
+<span class="source-line" id="L742"><a class="line-num" href="#L742">742</a>	local costMove = runtime:getTotalCostMove()</span>
+<span class="source-line" id="L743"><a class="line-num" href="#L743">743</a>	local staticMove = runtime:getStaticMove()</span>
+<span class="source-line" id="L744"><a class="line-num" href="#L744">744</a>	local levelScene = runtime:getLevelScene()</span>
+<span class="source-line" id="L745"><a class="line-num" href="#L745">745</a>	local playLevelMode = runtime:getPlayLevelMode()</span>
+<span class="source-line" id="L746"><a class="line-num" href="#L746">746</a></span>
+<span class="source-line" id="L747"><a class="line-num" href="#L747">747</a>	if not LevelSceneFunc:isFullLevelLib(levelScene) then</span>
+<span class="source-line" id="L748"><a class="line-num" href="#L748">748</a>		UserService.getInstance():onQuitLevel(levelId, levelScene)</span>
+<span class="source-line" id="L749"><a class="line-num" href="#L749">749</a>	end</span>
+<span class="source-line" id="L750"><a class="line-num" href="#L750">750</a></span>
+<span class="source-line" id="L751"><a class="line-num" href="#L751">751</a>	local beforeTryAgain = {</span>
+<span class="source-line" id="L752"><a class="line-num" href="#L752">752</a>		levelId = levelId,</span>
+<span class="source-line" id="L753"><a class="line-num" href="#L753">753</a>		levelType = levelType,</span>
+<span class="source-line" id="L754"><a class="line-num" href="#L754">754</a>		strategyID = LevelDifficultyAdjustManager and LevelDifficultyAdjustManager:getCurrStrategyID(),</span>
+<span class="source-line" id="L755"><a class="line-num" href="#L755">755</a>		realCostMove = costMove,</span>
+<span class="source-line" id="L756"><a class="line-num" href="#L756">756</a>		staticLevelMoves = staticMove,</span>
+<span class="source-line" id="L757"><a class="line-num" href="#L757">757</a>		levelScene = levelScene,</span>
+<span class="source-line" id="L758"><a class="line-num" href="#L758">758</a>		playLevelMode = playLevelMode,</span>
+<span class="source-line" id="L759"><a class="line-num" href="#L759">759</a>	}</span>
+<span class="source-line" id="L760"><a class="line-num" href="#L760">760</a></span>
+<span class="source-line" id="L761"><a class="line-num" href="#L761">761</a>	local _ = LocalActCoreModel and LocalActCoreModel.getInstance():notify(ActInterface.kBeforePlayAgainLevel, beforeTryAgain)</span>
+<span class="source-line" id="L762"><a class="line-num" href="#L762">762</a>	-- ActInLevelManagerHelper.getInstance():notify(ActInLevelInterface.kBeforePlayAgainLevel, beforeTryAgain)</span>
+<span class="source-line" id="L763"><a class="line-num" href="#L763">763</a></span>
+<span class="source-line" id="L764"><a class="line-num" href="#L764">764</a>end</span>
+<span class="source-line" id="L765"><a class="line-num" href="#L765">765</a></span>
+<span class="source-line" id="L766"><a class="line-num" href="#L766">766</a></span>
+<span class="source-line" id="L767"><a class="line-num" href="#L767">767</a>modListener[UBFGameModEventEnum.AFTER_RETRY_LEVEL] = function (runtime,data)</span>
+<span class="source-line" id="L768"><a class="line-num" href="#L768">768</a>end</span>
+<span class="source-line" id="L769"><a class="line-num" href="#L769">769</a></span>
+<span class="source-line" id="L770"><a class="line-num" href="#L770">770</a>modListener[UBFGameModEventEnum.BEFORE_YUNGAME_LEVEL] = function ( runtime,data )</span>
+<span class="source-line" id="L771"><a class="line-num" href="#L771">771</a>	-- local forceQuit = false</span>
+<span class="source-line" id="L772"><a class="line-num" href="#L772">772</a>	if runtime:isWin() then</span>
+<span class="source-line" id="L773"><a class="line-num" href="#L773">773</a>		GlobalEventDispatcher:getInstance():dispatchEvent(Event.new(&quot;yungame_passlevel&quot;, {success = true}))</span>
+<span class="source-line" id="L774"><a class="line-num" href="#L774">774</a>	else</span>
+<span class="source-line" id="L775"><a class="line-num" href="#L775">775</a>		local failReason = runtime:getLevelFailReason()</span>
+<span class="source-line" id="L776"><a class="line-num" href="#L776">776</a>		if failReason == _G.UBFGameFailReason.kRetry then</span>
+<span class="source-line" id="L777"><a class="line-num" href="#L777">777</a>			safeRunCall(modListener[UBFGameModEventEnum.BEFORE_RETRY_LEVEL],runtime,data)</span>
+<span class="source-line" id="L778"><a class="line-num" href="#L778">778</a>		elseif failReason == _G.UBFGameFailReason.kDropout then</span>
+<span class="source-line" id="L779"><a class="line-num" href="#L779">779</a>			safeRunCall(modListener[UBFGameModEventEnum.BEFORE_QUIT_LEVEL],runtime,data)</span>
+<span class="source-line" id="L780"><a class="line-num" href="#L780">780</a>		else</span>
+<span class="source-line" id="L781"><a class="line-num" href="#L781">781</a>			GlobalEventDispatcher:getInstance():dispatchEvent(Event.new(&quot;yungame_passlevel&quot;, {success = false}))</span>
+<span class="source-line" id="L782"><a class="line-num" href="#L782">782</a>		end</span>
+<span class="source-line" id="L783"><a class="line-num" href="#L783">783</a>	end</span>
+<span class="source-line" id="L784"><a class="line-num" href="#L784">784</a>end</span>
+<span class="source-line" id="L785"><a class="line-num" href="#L785">785</a></span>
+<span class="source-line" id="L786"><a class="line-num" href="#L786">786</a>modListener[UBFGameModEventEnum.AFTER_YUNGAME_LEVEL] = function (runtime,data)</span>
+<span class="source-line" id="L787"><a class="line-num" href="#L787">787</a>	-- printx(16,&quot;?????????????????????????&quot;)</span>
+<span class="source-line" id="L788"><a class="line-num" href="#L788">788</a>	local forceQuit = function ()</span>
+<span class="source-line" id="L789"><a class="line-num" href="#L789">789</a>		setNextFrame(function ( ... )</span>
+<span class="source-line" id="L790"><a class="line-num" href="#L790">790</a>			-- Director:sharedDirector():popScene()</span>
+<span class="source-line" id="L791"><a class="line-num" href="#L791">791</a>			GlobalEventDispatcher:getInstance():dispatchEvent(Event.new(kGlobalEvents.kExceptionReturnFromGamePlay))</span>
+<span class="source-line" id="L792"><a class="line-num" href="#L792">792</a>		end)</span>
+<span class="source-line" id="L793"><a class="line-num" href="#L793">793</a>	end</span>
+<span class="source-line" id="L794"><a class="line-num" href="#L794">794</a></span>
+<span class="source-line" id="L795"><a class="line-num" href="#L795">795</a>	if runtime:isWin() then</span>
+<span class="source-line" id="L796"><a class="line-num" href="#L796">796</a>		forceQuit()</span>
+<span class="source-line" id="L797"><a class="line-num" href="#L797">797</a>	else</span>
+<span class="source-line" id="L798"><a class="line-num" href="#L798">798</a>		local failReason = runtime:getLevelFailReason()</span>
+<span class="source-line" id="L799"><a class="line-num" href="#L799">799</a>		-- printx(16,failReason,&quot;*----------------------------&quot;)</span>
+<span class="source-line" id="L800"><a class="line-num" href="#L800">800</a>		if failReason == _G.UBFGameFailReason.kRetry then</span>
+<span class="source-line" id="L801"><a class="line-num" href="#L801">801</a>			safeRunCall(modListener[UBFGameModEventEnum.AFTER_RETRY_LEVEL],runtime,data)</span>
+<span class="source-line" id="L802"><a class="line-num" href="#L802">802</a>		elseif failReason == _G.UBFGameFailReason.kDropout then</span>
+<span class="source-line" id="L803"><a class="line-num" href="#L803">803</a>			safeRunCall(modListener[UBFGameModEventEnum.AFTER_QUIT_LEVEL],runtime,data)</span>
+<span class="source-line" id="L804"><a class="line-num" href="#L804">804</a>		else</span>
+<span class="source-line" id="L805"><a class="line-num" href="#L805">805</a>			forceQuit()</span>
+<span class="source-line" id="L806"><a class="line-num" href="#L806">806</a>		end</span>
+<span class="source-line" id="L807"><a class="line-num" href="#L807">807</a>	end</span>
+<span class="source-line" id="L808"><a class="line-num" href="#L808">808</a>end</span>
+<span class="source-line" id="L809"><a class="line-num" href="#L809">809</a></span>
+<span class="source-line" id="L810"><a class="line-num" href="#L810">810</a></span>
+<span class="source-line" id="L811"><a class="line-num" href="#L811">811</a>modListener[UBFGameModEventEnum.WONDERFUL_END_LEVEL] = function (runtime,data)</span>
+<span class="source-line" id="L812"><a class="line-num" href="#L812">812</a>	local sceneMgr = UBFGameSceneManager:getInstance()</span>
+<span class="source-line" id="L813"><a class="line-num" href="#L813">813</a>	if not sceneMgr then return end</span>
+<span class="source-line" id="L814"><a class="line-num" href="#L814">814</a>	local levelId = runtime:getLevelId()</span>
+<span class="source-line" id="L815"><a class="line-num" href="#L815">815</a>	local endPromise = sceneMgr:callGameModule( UBFGameLogics.kWonderfulReplay , &quot;onGameEnd&quot; )</span>
+<span class="source-line" id="L816"><a class="line-num" href="#L816">816</a>	local wonderfulReplayEndType = runtime:getWonderfulReplayEndType() </span>
+<span class="source-line" id="L817"><a class="line-num" href="#L817">817</a>	wonderfulReplayEndType = wonderfulReplayEndType or _G.UBFGameReplayEndType.kNormal</span>
+<span class="source-line" id="L818"><a class="line-num" href="#L818">818</a>	lua_switch(wonderfulReplayEndType){</span>
+<span class="source-line" id="L819"><a class="line-num" href="#L819">819</a>		[_G.UBFGameReplayEndType.kNormal] = function ( ... )</span>
+<span class="source-line" id="L820"><a class="line-num" href="#L820">820</a>			local delegate = {</span>
+<span class="source-line" id="L821"><a class="line-num" href="#L821">821</a>				onMenuCommand = function ( _,_, cmd )</span>
+<span class="source-line" id="L822"><a class="line-num" href="#L822">822</a>					lua_switch(cmd){</span>
+<span class="source-line" id="L823"><a class="line-num" href="#L823">823</a>						[&quot;replayAgain&quot;] = function (  )</span>
+<span class="source-line" id="L824"><a class="line-num" href="#L824">824</a>							--todo</span>
+<span class="source-line" id="L825"><a class="line-num" href="#L825">825</a>							Director:sharedDirector():popScene()</span>
+<span class="source-line" id="L826"><a class="line-num" href="#L826">826</a>							local UserReviewLogic = require &#x27;ubf.old.gamePlay.review.UserReviewLogic&#x27;</span>
+<span class="source-line" id="L827"><a class="line-num" href="#L827">827</a>							UserReviewLogic:test(nil,levelId)</span>
+<span class="source-line" id="L828"><a class="line-num" href="#L828">828</a>						end,</span>
+<span class="source-line" id="L829"><a class="line-num" href="#L829">829</a>						[&quot;quitReplay&quot;] = function ( ... )</span>
+<span class="source-line" id="L830"><a class="line-num" href="#L830">830</a>							--todo</span>
+<span class="source-line" id="L831"><a class="line-num" href="#L831">831</a>							Director:sharedDirector():popScene()</span>
+<span class="source-line" id="L832"><a class="line-num" href="#L832">832</a>						end,</span>
+<span class="source-line" id="L833"><a class="line-num" href="#L833">833</a>					}</span>
+<span class="source-line" id="L834"><a class="line-num" href="#L834">834</a>				end</span>
+<span class="source-line" id="L835"><a class="line-num" href="#L835">835</a>			}</span>
+<span class="source-line" id="L836"><a class="line-num" href="#L836">836</a></span>
+<span class="source-line" id="L837"><a class="line-num" href="#L837">837</a>			local UserReviewEndPanel = require &#x27;ubf.old.gamePlay.review.UserReviewEndPanel&#x27;</span>
+<span class="source-line" id="L838"><a class="line-num" href="#L838">838</a>			local panel = UserReviewEndPanel:create(  )</span>
+<span class="source-line" id="L839"><a class="line-num" href="#L839">839</a>			panel:setDelegate(delegate)</span>
+<span class="source-line" id="L840"><a class="line-num" href="#L840">840</a>			panel:popout()</span>
+<span class="source-line" id="L841"><a class="line-num" href="#L841">841</a></span>
+<span class="source-line" id="L842"><a class="line-num" href="#L842">842</a>			if endPromise then </span>
+<span class="source-line" id="L843"><a class="line-num" href="#L843">843</a>				endPromise:next(function( data )</span>
+<span class="source-line" id="L844"><a class="line-num" href="#L844">844</a>					if data.isRecord then </span>
+<span class="source-line" id="L845"><a class="line-num" href="#L845">845</a>						if panel.isDisposed then return end</span>
+<span class="source-line" id="L846"><a class="line-num" href="#L846">846</a>						panel:setSavedPath( data.savedPath )</span>
+<span class="source-line" id="L847"><a class="line-num" href="#L847">847</a>					end</span>
+<span class="source-line" id="L848"><a class="line-num" href="#L848">848</a>				end)</span>
+<span class="source-line" id="L849"><a class="line-num" href="#L849">849</a>			end</span>
+<span class="source-line" id="L850"><a class="line-num" href="#L850">850</a>		end,</span>
+<span class="source-line" id="L851"><a class="line-num" href="#L851">851</a></span>
+<span class="source-line" id="L852"><a class="line-num" href="#L852">852</a>		[_G.UBFGameReplayEndType.kQuit] = function ( ... )</span>
+<span class="source-line" id="L853"><a class="line-num" href="#L853">853</a>			--todo</span>
+<span class="source-line" id="L854"><a class="line-num" href="#L854">854</a>			Director:sharedDirector():popScene()</span>
+<span class="source-line" id="L855"><a class="line-num" href="#L855">855</a>		end</span>
+<span class="source-line" id="L856"><a class="line-num" href="#L856">856</a>	}</span>
+<span class="source-line" id="L857"><a class="line-num" href="#L857">857</a>end</span>
+<span class="source-line" id="L858"><a class="line-num" href="#L858">858</a></span>
+<span class="source-line" id="L859"><a class="line-num" href="#L859">859</a>return UBFELMigrator</span></code></pre></main></body></html>

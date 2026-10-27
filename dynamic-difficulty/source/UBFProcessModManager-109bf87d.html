@@ -1,0 +1,394 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFProcessModManager.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFProcessModManager.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/processFlow/module/UBFProcessModManager.lua<br>SHA-256 bf024586bec973fa45590067e4aef2dbaeaeab05a179d7e73eae519eac55f18e · 394 行 · 恢复原文，未经改写</p><a href="UBFProcessModManager-109bf87d.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>UBFProcessModManager = class2(&quot;UBFProcessModManager&quot;, UBFBaseLogic)</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a></span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>local EDITOR_IGNORE_EVENT_NAMES</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a></span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>function UBFProcessModManager:build(createData)</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>    self.runtime = createData.runtime</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>    self.processType = self.runtime:getProcessType()</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    self.modClazzMap = UBFGameModManagerOrganizer.modClazzMap</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    self.willingModList = {}</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>    self.modOpenStatusMap = {}</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>    self.modContextData = {}</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>    self.modDataList = {}</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>end</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a></span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>-- 加载全部有处理意愿的mod</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>function UBFProcessModManager:loadAllWillingMod(defaultWillingList)</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>    for sourceId, modClazz in pairs(self.modClazzMap) do</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>        local isEnabled = defaultWillingList and defaultWillingList[sourceId]</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>        if not isEnabled then</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>            isEnabled = modClazz:isWillingEnabled(self.runtime, sourceId)</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>        end</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>        if isEnabled then</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>            table.insert(self.willingModList, sourceId)</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>            self.modContextData[sourceId] = {}</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>        end</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>    end</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a></span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>    -- 活动可在意愿检查时声明隔离策略，因此统一在检查结束后应用白名单。</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>    local willingModAllowList = self.runtime:getExtra(&quot;willingModAllowList&quot;)</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    if type(willingModAllowList) == &quot;table&quot; then</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>        for index = #self.willingModList, 1, -1 do</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>            local sourceId = self.willingModList[index]</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>            if willingModAllowList[tostring(sourceId)] ~= true then</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>                table.remove(self.willingModList, index)</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>                self.modContextData[sourceId] = nil</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>            end</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>        end</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>    end</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>    table.sort(self.willingModList, function(a, b)</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>        local na = UBFModHelper:getModPriority(a)</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>        local nb = UBFModHelper:getModPriority(b)</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>        return na &lt; nb</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>    end)</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>--</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>--</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>--</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>--</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>--</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>--</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>--</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>--</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a></span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>end</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a></span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>--发送事件</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>function UBFProcessModManager:_notify(eventName, data, protectedMode, onError)</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>    local noError = true</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>    -- todo</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>    --todo 临时写的，后面要改成正式的，写到这里的都是咱们自己的业务  ，是需要迁移的，不能删除的，也不属于关卡外</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>    --todo XXXXMigrator.lua这里面的，要不然是要删的，要不然是关卡外业务</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>    if self.runtime.migrator and not self.runtime:isPlayerStateSandbox() then</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>        local listener = self.runtime.migrator.modListener[eventName]</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>        if listener then</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>            if protectedMode then</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>                local ok = UBFHelper:callProtected(listener,</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>                    &quot;[UBFProcessModManager] notify migrator &quot;..tostring(eventName), self.runtime, data)</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>                noError = noError and ok</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>            else</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>                listener(self.runtime, data)</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>            end</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>        end</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>    end</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>    local ok = self:_notifyModEvent(eventName, data, protectedMode)</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>    noError = noError and ok</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>    if not noError and onError then</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>        UBFHelper:callProtected(onError, string.format(&quot;[UBFProcessModManager] notify %s call onError&quot;, eventName))</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>    end</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>end</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a></span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>-- 默认按保护模式进行事件派发</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>function UBFProcessModManager:notify(eventName, data, onError)</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>    return self:_notify(eventName, data, true, onError)</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>end</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a></span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>function UBFProcessModManager:notifyUnprotected(eventName, data)</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>    return self:_notify(eventName, data, false)</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>end</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a></span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>function UBFProcessModManager:isEditorIgnoredEvent(eventName)</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>    EDITOR_IGNORE_EVENT_NAMES = EDITOR_IGNORE_EVENT_NAMES or {</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>        UBFGameModEventEnum.PREPARE_SLP_BOTTOM,</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>        UBFGameModEventEnum.PREPARE_SLP_TOP,</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>        UBFGameModEventEnum.PREPARE_SLP_TAG,</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>        UBFGameModEventEnum.PREPARE_SLP_RIGHT_UPPER,</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>        UBFGameModEventEnum.PREPARE_SLP_LEFT_BOTTOM,</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>        UBFGameModEventEnum.PREPARE_SLP_SUBTITLE,</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>        UBFGameModEventEnum.PREPARE_SLP_RIGHT_BOTTOM,</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>        UBFGameModEventEnum.PREPARE_SLP_ENTER_ACTIONS,</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>        UBFGameModEventEnum.PREPARE_SLP_BOTTOM_CAROUSEL,</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>    }</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>    return table.indexOf(EDITOR_IGNORE_EVENT_NAMES, eventName) ~= nil</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>end</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a></span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>function UBFProcessModManager:_notifyModEvent(eventName, data, protectedMode)</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>    local noError = true</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>    if _G.editorMode then</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>        if self:isEditorIgnoredEvent(eventName) then</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>            return noError</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>        end</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>    end</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a></span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>    local getNotifyEventModDataList = UBFModHelper:getNotifyEventModDataList(self.willingModList, eventName)</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>    local event = UBFSceneModEventMap[eventName]:create(data)</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>    local oldSourceId = self.runtime.sourceId</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>    for k, v in ipairs(getNotifyEventModDataList) do</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>        if event:getBlock() then</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>           break</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>        end</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>        local isGroupBlock = v.groupId and event:getGroupBlock(v.groupId)</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>        if not isGroupBlock then</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>            self.runtime.sourceId = v.sourceId</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>            local strSourceId = tostring(v.sourceId)</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>            event:setCurrGroupId(v.groupId)</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>            event:setRuntime(self.runtime)</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>            event:setEntryTag(v.entryTag)</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a></span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>            event:onPreNotifyMod(v.sourceId)</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a></span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>            local target, funcName</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>            --只向mod实例派发</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>            if v.useInst then</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>                target = UBFGameModManagerOrganizer:getRunningModManager(strSourceId)</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>                funcName = v.funcName and v.funcName or &quot;notifyEvent&quot;</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>            else</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>                target = self.modClazzMap[strSourceId]</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>                funcName = v.funcName and v.funcName or &quot;notifyEventStatic&quot;</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>            end</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>            if protectedMode then</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>                if target == nil then</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>                    if not v.useInst then</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>                        -- 可能是没有注册到活动框架里只是纯加分数buff的活动(签到、加分道具、长尾步数升级、贴纸赢好礼等)</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>                        if UBFLogW then UBFLogW(string.format(&quot;[UBFProcessModManager] notifyModEvent %s, mod %s, target is nil&quot;, eventName, v.sourceId), UBFTraceback()) end</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>                        noError = false</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>                    end</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>                else</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>                    local errHandler = string.format(&quot;[UBFProcessModManager] notifyModEvent %s, mod %s&quot;, eventName, v.sourceId)</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>                    local strSrcId = tostring(v.sourceId)</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>                    if eventName == UBFGameModEventEnum.LOAD_MOD and (strSrcId == &quot;guide&quot; or strSrcId == &quot;FeedAutoStart&quot;) then</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>                        local fn = target[funcName]</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>                        local ok3, err3 = pcall(fn, target, event)</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>                        -- printx(0, &quot;[MODMGR] &quot; .. strSrcId .. &quot; pcall ok=&quot;, tostring(ok3), &quot; err=&quot;, tostring(err3))</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>                        -- printx(0, &quot;[MODMGR] &quot; .. strSrcId .. &quot; enabled after=&quot;, tostring(self.modOpenStatusMap[strSrcId]))</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>                    else</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>                        local ok = UBFHelper:invokeProtected(target, funcName, errHandler, event)</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>                        noError = noError and ok</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>                    end</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>                end</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>            else</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>                UBFHelper:invoke(target, funcName, event)</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>            end</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a></span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>            event:onPostNotifyMod(v.sourceId)</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a></span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>        end</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>    end</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>    self.runtime.sourceId = oldSourceId</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a></span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>    return noError</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>end</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a></span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>-- 默认按保护模式进行事件派发</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>function UBFProcessModManager:notifyModEvent(eventName, data)</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>    return self:_notifyModEvent(eventName, data, true)</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>end</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a></span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>function UBFProcessModManager:notifyModEventUnprotected(eventName, data)</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>    return self:_notifyModEvent(eventName, data, false)</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>end</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a></span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>--启用|禁用一个mod</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>function UBFProcessModManager:setModEnabled(modId, isEnabled)</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>    if self.processType == UBFProcessTypeEnum.END_LEVEL then</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>        UBFThrow(&quot;关卡结束流程里禁止调用setModEnabled方法,modId=&quot; .. modId) </span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>    end</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>    self:log(&#x27;mod==&gt;&gt;&#x27;,modId,isEnabled and &quot;启用&quot; or &quot;禁用&quot;)</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>    self.modOpenStatusMap[modId] = isEnabled</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>    if isEnabled then</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>        self:refreshModData(modId)</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>        -- self:loadModRes(modId)</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>    else</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>        self:clearModData(modId)</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>        -- self:unLoadModRes(modId)</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>    end</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>end</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a></span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>--重新刷新已激活的mod的数据</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>function UBFProcessModManager:refreshModData(modId)</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>    self:_collectModConditionData(modId)</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>    local modClazz = self.modClazzMap[tostring(modId)]</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>    if modClazz then</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>        local modData = modClazz:createModData(self.runtime)</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>        self.modDataList[modId] = modData</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>        self:_loadModResource(modId, modData)</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>    end</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>end</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a></span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>function UBFProcessModManager:_loadModResource(modId, modList)</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>    local modClazz = self.modClazzMap[tostring(modId)]</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>    if not modClazz then</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>        -- 没有注册到活动框架里只是纯加分数buff的活动(长尾步数升级、贴纸赢好礼等)，不需要加载资源</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>        -- he_log_error(&quot;modClazz a nil value, modId ==&gt;&gt;&quot;.. tostring(modId))</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>        -- self._last_load_mod_err_ = true</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>        return </span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>    end</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>    local secondaryPrepare = UBFResourceLoadManager:prepare():relax():bestEffort()</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>    local primaryPrepare = modClazz:createModResPrepare(self.runtime, secondaryPrepare, modList)</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a></span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>    local modFeature = UBFGameModManagerOrganizer:getModFeatureByModList(modList)</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>    if modFeature and not UBFHelper:isTableEmpty(modFeature) then </span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>        local UBFResUtils = require &#x27;ubf.UBFPlay.logics.launch.UBFResUtils&#x27;</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>        primaryPrepare = primaryPrepare or UBFResourceLoadManager:prepare()</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>        local resKeys, scatterList = UBFResUtils:getUnloadResByFeatureMap(modFeature)</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>        for id, _ in pairs(resKeys) do UBFLVResourceManager:prepare(id, primaryPrepare) end</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>        for _, res in ipairs(scatterList) do primaryPrepare:add(res) end</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>        local featureManager = self.runtime.featureManager</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>        if featureManager then </span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>            for itemType, _ in pairs(modFeature) do</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>                featureManager:refreshFeatureByItemType(itemType)</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>            end</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>        end</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>    end</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a></span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>    local sceneReource = self.runtime:getSceneResourceMgr()</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>    if primaryPrepare then</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>        sceneReource:setModPrepare(modId, primaryPrepare)</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>    end</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>    sceneReource:setModSecondaryPrepare(modId, secondaryPrepare)</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>end</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a></span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>--清除mod的数据</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>function UBFProcessModManager:clearModData(modId)</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>    self.modDataList[modId] = nil</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>    local sceneReource = self.runtime:getSceneResourceMgr()</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>    sceneReource:setModPrepare(modId, nil)</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>    sceneReource:setModSecondaryPrepare(modId, nil)</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>    if self.modContextData[tostring(modId)] then</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>        self.modContextData[tostring(modId)].conditionData = nil</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>    end</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>end</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a></span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>-- 获取 mod 的条件检测数据（缓存命中返回，否则现场收集并写入缓存）</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>function UBFProcessModManager:getModConditionData(modId)</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>    local modContextData = self.modContextData[tostring(modId)]</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>    if not modContextData then return nil end</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>    if modContextData.conditionData then</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>        return modContextData.conditionData</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>    end</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>    local modClazz = self.modClazzMap[tostring(modId)]</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>    if not modClazz then return nil end</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>    local data = modClazz:collectModConditionData(self.runtime)</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>    if data then</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>        modContextData.conditionData = data</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>    end</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>    return data</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>end</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a></span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>function UBFProcessModManager:invalidateModConditionData(modId)</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>    local modContextData = self.modContextData[tostring(modId)]</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>    if modContextData then</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>        modContextData.conditionData = nil</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>    end</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>end</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a></span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>function UBFProcessModManager:_collectModConditionData(modId)</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>    self:getModConditionData(modId)</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>end</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a></span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>-- --加载mod资源</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>-- function UBFProcessModManager:loadModRes(modId)</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>--     local modClazz = self.modClazzMap[modId]</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>--     modClazz:loadModRes(self.runtime)</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>-- end</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a></span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>-- --卸载mod资源</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>-- function UBFProcessModManager:unLoadModRes(modId)</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>--     local modClazz = self.modClazzMap[modId]</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>--     modClazz:unLoadModRes(self.runtime)</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>-- end</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a></span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>--获取mod的激活状态</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>function UBFProcessModManager:getModEnabled(modId)</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>    return self.modOpenStatusMap[tostring(modId)]</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>end</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a></span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>--获取mod上下文数据</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>function UBFProcessModManager:getModContextData(modId)</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>    return self.modContextData[tostring(modId)]</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>end</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a></span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>--获取mod数据</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>function UBFProcessModManager:getModData(modId)</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>    return self.modDataList[tostring(modId)]</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>end</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a></span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>--获取modClazz</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>function UBFProcessModManager:getModClazz(modId)</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>    return self.modClazzMap[tostring(modId)]</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>end</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a></span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>function UBFProcessModManager:getModContextDataMap()</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>    return self.modContextData</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>end</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a></span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>--生成游戏最终使用的modList</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>function UBFProcessModManager:generateGamePlayModList()</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>    local modList = {}</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>    for modId, mods in pairs(self.modDataList) do</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>        if self.modOpenStatusMap[tostring(modId)] then            </span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>            for k , v in ipairs(mods) do </span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>                if v.sourceId ~= modId and v.env then </span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>                    UBFThrow &quot;只允许使用自己的sourceId&quot; </span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>                end</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>                table.insert(modList, v)</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>            end</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>        end</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>    end</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>    return modList</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>end</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a></span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>function UBFProcessModManager:resumeGamePlayModList(modList)</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>    self.modOpenStatusMap = {}</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>    self.modDataList = {}</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>    self.willingModList = {}</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>    local willingModMap = {}</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>    for _, data in ipairs(modList) do </span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>        if data.sourceId then </span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>            self.modOpenStatusMap[data.sourceId] = true</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>            if not willingModMap[data.sourceId] then</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>                willingModMap[data.sourceId] = true</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>                table.insert(self.willingModList, data.sourceId)</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>            end</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>            if not self.modDataList[data.sourceId] then</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>                self.modDataList[data.sourceId] = {}</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>            end</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>            table.insert(self.modDataList[data.sourceId], data)</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>        end</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>    end</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>    table.sort(self.willingModList, function(a, b)</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>        local na = UBFModHelper:getModPriority(a)</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>        local nb = UBFModHelper:getModPriority(b)</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>        return na &lt; nb</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>    end)</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>    for modId, list in pairs(self.modDataList) do </span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>        self:_loadModResource(modId, list)</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>        if self._last_load_mod_err_ then</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>            return false</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>        end</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>    end</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>end</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a></span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>function UBFProcessModManager:getModDataList()</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>    return self.modDataList</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>end</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a></span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>function UBFProcessModManager:getWillingModList()</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>    return self.willingModList</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>end</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a></span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>function UBFProcessModManager:getModOpenStatusMap()</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>    return self.modOpenStatusMap</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>end</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a></span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>function UBFProcessModManager:doRevert()</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>    for k, modId in pairs(self.willingModList) do</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>        local modClazz = self.modClazzMap[tostring(modId)]</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>        if modClazz then</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>            modClazz:doRevert(self.runtime)</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>        end</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>    end</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>    self:resetData()</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>end</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a></span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>function UBFProcessModManager:resetData()</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>    self.willingModList = {}</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>    self.modOpenStatusMap = {}</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>    self.modContextData = {}</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>    self.modDataList = {} </span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>end</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a></span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>function UBFProcessModManager:log(...)</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>    if EnvUtil:isDevelopMode() and not _G.AutoPlayEnv then</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>        UBFLogI(&quot;UBFProcessModManager==&gt;&gt;&gt;：&quot;, ...)</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>    end</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>end</span></code></pre></main></body></html>

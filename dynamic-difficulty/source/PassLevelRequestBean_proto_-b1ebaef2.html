@@ -1,0 +1,74 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PassLevelRequestBean_proto_.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>PassLevelRequestBean_proto_.lua</h1><p class="src-meta">amf/feature/level/http/pb/PassLevelRequestBean_proto_.lua<br>SHA-256 f4594f0c99008320de299200019f372655d68deeabf567696ecda7d8fb4118b8 · 74 行 · 恢复原文，未经改写</p><a href="PassLevelRequestBean_proto_-b1ebaef2.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>return {</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>    schema = [[</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>message PassLevelRequestBean {  </span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>  int32 levelId = 1;</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>  int32 metaLevelId = 2;</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>  int32 score = 3;</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>  int32 star = 4;</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>  int32 stageTime = 5;</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>  int32 coin = 6;</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>  string targetCount = 7;</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>  string opLog = 8;</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>  int64 requestTime = 9;</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>  int64 lastEnterTime = 10;</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>  int32 activityFlag = 11;</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>  string curMd5 = 12;</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>  string curConfigMd5 = 13;</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>  string extra = 14;</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>  int32 step = 15;</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>  int32 staticSteps = 16;</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>  string version = 17;</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>  string cacheCode = 18;</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>  repeated ItemBean usedProps = 19;</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>  bool useSmallRes = 20;</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>  double seed = 21;</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>  bool hasLockedSeed = 22;</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>  int32 strategy = 23;</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>  string strategyReason = 24;</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>  FuuuAdjustContextBean clientFuuuAdjustContext = 25;</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>  bool hasUsedProp = 26;</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>  string levelMd5 = 27;</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>  int32 levelVersion = 28;</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>  string levelUniqueKey = 29;</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>  UbfuuCheckResult ubfuuCheckResult = 30;</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>  int32 levelMarkVersion = 31;</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>  int32 propGuideItem = 32;</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>  string virtualMode = 33;</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>  string strategyInfo = 34;</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>  repeated RewardBean extraRewards = 35;</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>  bool guideLevel = 36;</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>  int32 levelLeftMoves = 37;</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>  repeated TupleIntIntBean achievementValues = 38;</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>  bool giveUp = 39;</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>  string json = 40;</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>  PassLevelRequestBean_PInfo pinfo = 41;</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>  bool newFullStarArea = 42;</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>  repeated string orderIds = 43;</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>  string eventId = 44;</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>  bool logicalFail = 45;</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>  int32 hideLevelVersion = 46;</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>  int32 hasRealUseProp = 47;</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>  int32 difficultyFlag = 48;</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>  int32 oplogFlag = 49;</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>  string extraData = 50;</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>  int32 protocolVersion = 51;</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>  UbfMetaConfigBean metaConfig = 52;</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>  string levelScene = 53;</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>  PassLevelRequestBean_UBFuuuCollectMeta ubFuuuCollectMeta = 54;</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>  string alipayChannel = 55;</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>  repeated GroupExpLevelRequestBean groupExpLevelRequestList = 56;</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>  string clientStreakWinScene = 57;</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>}</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>    ]],</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>    libs = {</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>		&quot;FuuuAdjustContextBean&quot;,</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>		&quot;GroupExpLevelRequestBean&quot;,</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>		&quot;ItemBean&quot;,</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>		&quot;PassLevelRequestBean_PInfo&quot;,</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>		&quot;PassLevelRequestBean_UBFuuuCollectMeta&quot;,</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>		&quot;RewardBean&quot;,</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>		&quot;TupleIntIntBean&quot;,</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>		&quot;UbfMetaConfigBean&quot;,</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>		&quot;UbfuuCheckResult&quot;</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>	}</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>}</span></code></pre></main></body></html>

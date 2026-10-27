@@ -1,0 +1,391 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFUserDebugModMgr.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFUserDebugModMgr.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/UserDebug/UBFUserDebugModMgr.lua<br>SHA-256 f91f0b599b9adda62c7c234c803db93ca7ee1d22589d3d593db5dec38a7439a0 · 391 行 · 恢复原文，未经改写</p><a href="UBFUserDebugModMgr-2aa4a09a.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>local UBFUserDebugModMgr = class2(&quot;UBFUserDebugModMgr&quot;, UBFGameModManager)</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>UBFGameModManagerOrganizer:register(UBFModSourceIdEnum.kUserDebug, UBFUserDebugModMgr)</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a></span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>local STEP_PAD_BOARD_VIEW_NAME = &quot;board&quot;</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a></span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>function UBFUserDebugModMgr:onViewStaticInit()</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>    require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.UserDebug.UBFUserDebugModDeclares&quot;</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.UserDebug.UBFUserDebugInfo&quot;</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.UserDebug.gameplay.UBFUserDebugWidget&quot;</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>end</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a></span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>function UBFUserDebugModMgr:isWillingEnabled(runtime, sourceId)</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>    if _G.AutoPlayEnv then return false end</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a></span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>    if not self:_isAdjustDebugInfoEnabled() then return false end</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>    return true</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>end</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a></span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>function UBFUserDebugModMgr:checkModIsEnabled(runtime)</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>    return true</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>end</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a></span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>function UBFUserDebugModMgr:createModData(runtime)</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>    local sourceId = runtime.sourceId</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>    local builder = UBFPlayModBuilder:create()</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>    --设置modEnv数据，依据自身需求设置，可缺省</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>    builder:setModSourceENV(sourceId, {})</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>    return builder:toCreateDatas()</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>end</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a></span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>function UBFUserDebugModMgr:_isAdjustDebugInfoEnabled()</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>    if UBFUserDebugModMgr.__adjustDebugInfoEnabled == nil then</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>        local testInfo</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>        testInfo = _G.amfBean(&quot;AccountManager&quot;):getTestInfo()</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a></span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>        if testInfo then</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>            local enabled = false</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>            local pars = string.split(testInfo, &quot;;&quot;)</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>            for k, v in ipairs(pars) do</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>                if v == &quot;adjustDebugInfo&quot; then</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>                    enabled = true</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>                    break</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>                end</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>            end</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>            UBFUserDebugModMgr.__adjustDebugInfoEnabled = enabled</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>        end</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>    end</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a></span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>    return UBFUserDebugModMgr.__adjustDebugInfoEnabled</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>end</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a></span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>function UBFUserDebugModMgr:_registerNodeClickListener()</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>    if UBFUserDebugModMgr.__isNodeClickListenerRegistered then return end</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a></span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>    local uiMgr = UBFGlobal:getLogic(UBFUiLogicId.UI_VIEW_LOGIC_MANAGER)</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>    uiMgr:registerUiEventListener(UBFUiEventType.NODE_CLICK, UBFUserDebugModMgr)</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>    UBFUserDebugModMgr.__isNodeClickListenerRegistered = true</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>end</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a></span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>function UBFUserDebugModMgr:_unregisterNodeClickListener()</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>    if not UBFUserDebugModMgr.__isNodeClickListenerRegistered then return end</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a></span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>    local uiMgr = UBFGlobal:getLogic(UBFUiLogicId.UI_VIEW_LOGIC_MANAGER)</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>    uiMgr:unregisterUiEventListener(UBFUiEventType.NODE_CLICK, UBFUserDebugModMgr)</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>    UBFUserDebugModMgr.__isNodeClickListenerRegistered = nil</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>end</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a></span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>-- function UBFUserDebugModMgr:onPrepareGameplayUi(event)</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>--     local eventData = event:getOrigin()</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>--     local createDelegate = eventData.createDelegate</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>--     UBFLogE(&quot;UBFUserDebugModMgr:onPrepareGameplayUi &quot;, createDelegate)</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>-- end</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a></span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>function UBFUserDebugModMgr:onAfterBuildView(event)</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>    -- UBFLogD(25, &quot;UBFUserDebugModMgr:onAfterBuildView &quot;)</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>    if not self:_isAdjustDebugInfoEnabled() then return end</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a></span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>    local uiMgr = UBFGlobal:getLogic(UBFUiLogicId.UI_VIEW_LOGIC_MANAGER)</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a></span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>    local itemsData = self:_getUserDebugInfo()</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a></span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>    local opParams = {</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>        nodeId = UBFUserDebugNodeId.WIDGET,</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>        uiData = {</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>            viewLogicConfig = {</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>                defaultInitParams = {</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>                    global = {</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>                        levelInfo = {</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>                            difficultyFlag = LevelDiffcultFlag.kExceedinglyDifficult,</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>                        },</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>                    },</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>                },</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>            },</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>            nodeConfig = {</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>                data = {</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>                    [UBFUserDebugNodeId.WIDGET] = {</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>                        logicId = UBFUserDebugLogicId.WIDGET,</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>                        parentParams = {</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>                            type = &quot;GameplayNode&quot;,</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>                            nodeParams = {</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>                                layerKey = UBFGameplayLayerKey.DEBUG,</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>                            },</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>                        },</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>                        itemsData = itemsData,</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>                    },</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>                },</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>            },</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>        }</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>    }</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a></span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>    -- opParams.notifyGameSceneMods = true</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>    -- opParams.modEventNames = &quot;PrepareUserDebugWidget&quot;</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a></span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>    self:_registerNodeClickListener()</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>    uiMgr:exeOp(UBFUiOpType.CREATE_UI, opParams):next(function()</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>        self:_tryUpdateAdjustDebugInfo()</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>    end)</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>end</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a></span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>function UBFUserDebugModMgr:onNodeClick(eventData)</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>    if not eventData or eventData.blocked then return end</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>    if eventData.nodeId ~= UBFGameplayStepPadNodeId.ITEM then return end</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>    if eventData.viewName ~= STEP_PAD_BOARD_VIEW_NAME then return end</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a></span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>    local uiMgr = UBFGlobal:getLogic(UBFUiLogicId.UI_VIEW_LOGIC_MANAGER)</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>    uiMgr:callNodeIfExists(UBFUserDebugNodeId.WIDGET, &quot;expand&quot;)</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>end</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a></span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>function UBFUserDebugModMgr:dispose()</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>    self:_unregisterNodeClickListener()</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>end</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a></span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>function UBFUserDebugModMgr:onStartLevelProcessFinish(event)</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>    if not self:_isAdjustDebugInfoEnabled() then return end</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a></span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>    self:_tryUpdateAdjustDebugInfo()</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>end</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a></span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>function UBFUserDebugModMgr:onBoardStateChange(event)</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>    if not self:_isAdjustDebugInfoEnabled() then return end</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a></span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>    local currState = event:getCurrState()</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>    -- UBFLogD(25, &quot;UBFUserDebugModMgr:onBoardStateChange &quot;..tostring(event:getOldState())..&quot; =&gt; &quot;..tostring(currState))</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>    if currState ~= UBFConst.BoardSMKey.kWating then return end</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a></span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>    self:_tryUpdateAdjustDebugInfo()</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>end</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a></span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>function UBFUserDebugModMgr:_getFuuuSwitchStr()</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>    if UBFUserDebugModMgr.__fuuuSwitchStr ~= nil then</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>        return UBFUserDebugModMgr.__fuuuSwitchStr</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>    end</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a></span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>    local UBFuuuSelectAdjust = require(&quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuSelectAdjust&quot;)</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>    local maintenanceId, maintenanceName, _ = UBFuuuSelectAdjust:getSwitchInfo()</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>    UBFLogD(25, &quot;UBFUserDebugModMgr:_getFuuuSwitchStr maintenanceId&quot;, maintenanceId, &quot;maintenanceName&quot;, maintenanceName)</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a></span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>    local fuuuSwitchInfoStr</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>    -- if switchInfo and switchInfo.modGroup then</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>    --     local k, v = next(switchInfo.modGroup)</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>    --     if v == true then</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>    --         fuuuSwitchInfoStr = string.format(&quot;%s-%s&quot;, tostring(maintenanceId), tostring(k))</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>    --     end</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>    -- end</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a></span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>    -- UBFLogD(25, MaintenanceManager:getInstance():getMaintenanceByKey(maintenanceName))</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>    if maintenanceName then</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>        local uid</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>        uid = _G.amfBean(&quot;UserManager&quot;):getUid() or &quot;12345&quot;</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a></span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>        local maintenanceMgr = MaintenanceManager:getInstance()</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a></span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>        local moduleKeySet = {}</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>        local range = maintenanceMgr:getGroupChildRangeMap(maintenanceName)</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>        if range then</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>            for _, v in ipairs(range) do</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>                for _, moduleKey in ipairs(v.modules) do</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>                    moduleKeySet[moduleKey] = true</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>                end</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>            end</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>        end</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>        local moduleKeys = table.keys(moduleKeySet)</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a></span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>        local enabledModuleKeys = {}</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>        for _, moduleKey in ipairs(moduleKeys) do</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>            if maintenanceMgr:isEnabledInGroup(maintenanceName, moduleKey, uid) then</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>                table.insert(enabledModuleKeys, moduleKey)</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>            end</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>        end</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>        local strModuleKeys = table.concat(enabledModuleKeys, &quot; &quot;)</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>        fuuuSwitchInfoStr = string.format(&quot;%s-%s&quot;, tostring(maintenanceId), strModuleKeys)</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>    end</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a></span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>    if fuuuSwitchInfoStr == nil then</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>        if EnvUtil:isMiniGame() then</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>            fuuuSwitchInfoStr = &quot;1322-ubfuuu2025_mini_V4&quot;</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>        else</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>            fuuuSwitchInfoStr = &quot;1321-ubfuuu2025_app_V7&quot;</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>        end</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>    end</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a></span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>    UBFUserDebugModMgr.__fuuuSwitchStr = fuuuSwitchInfoStr</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>    return fuuuSwitchInfoStr</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>end</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a></span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>function UBFUserDebugModMgr:_getUserDebugInfo()</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>    local infos = UBFUserDebugInfo:create()</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a></span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>    infos:addGroup(&quot;userTag&quot;, &quot;用户标签&quot;)</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>    infos:addGroup(&quot;levelGroup&quot;, &quot;分组信息&quot;)</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>    infos:addGroup(&quot;diffFix&quot;, &quot;调节策略&quot;)</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>    infos:addGroup(&quot;details&quot;, &quot;详细信息&quot;)</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a></span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>    local sceneMgr = UBFGameSceneManager:getInstance()</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>    if not sceneMgr then return {} end</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a></span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>    local levelInfo = sceneMgr:getLevelInfo()</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>    local notifyData = {</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>        levelId = levelInfo.levelId,</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>        levelScene = levelInfo.levelScene,</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>        infos = infos:getProxy(),</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>    }</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a></span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>    infos:addInfo(&quot;userTag&quot;, &quot;activityIndex&quot;, &quot;&quot;, &quot;活跃档位&quot;, 1)</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>    infos:addInfo(&quot;userTag&quot;, &quot;paymentIndex&quot;, &quot;&quot;, &quot;付费档位&quot;, 2)</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>    infos:addInfo(&quot;userTag&quot;, &quot;playerAbility&quot;, &quot;&quot;, &quot;闯关能力档位&quot;, 3)</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>    -- 当前连胜次数</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>    local topWins</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>    topWins = _G.amfBean(&quot;LevelAreaManager&quot;):getTopLevelWinCount()</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>    infos:addInfo(&quot;userTag&quot;, &quot;topWins&quot;, topWins, &quot;当前连胜次数&quot;, 4)</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a></span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>    -- 关卡分组</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>    local levelGroup = UBFPlaySwitch:getLevelGroup(levelInfo.levelId, levelInfo.levelScene)</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>    infos:addInfo(&quot;levelGroup&quot;, &quot;levelGroup&quot;, levelGroup, &quot;关卡分组&quot;, 1)</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>    local fuuuSwitch = self:_getFuuuSwitchStr()</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>    infos:addInfo(&quot;levelGroup&quot;, &quot;fuuuSwitch&quot;, fuuuSwitch, &quot;调节实验分组&quot;, 4)</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a></span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>    infos:addInfo(&quot;diffFix&quot;, &quot;desiredDiffAvg&quot;, &quot;&quot;, &quot;预期难度&quot;, 1)</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>    infos:addInfo(&quot;diffFix&quot;, &quot;diffIndex1&quot;, &quot;&quot;, &quot;查表难度指数&quot;, 2)</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>    infos:addInfo(&quot;diffFix&quot;, &quot;diffIndex2&quot;, &quot;&quot;, &quot;闯关能力修正&quot;,3 )</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>    infos:addInfo(&quot;diffFix&quot;, &quot;diffIndex&quot;, &quot;&quot;, &quot;最终难度指数&quot;, 4)</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>    infos:addInfo(&quot;diffFix&quot;, &quot;desiredDiffAvgFix1&quot;, &quot;&quot;, &quot;难度指数修正后生效难度&quot;, 5)</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>    infos:addInfo(&quot;diffFix&quot;, &quot;desiredDiffAvgFix2&quot;, &quot;&quot;, &quot;活动修正后生效难度&quot;, 7)</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>    infos:addInfo(&quot;diffFix&quot;, &quot;desiredDiffAvgFix&quot;, &quot;&quot;, &quot;保底修正后生效难度&quot;, 8)</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>    infos:addInfo(&quot;diffFix&quot;, &quot;diffFix1&quot;, &quot;&quot;, &quot;调节强度&quot;, 9)</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>    infos:addInfo(&quot;diffFix&quot;, &quot;diffFix&quot;, &quot;&quot;, &quot;活动修正后的调节强度&quot;, 10)</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>    infos:addInfo(&quot;diffFix&quot;, &quot;originDiffMove&quot;, &quot;&quot;, &quot;原始步数差&quot;, 11)</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>    infos:addInfo(&quot;diffFix&quot;, &quot;fixedDiffMove1&quot;, &quot;&quot;, &quot;步数道具修正步数差&quot;, 12)</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>    infos:addInfo(&quot;diffFix&quot;, &quot;diffMove&quot;, &quot;&quot;, &quot;最终修正步数差&quot;, 13)</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>    infos:addInfo(&quot;diffFix&quot;, &quot;adjustStepCurrRate&quot;, &quot;&quot;, &quot;最终期望差值百分比&quot;, 14)</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>    infos:addInfo(&quot;diffFix&quot;, &quot;currDs&quot;, &quot;&quot;, &quot;当前步实际调节强度&quot;, 15)</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a></span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>    infos:addInfo(&quot;details&quot;, &quot;loginDayCount7&quot;, &quot;&quot;, &quot;过去7天登录天数&quot;, 1)</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>    infos:addInfo(&quot;details&quot;, &quot;playCount3&quot;, &quot;&quot;, &quot;过去3天闯关次数&quot;, 2)</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>    infos:addInfo(&quot;details&quot;, &quot;playCount7&quot;, &quot;&quot;, &quot;过去7天闯关次数&quot;, 3)</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>    infos:addInfo(&quot;details&quot;, &quot;playCount30&quot;, &quot;&quot;, &quot;过去30天闯关次数&quot;, 4)</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>    infos:addInfo(&quot;details&quot;, &quot;todayPassLevelCount&quot;, &quot;&quot;, &quot;当天过关次数&quot;, 5)</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>    infos:addInfo(&quot;details&quot;, &quot;paymentIndexCount&quot;, &quot;&quot;, &quot;最终生效道具消耗Gold&quot;, 6)</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>    infos:addInfo(&quot;details&quot;, &quot;v250801CashValue&quot;, &quot;&quot;, &quot;近30区域首过消耗Gold&quot;, 7)</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>    infos:addInfo(&quot;details&quot;, &quot;v250801FarmCashValue&quot;, &quot;&quot;, &quot;近30区域刷星消耗Gold&quot;, 8)</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a></span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>    local event = UBFSceneModEventMap[UBFGameModEventEnum.GET_USER_DEBUG_INFO]:create(notifyData)</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>    sceneMgr:callGameModule(UBFGameLogics.kGameMod, &quot;notifyEvent&quot;, event)</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a></span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>    local itemsData = infos:getOrderedList()</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>    return itemsData</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>end</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a></span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>function UBFUserDebugModMgr:_tryUpdateAdjustDebugInfo()</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>    local uiMgr =  UBFGlobal:getLogic(UBFUiLogicId.UI_VIEW_LOGIC_MANAGER)</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>    if not uiMgr:existNode(UBFUserDebugNodeId.WIDGET) then UBFLogE(&quot;No UBFUserDebugNode&quot;) return end</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a></span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>    local sceneMgr = UBFGameSceneManager:getInstance()</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>    if not sceneMgr then UBFLogE(&quot;No UBFGameSceneManager&quot;) return end</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a></span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>    local msgLogic = sceneMgr:getMessageLogic()</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>    if not msgLogic then UBFLogE(&quot;No msgLogic&quot;) return end</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a></span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>    local promise = msgLogic:sendDataRequire(UBFGameRequireDataKey.kAdjustDebugInfo)</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>    promise:next(function(data)</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>        -- UBFLogD(25, &quot;AdjustDebugInfo from Logic&quot;, data)</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>        local isDataValid, errMsg = self:_checkAdjustDebugInfoData(data)</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>        if not isDataValid then</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>            UBFLogE(&quot;UBFUserDebugModMgr AdjustDebugInfo data invalid&quot;, errMsg, data)</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>        end</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>        self:_doUpdateAdjustDebugInfo(data, errMsg)</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>    end)</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>end</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a></span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>function UBFUserDebugModMgr:_checkAdjustDebugInfoData(data)</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>    if type(data) ~= &quot;table&quot; then</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>        return false, &quot;response is not table: &quot;..tostring(data)</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>    end</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>    if data.err then</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>        return false, &quot;response has err: &quot;..tostring(data.err)</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>    end</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>    return true</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>end</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a></span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>function UBFUserDebugModMgr:_doUpdateAdjustDebugInfo(data, errMsg)</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>    data = type(data) == &quot;table&quot; and data or {}</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>    local adjustData = data.adjustData or {}</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>    local ubfuuCheckResult = adjustData.ubfuuCheckResult or {}</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>    local calculateDiffIndexResult = ubfuuCheckResult.calculateDiffIndexResult or {}</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>    local adjustStepData = data.adjustStepData or {}</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a></span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>    local updateItemsData = {}</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>    local function addInfo(groupKey, key, value, style)</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>        updateItemsData[#updateItemsData + 1] = {</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>            groupKey = groupKey,</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>            key = key,</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>            value = value,</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>            style = style,</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>        }</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>    end</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a></span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>    local function addDeltaInfo(groupKey, key, deltaVal, valFormatter)</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>        local str</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>        local style</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a></span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>        if tonumber(deltaVal) then</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>            deltaVal = tonumber(deltaVal)</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>            style = {}</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>            if valFormatter then</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>                str = string.format(valFormatter, math.abs(deltaVal))</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>                if tonumber(str) then</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>                    str = tostring(tonumber(str))</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>                end</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>            else</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>                str = tostring(math.abs(deltaVal))</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>            end</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>            if deltaVal &gt; 0 then</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>                str = &quot;差&quot;..str</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>                style.fontColor = &quot;FF5555&quot;</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>            else</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>                str = &quot;超&quot;..str</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>                style.fontColor = &quot;6FCF97&quot;</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>            end</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>        else</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>            str = tostring(deltaVal)</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>        end</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>        addInfo(groupKey, key, str, style)</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>    end</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a></span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>    addInfo(&quot;userTag&quot;, &quot;activityIndex&quot;, calculateDiffIndexResult.activityIndex)</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>    addInfo(&quot;userTag&quot;, &quot;paymentIndex&quot;, calculateDiffIndexResult.paymentIndex)</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>    addInfo(&quot;userTag&quot;, &quot;playerAbility&quot;, calculateDiffIndexResult.playerAbility)</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a></span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>    addInfo(&quot;diffFix&quot;, &quot;desiredDiffAvg&quot;, ubfuuCheckResult.desiredDiffAvg)</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>    addInfo(&quot;diffFix&quot;, &quot;diffIndex1&quot;, calculateDiffIndexResult.diffIndex1)</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>    addInfo(&quot;diffFix&quot;, &quot;diffIndex2&quot;, calculateDiffIndexResult.diffIndex2)</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>    addInfo(&quot;diffFix&quot;, &quot;diffIndex&quot;, calculateDiffIndexResult.diffIndex)</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>    addInfo(&quot;diffFix&quot;, &quot;desiredDiffAvgFix1&quot;, ubfuuCheckResult.desiredDiffAvgFix1)</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>    addInfo(&quot;diffFix&quot;, &quot;desiredDiffAvgFix2&quot;, ubfuuCheckResult.desiredDiffAvgFix2)</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>    addInfo(&quot;diffFix&quot;, &quot;desiredDiffAvgFix&quot;, ubfuuCheckResult.desiredDiffAvgFix)</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>    addInfo(&quot;diffFix&quot;, &quot;diffFix1&quot;, ubfuuCheckResult.diffFix1)</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>    addInfo(&quot;diffFix&quot;, &quot;diffFix&quot;, ubfuuCheckResult.diffFix)</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>    addDeltaInfo(&quot;diffFix&quot;, &quot;originDiffMove&quot;, adjustStepData.originDiffMove, &quot;%.2f&quot;)</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>    addDeltaInfo(&quot;diffFix&quot;, &quot;fixedDiffMove1&quot;, adjustStepData.fixedDiffMove1, &quot;%.2f&quot;)</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>    addDeltaInfo(&quot;diffFix&quot;, &quot;diffMove&quot;, adjustStepData.diffMove, &quot;%.2f&quot;)</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>    addDeltaInfo(&quot;diffFix&quot;, &quot;adjustStepCurrRate&quot;, adjustStepData.currRate, &quot;%d%%&quot;)</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>    addInfo(&quot;diffFix&quot;, &quot;currDs&quot;, adjustStepData.currDs)</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a></span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>    addInfo(&quot;details&quot;, &quot;loginDayCount7&quot;, calculateDiffIndexResult.loginDayCount7)</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>    addInfo(&quot;details&quot;, &quot;playCount3&quot;, calculateDiffIndexResult.playCount3)</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>    addInfo(&quot;details&quot;, &quot;playCount7&quot;, calculateDiffIndexResult.playCount7)</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>    addInfo(&quot;details&quot;, &quot;playCount30&quot;, calculateDiffIndexResult.playCount30)</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>    addInfo(&quot;details&quot;, &quot;todayPassLevelCount&quot;, calculateDiffIndexResult.todayPassLevelCount)</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>    addInfo(&quot;details&quot;, &quot;paymentIndexCount&quot;, calculateDiffIndexResult.paymentIndexCount)</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>    addInfo(&quot;details&quot;, &quot;v250801CashValue&quot;, calculateDiffIndexResult.v250801CashValue)</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>    addInfo(&quot;details&quot;, &quot;v250801FarmCashValue&quot;, calculateDiffIndexResult.v250801FarmCashValue)</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a></span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>    local uiMgr =  UBFGlobal:getLogic(UBFUiLogicId.UI_VIEW_LOGIC_MANAGER)</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>    local opParams = {</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>        nodeId = UBFUserDebugNodeId.WIDGET,</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>        uiData = {</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>            nodeConfig = {</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>                data = {</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>                    [UBFUserDebugNodeId.WIDGET] = {</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>                        updateItemsData = updateItemsData,</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>                        expandErrorMsg = errMsg and (&quot;调节调试信息获取失败：&quot;..tostring(errMsg)) or NIL,</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>                    },</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>                },</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>            },</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>        }</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>    }</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>    uiMgr:exeOp(UBFUiOpType.UPDATE_UI, opParams)</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a></span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>end</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a></span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>return UBFUserDebugModMgr:staticInit()</span></code></pre></main></body></html>

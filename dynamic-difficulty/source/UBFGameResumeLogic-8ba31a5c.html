@@ -1,0 +1,1082 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFGameResumeLogic.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFGameResumeLogic.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/mess/UBFGameResumeLogic.lua<br>SHA-256 bed8dcf42f22c61ccc03e2d4224314fefd0b8324c15bcc5a61b2679453f8d673 · 1082 行 · 恢复原文，未经改写</p><a href="UBFGameResumeLogic-8ba31a5c.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>-- UBF 闪退恢复的检查操作逻辑</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>-- https://rzvo5fieru.feishu.cn/wiki/NOxTwBUqCiFZpjkJbTtcjoYfndc</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>local UBFGameResumeLogic = class2(&quot;UBFGameResumeLogic&quot;, UBFBaseLogic)</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>require &quot;ubf.UBFPlay.logics.launch.UBFResumeData&quot;</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>require &quot;ubf.UBFPlay.logics.utils.UBFSectionResumeHelper&quot;</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a></span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>local log = nil</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>--</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>--</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>--</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>--</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a></span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a></span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>UBFGameResumeFailReason = {</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>	-- kLevelRangeIllegal = 1 ,		--不是主线关，隐藏关，周赛关</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>	kUdidNotExist = 2 ,				--无法获取本机udid</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>	kUserChanged = 3 ,				--不是当前用户的闪退数据</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>	kDeviceChanged = 4 ,			--不是当前设备的闪退数据</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>	kCrashOver1Hour = 5 ,			--闪退时间是1小时以前，实际取UBFSectionResumeHelper.TIME_OUT的值，目前是25小时</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>	kMd5CheckFail = 6 ,				--Md5校验失败</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>	-- kUserDataNeedRevert = 7,		--看见了恢复面板，但数据异常</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>	-- kIsTimeLevel = 10 ,--时间关</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>	-- kIsUFOLevel = 11 ,--飞碟关</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>	-- kLevelConfigNotExist = 12 ,		--没有关卡配置</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>	kRustError = 13 ,				--rust 过期</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>	-- kWeeklyRaceSwitchOff = 14 ,		--周赛开关未打开</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>	-- kMainOrHiddenPassDay = 15 ,		--主线关或精英关跨天</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>	-- kPetSkillPassDay = 16 ,			--宠物技能 跨天</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>	-- kDoubleEgg2020MainPassDay = 17,--双旦主活动关跨天</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>	-- kMarchActivity2021PassDay = 18,--三月主线活动关跨天</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>	-- kSeaOrderActivity = 19, --海洋生物类型活动跨天</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>	-- kMarchActivity2021PassDay = 20,</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>	-- kActivityPassDay = 21, 			--和ResumeGamePlayPopoutAction一致…………话说前面不一致真的没问题吗？</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>	-- kSectionTimestampNotMatch = 22, -- 通过覆盖用户数据文件利用闪退恢复作弊</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>	-- kNullUserData = 23, 			-- 用户数据为空</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>	kUpdateVersionChanged = 24, 	-- 跨动更</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>	kReplayVersionChanged = 25, 	-- replay格式版本已过时</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>	-- kLevelVersionChanged = 26, 		-- 关卡版本变化</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>	kFullLevelStarLibraryOff = 27, 	-- 发新关导致关卡库入口关闭</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>	kActivityRefuse		=	28,		--活动拒绝</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>	kAskForHelp			= 	29,		--代打拒绝</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>	kIgnoreFeedAutoStart = 	30,		--Feed自动进关不闪退恢复</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a></span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>	kMainLevelAndGreaterTopLevel = 92 ,--主线关，且要恢复的关卡大于topLevel</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>	kActivityIsEnd = 93 ,			--跨活动关卡</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>	kRustAllIn = 94 ,				--rust all in</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>	-- kCanNotResumeOnSectionLevel = 95,--闪退数据来自上一次恢复打关</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>	-- kSpringFestival2019OverTime = 96 ,--跨活动关卡</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>	-- kCanNotResumeOnReplayLevel = 97 ,--闪退数据来自上一次恢复打关</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>	-- kLaunchGameByUrlLink = 98 ,--由链接启动游戏</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>	kUserClose = 99 ,--用户主动取消</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>}</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a></span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>function UBFGameResumeLogic:build(createData)</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>	pcall(function()</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>		self.sectionData = UBFSectionResumeHelper:hasAndGetSection()</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>		if self.sectionData then </span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>			local section = self.sectionData.section</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>			self.sectionData.replay_log_record = self.sectionData.replayLog </span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>			if section then section.replay_log_record = self.sectionData.replayLog end</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>		end</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>	end)</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>end</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a></span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>function UBFGameResumeLogic:hasResumeData()</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>	return self.sectionData and true or false</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>end</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a></span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>function UBFGameResumeLogic:getResumeData()</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>	return self.sectionData</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>end</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a></span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>function UBFGameResumeLogic:checkCanResume(callback)</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>	if log then log(&quot;checkCanResume&quot;) end</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>	if not self:hasResumeData() then</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>		--没有数据，本身就没法恢复</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>		callback(false,nil)</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>		return</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>	end</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a></span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>	-- 检查恢复条件失败时的处理逻辑</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>	local function onCheckFail(errCode)</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>		if log then log(&quot;onCheckFail&quot;,errCode) end</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>		-- 数据处理，断连胜、发协议等</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>		self:afterNotResume(false,errCode)</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>		-- 回调，通知强弹框架</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>		callback(false,errCode)</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>	end</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a></span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>	-- 检查基础恢复条件</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>	local function checkBase(nextAction)</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>		if log then log(&quot;checkBase&quot;) end</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a></span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>		self._checkResult = self:_checkCanResume()</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>		if self._checkResult.errCode ~= 0 then</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>			onCheckFail(self._checkResult.errCode)</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>			return</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>		end</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>		nextAction()</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>	end</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a></span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>	-- 发送成功回调</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>	local function sendSuccess()</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>		if log then log(&quot;checkCanResume sendSuccess&quot;) end</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>		callback(true)</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>	end</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a></span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>	local list = {</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>		checkBase,</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>		-- checkResumeTimes,</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>		sendSuccess</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>	}</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>	runSequence(list)</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>end</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a></span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>function UBFGameResumeLogic:_checkCanResume()</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>	local function ret(code, extra)</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>		return {</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>			errCode = code or 0,</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>			msg = extra,</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>		}</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>	end</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a></span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>	local function log(...)</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>		if EnvUtil:isUnityEditor() then</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>			UError(...)</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>		end</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>	end</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a></span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>	local Reason = UBFGameResumeFailReason</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a></span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>	--test</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>	-- do return ret(Reason.kMainLevelAndGreaterTopLevel) end</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>	--</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a></span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>	local resumeData = UBFResumeData:create(self:getResumeData())</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>	local levelId = resumeData:getLevelId()</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>	local levelScene = resumeData:getLevelScene()</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>	local resumeUid = resumeData:getUid()</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>	local resumeUdid = resumeData:getUdid()</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>	local resumeTime = resumeData:getTime()</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>	local resumeCurMd5 = resumeData:getCurMd5()</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>	local resumeVersion = resumeData:getResumeVersion()</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>	local resumeLevelId = resumeData:getLevelId()</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>	local resumeGroupInfo = resumeData:levelGroupInfo()</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>	local isAskForHelp = resumeData:isAskForHelp()</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>	local levelInfo = resumeData:getLevelInfo()</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>	local beginTime = levelInfo.beginTime</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a></span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>	local uid = UserManager:getInstance():getUID()</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>	local udid = MetaInfo:getInstance():getUdid() or &quot;hasNoUdid&quot;</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>	local curTime = Localhost:timeInSec()</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a></span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>	local UBFFeedAutoStartLogic = require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.FeedAutoStart.UBFFeedAutoStartLogic&quot;</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>	local logic = UBFFeedAutoStartLogic and UBFFeedAutoStartLogic:shareLogic()</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>	if logic and not logic:checkCanResume(resumeData) then</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>		log(&quot;Feed自动进关禁止闪退恢复&quot;)</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>		return ret(Reason.kIgnoreFeedAutoStart)</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>	end</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a></span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>	if NoviceExperienceOptimizationB and NoviceExperienceOptimizationB:isContinuousPlayMode() then</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>		return ret(Reason.kActivityRefuse, &quot;NoviceExperienceOptimization&quot;)</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>	end</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a></span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>	if isAskForHelp then</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>		log(&quot;代打不可&quot;)</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>		return ret(Reason.kAskForHelp)</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>	end</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a></span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>	if udid == &quot;hasNoUdid&quot; then</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>		log(&quot;没有 uid&quot;)</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>		return ret(Reason.kUdidNotExist)</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>	end</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a></span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>	if tostring(resumeUid) ~= tostring(uid) then</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>		log(&quot;不同的 uid&quot;)</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>		return ret(Reason.kUserChanged, string.format(&quot;%s-&gt;%s&quot;, resumeUid, uid))</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>	end</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a></span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>	if tostring(resumeUdid) ~= tostring(udid) then</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>		log(&quot;不同的 udid&quot;)</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>		return ret(Reason.kDeviceChanged, string.format(&quot;%s-&gt;%s&quot;, resumeUdid, udid))</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>	end</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a></span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>	if curTime - resumeTime &gt; UBFSectionResumeHelper.TIME_OUT then</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>		log(&quot;超时&quot;)</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>		return ret(Reason.kCrashOver1Hour, string.format(&quot;%s-%s&quot;, curTime, resumeTime))</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>	end</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a></span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>	local time = Localhost:timeInSec()</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>	-- if isPassDay(time, resumeTime) then</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>	-- 	log(&quot;跨天&quot;)</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>	-- 	return ret(Reason.kMainOrHiddenPassDay, string.format(&quot;%s-%s&quot;, time, resumeTime))</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>	-- end</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a></span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>	--</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>--</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>--</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a></span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a></span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>	if not self:_resumeRersionMD5Check(resumeCurMd5) then</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>		log(&quot;资源版本号 不同&quot;)</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>		local isMainType = table.includes({</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>			UBFLevelSceneType.kMain,</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>			UBFLevelSceneType.kHide,</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>			UBFLevelSceneType.kLib,</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>		},levelScene)</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>		local isOK = false</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>		local replayLog = self:getResumeData().replayLog</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>		local level,scene,baseInfo</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>		if isMainType then</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>			if replayLog then</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>				level,scene = replayLog.gEnv.levelId, replayLog.gEnv.levelScene</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>				baseInfo = UBFLevelConfigManager:userConfig():getLevelBaseInfo(level,scene)</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>				if baseInfo then</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>					-- 可以尝试录像恢复...</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>					isOK = true</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>				end</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>				-- 关卡配置找不到，不恢复</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>			end</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>			-- 没有录像，不恢复</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>		else</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>			-- 跨动更，又非主线关，不让恢复</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>		end</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>		if not isOK then</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>			local data = {}</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>			data.category = &quot;resume&quot;</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>			data.sub_category = &quot;resume_md5_fail&quot;</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>			data.old_md5 = resumeCurMd5</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>			data.rep_data = replayLog ~= nil and 1 or 0</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>			data.group = resumeGroupInfo.levelGroup</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>			data.level = levelId</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>			data.scene = levelScene</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>			if replayLog then</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>				data.rep_ver = replayLog.ver</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a></span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>				if replayLog then</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>					level,scene = replayLog.gEnv.levelId, replayLog.gEnv.levelScene</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>					baseInfo = UBFLevelConfigManager:userConfig():getLevelBaseInfo(level,scene)</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>					data.rep_level = level</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>					data.rep_scene = scene</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>					data.base_info = baseInfo ~= nil and 1 or 0</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>				end</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>			else</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>				local baseInfo = UBFLevelConfigManager:userConfig():getLevelBaseInfo(levelId,levelScene)</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>				data.base_info = baseInfo ~= nil and 1 or 0</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>			end</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>		    DcUtil:log(AcType.kExpire30Days, data)</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a></span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>			return ret(Reason.kUpdateVersionChanged)</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>		end</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>	else</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>		local levelGroup = UBFLevelConfigManager:userConfig():getLevelGroup(resumeLevelId, levelScene)</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>		if resumeGroupInfo.levelGroup ~= levelGroup then</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>			local str = string.format(&quot;%s-&gt;%s&quot;, resumeGroupInfo.levelGroup, levelGroup)</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>			log(&quot;资源版本号 相同,但是不同的 ubf分组:&quot; .. str)</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>			return ret(Reason.kReplayVersionChanged, str)</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>		end</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>	end</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a></span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>	if not self:_resumeRersionCheck(resumeVersion) then</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>		log(&quot;闪退恢复逻辑版本 不同&quot;)</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>		return ret(Reason.kReplayVersionChanged, string.format(&quot;%s&quot;, resumeVersion))</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>	end</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a></span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>	if self:_overTopLevel(resumeLevelId, levelScene) then</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>		log(&quot;恢复levelid 大于当前topLevelId&quot;)</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>		return ret(Reason.kMainLevelAndGreaterTopLevel)</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>	end</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>	if self:_resumeModCheck(resumeData) then</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>		log(&quot;有过期不开的活动&quot;)</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>		return ret(Reason.kActivityRefuse)</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>	end</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a></span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>	if levelInfo.so_rust then</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>		require &quot;ubf.UBFPlay.rust.UBFRustManager&quot;</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>		UBFRustManager:loadModule()</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>		-- 这里应该是还原的，所以一定有只要提交一下，很快完成</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>		if levelInfo.so_rust_dy then UBFRustManager:tryLoadRustGo() end</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>	else</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>		if _G.UBF_RUST_ALL_IN then </span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>			log(&quot;rust all in!!&quot;)</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>			return ret(Reason.kRustAllIn)</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>		end</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>	end</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a></span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>	-- 最后活动</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>	local _data = {</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>		levelScene = levelScene,</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>		levelId = levelId,</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>		currTime = beginTime,</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>		hasCrashResume = true,</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>		resumeData = resumeData,</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>	}</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>	_G.amfEC:notifyFeature(FeatureEvent.JUDGE_HAS_CRASHRESUME, _data)</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>	if not _data.hasCrashResume then</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>		log(&quot;活动拒绝&quot;)</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>		local resaon = _data.crashResumeFailReason or Reason.kActivityRefuse</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>		return ret(resaon)</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>	end</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a></span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>	return ret()</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>end</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a></span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>-- 检查mod数据是否允许闪退恢复的逻辑</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>function UBFGameResumeLogic:_resumeModCheck(resumeData)</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>	local levelInfo = resumeData:getLevelInfo()</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>	local modList = levelInfo and levelInfo.modList or {}</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>	for _, v in ipairs(modList) do</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>		-- 只判断活动</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>		if tonumber(v.sourceId) and tonumber(v.sourceId) &gt; 0 then</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>			local isActMod = v.mType and v.mType == UBFPlayModBuilder.BuffBuilderEnum.kMod</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>			local actConfig = UBFActHelper:getActConfig(v.sourceId)</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>			if isActMod and not actConfig then</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>				local resumeCurMd5 = resumeData:getCurMd5()</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>				local msg = string.format(&quot;actConfig has been deleted — game progress recovery not possible. sourceId: %s, beginTime: %s, resumeMd5: %s&quot;, v.sourceId, levelInfo.beginTime, resumeCurMd5)</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>				if EnvUtil:isDevelopMode() then</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>					UBFLogW(msg)</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>					CommonTip:showTip(msg)</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>				else</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>					he_log_error(msg)</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>				end</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>				return true</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>			end</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>		end</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>	end</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>end</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a></span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>function UBFGameResumeLogic:_resumeRersionMD5Check(replayCurMd5)</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>	return replayCurMd5 and replayCurMd5 == ResourceLoader.getCurVersion()</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>end</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a></span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>function UBFGameResumeLogic:_resumeRersionCheck(resumeVersion)</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>	local ver = UBFResumeMgr and UBFResumeMgr.Version or 0</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>	return resumeVersion and resumeVersion &gt;= ver</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>end</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a></span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>function UBFGameResumeLogic:_overTopLevel(resumeLevelId, levelScene)</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>	local levelType = UBFLevelConfigManager:userConfig():getLevelType(resumeLevelId, levelScene)</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>	if levelType == GameLevelType.kMainLevel then</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>		local topLevelId = UserManager:getInstance().user:getTopLevelId()</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>		return resumeLevelId and resumeLevelId &gt; topLevelId</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>	end</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>end</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a></span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>function UBFGameResumeLogic:popoutCrashResumePanel()</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>	local resumeData = UBFResumeData:create(self:getResumeData())</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>	local uid = resumeData:getUid()</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>	local udid = resumeData:getUdid()</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>	local playId = resumeData:getPlayId()</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>	local levelId = resumeData:getLevelId()</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>	local levelScene = resumeData:getLevelScene()</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>	local levelInfo = resumeData:getLevelInfo()</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>	local beginTime = levelInfo.beginTime</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>	local md5str = HeMathUtils:md5(tostring(playId))</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>	local levelNameStr = &quot;第&quot; .. levelId .. &quot;关&quot;</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>	local levelType = UBFLevelConfigManager:userConfig():getLevelType(levelId, levelScene)</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>	lua_switch(levelType){</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>		[GameLevelType.kMainLevel] = function ( ... )</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>			levelNameStr = &quot;第&quot; .. levelId .. &quot;关&quot;</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>		end,</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>		[GameLevelType.kHiddenLevel] = function ( ... )</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>			levelNameStr = &quot;+&quot; .. tostring(tonumber(levelId) - 10000) .. &quot;关&quot;</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>		end,</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>		[GameLevelType.kWeeklyRace2020] = function ( ... )</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>			levelNameStr = &quot;周赛关&quot;</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>		end</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>	}</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a></span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>	local promise = UBFPromise:create()</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>	local data = {</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>		uid = uid,</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>		udid = udid,</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>		playId = playId,</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>		levelId = levelId,</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>		levelScene = levelScene,</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>		resumeData = resumeData,</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>		outData = {</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>			levelNameStr = levelNameStr,</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>			appendStr = nil,</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>			winState = {},</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>			fullStr = nil</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>		},</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>	}</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a></span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>	_G.amfEC:notifyFeature(FeatureEvent.CREATE_RESUME_PANEL, data)</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a></span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>	local winState = data.outData.winState</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>	for i, v in ipairs(winState) do</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>		if v.priority == nil then</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>			v.priority = 999</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>		end</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>	end</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>	local function sortfunction(a,b)</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>		return a.priority &lt; b.priority</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>	end</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>	table.sort( winState, sortfunction )</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a></span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>	if not data.outData.appendStr then</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>		local str = &quot;&quot;</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a></span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>		for i,v in ipairs(winState) do</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>			if i==1 then</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a>				str = str .. v.showStr</span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>			else</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>				str = str .. &quot;，&quot;.. v.showStr</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>			end</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>		end</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>		if str ~= &quot;&quot; then</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>			local TimeUtil = require &#x27;amf/middleware/ui/util/TimeUtil.lua&#x27;</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>			local timeSecStr = TimeUtil:formatDuration_dh_hm_ms(UBFSectionResumeHelper.TIME_OUT, 2)</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>			local timeStr = &quot;，数据恢复有效期为&quot;..timeSecStr</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>			data.outData.appendStr = &quot;\n(&quot; .. str .. timeStr..&quot;)&quot;</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>		end</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>	end</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a></span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>	local dcT2 = &quot;&quot;</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>	local dcT3 = &quot;&quot;</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>	for i,v in ipairs(winState) do</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>		if i== 1 then</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>			dcT2 = dcT2 .. v.actId</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>			dcT3 = dcT3 .. v.actId..&quot;_&quot;..v.winNum</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>		else</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a>			dcT2 = dcT2 .. &quot;_&quot;.. v.actId</span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>			dcT3 = dcT3 .. &quot;;&quot; .. v.actId..&quot;_&quot;..v.winNum</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>		end</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>	end</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a></span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>	local dcParams = {</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>		levelId = levelId,</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>		dataUid = uid,</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>		dataUdid = udid,</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>		md5str = md5str,</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>		panelId = UICreateUtil:getPanelId(&quot;crashResumePanel&quot;),</span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>		dcT2 = dcT2,</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>		dcT3 = dcT3</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>	}</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a></span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>	self.panelLogic = self:createResumePanel(</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>			data.outData.levelNameStr,</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>			data.outData.appendStr,</span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>			function()</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>				local hasDevOp = false</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a></span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>				pcall(function()</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>					if not UBFDebug:isEasyDebug() then return end</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>					local resumeData = self:getResumeData() or {}</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>					local replayLog = resumeData.replayLog</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>					if replayLog then</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>						require(&quot;ubf.UBF.utils.UBFCommonRequire&quot;)(&quot;*&quot;)</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>						local oLogs = replayLog[UBFFastUseEnum.operationLogsKey]</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>						for _, v in ipairs(oLogs) do</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>							local obj = UBFOpLogMappingHelper:reflect(v)</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>							if obj.opType == 666 then</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>								hasDevOp = true</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>								break</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>							end</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>						end</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>					end</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a>				end)</span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a></span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>				if hasDevOp then</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>					CommonTip:showTip(&quot;检测到您使用了调试操作！请稍等，正在下载调试文件！请不要有任何其他操作，过长时间没有响应就证明失败了，重来吧。&quot;)</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>					require &quot;ubf.UBFGamePlayScene.views.debugs.MiniGameDebug&quot;</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>					return _G.__mini_game_download_promise:next(function()</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>						promise:resolve(true)</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a>					end)</span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>				end</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a></span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a>				promise:resolve(true)</span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a></span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>				self:dcSureResume(dcParams)</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>			end,</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>			function()</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>				self:dcFail(UBFGameResumeFailReason.kUserClose)</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>				promise:resolve(false)</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>			end,</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>			data.outData,</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>			dcParams</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>	)</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>	self.panelLogic:popout()</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a></span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>	self:dcSuccess( dcParams )</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a></span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>	return promise</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>end</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a></span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>function UBFGameResumeLogic:_closePanel()</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>	if self.panelLogic then</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>		self.panelLogic:close()</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>		self.panelLogic = nil</span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>	end</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>end</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a></span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>function UBFGameResumeLogic:doResume()</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>	require(&quot;ubf.UBF.utils.UBFCommonRequire&quot;)(&quot;*&quot;)</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>	local resumeData = UBFResumeData:create(self:getResumeData())</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>	local uid = resumeData:getUid()</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>	local playId = resumeData:getPlayId()</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>	local levelId = resumeData:getLevelId()</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>	local levelScene = resumeData:getLevelScene()</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>	local md5str = HeMathUtils:md5(tostring(playId))</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>	local udid = resumeData:getUdid()</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>	local ostime = resumeData:getOstime()</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a></span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>	local function onSuccess()</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>		local levelInfo = resumeData:getLevelInfo()</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a></span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>		self:dcStart()</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>		if LocalBox then LocalBox:setData(&quot;buffOnResumeFlag&quot;, false) end</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>		self:_closePanel()</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>		self:_onOverByResume()</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a></span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a>		local resumeDataVO = UBFResumeData:create(self:getResumeData())</span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>		local resumeCurMd5 = resumeDataVO:getCurMd5()</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>		local resumeData = resumeDataVO.data</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a></span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>		local function startRustButFail()</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>			-- todo</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>		end</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a></span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>		local function startLaunchResume(trySectionResume)</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>			if levelInfo.so_rust then</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>				if not UBFRustManager then return end</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a></span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>				-- 回放回复，无所谓版本了，重新定义版本</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a>				if resumeData.replayLog then </span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>					levelInfo.so_rust_dy = nil </span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>				end</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a></span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>				-- 强制初始化</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>				UBFRustManager:init()</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a></span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>				if UBFRustManager:isReady() then</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>					UBFProcessManager:launch(UBFGameProcessEnum.RESUME, { sectionData = resumeData })</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a>				else</span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>					UBFRustManager:loadModule(function()</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>						if UBFRustManager:isReady() then</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>							UBFProcessManager:launch(UBFGameProcessEnum.RESUME, { sectionData = resumeData })</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>						else</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>							-- GG 内核坏了？神仙来了也救不了</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>							startRustButFail()</span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a>						end</span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>					end, function()</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a>						-- GG rust下载失败</span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>						startRustButFail()</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>					end, true)</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>				end</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>			else</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>				UBFProcessManager:launch(UBFGameProcessEnum.RESUME, { sectionData = resumeData })</span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a>			end</span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>		end</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a></span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>		if not self:_resumeRersionMD5Check(resumeCurMd5) then</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>			-- 跨版本，需要更新 oplog</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>			local replayLog = self:getResumeData().replayLog</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a></span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>			local function doUpdateLevelInfo()</span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>				-- 更新录像的关卡信息、动更号等</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a>				local UBFTestLevelCfg = require &#x27;ubf.UBFPlay.test.UBFTestLevelCfg&#x27;</span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>				local levelCfg,levelGroupInfo = UBFTestLevelCfg:getConfigLua( replayLog.gEnv.levelId, replayLog.gEnv.levelScene )</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>				-- print(&quot;levelCfg---&quot;,replayLog.gEnv.levelId, replayLog.gEnv.levelScene,tts(levelCfg.levelInfo),tts(replayLog.gEnv))</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a>				if levelCfg then</span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a>					local levelInfo = levelCfg.levelInfo</span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a>					local g = replayLog.gEnv</span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>					local levelGroup = g.levelMeetGroup or g.levelGroup</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a>					if replayLog.gEnv.levelUUID ~= levelInfo.uuid or replayLog.gEnv.levelUUIDVer ~= levelInfo.uuidVersion or levelGroup ~= levelGroupInfo.meetGroup then</span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>						-- 关卡配置发生变化，强制更新</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>						g.levelInfoHistory = g.levelInfoHistory or {}</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a>						table.insert(g.levelInfoHistory,{g.curMd5,g.levelUUID,g.levelUUIDVer,g.levelGroup,g.levelMeetGroup})</span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a></span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>						resumeData.levelInfo.uuid = levelInfo.uuid</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a></span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>						g.levelUUID = levelInfo.uuid</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a>						g.levelUUIDVer = levelInfo.uuidVersion</span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>						g.levelGroup = tostring(levelGroupInfo.levelGroup)</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>						g.levelMeetGroup = levelGroupInfo.meetGroup</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a></span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>						local ret, meetGroup, uuid = UBFLevelIdUtil:traversalDefault(g.levelId, g.levelScene, g.expGroup)</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a>						local rule = UBFLevelConfigManager:getLevelGroupRuleByGroupName(meetGroup, g.levelScene)</span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a>						g.fuuuGraphV3 = rule and rule.fuuuGraphV3</span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>					end</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>				end</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>				replayLog.gEnv.md5History = replayLog.gEnv.md5History or {}</span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a>				table.insert(replayLog.gEnv.md5History,replayLog.gEnv.curMd5)</span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>				-- 更新当前动更号，内部前端用</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>				replayLog.gEnv.curMd5 = ResourceLoader.getCurVersion()</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a>				replayLog.gEnv.bundleVersion = _G.bundleVersion</span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>				-- 外部后端用</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>				replayLog.curMd5 = replayLog.gEnv.curMd5</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>				resumeData.levelInfo.curMd5 = replayLog.gEnv.curMd5</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a>			end</span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a></span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>			local baseInfo = UBFLevelConfigManager:userConfig():getLevelBaseInfo(replayLog.gEnv.levelId, replayLog.gEnv.levelScene)</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a>			local fileName = baseInfo[UBFLevelBaseInfoKey.FILE]</span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>			local path = string.format(&quot;ubf/levelConfig/%s.levelpack&quot;, fileName)</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a>			require &quot;ubf.UBFPlay.views.render.loader.UBFResourceLoader&quot;</span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>			-- APLog.i(&quot;APPlayGame:preloadRes()path:&quot;,path)</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a>			UBFResourceLoader.file:async(path):next(function(status)</span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>				if status == UBResourceLoadStatus.READY then</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>					doUpdateLevelInfo()</span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>					startLaunchResume()</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>				end</span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a>			end)</span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a>		else</span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a>			if levelInfo._is_must_replay_resume then</span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a>				if not resumeData.replayLog then </span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>					return startRustButFail()</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a>				end</span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a>				-- 强制回放回复</span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>			elseif not EnvUtil:isMiniGame() then</span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a>				-- app 时直接断面恢复，移除录像</span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a>				if levelInfo.so_rust then </span>
+<span class="source-line" id="L614"><a class="line-num" href="#L614">614</a>					-- 如果有动态模式</span>
+<span class="source-line" id="L615"><a class="line-num" href="#L615">615</a>					if levelInfo.so_rust_dy then </span>
+<span class="source-line" id="L616"><a class="line-num" href="#L616">616</a>						-- 检查本地的动态和录像的动态是否一致</span>
+<span class="source-line" id="L617"><a class="line-num" href="#L617">617</a>						local isOk = false</span>
+<span class="source-line" id="L618"><a class="line-num" href="#L618">618</a>						xpcall(function()</span>
+<span class="source-line" id="L619"><a class="line-num" href="#L619">619</a>							local hello_rust = CCFileUtils:sharedFileUtils():getFileData(&quot;ubf/rust/lib/rust_hash&quot;, &quot;rb&quot;)</span>
+<span class="source-line" id="L620"><a class="line-num" href="#L620">620</a>							local hello_rust = hello_rust and string.trim(hello_rust) or nil</span>
+<span class="source-line" id="L621"><a class="line-num" href="#L621">621</a>							isOk = hello_rust == levelInfo.so_rust_dy</span>
+<span class="source-line" id="L622"><a class="line-num" href="#L622">622</a>						end, debug.traceback)</span>
+<span class="source-line" id="L623"><a class="line-num" href="#L623">623</a>						-- 一致就用断面，否则用录像</span>
+<span class="source-line" id="L624"><a class="line-num" href="#L624">624</a>						if isOk then</span>
+<span class="source-line" id="L625"><a class="line-num" href="#L625">625</a>							resumeData.replayLog = nil</span>
+<span class="source-line" id="L626"><a class="line-num" href="#L626">626</a>						end</span>
+<span class="source-line" id="L627"><a class="line-num" href="#L627">627</a>					else</span>
+<span class="source-line" id="L628"><a class="line-num" href="#L628">628</a>						if UBFRustManager.isRustDyGoReady then </span>
+<span class="source-line" id="L629"><a class="line-num" href="#L629">629</a>							-- 启动go模式了，所以这里必须用录像了</span>
+<span class="source-line" id="L630"><a class="line-num" href="#L630">630</a>						else</span>
+<span class="source-line" id="L631"><a class="line-num" href="#L631">631</a>							resumeData.replayLog = nil</span>
+<span class="source-line" id="L632"><a class="line-num" href="#L632">632</a>						end</span>
+<span class="source-line" id="L633"><a class="line-num" href="#L633">633</a>					end</span>
+<span class="source-line" id="L634"><a class="line-num" href="#L634">634</a>				else</span>
+<span class="source-line" id="L635"><a class="line-num" href="#L635">635</a>					resumeData.replayLog = nil</span>
+<span class="source-line" id="L636"><a class="line-num" href="#L636">636</a>				end</span>
+<span class="source-line" id="L637"><a class="line-num" href="#L637">637</a>			else</span>
+<span class="source-line" id="L638"><a class="line-num" href="#L638">638</a>				-- 小游戏，仅rust能断面恢复</span>
+<span class="source-line" id="L639"><a class="line-num" href="#L639">639</a>				if levelInfo.so_rust and resumeData.section then</span>
+<span class="source-line" id="L640"><a class="line-num" href="#L640">640</a>					resumeData.replayLog = nil</span>
+<span class="source-line" id="L641"><a class="line-num" href="#L641">641</a>				end</span>
+<span class="source-line" id="L642"><a class="line-num" href="#L642">642</a>			end</span>
+<span class="source-line" id="L643"><a class="line-num" href="#L643">643</a>			startLaunchResume()</span>
+<span class="source-line" id="L644"><a class="line-num" href="#L644">644</a>		end</span>
+<span class="source-line" id="L645"><a class="line-num" href="#L645">645</a></span>
+<span class="source-line" id="L646"><a class="line-num" href="#L646">646</a>		UBFSectionResumeHelper:removeSavedSection()</span>
+<span class="source-line" id="L647"><a class="line-num" href="#L647">647</a>	end</span>
+<span class="source-line" id="L648"><a class="line-num" href="#L648">648</a></span>
+<span class="source-line" id="L649"><a class="line-num" href="#L649">649</a>	-- 检查次数条件</span>
+<span class="source-line" id="L650"><a class="line-num" href="#L650">650</a>	local function checkResumeTimes(nextAction)</span>
+<span class="source-line" id="L651"><a class="line-num" href="#L651">651</a>		if log then log(&quot;checkResumeTimes&quot;) end</span>
+<span class="source-line" id="L652"><a class="line-num" href="#L652">652</a></span>
+<span class="source-line" id="L653"><a class="line-num" href="#L653">653</a>		local function onSuccess()</span>
+<span class="source-line" id="L654"><a class="line-num" href="#L654">654</a>			if log then log(&quot;checkResumeTimes success&quot;) end</span>
+<span class="source-line" id="L655"><a class="line-num" href="#L655">655</a>			nextAction()</span>
+<span class="source-line" id="L656"><a class="line-num" href="#L656">656</a>		end</span>
+<span class="source-line" id="L657"><a class="line-num" href="#L657">657</a>		local function onFail()</span>
+<span class="source-line" id="L658"><a class="line-num" href="#L658">658</a>			if log then log(&quot;checkResumeTimes onFail&quot;) end</span>
+<span class="source-line" id="L659"><a class="line-num" href="#L659">659</a>			self:afterNotResume(false,UBFGameResumeFailReason.kMd5CheckFail)</span>
+<span class="source-line" id="L660"><a class="line-num" href="#L660">660</a></span>
+<span class="source-line" id="L661"><a class="line-num" href="#L661">661</a>			self:_closePanel()</span>
+<span class="source-line" id="L662"><a class="line-num" href="#L662">662</a></span>
+<span class="source-line" id="L663"><a class="line-num" href="#L663">663</a>			local text = {tip = Localization:getInstance():getText(&quot;crash.resume.failed&quot;) , yes = &quot;确定&quot;}</span>
+<span class="source-line" id="L664"><a class="line-num" href="#L664">664</a>			if CommonTipWithBtn then</span>
+<span class="source-line" id="L665"><a class="line-num" href="#L665">665</a>				CommonTipWithBtn:showTip({</span>
+<span class="source-line" id="L666"><a class="line-num" href="#L666">666</a>					tipStr = text.tip,</span>
+<span class="source-line" id="L667"><a class="line-num" href="#L667">667</a>					animalType = CommonTipWithBtn.TopUIType.DUDU,</span>
+<span class="source-line" id="L668"><a class="line-num" href="#L668">668</a>					okInfo = { btnStr = text.yes, },</span>
+<span class="source-line" id="L669"><a class="line-num" href="#L669">669</a>					noInfo = { hide = true, },</span>
+<span class="source-line" id="L670"><a class="line-num" href="#L670">670</a>				})</span>
+<span class="source-line" id="L671"><a class="line-num" href="#L671">671</a>			else CommonTip:showTip(text.tip) end</span>
+<span class="source-line" id="L672"><a class="line-num" href="#L672">672</a>		end</span>
+<span class="source-line" id="L673"><a class="line-num" href="#L673">673</a></span>
+<span class="source-line" id="L674"><a class="line-num" href="#L674">674</a>		local resumeData = UBFResumeData:create(self:getResumeData())</span>
+<span class="source-line" id="L675"><a class="line-num" href="#L675">675</a>		local function isResumeTimesValid()</span>
+<span class="source-line" id="L676"><a class="line-num" href="#L676">676</a>			local resumed = resumeData:isResumed()</span>
+<span class="source-line" id="L677"><a class="line-num" href="#L677">677</a>			if log then log(&quot;checkResumeTimes isResumeTimesValid resumed&quot;,resumed,resumeData,resumeData:getResumeCount()) end</span>
+<span class="source-line" id="L678"><a class="line-num" href="#L678">678</a></span>
+<span class="source-line" id="L679"><a class="line-num" href="#L679">679</a>			if resumed then</span>
+<span class="source-line" id="L680"><a class="line-num" href="#L680">680</a>				local resumeCount = resumeData:getResumeCount()</span>
+<span class="source-line" id="L681"><a class="line-num" href="#L681">681</a>				local usePropCount = resumeData:getUsePropCount()</span>
+<span class="source-line" id="L682"><a class="line-num" href="#L682">682</a>				if log then log(&quot;checkResumeTimes isResumeTimesValid&quot;, resumeCount, usePropCount) end</span>
+<span class="source-line" id="L683"><a class="line-num" href="#L683">683</a>				if resumeCount &lt;= 5 then return true</span>
+<span class="source-line" id="L684"><a class="line-num" href="#L684">684</a>				elseif usePropCount &gt; 0 then return true end</span>
+<span class="source-line" id="L685"><a class="line-num" href="#L685">685</a>			end</span>
+<span class="source-line" id="L686"><a class="line-num" href="#L686">686</a>		end</span>
+<span class="source-line" id="L687"><a class="line-num" href="#L687">687</a></span>
+<span class="source-line" id="L688"><a class="line-num" href="#L688">688</a>		if isResumeTimesValid() then</span>
+<span class="source-line" id="L689"><a class="line-num" href="#L689">689</a>			onSuccess()</span>
+<span class="source-line" id="L690"><a class="line-num" href="#L690">690</a>		else</span>
+<span class="source-line" id="L691"><a class="line-num" href="#L691">691</a>			if log then log(&quot;checkResumeTimes not valid&quot;) end</span>
+<span class="source-line" id="L692"><a class="line-num" href="#L692">692</a>			local levelId = resumeData:getLevelId()</span>
+<span class="source-line" id="L693"><a class="line-num" href="#L693">693</a>			local md5str = HeMathUtils:md5(tostring(resumeData:getPlayId()))</span>
+<span class="source-line" id="L694"><a class="line-num" href="#L694">694</a>			UBFProtocolMethod:send {</span>
+<span class="source-line" id="L695"><a class="line-num" href="#L695">695</a>				method = UBFGameMethodType.kResumeLevel,</span>
+<span class="source-line" id="L696"><a class="line-num" href="#L696">696</a>				body = {</span>
+<span class="source-line" id="L697"><a class="line-num" href="#L697">697</a>					md5 = md5str</span>
+<span class="source-line" id="L698"><a class="line-num" href="#L698">698</a>				},</span>
+<span class="source-line" id="L699"><a class="line-num" href="#L699">699</a>			} : next(function(response)</span>
+<span class="source-line" id="L700"><a class="line-num" href="#L700">700</a>				if log then log(&quot;checkResumeTimes not valid response&quot;,table.tostring(response)) end</span>
+<span class="source-line" id="L701"><a class="line-num" href="#L701">701</a></span>
+<span class="source-line" id="L702"><a class="line-num" href="#L702">702</a>				if response.byCancel then return self:cancelResume() end</span>
+<span class="source-line" id="L703"><a class="line-num" href="#L703">703</a>				if response.err then return onFail() end</span>
+<span class="source-line" id="L704"><a class="line-num" href="#L704">704</a>				return onSuccess()</span>
+<span class="source-line" id="L705"><a class="line-num" href="#L705">705</a>			end)</span>
+<span class="source-line" id="L706"><a class="line-num" href="#L706">706</a>		end</span>
+<span class="source-line" id="L707"><a class="line-num" href="#L707">707</a>	end</span>
+<span class="source-line" id="L708"><a class="line-num" href="#L708">708</a></span>
+<span class="source-line" id="L709"><a class="line-num" href="#L709">709</a>	checkResumeTimes(onSuccess)</span>
+<span class="source-line" id="L710"><a class="line-num" href="#L710">710</a>end</span>
+<span class="source-line" id="L711"><a class="line-num" href="#L711">711</a></span>
+<span class="source-line" id="L712"><a class="line-num" href="#L712">712</a>function UBFGameResumeLogic:cancelResume()</span>
+<span class="source-line" id="L713"><a class="line-num" href="#L713">713</a>	self:afterNotResume(true,UBFGameResumeFailReason.kUserClose)</span>
+<span class="source-line" id="L714"><a class="line-num" href="#L714">714</a>	self:_closePanel()</span>
+<span class="source-line" id="L715"><a class="line-num" href="#L715">715</a>end</span>
+<span class="source-line" id="L716"><a class="line-num" href="#L716">716</a></span>
+<span class="source-line" id="L717"><a class="line-num" href="#L717">717</a>local AMFRequest = require &quot;amf.middleware.interconnection.remote.core.AMFRequest&quot;</span>
+<span class="source-line" id="L718"><a class="line-num" href="#L718">718</a>local Request = class(&quot;CancelCrashResumePanel&quot;, AMFRequest)</span>
+<span class="source-line" id="L719"><a class="line-num" href="#L719">719</a></span>
+<span class="source-line" id="L720"><a class="line-num" href="#L720">720</a>local config = {</span>
+<span class="source-line" id="L721"><a class="line-num" href="#L721">721</a>	protocol = &quot;cancelCrashResumePanel&quot;,</span>
+<span class="source-line" id="L722"><a class="line-num" href="#L722">722</a>	reqType = AMFSyncConst.RequestType.OFFLINE,</span>
+<span class="source-line" id="L723"><a class="line-num" href="#L723">723</a>	loading = false,</span>
+<span class="source-line" id="L724"><a class="line-num" href="#L724">724</a>	useMockData = false</span>
+<span class="source-line" id="L725"><a class="line-num" href="#L725">725</a>}</span>
+<span class="source-line" id="L726"><a class="line-num" href="#L726">726</a></span>
+<span class="source-line" id="L727"><a class="line-num" href="#L727">727</a>function Request:post(params, hostObj)</span>
+<span class="source-line" id="L728"><a class="line-num" href="#L728">728</a>	return Request:run(config, params, hostObj)</span>
+<span class="source-line" id="L729"><a class="line-num" href="#L729">729</a>end</span>
+<span class="source-line" id="L730"><a class="line-num" href="#L730">730</a></span>
+<span class="source-line" id="L731"><a class="line-num" href="#L731">731</a>function UBFGameResumeLogic:afterNotResume( bFromCancle, errCode )</span>
+<span class="source-line" id="L732"><a class="line-num" href="#L732">732</a>	if log then log(&quot;afterNotResume&quot;,bFromCancle,errCode) end</span>
+<span class="source-line" id="L733"><a class="line-num" href="#L733">733</a></span>
+<span class="source-line" id="L734"><a class="line-num" href="#L734">734</a>	if bFromCancle == nil then bFromCancle = false end</span>
+<span class="source-line" id="L735"><a class="line-num" href="#L735">735</a>	local resumeData = UBFResumeData:create(self:getResumeData())</span>
+<span class="source-line" id="L736"><a class="line-num" href="#L736">736</a>	local uid = resumeData:getUid()</span>
+<span class="source-line" id="L737"><a class="line-num" href="#L737">737</a>	local playId = resumeData:getPlayId()</span>
+<span class="source-line" id="L738"><a class="line-num" href="#L738">738</a>	local levelId = resumeData:getLevelId()</span>
+<span class="source-line" id="L739"><a class="line-num" href="#L739">739</a>	local levelType = resumeData:getLevelType()</span>
+<span class="source-line" id="L740"><a class="line-num" href="#L740">740</a>	local levelScene = resumeData:getLevelScene()</span>
+<span class="source-line" id="L741"><a class="line-num" href="#L741">741</a>	local md5str = HeMathUtils:md5( tostring(playId) )</span>
+<span class="source-line" id="L742"><a class="line-num" href="#L742">742</a>	local udid = resumeData:getUdid()</span>
+<span class="source-line" id="L743"><a class="line-num" href="#L743">743</a>	local sceneData = resumeData:getSceneData()</span>
+<span class="source-line" id="L744"><a class="line-num" href="#L744">744</a></span>
+<span class="source-line" id="L745"><a class="line-num" href="#L745">745</a>	if PreBuffLogic and PreBuffLogic.isInited then</span>
+<span class="source-line" id="L746"><a class="line-num" href="#L746">746</a>		PreBuffLogic:onPassLevel( levelId , 0 , GameGuide:isNoPreBuffLevel(levelId) , false , &quot;crash&quot; )</span>
+<span class="source-line" id="L747"><a class="line-num" href="#L747">747</a>	end</span>
+<span class="source-line" id="L748"><a class="line-num" href="#L748">748</a></span>
+<span class="source-line" id="L749"><a class="line-num" href="#L749">749</a>	-- 失败 断连胜</span>
+<span class="source-line" id="L750"><a class="line-num" href="#L750">750</a>	local topLevelId = UserService:getInstance().user:getTopLevelId()</span>
+<span class="source-line" id="L751"><a class="line-num" href="#L751">751</a>	if levelId == topLevelId then</span>
+<span class="source-line" id="L752"><a class="line-num" href="#L752">752</a>		if UserManager:getInstance():isTopNoPassLevel(levelId) then</span>
+<span class="source-line" id="L753"><a class="line-num" href="#L753">753</a>			UserManager:getInstance().userExtend:resetTopLevelWinCount()</span>
+<span class="source-line" id="L754"><a class="line-num" href="#L754">754</a>			UserService:getInstance().userExtend:resetTopLevelWinCount()</span>
+<span class="source-line" id="L755"><a class="line-num" href="#L755">755</a>			UserManager:getInstance().userExtend:resetTopLevelLogicalWinCount()</span>
+<span class="source-line" id="L756"><a class="line-num" href="#L756">756</a>			UserService:getInstance().userExtend:resetTopLevelLogicalWinCount()</span>
+<span class="source-line" id="L757"><a class="line-num" href="#L757">757</a>		end</span>
+<span class="source-line" id="L758"><a class="line-num" href="#L758">758</a>		UserManager:getInstance().userExtend:resetTopLevelContinueWinCount()</span>
+<span class="source-line" id="L759"><a class="line-num" href="#L759">759</a>		UserService:getInstance().userExtend:resetTopLevelContinueWinCount()</span>
+<span class="source-line" id="L760"><a class="line-num" href="#L760">760</a>		if BarrageAchievementUtil then</span>
+<span class="source-line" id="L761"><a class="line-num" href="#L761">761</a>			BarrageAchievementUtil:checkAndUpdatePassDataOnPassLevel(false)</span>
+<span class="source-line" id="L762"><a class="line-num" href="#L762">762</a>		end</span>
+<span class="source-line" id="L763"><a class="line-num" href="#L763">763</a>	end</span>
+<span class="source-line" id="L764"><a class="line-num" href="#L764">764</a></span>
+<span class="source-line" id="L765"><a class="line-num" href="#L765">765</a>	local logicalFail = false</span>
+<span class="source-line" id="L766"><a class="line-num" href="#L766">766</a>	local curMoves =  sceneData.moveCount or 0</span>
+<span class="source-line" id="L767"><a class="line-num" href="#L767">767</a>	local levelInfo = UBFLevelConfigManager:userConfig():getLevelBaseInfo(levelId, levelScene)</span>
+<span class="source-line" id="L768"><a class="line-num" href="#L768">768</a>	local totalMoves = levelInfo and levelInfo[UBFLevelBaseInfoKey.STATIC_STEP] or 0</span>
+<span class="source-line" id="L769"><a class="line-num" href="#L769">769</a>	logicalFail = curMoves &gt;= totalMoves * 0.5</span>
+<span class="source-line" id="L770"><a class="line-num" href="#L770">770</a></span>
+<span class="source-line" id="L771"><a class="line-num" href="#L771">771</a>	if logicalFail then</span>
+<span class="source-line" id="L772"><a class="line-num" href="#L772">772</a>		-- 只加逻辑失败，是因为普通失败已经在进关时加过了</span>
+<span class="source-line" id="L773"><a class="line-num" href="#L773">773</a>		UserManager:getInstance().userExtend:incrTopLevelLogicalFailCount()</span>
+<span class="source-line" id="L774"><a class="line-num" href="#L774">774</a>		UserService:getInstance().userExtend:incrTopLevelLogicalFailCount()</span>
+<span class="source-line" id="L775"><a class="line-num" href="#L775">775</a>	end</span>
+<span class="source-line" id="L776"><a class="line-num" href="#L776">776</a>	-- LocalBox:setData( &quot;buffOnResumeFlag&quot; , false )</span>
+<span class="source-line" id="L777"><a class="line-num" href="#L777">777</a>	local cancelCrashReason = errCode</span>
+<span class="source-line" id="L778"><a class="line-num" href="#L778">778</a>	local levelInfo = resumeData:getLevelInfo()</span>
+<span class="source-line" id="L779"><a class="line-num" href="#L779">779</a>	local usePropList = levelInfo and levelInfo.usePropList or {}</span>
+<span class="source-line" id="L780"><a class="line-num" href="#L780">780</a>	local usedProps = {}</span>
+<span class="source-line" id="L781"><a class="line-num" href="#L781">781</a>	for i, v in ipairs(usePropList) do</span>
+<span class="source-line" id="L782"><a class="line-num" href="#L782">782</a>		local found = false</span>
+<span class="source-line" id="L783"><a class="line-num" href="#L783">783</a>		for i2, v2 in ipairs(usedProps) do</span>
+<span class="source-line" id="L784"><a class="line-num" href="#L784">784</a>			if v2.itemId == v.propId then</span>
+<span class="source-line" id="L785"><a class="line-num" href="#L785">785</a>				found = true</span>
+<span class="source-line" id="L786"><a class="line-num" href="#L786">786</a>				v2.num = v2.num + 1</span>
+<span class="source-line" id="L787"><a class="line-num" href="#L787">787</a>				break</span>
+<span class="source-line" id="L788"><a class="line-num" href="#L788">788</a>			end</span>
+<span class="source-line" id="L789"><a class="line-num" href="#L789">789</a>		end</span>
+<span class="source-line" id="L790"><a class="line-num" href="#L790">790</a>		if not found then</span>
+<span class="source-line" id="L791"><a class="line-num" href="#L791">791</a>			table.insert(usedProps, {itemId = v.propId, num = 1})</span>
+<span class="source-line" id="L792"><a class="line-num" href="#L792">792</a>		end</span>
+<span class="source-line" id="L793"><a class="line-num" href="#L793">793</a>	end</span>
+<span class="source-line" id="L794"><a class="line-num" href="#L794">794</a>	local _data = {</span>
+<span class="source-line" id="L795"><a class="line-num" href="#L795">795</a>		levelId = levelId,</span>
+<span class="source-line" id="L796"><a class="line-num" href="#L796">796</a>		levelType = levelType,</span>
+<span class="source-line" id="L797"><a class="line-num" href="#L797">797</a>		levelScene = levelScene,</span>
+<span class="source-line" id="L798"><a class="line-num" href="#L798">798</a>		gameData = nil,</span>
+<span class="source-line" id="L799"><a class="line-num" href="#L799">799</a>		resumeData = resumeData,</span>
+<span class="source-line" id="L800"><a class="line-num" href="#L800">800</a>		checkFailed = false,</span>
+<span class="source-line" id="L801"><a class="line-num" href="#L801">801</a>		json = {},</span>
+<span class="source-line" id="L802"><a class="line-num" href="#L802">802</a>		--下面的CancelCrashResumePanel协议结束时的回调，活动可在此处同步最新的数据（连胜）</span>
+<span class="source-line" id="L803"><a class="line-num" href="#L803">803</a>		callbacks = {},</span>
+<span class="source-line" id="L804"><a class="line-num" href="#L804">804</a>		cancelCrashReason = cancelCrashReason,</span>
+<span class="source-line" id="L805"><a class="line-num" href="#L805">805</a>	}</span>
+<span class="source-line" id="L806"><a class="line-num" href="#L806">806</a></span>
+<span class="source-line" id="L807"><a class="line-num" href="#L807">807</a>	self:sendResumeFail(_data, logicalFail, levelScene, playId, usedProps)</span>
+<span class="source-line" id="L808"><a class="line-num" href="#L808">808</a></span>
+<span class="source-line" id="L809"><a class="line-num" href="#L809">809</a>	self:_onOverByNotResume()</span>
+<span class="source-line" id="L810"><a class="line-num" href="#L810">810</a></span>
+<span class="source-line" id="L811"><a class="line-num" href="#L811">811</a>	-- 打点</span>
+<span class="source-line" id="L812"><a class="line-num" href="#L812">812</a>	self:dcFail(errCode)</span>
+<span class="source-line" id="L813"><a class="line-num" href="#L813">813</a>	-- 清除闪退数据</span>
+<span class="source-line" id="L814"><a class="line-num" href="#L814">814</a>	UBFSectionResumeHelper:removeSavedSection()</span>
+<span class="source-line" id="L815"><a class="line-num" href="#L815">815</a></span>
+<span class="source-line" id="L816"><a class="line-num" href="#L816">816</a>	self._lastResumeFailData = _data</span>
+<span class="source-line" id="L817"><a class="line-num" href="#L817">817</a>end</span>
+<span class="source-line" id="L818"><a class="line-num" href="#L818">818</a></span>
+<span class="source-line" id="L819"><a class="line-num" href="#L819">819</a></span>
+<span class="source-line" id="L820"><a class="line-num" href="#L820">820</a>function UBFGameResumeLogic:getLevelFarmingType(levelInfo)</span>
+<span class="source-line" id="L821"><a class="line-num" href="#L821">821</a>	local levelId = levelInfo.levelId</span>
+<span class="source-line" id="L822"><a class="line-num" href="#L822">822</a>	local levelType = levelInfo.levelType</span>
+<span class="source-line" id="L823"><a class="line-num" href="#L823">823</a>	local topLevelId = levelInfo.topLevelId</span>
+<span class="source-line" id="L824"><a class="line-num" href="#L824">824</a>	local oldStar = levelInfo.oldStar or 0</span>
+<span class="source-line" id="L825"><a class="line-num" href="#L825">825</a></span>
+<span class="source-line" id="L826"><a class="line-num" href="#L826">826</a>	local levelFarmingType = UBFLevelFarmingType.NORMAL</span>
+<span class="source-line" id="L827"><a class="line-num" href="#L827">827</a>	if levelType == GameLevelType.kMainLevel then</span>
+<span class="source-line" id="L828"><a class="line-num" href="#L828">828</a>		if oldStar &gt;= 4 then</span>
+<span class="source-line" id="L829"><a class="line-num" href="#L829">829</a>			levelFarmingType = UBFLevelFarmingType.FARM_SCORE</span>
+<span class="source-line" id="L830"><a class="line-num" href="#L830">830</a>		elseif oldStar &gt; 0 then</span>
+<span class="source-line" id="L831"><a class="line-num" href="#L831">831</a>			levelFarmingType = UBFLevelFarmingType.FARM_STAR</span>
+<span class="source-line" id="L832"><a class="line-num" href="#L832">832</a>		else</span>
+<span class="source-line" id="L833"><a class="line-num" href="#L833">833</a>			if levelId == topLevelId then</span>
+<span class="source-line" id="L834"><a class="line-num" href="#L834">834</a>				levelFarmingType = UBFLevelFarmingType.NORMAL</span>
+<span class="source-line" id="L835"><a class="line-num" href="#L835">835</a>			else</span>
+<span class="source-line" id="L836"><a class="line-num" href="#L836">836</a>				levelFarmingType = UBFLevelFarmingType.FARM_STAR</span>
+<span class="source-line" id="L837"><a class="line-num" href="#L837">837</a>			end</span>
+<span class="source-line" id="L838"><a class="line-num" href="#L838">838</a>		end</span>
+<span class="source-line" id="L839"><a class="line-num" href="#L839">839</a>	elseif levelType == GameLevelType.kHiddenLevel then</span>
+<span class="source-line" id="L840"><a class="line-num" href="#L840">840</a>		if oldStar &gt;= 3 then</span>
+<span class="source-line" id="L841"><a class="line-num" href="#L841">841</a>			levelFarmingType = UBFLevelFarmingType.FARM_SCORE</span>
+<span class="source-line" id="L842"><a class="line-num" href="#L842">842</a>		elseif oldStar &gt; 0 then</span>
+<span class="source-line" id="L843"><a class="line-num" href="#L843">843</a>			levelFarmingType = UBFLevelFarmingType.FARM_STAR</span>
+<span class="source-line" id="L844"><a class="line-num" href="#L844">844</a>		else</span>
+<span class="source-line" id="L845"><a class="line-num" href="#L845">845</a>			levelFarmingType = UBFLevelFarmingType.NORMAL</span>
+<span class="source-line" id="L846"><a class="line-num" href="#L846">846</a>		end</span>
+<span class="source-line" id="L847"><a class="line-num" href="#L847">847</a>	end</span>
+<span class="source-line" id="L848"><a class="line-num" href="#L848">848</a>	return levelFarmingType</span>
+<span class="source-line" id="L849"><a class="line-num" href="#L849">849</a>end</span>
+<span class="source-line" id="L850"><a class="line-num" href="#L850">850</a></span>
+<span class="source-line" id="L851"><a class="line-num" href="#L851">851</a>function UBFGameResumeLogic:getClientStreakWinScene(levelInfo)</span>
+<span class="source-line" id="L852"><a class="line-num" href="#L852">852</a>	if not levelInfo then return end</span>
+<span class="source-line" id="L853"><a class="line-num" href="#L853">853</a>	local levelScene = levelInfo.levelScene</span>
+<span class="source-line" id="L854"><a class="line-num" href="#L854">854</a>	local clientStreakWinScene</span>
+<span class="source-line" id="L855"><a class="line-num" href="#L855">855</a>	if levelScene == UBFLevelSceneType.kFullLevelLibrary then</span>
+<span class="source-line" id="L856"><a class="line-num" href="#L856">856</a>		clientStreakWinScene = &quot;FLFSLL&quot;</span>
+<span class="source-line" id="L857"><a class="line-num" href="#L857">857</a>	elseif levelScene == UBFLevelSceneType.kMain then</span>
+<span class="source-line" id="L858"><a class="line-num" href="#L858">858</a>		local farmingType = self:getLevelFarmingType(levelInfo)</span>
+<span class="source-line" id="L859"><a class="line-num" href="#L859">859</a>		if farmingType == UBFLevelFarmingType.NORMAL then</span>
+<span class="source-line" id="L860"><a class="line-num" href="#L860">860</a>			clientStreakWinScene = &quot;MLT&quot;</span>
+<span class="source-line" id="L861"><a class="line-num" href="#L861">861</a>		elseif farmingType == UBFLevelFarmingType.FARM_STAR then</span>
+<span class="source-line" id="L862"><a class="line-num" href="#L862">862</a>			--满级补星</span>
+<span class="source-line" id="L863"><a class="line-num" href="#L863">863</a>			local userStateManager = _G.amfBean(&quot;UserStateManager&quot;)</span>
+<span class="source-line" id="L864"><a class="line-num" href="#L864">864</a>			if userStateManager and not userStateManager:isFMJ() then</span>
+<span class="source-line" id="L865"><a class="line-num" href="#L865">865</a>				clientStreakWinScene = &quot;FLCCS&quot;</span>
+<span class="source-line" id="L866"><a class="line-num" href="#L866">866</a>			end</span>
+<span class="source-line" id="L867"><a class="line-num" href="#L867">867</a>		end</span>
+<span class="source-line" id="L868"><a class="line-num" href="#L868">868</a>	end</span>
+<span class="source-line" id="L869"><a class="line-num" href="#L869">869</a>	return clientStreakWinScene</span>
+<span class="source-line" id="L870"><a class="line-num" href="#L870">870</a>end</span>
+<span class="source-line" id="L871"><a class="line-num" href="#L871">871</a></span>
+<span class="source-line" id="L872"><a class="line-num" href="#L872">872</a>function UBFGameResumeLogic:sendResumeFail( _data, logicalFail, levelScene, playId, usedProps)</span>
+<span class="source-line" id="L873"><a class="line-num" href="#L873">873</a></span>
+<span class="source-line" id="L874"><a class="line-num" href="#L874">874</a>	local AsyncRunner = require &quot;amf.script.sugar.AsyncRunner&quot;</span>
+<span class="source-line" id="L875"><a class="line-num" href="#L875">875</a>	_data.closeActionList = AsyncRunner:create()</span>
+<span class="source-line" id="L876"><a class="line-num" href="#L876">876</a>	_G.amfEC:notifyFeature(FeatureEvent.CRASH_RESUME_FAILED, _data)</span>
+<span class="source-line" id="L877"><a class="line-num" href="#L877">877</a></span>
+<span class="source-line" id="L878"><a class="line-num" href="#L878">878</a>	local levelInfo</span>
+<span class="source-line" id="L879"><a class="line-num" href="#L879">879</a>	if _data.resumeData and _data.resumeData.data then</span>
+<span class="source-line" id="L880"><a class="line-num" href="#L880">880</a>		levelInfo = _data.resumeData.data.levelInfo</span>
+<span class="source-line" id="L881"><a class="line-num" href="#L881">881</a>	end</span>
+<span class="source-line" id="L882"><a class="line-num" href="#L882">882</a></span>
+<span class="source-line" id="L883"><a class="line-num" href="#L883">883</a>	local jsonStr</span>
+<span class="source-line" id="L884"><a class="line-num" href="#L884">884</a>	if _data.json then</span>
+<span class="source-line" id="L885"><a class="line-num" href="#L885">885</a>		jsonStr = table.serialize(_data.json)</span>
+<span class="source-line" id="L886"><a class="line-num" href="#L886">886</a>	end</span>
+<span class="source-line" id="L887"><a class="line-num" href="#L887">887</a></span>
+<span class="source-line" id="L888"><a class="line-num" href="#L888">888</a>	local function onSuccess()</span>
+<span class="source-line" id="L889"><a class="line-num" href="#L889">889</a>		_data.closeActionList:run()</span>
+<span class="source-line" id="L890"><a class="line-num" href="#L890">890</a>		for k, v in pairs(_data.callbacks) do</span>
+<span class="source-line" id="L891"><a class="line-num" href="#L891">891</a>			safeRunCall(v)</span>
+<span class="source-line" id="L892"><a class="line-num" href="#L892">892</a>		end</span>
+<span class="source-line" id="L893"><a class="line-num" href="#L893">893</a>	end</span>
+<span class="source-line" id="L894"><a class="line-num" href="#L894">894</a>	Request:post({</span>
+<span class="source-line" id="L895"><a class="line-num" href="#L895">895</a>		levelId = _data.levelId,</span>
+<span class="source-line" id="L896"><a class="line-num" href="#L896">896</a>		logicalFail = logicalFail,</span>
+<span class="source-line" id="L897"><a class="line-num" href="#L897">897</a>		levelScene = levelScene,</span>
+<span class="source-line" id="L898"><a class="line-num" href="#L898">898</a>		json = jsonStr,</span>
+<span class="source-line" id="L899"><a class="line-num" href="#L899">899</a>		clientStreakWinScene = self:getClientStreakWinScene(levelInfo),</span>
+<span class="source-line" id="L900"><a class="line-num" href="#L900">900</a>		playId = playId,</span>
+<span class="source-line" id="L901"><a class="line-num" href="#L901">901</a>		cancelCrashReason = _data.cancelCrashReason,</span>
+<span class="source-line" id="L902"><a class="line-num" href="#L902">902</a>		usedProps = usedProps,</span>
+<span class="source-line" id="L903"><a class="line-num" href="#L903">903</a>	}):next(onSuccess)</span>
+<span class="source-line" id="L904"><a class="line-num" href="#L904">904</a>end</span>
+<span class="source-line" id="L905"><a class="line-num" href="#L905">905</a></span>
+<span class="source-line" id="L906"><a class="line-num" href="#L906">906</a>function UBFGameResumeLogic:dcSuccess(dcParams)</span>
+<span class="source-line" id="L907"><a class="line-num" href="#L907">907</a>	if not DcUtil then return end</span>
+<span class="source-line" id="L908"><a class="line-num" href="#L908">908</a>	-- local resumeData = UBFResumeData:create(self:getResumeData())</span>
+<span class="source-line" id="L909"><a class="line-num" href="#L909">909</a>	-- local uid = resumeData:getUid()</span>
+<span class="source-line" id="L910"><a class="line-num" href="#L910">910</a>	-- local udid = resumeData:getUdid()</span>
+<span class="source-line" id="L911"><a class="line-num" href="#L911">911</a>	-- local playId = resumeData:getPlayId()</span>
+<span class="source-line" id="L912"><a class="line-num" href="#L912">912</a>	-- local levelId = resumeData:getLevelId()</span>
+<span class="source-line" id="L913"><a class="line-num" href="#L913">913</a>	-- local levelScene = resumeData:getLevelScene()</span>
+<span class="source-line" id="L914"><a class="line-num" href="#L914">914</a>	-- local md5str = HeMathUtils:md5(tostring(playId))</span>
+<span class="source-line" id="L915"><a class="line-num" href="#L915">915</a>	-- DcUtil:popCrashResumePanel(</span>
+<span class="source-line" id="L916"><a class="line-num" href="#L916">916</a>	-- 	levelId,</span>
+<span class="source-line" id="L917"><a class="line-num" href="#L917">917</a>	-- 	UserManager:getInstance():getUID(),</span>
+<span class="source-line" id="L918"><a class="line-num" href="#L918">918</a>	-- 	MetaInfo:getInstance():getUdid() or &quot;hasNoUdid&quot;,</span>
+<span class="source-line" id="L919"><a class="line-num" href="#L919">919</a>	-- 	uid, udid,</span>
+<span class="source-line" id="L920"><a class="line-num" href="#L920">920</a>	-- 	md5str</span>
+<span class="source-line" id="L921"><a class="line-num" href="#L921">921</a>	-- )</span>
+<span class="source-line" id="L922"><a class="line-num" href="#L922">922</a></span>
+<span class="source-line" id="L923"><a class="line-num" href="#L923">923</a>	DcUtil:dcForUserTrack({</span>
+<span class="source-line" id="L924"><a class="line-num" href="#L924">924</a>		category = &quot;crash_resume&quot;,</span>
+<span class="source-line" id="L925"><a class="line-num" href="#L925">925</a>		sub_category = &quot;crash_resume_pop&quot;,</span>
+<span class="source-line" id="L926"><a class="line-num" href="#L926">926</a>		-- meta_level_id = LevelMapManager.getInstance():getMetaLevelId(self.dcParams.levelId),</span>
+<span class="source-line" id="L927"><a class="line-num" href="#L927">927</a>		panel_id = dcParams.panelId,</span>
+<span class="source-line" id="L928"><a class="line-num" href="#L928">928</a>		t1 = dcParams.levelId,</span>
+<span class="source-line" id="L929"><a class="line-num" href="#L929">929</a>		t2 = dcParams.dcT2,</span>
+<span class="source-line" id="L930"><a class="line-num" href="#L930">930</a>		t3 = dcParams.dcT3,</span>
+<span class="source-line" id="L931"><a class="line-num" href="#L931">931</a>		t4 = dcParams.dataUid,</span>
+<span class="source-line" id="L932"><a class="line-num" href="#L932">932</a>		t5 = dcParams.dataUdid,</span>
+<span class="source-line" id="L933"><a class="line-num" href="#L933">933</a>		t6 = dcParams.md5str,</span>
+<span class="source-line" id="L934"><a class="line-num" href="#L934">934</a></span>
+<span class="source-line" id="L935"><a class="line-num" href="#L935">935</a>	})</span>
+<span class="source-line" id="L936"><a class="line-num" href="#L936">936</a>end</span>
+<span class="source-line" id="L937"><a class="line-num" href="#L937">937</a></span>
+<span class="source-line" id="L938"><a class="line-num" href="#L938">938</a>function UBFGameResumeLogic:dcSureResume(dcParams)</span>
+<span class="source-line" id="L939"><a class="line-num" href="#L939">939</a>	--dc</span>
+<span class="source-line" id="L940"><a class="line-num" href="#L940">940</a>	local params = {</span>
+<span class="source-line" id="L941"><a class="line-num" href="#L941">941</a>		category = &quot;crash_resume&quot;,</span>
+<span class="source-line" id="L942"><a class="line-num" href="#L942">942</a>		sub_category = &quot;crash_resume_click&quot;,</span>
+<span class="source-line" id="L943"><a class="line-num" href="#L943">943</a>		panel_id = dcParams.panelId,</span>
+<span class="source-line" id="L944"><a class="line-num" href="#L944">944</a>		t1 = dcParams.dcT2</span>
+<span class="source-line" id="L945"><a class="line-num" href="#L945">945</a>	}</span>
+<span class="source-line" id="L946"><a class="line-num" href="#L946">946</a>	DcUtil:dcForUserTrack(params)</span>
+<span class="source-line" id="L947"><a class="line-num" href="#L947">947</a>end</span>
+<span class="source-line" id="L948"><a class="line-num" href="#L948">948</a></span>
+<span class="source-line" id="L949"><a class="line-num" href="#L949">949</a>function UBFGameResumeLogic:dcFail(reason)</span>
+<span class="source-line" id="L950"><a class="line-num" href="#L950">950</a>	if self._dcResultDone then return end</span>
+<span class="source-line" id="L951"><a class="line-num" href="#L951">951</a>	if not DcUtil then return end</span>
+<span class="source-line" id="L952"><a class="line-num" href="#L952">952</a>	local resumeData = UBFResumeData:create(self:getResumeData())</span>
+<span class="source-line" id="L953"><a class="line-num" href="#L953">953</a>	local uid = resumeData:getUid()</span>
+<span class="source-line" id="L954"><a class="line-num" href="#L954">954</a>	local udid = resumeData:getUdid()</span>
+<span class="source-line" id="L955"><a class="line-num" href="#L955">955</a>	local playId = resumeData:getPlayId()</span>
+<span class="source-line" id="L956"><a class="line-num" href="#L956">956</a>	local levelId = resumeData:getLevelId()</span>
+<span class="source-line" id="L957"><a class="line-num" href="#L957">957</a>	local levelScene = resumeData:getLevelScene()</span>
+<span class="source-line" id="L958"><a class="line-num" href="#L958">958</a>	local md5str = HeMathUtils:md5(tostring(playId))</span>
+<span class="source-line" id="L959"><a class="line-num" href="#L959">959</a>	DcUtil:crashResumeFailed(</span>
+<span class="source-line" id="L960"><a class="line-num" href="#L960">960</a>		reason, levelId,</span>
+<span class="source-line" id="L961"><a class="line-num" href="#L961">961</a>		UserManager:getInstance():getUID(),</span>
+<span class="source-line" id="L962"><a class="line-num" href="#L962">962</a>		MetaInfo:getInstance():getUdid() or &quot;hasNoUdid&quot;,</span>
+<span class="source-line" id="L963"><a class="line-num" href="#L963">963</a>		uid, udid,</span>
+<span class="source-line" id="L964"><a class="line-num" href="#L964">964</a>		md5str</span>
+<span class="source-line" id="L965"><a class="line-num" href="#L965">965</a>	)</span>
+<span class="source-line" id="L966"><a class="line-num" href="#L966">966</a>	self._dcResultDone = true</span>
+<span class="source-line" id="L967"><a class="line-num" href="#L967">967</a>end</span>
+<span class="source-line" id="L968"><a class="line-num" href="#L968">968</a></span>
+<span class="source-line" id="L969"><a class="line-num" href="#L969">969</a>function UBFGameResumeLogic:dcStart()</span>
+<span class="source-line" id="L970"><a class="line-num" href="#L970">970</a>	if self._dcResultDone then return end</span>
+<span class="source-line" id="L971"><a class="line-num" href="#L971">971</a>	if not DcUtil then return end</span>
+<span class="source-line" id="L972"><a class="line-num" href="#L972">972</a>	local resumeData = UBFResumeData:create(self:getResumeData())</span>
+<span class="source-line" id="L973"><a class="line-num" href="#L973">973</a>	local uid = resumeData:getUid()</span>
+<span class="source-line" id="L974"><a class="line-num" href="#L974">974</a>	local udid = resumeData:getUdid()</span>
+<span class="source-line" id="L975"><a class="line-num" href="#L975">975</a>	local playId = resumeData:getPlayId()</span>
+<span class="source-line" id="L976"><a class="line-num" href="#L976">976</a>	local levelId = resumeData:getLevelId()</span>
+<span class="source-line" id="L977"><a class="line-num" href="#L977">977</a>	local levelScene = resumeData:getLevelScene()</span>
+<span class="source-line" id="L978"><a class="line-num" href="#L978">978</a>	local md5str = HeMathUtils:md5(tostring(playId))</span>
+<span class="source-line" id="L979"><a class="line-num" href="#L979">979</a>	local totalSteps = 0</span>
+<span class="source-line" id="L980"><a class="line-num" href="#L980">980</a>	DcUtil:crashResumeStart(</span>
+<span class="source-line" id="L981"><a class="line-num" href="#L981">981</a>		levelId, totalSteps,</span>
+<span class="source-line" id="L982"><a class="line-num" href="#L982">982</a>		UserManager:getInstance():getUID(),</span>
+<span class="source-line" id="L983"><a class="line-num" href="#L983">983</a>		MetaInfo:getInstance():getUdid() or &quot;hasNoUdid&quot;,</span>
+<span class="source-line" id="L984"><a class="line-num" href="#L984">984</a>		uid, udid, md5str</span>
+<span class="source-line" id="L985"><a class="line-num" href="#L985">985</a>	)</span>
+<span class="source-line" id="L986"><a class="line-num" href="#L986">986</a>	self._dcResultDone = true</span>
+<span class="source-line" id="L987"><a class="line-num" href="#L987">987</a>end</span>
+<span class="source-line" id="L988"><a class="line-num" href="#L988">988</a></span>
+<span class="source-line" id="L989"><a class="line-num" href="#L989">989</a>function UBFGameResumeLogic:createResumePanel(levelNameStr, appendStr, yesCallback , noCallback, outData, dcParams )</span>
+<span class="source-line" id="L990"><a class="line-num" href="#L990">990</a>	local logic = self:_createMyResumePanel(levelNameStr, appendStr, yesCallback , noCallback)</span>
+<span class="source-line" id="L991"><a class="line-num" href="#L991">991</a>	return logic</span>
+<span class="source-line" id="L992"><a class="line-num" href="#L992">992</a>end</span>
+<span class="source-line" id="L993"><a class="line-num" href="#L993">993</a></span>
+<span class="source-line" id="L994"><a class="line-num" href="#L994">994</a>function UBFGameResumeLogic:_createMyResumePanel(levelNameStr, appendStr, yesCallback , noCallback, outData, dcParams)</span>
+<span class="source-line" id="L995"><a class="line-num" href="#L995">995</a>	local text = Localization:getInstance():getText(&quot;crash.resume.tip.start&quot;, { level = levelNameStr } )</span>
+<span class="source-line" id="L996"><a class="line-num" href="#L996">996</a>	local btnStr = Localization:getInstance():getText(&quot;crash.resume.btn.start&quot;)</span>
+<span class="source-line" id="L997"><a class="line-num" href="#L997">997</a></span>
+<span class="source-line" id="L998"><a class="line-num" href="#L998">998</a>	if btnStr == &quot;crash.resume.btn.start&quot; then</span>
+<span class="source-line" id="L999"><a class="line-num" href="#L999">999</a>		btnStr = &quot;确认恢复&quot;</span>
+<span class="source-line" id="L1000"><a class="line-num" href="#L1000">1000</a>	end</span>
+<span class="source-line" id="L1001"><a class="line-num" href="#L1001">1001</a></span>
+<span class="source-line" id="L1002"><a class="line-num" href="#L1002">1002</a>	if appendStr then text = text .. &quot;\n&quot; .. appendStr end</span>
+<span class="source-line" id="L1003"><a class="line-num" href="#L1003">1003</a></span>
+<span class="source-line" id="L1004"><a class="line-num" href="#L1004">1004</a>	local panelId = UICreateUtil:getPanelId(&quot;crashResumePanel&quot;)</span>
+<span class="source-line" id="L1005"><a class="line-num" href="#L1005">1005</a></span>
+<span class="source-line" id="L1006"><a class="line-num" href="#L1006">1006</a></span>
+<span class="source-line" id="L1007"><a class="line-num" href="#L1007">1007</a>	local FourthPanelAVM = require &quot;amf.middleware.ui.kit.panel.fourth.FourthPanelAVM&quot;</span>
+<span class="source-line" id="L1008"><a class="line-num" href="#L1008">1008</a>	local vm = FourthPanelAVM.Builder.new()</span>
+<span class="source-line" id="L1009"><a class="line-num" href="#L1009">1009</a>		:setText(text)</span>
+<span class="source-line" id="L1010"><a class="line-num" href="#L1010">1010</a>		:setButtonsConfig({</span>
+<span class="source-line" id="L1011"><a class="line-num" href="#L1011">1011</a>			{</span>
+<span class="source-line" id="L1012"><a class="line-num" href="#L1012">1012</a>				str = btnStr,</span>
+<span class="source-line" id="L1013"><a class="line-num" href="#L1013">1013</a>				widthMode = UIButtonConfig.Widths.kShort,</span>
+<span class="source-line" id="L1014"><a class="line-num" href="#L1014">1014</a>				colorMode = UIButtonConfig.ColorMode.green,</span>
+<span class="source-line" id="L1015"><a class="line-num" href="#L1015">1015</a>				touchFunc = function(btn)</span>
+<span class="source-line" id="L1016"><a class="line-num" href="#L1016">1016</a>					safeRunCall(yesCallback)</span>
+<span class="source-line" id="L1017"><a class="line-num" href="#L1017">1017</a>				end</span>
+<span class="source-line" id="L1018"><a class="line-num" href="#L1018">1018</a>			},</span>
+<span class="source-line" id="L1019"><a class="line-num" href="#L1019">1019</a>		})</span>
+<span class="source-line" id="L1020"><a class="line-num" href="#L1020">1020</a>		:setCloseCallback(function()</span>
+<span class="source-line" id="L1021"><a class="line-num" href="#L1021">1021</a>			safeRunCall(noCallback)</span>
+<span class="source-line" id="L1022"><a class="line-num" href="#L1022">1022</a>		end)</span>
+<span class="source-line" id="L1023"><a class="line-num" href="#L1023">1023</a>		:build()</span>
+<span class="source-line" id="L1024"><a class="line-num" href="#L1024">1024</a></span>
+<span class="source-line" id="L1025"><a class="line-num" href="#L1025">1025</a>	if EnvUtil:isDevelopMode() then</span>
+<span class="source-line" id="L1026"><a class="line-num" href="#L1026">1026</a>		local rect =  UICreateUtil:createRect(600,120,ccc3(255,255,255),240)</span>
+<span class="source-line" id="L1027"><a class="line-num" href="#L1027">1027</a>		rect:setPositionXY(60,940)</span>
+<span class="source-line" id="L1028"><a class="line-num" href="#L1028">1028</a>		rect:setAnchorPoint(ccp(0,0))</span>
+<span class="source-line" id="L1029"><a class="line-num" href="#L1029">1029</a>		rect:ignoreAnchorPointForPosition()</span>
+<span class="source-line" id="L1030"><a class="line-num" href="#L1030">1030</a>		vm.view:addChild(rect)</span>
+<span class="source-line" id="L1031"><a class="line-num" href="#L1031">1031</a></span>
+<span class="source-line" id="L1032"><a class="line-num" href="#L1032">1032</a>		local data = self:getResumeData()</span>
+<span class="source-line" id="L1033"><a class="line-num" href="#L1033">1033</a>		local str = &quot;当前动更:&quot; .. tostring( ResourceLoader:getCurVersion() )</span>
+<span class="source-line" id="L1034"><a class="line-num" href="#L1034">1034</a>			.. &quot;\n闪退动更:&quot; .. tostring( data.replayLog and data.replayLog.gEnv.curMd5 )</span>
+<span class="source-line" id="L1035"><a class="line-num" href="#L1035">1035</a>			.. &quot;\n包含录像:&quot; .. (data.replayLog and &quot;true&quot; or &quot;false&quot;)</span>
+<span class="source-line" id="L1036"><a class="line-num" href="#L1036">1036</a></span>
+<span class="source-line" id="L1037"><a class="line-num" href="#L1037">1037</a>		local label = TextField:create(str, nil, 20, CCSizeMake(600,0), kCCTextAlignmentLeft, kCCVerticalTextAlignmentTop)</span>
+<span class="source-line" id="L1038"><a class="line-num" href="#L1038">1038</a>		label:setColor(ccc3(255,50,100))</span>
+<span class="source-line" id="L1039"><a class="line-num" href="#L1039">1039</a>		label:setPositionXY(30,100)</span>
+<span class="source-line" id="L1040"><a class="line-num" href="#L1040">1040</a>		label:setAnchorPoint(ccp(0,1))</span>
+<span class="source-line" id="L1041"><a class="line-num" href="#L1041">1041</a>		rect:addChild(label)</span>
+<span class="source-line" id="L1042"><a class="line-num" href="#L1042">1042</a>	end</span>
+<span class="source-line" id="L1043"><a class="line-num" href="#L1043">1043</a></span>
+<span class="source-line" id="L1044"><a class="line-num" href="#L1044">1044</a>	vm.panelId = panelId</span>
+<span class="source-line" id="L1045"><a class="line-num" href="#L1045">1045</a>	return vm</span>
+<span class="source-line" id="L1046"><a class="line-num" href="#L1046">1046</a>end</span>
+<span class="source-line" id="L1047"><a class="line-num" href="#L1047">1047</a></span>
+<span class="source-line" id="L1048"><a class="line-num" href="#L1048">1048</a>function UBFGameResumeLogic:_onOverByResume()</span>
+<span class="source-line" id="L1049"><a class="line-num" href="#L1049">1049</a></span>
+<span class="source-line" id="L1050"><a class="line-num" href="#L1050">1050</a>end</span>
+<span class="source-line" id="L1051"><a class="line-num" href="#L1051">1051</a></span>
+<span class="source-line" id="L1052"><a class="line-num" href="#L1052">1052</a>function UBFGameResumeLogic:_onOverByNotResume()</span>
+<span class="source-line" id="L1053"><a class="line-num" href="#L1053">1053</a></span>
+<span class="source-line" id="L1054"><a class="line-num" href="#L1054">1054</a>end</span>
+<span class="source-line" id="L1055"><a class="line-num" href="#L1055">1055</a></span>
+<span class="source-line" id="L1056"><a class="line-num" href="#L1056">1056</a>-- called after self:checkCanResume() return true in AutoPopup</span>
+<span class="source-line" id="L1057"><a class="line-num" href="#L1057">1057</a>function UBFGameResumeLogic:handleMiniGameResume()</span>
+<span class="source-line" id="L1058"><a class="line-num" href="#L1058">1058</a>	local miniPromise = UBFPromise:create()</span>
+<span class="source-line" id="L1059"><a class="line-num" href="#L1059">1059</a>	self._onOverByResume = function()</span>
+<span class="source-line" id="L1060"><a class="line-num" href="#L1060">1060</a>		if UBFPromise.isFin(miniPromise) then return end</span>
+<span class="source-line" id="L1061"><a class="line-num" href="#L1061">1061</a>		miniPromise:resolve(true)</span>
+<span class="source-line" id="L1062"><a class="line-num" href="#L1062">1062</a>	end</span>
+<span class="source-line" id="L1063"><a class="line-num" href="#L1063">1063</a>	self._onOverByNotResume = function()</span>
+<span class="source-line" id="L1064"><a class="line-num" href="#L1064">1064</a>		if UBFPromise.isFin(miniPromise) then return end</span>
+<span class="source-line" id="L1065"><a class="line-num" href="#L1065">1065</a>		miniPromise:resolve(false)</span>
+<span class="source-line" id="L1066"><a class="line-num" href="#L1066">1066</a>	end</span>
+<span class="source-line" id="L1067"><a class="line-num" href="#L1067">1067</a>	local promise = self:popoutCrashResumePanel()</span>
+<span class="source-line" id="L1068"><a class="line-num" href="#L1068">1068</a>	promise:next(function(doResume)</span>
+<span class="source-line" id="L1069"><a class="line-num" href="#L1069">1069</a>		if not doResume then</span>
+<span class="source-line" id="L1070"><a class="line-num" href="#L1070">1070</a>			self:cancelResume()</span>
+<span class="source-line" id="L1071"><a class="line-num" href="#L1071">1071</a>		else</span>
+<span class="source-line" id="L1072"><a class="line-num" href="#L1072">1072</a>			self:doResume()</span>
+<span class="source-line" id="L1073"><a class="line-num" href="#L1073">1073</a>		end</span>
+<span class="source-line" id="L1074"><a class="line-num" href="#L1074">1074</a>	end)</span>
+<span class="source-line" id="L1075"><a class="line-num" href="#L1075">1075</a>	return miniPromise</span>
+<span class="source-line" id="L1076"><a class="line-num" href="#L1076">1076</a>end</span>
+<span class="source-line" id="L1077"><a class="line-num" href="#L1077">1077</a></span>
+<span class="source-line" id="L1078"><a class="line-num" href="#L1078">1078</a>function UBFGameResumeLogic:getLastResumeFailData()</span>
+<span class="source-line" id="L1079"><a class="line-num" href="#L1079">1079</a>	return self._lastResumeFailData</span>
+<span class="source-line" id="L1080"><a class="line-num" href="#L1080">1080</a>end</span>
+<span class="source-line" id="L1081"><a class="line-num" href="#L1081">1081</a></span>
+<span class="source-line" id="L1082"><a class="line-num" href="#L1082">1082</a>return UBFGameResumeLogic</span></code></pre></main></body></html>

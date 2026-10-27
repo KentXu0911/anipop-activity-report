@@ -1,0 +1,1484 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFuuuAdjustManager.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFuuuAdjustManager.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuAdjustManager.lua<br>SHA-256 7b3bad0ba93c75a57e5ccde4380f294f03406a93c7958ed8477b614fe2a3fe36 · 1484 行 · 恢复原文，未经改写</p><a href="UBFuuuAdjustManager-7f6c2ab9.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>local UBFuuuAdjustManager = {}</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>UBFuuuAdjustManager.adjustContextIniteState = 0</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a></span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>--[[</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>user</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a></span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>参数</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>返回</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>String ubfuuuTop30FinishedInfo 最高30关采集的完成情况</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a></span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>示例：{&quot;8888,exp,expGroup&quot;:&quot;-10,-9,1,2,3&quot;}</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>String ubfuuuLevelDiffFixMap 返回的难度信息</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a></span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>示例</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>{</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>    &quot;8888,exp,expGroup&quot;: {</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>        &quot;-10&quot;: &quot;3.333_2.333_1.111_-1&quot;, // 总难度_最近300次难度_最近1000次难度_最近10000次难度 -1表示没算出来</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>        &quot;-9&quot;: &quot;3.333_2.333_1.111_-1&quot;</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    },</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>    ...</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>}</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a></span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>passLevel / cancelCrashResumePanel 协议返回</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>参数</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>新结构体 ubFuuuCollectMeta</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>UBFuuuCollectMeta {</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>    /**</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>     * 前置道具步数</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>     */</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    int preAddSteps;</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>    /**</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>     * 关卡内道具步数</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>     */</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>    int addSteps;</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>    int diffFix;//难度修正</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>    int payTag;//付费标签</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>    int actTag;//活跃标签</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>}</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>闪退不恢复需补上 List&lt;GroupExpLevelRequestBean&gt; groupExpLevelRequestList</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a></span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>ubfuuuGetNext30DiffFixData</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>参数</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>List&lt;String&gt; levelKeys</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>返回</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>String ubfuuuLevelDiffFixMap</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a></span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>{</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>        &quot;8888,exp,expGroup&quot;: {</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>                &quot;-1&quot;: {</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>                        &quot;diff_300&quot;: 2.0,</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>                        &quot;diff_all&quot;: 2.0,</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>                        &quot;diff_1000&quot;: 2.0,</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>                        &quot;diff_10000&quot;: 2.0</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>                },</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>                &quot;-2&quot;: {</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>                        &quot;diff_300&quot;: 1.8571428571428573,</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>                        &quot;diff_all&quot;: 1.8571428571428573,</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>                        &quot;diff_1000&quot;: 1.8571428571428573,</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>                        &quot;diff_10000&quot;: 1.8571428571428573</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>                },</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>                &quot;-3&quot;: {</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>                        &quot;diff_300&quot;: 2.8,</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>                        &quot;diff_all&quot;: 2.8,</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>                        &quot;diff_1000&quot;: 2.8,</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>                        &quot;diff_10000&quot;: 2.8</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>                },</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>            }</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>}</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a></span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>]]</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>local _selfFeedbackVer = 3</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a></span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>local _collectFlagMap = nil</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>local _diff_ds_Map = nil</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>local _diff_ds_update_Map = nil</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a></span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>local _step_ds_Map = nil</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a></span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>local _UBFuuuContextFileName = &quot;ubfuuu_contextData&quot;</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>local _lastAdjustResultFileName = &quot;ubfuuu_lastResult&quot;</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a></span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>local _diff_ds_MapFileName = &quot;ubfuuu_diff_ds_Map&quot;</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>local _diff_ds_update_MapFileName = &quot;ubfuuu_diff_ds_update_Map&quot;</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a></span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>local _step_ds_MapFileName = &quot;ubfuuu_step_ds_Map&quot;</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a></span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>-- 刷星保底：按 levelId 维护的失败次数（服务端下发为长期权威，本地结算先写乐观值）</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>local _farm_star_fail_count_mapFileName = &quot;ubfuuu_farm_star_fail_count_map&quot;</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>local _farm_star_fail_count_maxKeep = 500</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>local _farm_star_fail_count_expireTime = 3600 * 24 * 30      -- 本地冷数据窗口，独立于 diff 映射的 4 天离线窗口</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>local _max_level_star = 4                                    -- 主线满星（彩星）档位，达到即视为刷分</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>-- 刷星保底：服务端下发字段名（对齐服务端 proto：UBFuuuGetNext30DiffFixDataResponseBean.ubfuuuLevelFarmStarFailCountMap = 3）</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>local _farmStarFailCountFieldName = &quot;ubfuuuLevelFarmStarFailCountMap&quot;</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>local _farm_star_fail_Map = nil</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a></span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>local _debug = false</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>local _validityTime = 1800</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>local _validityTime_Top30_to_60 = 120</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>local _validityTime_Top30 = 1</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>local _validityTime_offline = 3600 * 24 * 4 --离线状态，映射表只生效四天</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a></span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>local ExpMaintenanceName = &quot;UBFuuu2024&quot;</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a></span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>--</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>--</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>--</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>--</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>--</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>--</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>--</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>--</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>--</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>--</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a></span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a></span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>function UBFuuuAdjustManager:getSelfFeedbackVer()</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>    return _selfFeedbackVer</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>end</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a></span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>function UBFuuuAdjustManager:init()</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>    require(&quot;ubf.UBF.utils.UBFCommonRequire&quot;)(&quot;*&quot;)</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>    _G.amfEC:registerNormal(NormalEvent.USER_LOGIN, function (evt)</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>        self:onGameLaunch()</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>    end)</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a></span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>    self:onGameLaunch()</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>end</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a></span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>function UBFuuuAdjustManager:timeInSec()</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>    return TimeKit:timeInSec()</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>end</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a></span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>function UBFuuuAdjustManager:saveData(data, fileName)</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a></span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>    local _uid = _G.amfBean(&quot;ProfileManager&quot;):getUid()</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a></span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>    local fObj = LocalDB:createFileObject(fileName .. &quot;_&quot; .. tostring(_uid))</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>    fObj:setContent(data)</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>    fObj:save()</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>end</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a></span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>function UBFuuuAdjustManager:loadData(fileName)</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a></span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>    local _uid = _G.amfBean(&quot;ProfileManager&quot;):getUid()</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a></span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>    local fObj = LocalDB:createFileObject(fileName .. &quot;_&quot; .. tostring(_uid))</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a></span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>    if not (fObj and fObj:getContent()) then</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>        if tonumber( self:timeInSec() ) &lt; 1746006420 then</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>            fObj = LocalDB:createFileObject(fileName)</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>        end</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>    end</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a></span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>    return ( fObj and fObj:getContent() ) or {}</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>end</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a></span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>function UBFuuuAdjustManager:injectUser( userRequestBody, offlineMode )</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>    -- UserManager:getInstance():getUserRef():getTopLevelId()</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>    local topLevelId = userRequestBody._topLevelId</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a></span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a></span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>    if not topLevelId then</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>        he_log_error(&quot;UBFuuuAdjustManager_injectUser_topLevelId_is_nil&quot;)</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>        --</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>--</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>--</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>--</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>--</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>--</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>--</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a></span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>        return</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>    end</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a></span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>    local levelGroupConfig = UBFLevelConfigManager:getLevelGroupConfig()</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>    local levelkeys = {}</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>    local usePreAddStep = 0</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>    </span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>    if not _G.SelfFeedbackPoolkey then --UBFPlayConst.lua 加载顺序有问题, to be fix next</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>        require(&quot;ubf.UBFPlay.declares.SelfFeedbackPoolkey&quot;)</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>    end</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>    </span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>    for k,v in ipairs(levelGroupConfig.rules) do     </span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>        local _arr = string.split(v.group, &quot;:&quot;)</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>        -- local _key = string.format(&quot;%s,%s,%s,%s,%s&quot;, tostring(topLevelId), _arr[1] or &quot;default&quot;, _arr[2] or &quot;default&quot;, usePreAddStep, self:getSelfFeedbackVer())</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>        local _key = self:createLevelKey( tostring(topLevelId), _arr[1] or &quot;default&quot;, _arr[2] or &quot;default&quot;, usePreAddStep, self:getSelfFeedbackVer())</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>        table.insert(levelkeys, _key)</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a></span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>        local _key2 = self:createLevelKey( tostring(topLevelId), _arr[1] or &quot;default&quot;, _arr[2] or &quot;default&quot;, usePreAddStep, self:getSelfFeedbackVer(), {poolkey = _G.SelfFeedbackPoolkey.kSuperBird} )</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>        table.insert(levelkeys, _key2)</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a></span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>        local _key3 = self:createLevelKey( tostring(topLevelId), _arr[1] or &quot;default&quot;, _arr[2] or &quot;default&quot;, usePreAddStep, self:getSelfFeedbackVer(), {poolkey = _G.SelfFeedbackPoolkey.kRUST} )</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>        table.insert(levelkeys, _key3)</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>    end</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>    </span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>    -- local UBFuuuSelectAdjust = require(&quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuSelectAdjust&quot;)</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>    -- local switchInfos = UBFuuuSelectAdjust:createSwitchInfos(true)</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>    -- local configGroup = UBFuuuSelectAdjust:createConfigGroupMap(switchInfos.cfgGroup, switchInfos.CAGroup)</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a></span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>    local ubfuuuInfo = {}</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>    ubfuuuInfo.maxLevelId =  UBFLevelRangeUtil:getMaxLevelForAdjust()</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>    ubfuuuInfo.topRangeLength = UBFLevelRangeUtil:getTopLevelRangeLength() or 30</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>    ubfuuuInfo.secTopRangeLength = UBFLevelRangeUtil:getSecTopLevelRangeLength()</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>    </span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>    ubfuuuInfo.diffDsMapKeys = levelkeys</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>    </span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a></span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>    if _debug then printx(1, &quot;UBFuuuAdjustManager:injectUser  ubfuuuInfo ----- &quot; , tts(ubfuuuInfo)  ) end</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a></span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>    userRequestBody.ubfuuuInfo = ubfuuuInfo</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>end</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a></span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>function UBFuuuAdjustManager:createLevelKey( levelId, exp, group, preProp, ver, datas, levelScene )</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a></span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>    local _preProp = 0</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>    -- 看代码，这个dsMap只会在Main生效，所以没必要levelScene，不过这里暂时传入一下，让后面好接入</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>    local levelScene = levelScene or UBFLevelIdUtil:tryGetCurrLevelScene() or UBFLevelSceneType.kMain</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>    -- if preProp and preProp &gt; 0 then</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>    --     _preProp = 1</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>    -- end</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a></span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>    local _str = string.format(&quot;%s,%s,%s,%s,%s&quot;, tostring(levelId), exp or &quot;default&quot;, group or &quot;default&quot;, _preProp, ver or 1) </span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>    </span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>    if datas then</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>        if datas.poolkey == _G.SelfFeedbackPoolkey.kSuperBird then </span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>            _str = _str .. &quot;,&quot; .. tostring(100)</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>        elseif datas.poolkey == _G.SelfFeedbackPoolkey.kRUST then </span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>            _str = _str .. &quot;,&quot; .. tostring(200)</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>        elseif datas.poolkey == _G.SelfFeedbackPoolkey.kRUST_bird then </span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>            _str = _str .. &quot;,&quot; .. tostring(201)</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>        end</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>    end</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a></span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>    return _str</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>end</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a></span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>function UBFuuuAdjustManager:_registerEvents()</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>    if self._eventsRegistered then</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>        return</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>    end</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>    self._eventsRegistered = true</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a></span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>    _G.amfEC:registerNormal(NormalEvent.PASS_DAY,  self.onActPassDay, self)</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>    _G.amfEC:registerNormal(NormalEvent.GLOBAL_WINNING_STREAK_INCREASED, self._onGlobalStreakIncreased, self)</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>    _G.amfEC:registerNormal(NormalEvent.GLOBAL_WINNING_STREAK_BROKEN, self._onGlobalStreakBroken, self)</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>end</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a></span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>function UBFuuuAdjustManager:_onGlobalStreakIncreased()</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>    local contextData = self:getAdjustContextData() or {}</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>    contextData.todayStreakWinCount = (contextData.todayStreakWinCount or 0) + 1</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>    self:setAdjustContextData(contextData)</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>end</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a></span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>function UBFuuuAdjustManager:_onGlobalStreakBroken()</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>    local contextData = self:getAdjustContextData() or {}</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>    contextData.todayStreakWinBreakCount = (contextData.todayStreakWinBreakCount or 0) + 1</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>    contextData.todayStreakWinCount = 0</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>    self:setAdjustContextData(contextData)</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>end</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a></span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>function UBFuuuAdjustManager:onGameLaunch( userResp )</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a></span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>    self:_registerEvents()</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a></span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>    local UBFuuuLevelTargetAvg = require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuLevelTargetAvg&quot;</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>    UBFuuuLevelTargetAvg:initByMetaConfig()</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>    </span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a></span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>    local userData = UserManager:getInstance():getUserRef()</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>	local topLevel = userData:getTopLevelId()</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a></span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>    local ubfuuuInfo = nil</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>    </span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>    ubfuuuInfo = _G.amfBean(&quot;LevelAdjustManger&quot;):getDataValue(&quot;ubfuuuInfo&quot;)</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a></span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>    -- printx(1,&quot;FUCKKKKKKKKKKKKKKKKKK userResp.ubfuuuTop30FinishedInfo =&quot;,userResp.ubfuuuTop30FinishedInfo, type(userResp.ubfuuuTop30FinishedInfo))</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a></span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>    if ubfuuuInfo then</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a></span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>        if _debug then printx(1, &quot;UBFuuuAdjustManager:onGameLaunch  userResp.ubfuuuInfo = &quot; , tts(ubfuuuInfo)  ) end</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a></span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>        if ubfuuuInfo.statisticInfo then</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>            self:onUpdateAdjustContextData( ubfuuuInfo.statisticInfo )</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>        end</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a></span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>        if ubfuuuInfo.diffDsMap then</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>            if ubfuuuInfo.diffDsMap.ubfuuuLevelDiffFixMap then</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>                self:onUpdateDiffDsMap( table.deserialize(ubfuuuInfo.diffDsMap.ubfuuuLevelDiffFixMap) )</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>            end</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>            if ubfuuuInfo.diffDsMap[_farmStarFailCountFieldName] then</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>                self:onUpdateFarmStarFailCountMap( ubfuuuInfo.diffDsMap[_farmStarFailCountFieldName] )</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>            end</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>        end</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a></span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>        --</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>--</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>--</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>--</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>--</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>--</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>--</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>--</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>--</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>--</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>--</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a></span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>    else</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>        --</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>--</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>--</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>--</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>--</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>--</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>--</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>--</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>--</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>--</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>--</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a></span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>    end</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a></span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>    local _now = self:timeInSec()</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a></span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>    local function claenLocalData( configKey, configData )</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a></span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>        if not configData then</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>            configData = self:loadData( configKey ) or {}</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>        end</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a></span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>        local _needRemoveKeys = {}</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>        for k,v in pairs(configData) do</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>            if type(v) == &quot;number&quot; then</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>                if _now - v &gt; _validityTime_offline then</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>                    table.insert( _needRemoveKeys, k )</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>                end</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>            else</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>                if (not v.updateTime) or _now - v.updateTime &gt; _validityTime_offline then</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>                    table.insert( _needRemoveKeys, k )</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>                end</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>            end</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>        end</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a></span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>        if #_needRemoveKeys &gt; 0 then --登录时尝试清理冷数据</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>            for k2,v2 in ipairs(_needRemoveKeys) do</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>                configData[v2] = nil</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>            end</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>            self:saveData( configData, configKey )</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>        end</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a></span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>        return configData</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>    end</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a></span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>    _diff_ds_Map = claenLocalData(_diff_ds_MapFileName, _diff_ds_Map)</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>    _step_ds_Map = claenLocalData(_step_ds_MapFileName, _step_ds_Map)</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>    _diff_ds_update_Map = claenLocalData(_diff_ds_update_MapFileName, _diff_ds_update_Map)</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a></span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>    if _debug then printx(1, &quot;UBFuuuAdjustManager:onGameLaunch  _diff_ds_update_Map ----- &quot; , tts(_diff_ds_update_Map)  ) end</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a></span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>    self:checkUpdateTop30DiffDsMap(topLevel)</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>    self.topLevelWhenLogin = topLevel</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>    self:updateAdjustContextData()</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>    -- debug.debug()</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>end</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a></span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>function UBFuuuAdjustManager:checkUpdateTop30DiffDsMap(topLevel, levelScene)</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a></span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>    </span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>    local maxCanPlayLevel = UBFLevelRangeUtil:getCanPlayTopLevel()</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a></span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>    -- printx(1,&quot;FUCKKKKKKKKKKKKKKKKKK   topLevel =&quot;,topLevel)</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>    -- printx(1,&quot;FUCKKKKKKKKKKKKKKKKKK   maxCanPlayLevel =&quot;,maxCanPlayLevel)</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>    if not _diff_ds_update_Map then</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>        _diff_ds_update_Map = self:loadData( _diff_ds_update_MapFileName ) or {}</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>    end</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a></span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>    local _maxLevel = UBFLevelRangeUtil:getMaxLevelForAdjust()</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>    local _vTime = _validityTime</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>    if topLevel &gt;= _maxLevel - 29 then </span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>        _vTime = _validityTime_Top30</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>    elseif topLevel &gt;= _maxLevel - 89 then </span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>        --Top30 ~ Top 60</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>        _vTime = _validityTime_Top30_to_60</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>    end</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a></span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>    local levelIds = {}</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>    for _level = topLevel, topLevel+29 do</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a></span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>        if _level &lt;= maxCanPlayLevel then</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>            local _time = _diff_ds_update_Map[tostring(_level)]</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>            if not _time then</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>                table.insert(levelIds, _level)</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>            elseif self:timeInSec() - _time &gt; _vTime then</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>            -- elseif self:timeInSec() - _time &gt; 3600 * 4 then</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>                table.insert(levelIds, _level)</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>            end</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>        end</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>    end</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a></span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>    self:updateDiffDsMap(levelIds, nil, levelScene)</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>end</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a></span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>function UBFuuuAdjustManager:checkUpdateDiffDsMapByLevelId(levelId, levelScene)</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a></span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a>    if not levelId then return end</span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a></span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>    if not UBFLevelRangeUtil:isMainLevel(levelId, levelScene) then</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>        return</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>    end</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>    </span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a></span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>    local _vTime = _validityTime</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>    local _maxLevel = UBFLevelRangeUtil:getMaxLevelForAdjust()</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a></span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>    if levelId &gt;= _maxLevel - 29 then </span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>        _vTime = _validityTime_Top30</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>    elseif levelId &gt;= _maxLevel - 89 then </span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>        --Top30 ~ Top 60</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>        _vTime = _validityTime_Top30_to_60</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>    end</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a></span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>    if not _diff_ds_update_Map then</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>        _diff_ds_update_Map = self:loadData( _diff_ds_update_MapFileName ) or {}</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>    end</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a></span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>    local function checkNeedUpdate(lv)</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>        local _time = _diff_ds_update_Map[tostring(lv)]</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>        if (not _time) or (self:timeInSec() - _time &gt; _vTime) then</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>            return lv</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>        end</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>        return nil</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>    end</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a></span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>    local _list = {}</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>    if checkNeedUpdate(levelId) then</span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>        table.insert(_list, levelId)</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>    end</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a></span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a>    local maxCanPlayLevel = UBFLevelRangeUtil:getCanPlayTopLevel() or 0</span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>    </span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>    if not self.topLevelWhenLogin then</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>        local userData = UserManager:getInstance():getUserRef()</span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>	    local topLevel = userData:getTopLevelId()</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>        self.topLevelWhenLogin = topLevel</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>    end</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>    </span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>    if levelId &gt;= self.topLevelWhenLogin and levelId + 30 &lt;= maxCanPlayLevel then</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>        if checkNeedUpdate(levelId + 30) then</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>            table.insert(_list, levelId + 30)</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>        end</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>    end</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>    </span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>    self:updateDiffDsMap(_list, nil, levelScene)</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>end</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a></span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>function UBFuuuAdjustManager:onUpdateDiffDsMap( diffDatas )</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>    </span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>    -- if _debug then printx( 1 , &quot;UBFuuuAdjustManager:onUpdateDiffDsMap &quot; , debug.traceback() ) end</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>    -- if _debug then printx( 1 , &quot;UBFuuuAdjustManager:onUpdateDiffDsMap --------- diffDatas =&quot; , tts(diffDatas) ) end</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a></span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a>    if not _diff_ds_update_Map then</span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>        _diff_ds_update_Map = self:loadData( _diff_ds_update_MapFileName ) or {}</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>    end</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a></span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>    if not _diff_ds_Map then</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>        _diff_ds_Map = self:loadData( _diff_ds_MapFileName ) or {}</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>    end</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a></span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>    local _new_dataMap = {}</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>    local _now = self:timeInSec()</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a></span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>    for levelKey, v in pairs(diffDatas) do</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a></span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>        local _levelinfo = string.split(levelKey, &quot;,&quot;)</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>        local _levelId = tonumber(_levelinfo[1])</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>        local _levelExp = _levelinfo[2]</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>        local _levelGroup = _levelinfo[3]</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>        local _useAddStep = tonumber(_levelinfo[4])</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>        local _ver = tonumber(_levelinfo[5])</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a></span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>        local _levelDataMap = _diff_ds_Map[levelKey] or {}</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>        _levelDataMap.updateTime = _now</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>        _diff_ds_update_Map[tostring(_levelId)] = _now</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a></span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>        -- if _debug and _levelId == 10028 then printx( 1 , &quot;UBFuuuAdjustManager:onUpdateDiffDsMap --------- _levelId =&quot; , _levelId, levelKey ) end</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a></span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>        for diffFix, v2 in pairs(v) do</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a>            local _diffData = _levelDataMap[tostring(diffFix)] or {}</span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>            local _arr = string.split(v2, &quot;,&quot;)</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>            local _old_diff_all = _diffData.diff_all</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a></span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>            _diffData.diff_all = tonumber(_arr[1])</span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>            _diffData.diff_300 = tonumber(_arr[2])</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>            _diffData.diff_1000 = tonumber(_arr[3])</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>            _diffData.diff_10000 = tonumber(_arr[4])</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a></span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>            _diffData.levelId = _levelId</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>            _diffData.levelExp = _levelExp</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>            _diffData.levelGroup = _levelGroup</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>            _diffData.useAddStep = _useAddStep</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>            _diffData.ver = _ver</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a></span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>            -- if _debug and _levelId == 10028 then printx( 1 , &quot;UBFuuuAdjustManager:onUpdateDiffDsMap --------- +++++++++++ diffFix =&quot; , diffFix , tostring(_diffData.diff_all),tostring(_diffData.diff_300),tostring(_diffData.diff_1000),tostring(_diffData.diff_10000) ) end</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a></span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>            if _old_diff_all and _old_diff_all &gt; 0 then</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a></span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>                if _diffData.changeRateUpdateTime then</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>                    if _now - _diffData.changeRateUpdateTime &gt; 3600 * 24 then</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>                        _diffData.oldDiff = _old_diff_all</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>                        _diffData.changeRate = math.abs(_diffData.diff_all - _old_diff_all) / _old_diff_all</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>                        _diffData.changeRateUpdateTime = _now</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>                    else</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>                        local _rate = math.abs(_diffData.diff_all - _old_diff_all) / _old_diff_all</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>                        if _diffData.changeRate and _rate &gt; _diffData.changeRate then</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a>                            _diffData.changeRate = _rate</span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>                        end</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>                    end</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>                else</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>                    _diffData.oldDiff = _old_diff_all</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>                    _diffData.changeRate = math.abs(_diffData.diff_all - _old_diff_all) / _old_diff_all</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>                    _diffData.changeRateUpdateTime = _now</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>                end</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>            else</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>                _diffData.oldDiff = _diffData.diff_all</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>                _diffData.changeRate = 0</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>                _diffData.changeRateUpdateTime = _now</span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>            end</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a></span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>            _levelDataMap[tostring(diffFix)] = _diffData</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>        end </span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a></span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>        _diff_ds_Map[levelKey] = _levelDataMap</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>    end</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a></span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>    self:saveData( _diff_ds_Map, _diff_ds_MapFileName )</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>    self:saveData( _diff_ds_update_Map, _diff_ds_update_MapFileName )</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a></span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>    if _debug then printx( 1 , &quot;UBFuuuAdjustManager:onUpdateDiffDsMap --------- _diff_ds_update_Map =&quot; , tts(_diff_ds_update_Map) ) end</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>    -- if _debug then printx( 1 , &quot;UBFuuuAdjustManager:onUpdateDiffDsMap --------- _diff_ds_Map =&quot; , tts(_diff_ds_Map) ) end</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>end</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a></span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>function UBFuuuAdjustManager:onUpdateStepDsMap(stepDatas)</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>    </span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a>    if not _step_ds_Map then</span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>        _step_ds_Map = self:loadData( _step_ds_MapFileName ) or {}</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a>    end</span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a></span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>    for levelKey, v in pairs(stepDatas) do</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>        </span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>        local _data = {}</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>        _data.updateTime = self:timeInSec()</span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a></span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>        local _levelinfo = string.split(levelKey, &quot;,&quot;)</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>        local _levelId = tonumber(_levelinfo[1])</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>        local _levelExp = _levelinfo[2]</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>        local _levelGroup = _levelinfo[3]</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>        local _useAddStep = tonumber(_levelinfo[4])</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a>        local _ver = tonumber(_levelinfo[5])</span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a></span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>        _step_ds_Map[levelKey] = _data</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a></span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>        for stepFix, v2 in pairs(v) do</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>            local _stepData = {}</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a></span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a>            _data[tostring(stepFix)] = _stepData</span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a></span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>            _stepData.step = tonumber(v2)</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a></span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>            _stepData.levelId = _levelId</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>            _stepData.levelExp = _levelExp</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a>            _stepData.levelGroup = _levelGroup</span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a>            _stepData.useAddStep = _useAddStep</span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>            _stepData.ver = _ver</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>        end </span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>    end</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a></span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>    self:saveData( _step_ds_Map, _step_ds_MapFileName )</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a></span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a>    -- if _debug then printx( 1 , &quot;UBFuuuAdjustManager:onUpdateStepDsMap --------- _step_ds_Map =&quot; , tts(_step_ds_Map) ) end</span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a></span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a>end</span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a></span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>function UBFuuuAdjustManager:_updateDiffDsMap(levelKeys, callback)</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>    local getUBFuuuDsToDiffMapHttp = require(&quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.GetUBFuuuDsToDiffMapHttp&quot;)</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>    getUBFuuuDsToDiffMapHttp:post({levelKeys = levelKeys}):next(</span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a></span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>        function ( response )</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>            -- printx( 1 , &quot;UBFuuuAdjustManager:onUpdateDiffDsMap --------- evt.data.ubfuuuLevelDiffFixMap =&quot; ,evt.data.ubfuuuLevelDiffFixMap )</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a></span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>            local data = response:getData()</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>            if data then</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a></span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a>                if data.ubfuuuLevelDiffFixMap then</span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>                    self:onUpdateDiffDsMap( table.deserialize(data.ubfuuuLevelDiffFixMap) )</span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>                end</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a></span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>                if data.ubfuuuLevelStepFixMap then</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a>                    self:onUpdateStepDsMap( table.deserialize(data.ubfuuuLevelStepFixMap) )</span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>                end</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a></span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>                if data[_farmStarFailCountFieldName] then</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>                    self:onUpdateFarmStarFailCountMap( data[_farmStarFailCountFieldName] )</span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>                end</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>                </span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a>                if callback then callback(true) end</span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a>            else</span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a>                if callback then callback(false) end</span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a>            end</span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>        end,</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a></span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a>        function ( response )</span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>            -- body</span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a>            if callback then callback(false) end</span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a>        end</span>
+<span class="source-line" id="L614"><a class="line-num" href="#L614">614</a>    )</span>
+<span class="source-line" id="L615"><a class="line-num" href="#L615">615</a>end</span>
+<span class="source-line" id="L616"><a class="line-num" href="#L616">616</a></span>
+<span class="source-line" id="L617"><a class="line-num" href="#L617">617</a>function UBFuuuAdjustManager:updateDiffDsMap( levelIds, callback, levelScene)</span>
+<span class="source-line" id="L618"><a class="line-num" href="#L618">618</a>    --ubfuuuLevelDiffFixMap</span>
+<span class="source-line" id="L619"><a class="line-num" href="#L619">619</a></span>
+<span class="source-line" id="L620"><a class="line-num" href="#L620">620</a>    if not levelIds then return end</span>
+<span class="source-line" id="L621"><a class="line-num" href="#L621">621</a>    if #levelIds == 0 then return end</span>
+<span class="source-line" id="L622"><a class="line-num" href="#L622">622</a>    levelScene = levelScene or UBFLevelSceneType.kMain</span>
+<span class="source-line" id="L623"><a class="line-num" href="#L623">623</a></span>
+<span class="source-line" id="L624"><a class="line-num" href="#L624">624</a>    local levelKeys = {}</span>
+<span class="source-line" id="L625"><a class="line-num" href="#L625">625</a>    </span>
+<span class="source-line" id="L626"><a class="line-num" href="#L626">626</a>    for k,levelId in ipairs(levelIds) do</span>
+<span class="source-line" id="L627"><a class="line-num" href="#L627">627</a>        </span>
+<span class="source-line" id="L628"><a class="line-num" href="#L628">628</a>        -- local levelGroup = UBFPlaySwitch:getLevelGroup(levelId, levelScene)</span>
+<span class="source-line" id="L629"><a class="line-num" href="#L629">629</a>        -- local ret, meetGroup, uuid = UBFLevelConfigManager:traversalDefault(levelGroup, levelId)</span>
+<span class="source-line" id="L630"><a class="line-num" href="#L630">630</a>        local levelKeyData = UBFLevelIdUtil:createLevelKeyDataWithAutoLevelGroup(levelId, levelScene)</span>
+<span class="source-line" id="L631"><a class="line-num" href="#L631">631</a>        local ret, meetGroup, uuid = levelKeyData:fallback()</span>
+<span class="source-line" id="L632"><a class="line-num" href="#L632">632</a></span>
+<span class="source-line" id="L633"><a class="line-num" href="#L633">633</a>        local usePreProp = 1</span>
+<span class="source-line" id="L634"><a class="line-num" href="#L634">634</a>        local notUsePreProp = 0</span>
+<span class="source-line" id="L635"><a class="line-num" href="#L635">635</a></span>
+<span class="source-line" id="L636"><a class="line-num" href="#L636">636</a>        if meetGroup then</span>
+<span class="source-line" id="L637"><a class="line-num" href="#L637">637</a></span>
+<span class="source-line" id="L638"><a class="line-num" href="#L638">638</a>            local _arr = string.split(meetGroup, &quot;:&quot;)</span>
+<span class="source-line" id="L639"><a class="line-num" href="#L639">639</a>            local datas = {}</span>
+<span class="source-line" id="L640"><a class="line-num" href="#L640">640</a>            </span>
+<span class="source-line" id="L641"><a class="line-num" href="#L641">641</a>            local levelKey1 = self:createLevelKey( tostring(levelId), _arr[1] or &quot;default&quot;, _arr[2] or &quot;default&quot;, notUsePreProp, _selfFeedbackVer, datas, levelScene )</span>
+<span class="source-line" id="L642"><a class="line-num" href="#L642">642</a>            table.insert(levelKeys, levelKey1)</span>
+<span class="source-line" id="L643"><a class="line-num" href="#L643">643</a></span>
+<span class="source-line" id="L644"><a class="line-num" href="#L644">644</a>            local levelKey2 = self:createLevelKey( tostring(levelId), _arr[1] or &quot;default&quot;, _arr[2] or &quot;default&quot;, notUsePreProp, _selfFeedbackVer, {poolkey = _G.SelfFeedbackPoolkey.kSuperBird}, levelScene )</span>
+<span class="source-line" id="L645"><a class="line-num" href="#L645">645</a>            table.insert(levelKeys, levelKey2)</span>
+<span class="source-line" id="L646"><a class="line-num" href="#L646">646</a></span>
+<span class="source-line" id="L647"><a class="line-num" href="#L647">647</a>            local levelKey3 = self:createLevelKey( tostring(levelId), _arr[1] or &quot;default&quot;, _arr[2] or &quot;default&quot;, notUsePreProp, _selfFeedbackVer, {poolkey = _G.SelfFeedbackPoolkey.kRUST}, levelScene )</span>
+<span class="source-line" id="L648"><a class="line-num" href="#L648">648</a>            table.insert(levelKeys, levelKey3)</span>
+<span class="source-line" id="L649"><a class="line-num" href="#L649">649</a></span>
+<span class="source-line" id="L650"><a class="line-num" href="#L650">650</a>            -- local levelKey2 = self:createLevelKey( tostring(levelId), _arr[1] or &quot;default&quot;, _arr[2] or &quot;default&quot;, usePreProp, _selfFeedbackVer, datas )</span>
+<span class="source-line" id="L651"><a class="line-num" href="#L651">651</a>            -- table.insert(levelKeys, levelKey2)</span>
+<span class="source-line" id="L652"><a class="line-num" href="#L652">652</a>        end</span>
+<span class="source-line" id="L653"><a class="line-num" href="#L653">653</a>        </span>
+<span class="source-line" id="L654"><a class="line-num" href="#L654">654</a>    end</span>
+<span class="source-line" id="L655"><a class="line-num" href="#L655">655</a>    if _debug then printx( 1 , &quot;UBFuuuAdjustManager:updateDiffDsMap --------- levelKeys =&quot; , tts(levelKeys) ) end</span>
+<span class="source-line" id="L656"><a class="line-num" href="#L656">656</a>    -- debug.debug()</span>
+<span class="source-line" id="L657"><a class="line-num" href="#L657">657</a></span>
+<span class="source-line" id="L658"><a class="line-num" href="#L658">658</a>    if #levelKeys &gt; 0 then</span>
+<span class="source-line" id="L659"><a class="line-num" href="#L659">659</a>        self:_updateDiffDsMap(levelKeys, callback)</span>
+<span class="source-line" id="L660"><a class="line-num" href="#L660">660</a>    end</span>
+<span class="source-line" id="L661"><a class="line-num" href="#L661">661</a>end</span>
+<span class="source-line" id="L662"><a class="line-num" href="#L662">662</a></span>
+<span class="source-line" id="L663"><a class="line-num" href="#L663">663</a>function UBFuuuAdjustManager:getDiffDsMap(levelId, usePreAdStep, datas, levelScene)</span>
+<span class="source-line" id="L664"><a class="line-num" href="#L664">664</a>    -- local levelGroup = UBFPlaySwitch:getLevelGroup(levelId)</span>
+<span class="source-line" id="L665"><a class="line-num" href="#L665">665</a>    -- local ret, meetGroup, uuid = UBFLevelConfigManager:traversalDefault(levelGroup, levelId)</span>
+<span class="source-line" id="L666"><a class="line-num" href="#L666">666</a>    local levelKeyData = UBFLevelIdUtil:createLevelKeyDataWithAutoLevelGroup(levelId, levelScene)</span>
+<span class="source-line" id="L667"><a class="line-num" href="#L667">667</a>    local ret, meetGroup, uuid = levelKeyData:fallback()</span>
+<span class="source-line" id="L668"><a class="line-num" href="#L668">668</a>    local _arr = string.split(meetGroup, &quot;:&quot;)</span>
+<span class="source-line" id="L669"><a class="line-num" href="#L669">669</a>    local levelKey = self:createLevelKey( tostring(levelId), _arr[1], _arr[2] or &quot;default&quot;, usePreAdStep, _selfFeedbackVer, datas, levelScene )</span>
+<span class="source-line" id="L670"><a class="line-num" href="#L670">670</a></span>
+<span class="source-line" id="L671"><a class="line-num" href="#L671">671</a>    if not _diff_ds_Map then</span>
+<span class="source-line" id="L672"><a class="line-num" href="#L672">672</a>        _diff_ds_Map = self:loadData( _diff_ds_MapFileName ) or {}</span>
+<span class="source-line" id="L673"><a class="line-num" href="#L673">673</a>    end</span>
+<span class="source-line" id="L674"><a class="line-num" href="#L674">674</a></span>
+<span class="source-line" id="L675"><a class="line-num" href="#L675">675</a>    if _debug then printx( 1 , &quot;UBFuuuAdjustManager:getDiffDsMap --------- levelKey =&quot; , levelKey , _diff_ds_Map[levelKey] ) end</span>
+<span class="source-line" id="L676"><a class="line-num" href="#L676">676</a></span>
+<span class="source-line" id="L677"><a class="line-num" href="#L677">677</a>    return _diff_ds_Map[levelKey]</span>
+<span class="source-line" id="L678"><a class="line-num" href="#L678">678</a>end</span>
+<span class="source-line" id="L679"><a class="line-num" href="#L679">679</a></span>
+<span class="source-line" id="L680"><a class="line-num" href="#L680">680</a>function UBFuuuAdjustManager:getStepDsMap(levelId, usePreAdStep, datas, levelScene)</span>
+<span class="source-line" id="L681"><a class="line-num" href="#L681">681</a>    -- local levelGroup = UBFPlaySwitch:getLevelGroup(levelId)</span>
+<span class="source-line" id="L682"><a class="line-num" href="#L682">682</a>    -- local ret, meetGroup, uuid = UBFLevelConfigManager:traversalDefault(levelGroup, levelId)</span>
+<span class="source-line" id="L683"><a class="line-num" href="#L683">683</a>    local levelKeyData = UBFLevelIdUtil:createLevelKeyDataWithAutoLevelGroup(levelId, levelScene)</span>
+<span class="source-line" id="L684"><a class="line-num" href="#L684">684</a>    local ret, meetGroup, uuid = levelKeyData:fallback()</span>
+<span class="source-line" id="L685"><a class="line-num" href="#L685">685</a>    local _arr = string.split(meetGroup, &quot;:&quot;)</span>
+<span class="source-line" id="L686"><a class="line-num" href="#L686">686</a>    local levelKey = self:createLevelKey( tostring(levelId), _arr[1], _arr[2] or &quot;default&quot;, usePreAdStep, _selfFeedbackVer, datas, levelScene )</span>
+<span class="source-line" id="L687"><a class="line-num" href="#L687">687</a></span>
+<span class="source-line" id="L688"><a class="line-num" href="#L688">688</a>    if not _step_ds_Map then</span>
+<span class="source-line" id="L689"><a class="line-num" href="#L689">689</a>        _step_ds_Map = self:loadData( _step_ds_MapFileName ) or {}</span>
+<span class="source-line" id="L690"><a class="line-num" href="#L690">690</a>    end</span>
+<span class="source-line" id="L691"><a class="line-num" href="#L691">691</a></span>
+<span class="source-line" id="L692"><a class="line-num" href="#L692">692</a>    if _debug then printx( 1 , &quot;UBFuuuAdjustManager:getStepDsMap --------- levelKey =&quot; , levelKey ) end</span>
+<span class="source-line" id="L693"><a class="line-num" href="#L693">693</a></span>
+<span class="source-line" id="L694"><a class="line-num" href="#L694">694</a>    return _step_ds_Map[levelKey]</span>
+<span class="source-line" id="L695"><a class="line-num" href="#L695">695</a>end</span>
+<span class="source-line" id="L696"><a class="line-num" href="#L696">696</a></span>
+<span class="source-line" id="L697"><a class="line-num" href="#L697">697</a>------------------------------------------------</span>
+<span class="source-line" id="L698"><a class="line-num" href="#L698">698</a>-- 刷星保底：失败次数本地缓存 / 服务端合并</span>
+<span class="source-line" id="L699"><a class="line-num" href="#L699">699</a>------------------------------------------------</span>
+<span class="source-line" id="L700"><a class="line-num" href="#L700">700</a></span>
+<span class="source-line" id="L701"><a class="line-num" href="#L701">701</a>local function _farmStarLevelKey(levelId)</span>
+<span class="source-line" id="L702"><a class="line-num" href="#L702">702</a>    if levelId == nil then return nil end</span>
+<span class="source-line" id="L703"><a class="line-num" href="#L703">703</a>    return tostring(levelId)</span>
+<span class="source-line" id="L704"><a class="line-num" href="#L704">704</a>end</span>
+<span class="source-line" id="L705"><a class="line-num" href="#L705">705</a></span>
+<span class="source-line" id="L706"><a class="line-num" href="#L706">706</a>-- 解析服务端下发的刷星失败次数（JSON 字符串或 table），非法值按缺失处理</span>
+<span class="source-line" id="L707"><a class="line-num" href="#L707">707</a>function UBFuuuAdjustManager:parseFarmStarFailCountMap(rawData)</span>
+<span class="source-line" id="L708"><a class="line-num" href="#L708">708</a>    local _raw = rawData</span>
+<span class="source-line" id="L709"><a class="line-num" href="#L709">709</a>    if type(_raw) == &quot;string&quot; then</span>
+<span class="source-line" id="L710"><a class="line-num" href="#L710">710</a>        if _raw == &quot;&quot; then return {} end</span>
+<span class="source-line" id="L711"><a class="line-num" href="#L711">711</a>        local _parsed = table.deserialize(_raw)</span>
+<span class="source-line" id="L712"><a class="line-num" href="#L712">712</a>        if type(_parsed) ~= &quot;table&quot; then</span>
+<span class="source-line" id="L713"><a class="line-num" href="#L713">713</a>            he_log_error(&quot;UBFuuuAdjustManager_parseFarmStarFailCountMap_deserialize_fail&quot;)</span>
+<span class="source-line" id="L714"><a class="line-num" href="#L714">714</a>            return {}</span>
+<span class="source-line" id="L715"><a class="line-num" href="#L715">715</a>        end</span>
+<span class="source-line" id="L716"><a class="line-num" href="#L716">716</a>        _raw = _parsed</span>
+<span class="source-line" id="L717"><a class="line-num" href="#L717">717</a>    end</span>
+<span class="source-line" id="L718"><a class="line-num" href="#L718">718</a></span>
+<span class="source-line" id="L719"><a class="line-num" href="#L719">719</a>    if type(_raw) ~= &quot;table&quot; then return {} end</span>
+<span class="source-line" id="L720"><a class="line-num" href="#L720">720</a></span>
+<span class="source-line" id="L721"><a class="line-num" href="#L721">721</a>    local _map = {}</span>
+<span class="source-line" id="L722"><a class="line-num" href="#L722">722</a>    for k, v in pairs(_raw) do</span>
+<span class="source-line" id="L723"><a class="line-num" href="#L723">723</a>        local _levelId = tonumber(k)</span>
+<span class="source-line" id="L724"><a class="line-num" href="#L724">724</a>        local _count = tonumber(v)</span>
+<span class="source-line" id="L725"><a class="line-num" href="#L725">725</a>        if _levelId and _levelId &gt; 0 and _count and _count &gt;= 0 and _count == math.floor(_count) then</span>
+<span class="source-line" id="L726"><a class="line-num" href="#L726">726</a>            _map[tostring(_levelId)] = _count</span>
+<span class="source-line" id="L727"><a class="line-num" href="#L727">727</a>        else</span>
+<span class="source-line" id="L728"><a class="line-num" href="#L728">728</a>            he_log_error(&quot;UBFuuuAdjustManager_parseFarmStarFailCountMap_invalid k=&quot; .. tostring(k) .. &quot; v=&quot; .. tostring(v))</span>
+<span class="source-line" id="L729"><a class="line-num" href="#L729">729</a>        end</span>
+<span class="source-line" id="L730"><a class="line-num" href="#L730">730</a>    end</span>
+<span class="source-line" id="L731"><a class="line-num" href="#L731">731</a>    return _map</span>
+<span class="source-line" id="L732"><a class="line-num" href="#L732">732</a>end</span>
+<span class="source-line" id="L733"><a class="line-num" href="#L733">733</a></span>
+<span class="source-line" id="L734"><a class="line-num" href="#L734">734</a>function UBFuuuAdjustManager:getFarmStarFailCountMap()</span>
+<span class="source-line" id="L735"><a class="line-num" href="#L735">735</a>    if not _farm_star_fail_Map then</span>
+<span class="source-line" id="L736"><a class="line-num" href="#L736">736</a>        _farm_star_fail_Map = self:loadData( _farm_star_fail_count_mapFileName ) or {}</span>
+<span class="source-line" id="L737"><a class="line-num" href="#L737">737</a>    end</span>
+<span class="source-line" id="L738"><a class="line-num" href="#L738">738</a>    return _farm_star_fail_Map</span>
+<span class="source-line" id="L739"><a class="line-num" href="#L739">739</a>end</span>
+<span class="source-line" id="L740"><a class="line-num" href="#L740">740</a></span>
+<span class="source-line" id="L741"><a class="line-num" href="#L741">741</a>-- 进关决策使用的失败次数（进关时快照）</span>
+<span class="source-line" id="L742"><a class="line-num" href="#L742">742</a>function UBFuuuAdjustManager:getFarmStarFailCount(levelId)</span>
+<span class="source-line" id="L743"><a class="line-num" href="#L743">743</a>    local _key = _farmStarLevelKey(levelId)</span>
+<span class="source-line" id="L744"><a class="line-num" href="#L744">744</a>    if not _key then return 0 end</span>
+<span class="source-line" id="L745"><a class="line-num" href="#L745">745</a></span>
+<span class="source-line" id="L746"><a class="line-num" href="#L746">746</a>    local _map = self:getFarmStarFailCountMap()</span>
+<span class="source-line" id="L747"><a class="line-num" href="#L747">747</a>    local _data = _map[_key]</span>
+<span class="source-line" id="L748"><a class="line-num" href="#L748">748</a>    local _count = (type(_data) == &quot;table&quot; and tonumber(_data.count)) or 0</span>
+<span class="source-line" id="L749"><a class="line-num" href="#L749">749</a>    if _count &lt; 0 then _count = 0 end</span>
+<span class="source-line" id="L750"><a class="line-num" href="#L750">750</a>    return _count</span>
+<span class="source-line" id="L751"><a class="line-num" href="#L751">751</a>end</span>
+<span class="source-line" id="L752"><a class="line-num" href="#L752">752</a></span>
+<span class="source-line" id="L753"><a class="line-num" href="#L753">753</a>-- 纯函数（可单测）：根据结算 runtime 的最终状态决定刷星计数动作</span>
+<span class="source-line" id="L754"><a class="line-num" href="#L754">754</a>-- state = { isWin, star, oldStar, failReason }</span>
+<span class="source-line" id="L755"><a class="line-num" href="#L755">755</a>-- 刷星口径与决策侧一致：只看星级数（首闯 0 星、满星刷分不参与），不依赖关卡类型字段</span>
+<span class="source-line" id="L756"><a class="line-num" href="#L756">756</a>-- 返回 &quot;reset&quot;（升星清零）/ &quot;increment&quot;（未升星正常完成）/ nil（不更新）</span>
+<span class="source-line" id="L757"><a class="line-num" href="#L757">757</a>function UBFuuuAdjustManager.resolveFarmStarResultAction(state)</span>
+<span class="source-line" id="L758"><a class="line-num" href="#L758">758</a>    if type(state) ~= &quot;table&quot; then return nil end</span>
+<span class="source-line" id="L759"><a class="line-num" href="#L759">759</a></span>
+<span class="source-line" id="L760"><a class="line-num" href="#L760">760</a>    local _oldStar = tonumber(state.oldStar) or 0</span>
+<span class="source-line" id="L761"><a class="line-num" href="#L761">761</a>    -- 首闯（0 星）与满星刷分（&gt;= maxLevelStar）不参与刷星计数</span>
+<span class="source-line" id="L762"><a class="line-num" href="#L762">762</a>    if _oldStar &lt;= 0 or _oldStar &gt;= _max_level_star then return nil end</span>
+<span class="source-line" id="L763"><a class="line-num" href="#L763">763</a></span>
+<span class="source-line" id="L764"><a class="line-num" href="#L764">764</a>    local _failReason = state.failReason</span>
+<span class="source-line" id="L765"><a class="line-num" href="#L765">765</a>    local _failReasonConst = _G.UBFGameFailReason or {}</span>
+<span class="source-line" id="L766"><a class="line-num" href="#L766">766</a>    -- 中途退出 / 重玩不计入</span>
+<span class="source-line" id="L767"><a class="line-num" href="#L767">767</a>    if _failReason == _failReasonConst.kDropout or _failReason == _failReasonConst.kRetry then</span>
+<span class="source-line" id="L768"><a class="line-num" href="#L768">768</a>        return nil</span>
+<span class="source-line" id="L769"><a class="line-num" href="#L769">769</a>    end</span>
+<span class="source-line" id="L770"><a class="line-num" href="#L770">770</a></span>
+<span class="source-line" id="L771"><a class="line-num" href="#L771">771</a>    local _isWin = state.isWin == true</span>
+<span class="source-line" id="L772"><a class="line-num" href="#L772">772</a>    local _isNormalFail = (not _isWin) and (_failReason == _failReasonConst.kNoLife</span>
+<span class="source-line" id="L773"><a class="line-num" href="#L773">773</a>        or _failReason == _failReasonConst.kDeadBoard</span>
+<span class="source-line" id="L774"><a class="line-num" href="#L774">774</a>        or _failReason == _failReasonConst.kStarLack)</span>
+<span class="source-line" id="L775"><a class="line-num" href="#L775">775</a></span>
+<span class="source-line" id="L776"><a class="line-num" href="#L776">776</a>    -- 既不是正常过关也不是正常失败（含闪退恢复失败等）：fail-closed</span>
+<span class="source-line" id="L777"><a class="line-num" href="#L777">777</a>    if (not _isWin) and (not _isNormalFail) then return nil end</span>
+<span class="source-line" id="L778"><a class="line-num" href="#L778">778</a></span>
+<span class="source-line" id="L779"><a class="line-num" href="#L779">779</a>    local _star = tonumber(state.star) or 0</span>
+<span class="source-line" id="L780"><a class="line-num" href="#L780">780</a>    if _isWin and _star &gt; _oldStar then</span>
+<span class="source-line" id="L781"><a class="line-num" href="#L781">781</a>        return &quot;reset&quot;</span>
+<span class="source-line" id="L782"><a class="line-num" href="#L782">782</a>    end</span>
+<span class="source-line" id="L783"><a class="line-num" href="#L783">783</a></span>
+<span class="source-line" id="L784"><a class="line-num" href="#L784">784</a>    return &quot;increment&quot;</span>
+<span class="source-line" id="L785"><a class="line-num" href="#L785">785</a>end</span>
+<span class="source-line" id="L786"><a class="line-num" href="#L786">786</a></span>
+<span class="source-line" id="L787"><a class="line-num" href="#L787">787</a>-- 结算写入本地乐观值；后续下发同一关时以服务端为准</span>
+<span class="source-line" id="L788"><a class="line-num" href="#L788">788</a>function UBFuuuAdjustManager:applyFarmStarFailCountResult(levelId, action)</span>
+<span class="source-line" id="L789"><a class="line-num" href="#L789">789</a>    local _key = _farmStarLevelKey(levelId)</span>
+<span class="source-line" id="L790"><a class="line-num" href="#L790">790</a>    if not _key then return end</span>
+<span class="source-line" id="L791"><a class="line-num" href="#L791">791</a></span>
+<span class="source-line" id="L792"><a class="line-num" href="#L792">792</a>    local _map = self:getFarmStarFailCountMap()</span>
+<span class="source-line" id="L793"><a class="line-num" href="#L793">793</a>    local _oldData = _map[_key]</span>
+<span class="source-line" id="L794"><a class="line-num" href="#L794">794</a>    if type(_oldData) ~= &quot;table&quot; then _oldData = {} end</span>
+<span class="source-line" id="L795"><a class="line-num" href="#L795">795</a></span>
+<span class="source-line" id="L796"><a class="line-num" href="#L796">796</a>    local _oldCount = tonumber(_oldData.count) or 0</span>
+<span class="source-line" id="L797"><a class="line-num" href="#L797">797</a>    if _oldCount &lt; 0 then _oldCount = 0 end</span>
+<span class="source-line" id="L798"><a class="line-num" href="#L798">798</a></span>
+<span class="source-line" id="L799"><a class="line-num" href="#L799">799</a>    local _count = nil</span>
+<span class="source-line" id="L800"><a class="line-num" href="#L800">800</a>    if action == &quot;reset&quot; then</span>
+<span class="source-line" id="L801"><a class="line-num" href="#L801">801</a>        _count = 0</span>
+<span class="source-line" id="L802"><a class="line-num" href="#L802">802</a>    elseif action == &quot;increment&quot; then</span>
+<span class="source-line" id="L803"><a class="line-num" href="#L803">803</a>        _count = _oldCount + 1</span>
+<span class="source-line" id="L804"><a class="line-num" href="#L804">804</a>    else</span>
+<span class="source-line" id="L805"><a class="line-num" href="#L805">805</a>        return</span>
+<span class="source-line" id="L806"><a class="line-num" href="#L806">806</a>    end</span>
+<span class="source-line" id="L807"><a class="line-num" href="#L807">807</a></span>
+<span class="source-line" id="L808"><a class="line-num" href="#L808">808</a>    local _data = {</span>
+<span class="source-line" id="L809"><a class="line-num" href="#L809">809</a>        count = _count,</span>
+<span class="source-line" id="L810"><a class="line-num" href="#L810">810</a>        localRevision = (tonumber(_oldData.localRevision) or 0) + 1,</span>
+<span class="source-line" id="L811"><a class="line-num" href="#L811">811</a>        updateTime = self:timeInSec(),</span>
+<span class="source-line" id="L812"><a class="line-num" href="#L812">812</a>    }</span>
+<span class="source-line" id="L813"><a class="line-num" href="#L813">813</a>    _map[_key] = _data</span>
+<span class="source-line" id="L814"><a class="line-num" href="#L814">814</a></span>
+<span class="source-line" id="L815"><a class="line-num" href="#L815">815</a>    self:trimFarmStarFailCountMap(_map)</span>
+<span class="source-line" id="L816"><a class="line-num" href="#L816">816</a>    self:saveData(_map, _farm_star_fail_count_mapFileName)</span>
+<span class="source-line" id="L817"><a class="line-num" href="#L817">817</a></span>
+<span class="source-line" id="L818"><a class="line-num" href="#L818">818</a>    if _debug then printx(1, &quot;UBFuuuAdjustManager:applyFarmStarFailCountResult levelId =&quot;, _key, &quot;action =&quot;, action, &quot;count =&quot;, _data.count) end</span>
+<span class="source-line" id="L819"><a class="line-num" href="#L819">819</a>end</span>
+<span class="source-line" id="L820"><a class="line-num" href="#L820">820</a></span>
+<span class="source-line" id="L821"><a class="line-num" href="#L821">821</a>-- 纯函数（可单测）：服务端下发与本地缓存合并，返回新表</span>
+<span class="source-line" id="L822"><a class="line-num" href="#L822">822</a>-- 服务端下发该 key 即覆盖；未下发的关卡仍保留本地乐观值</span>
+<span class="source-line" id="L823"><a class="line-num" href="#L823">823</a>function UBFuuuAdjustManager.mergeFarmStarFailCountMap(localMap, serverMap, nowTime)</span>
+<span class="source-line" id="L824"><a class="line-num" href="#L824">824</a>    local _result = {}</span>
+<span class="source-line" id="L825"><a class="line-num" href="#L825">825</a>    for k, v in pairs(localMap or {}) do</span>
+<span class="source-line" id="L826"><a class="line-num" href="#L826">826</a>        if type(v) == &quot;table&quot; then</span>
+<span class="source-line" id="L827"><a class="line-num" href="#L827">827</a>            _result[k] = {</span>
+<span class="source-line" id="L828"><a class="line-num" href="#L828">828</a>                count = v.count,</span>
+<span class="source-line" id="L829"><a class="line-num" href="#L829">829</a>                localRevision = v.localRevision,</span>
+<span class="source-line" id="L830"><a class="line-num" href="#L830">830</a>                updateTime = v.updateTime,</span>
+<span class="source-line" id="L831"><a class="line-num" href="#L831">831</a>            }</span>
+<span class="source-line" id="L832"><a class="line-num" href="#L832">832</a>        end</span>
+<span class="source-line" id="L833"><a class="line-num" href="#L833">833</a>    end</span>
+<span class="source-line" id="L834"><a class="line-num" href="#L834">834</a></span>
+<span class="source-line" id="L835"><a class="line-num" href="#L835">835</a>    local _now = nowTime or 0</span>
+<span class="source-line" id="L836"><a class="line-num" href="#L836">836</a>    for k, _serverCount in pairs(serverMap or {}) do</span>
+<span class="source-line" id="L837"><a class="line-num" href="#L837">837</a>        local _local = _result[k]</span>
+<span class="source-line" id="L838"><a class="line-num" href="#L838">838</a>        if not _local then</span>
+<span class="source-line" id="L839"><a class="line-num" href="#L839">839</a>            _result[k] = { count = _serverCount, updateTime = _now }</span>
+<span class="source-line" id="L840"><a class="line-num" href="#L840">840</a>        else</span>
+<span class="source-line" id="L841"><a class="line-num" href="#L841">841</a>            _local.count = _serverCount</span>
+<span class="source-line" id="L842"><a class="line-num" href="#L842">842</a>            _local.updateTime = _now</span>
+<span class="source-line" id="L843"><a class="line-num" href="#L843">843</a>        end</span>
+<span class="source-line" id="L844"><a class="line-num" href="#L844">844</a>    end</span>
+<span class="source-line" id="L845"><a class="line-num" href="#L845">845</a></span>
+<span class="source-line" id="L846"><a class="line-num" href="#L846">846</a>    return _result</span>
+<span class="source-line" id="L847"><a class="line-num" href="#L847">847</a>end</span>
+<span class="source-line" id="L848"><a class="line-num" href="#L848">848</a></span>
+<span class="source-line" id="L849"><a class="line-num" href="#L849">849</a>-- 冷数据审计：仅当 serverMap 存在（即最近一次服务端下发）时才按 30 天窗口清理</span>
+<span class="source-line" id="L850"><a class="line-num" href="#L850">850</a>function UBFuuuAdjustManager:auditFarmStarFailCountMap(_map, serverMap)</span>
+<span class="source-line" id="L851"><a class="line-num" href="#L851">851</a>    local _now = self:timeInSec()</span>
+<span class="source-line" id="L852"><a class="line-num" href="#L852">852</a>    local _changed = false</span>
+<span class="source-line" id="L853"><a class="line-num" href="#L853">853</a></span>
+<span class="source-line" id="L854"><a class="line-num" href="#L854">854</a>    for k, v in pairs(_map or {}) do</span>
+<span class="source-line" id="L855"><a class="line-num" href="#L855">855</a>        if type(v) ~= &quot;table&quot; then</span>
+<span class="source-line" id="L856"><a class="line-num" href="#L856">856</a>            _map[k] = nil</span>
+<span class="source-line" id="L857"><a class="line-num" href="#L857">857</a>            _changed = true</span>
+<span class="source-line" id="L858"><a class="line-num" href="#L858">858</a>        else</span>
+<span class="source-line" id="L859"><a class="line-num" href="#L859">859</a>            if v.pending ~= nil or v.pendingAction ~= nil or v.pendingPlayId ~= nil then</span>
+<span class="source-line" id="L860"><a class="line-num" href="#L860">860</a>                v.pending, v.pendingAction, v.pendingPlayId = nil, nil, nil</span>
+<span class="source-line" id="L861"><a class="line-num" href="#L861">861</a>                _changed = true</span>
+<span class="source-line" id="L862"><a class="line-num" href="#L862">862</a>            end</span>
+<span class="source-line" id="L863"><a class="line-num" href="#L863">863</a>            if not v.updateTime then</span>
+<span class="source-line" id="L864"><a class="line-num" href="#L864">864</a>                v.updateTime = _now</span>
+<span class="source-line" id="L865"><a class="line-num" href="#L865">865</a>                _changed = true</span>
+<span class="source-line" id="L866"><a class="line-num" href="#L866">866</a>            elseif serverMap and (not serverMap[k]) and (_now - v.updateTime &gt; _farm_star_fail_count_expireTime) then</span>
+<span class="source-line" id="L867"><a class="line-num" href="#L867">867</a>                _map[k] = nil</span>
+<span class="source-line" id="L868"><a class="line-num" href="#L868">868</a>                _changed = true</span>
+<span class="source-line" id="L869"><a class="line-num" href="#L869">869</a>            end</span>
+<span class="source-line" id="L870"><a class="line-num" href="#L870">870</a>        end</span>
+<span class="source-line" id="L871"><a class="line-num" href="#L871">871</a>    end</span>
+<span class="source-line" id="L872"><a class="line-num" href="#L872">872</a></span>
+<span class="source-line" id="L873"><a class="line-num" href="#L873">873</a>    return _changed</span>
+<span class="source-line" id="L874"><a class="line-num" href="#L874">874</a>end</span>
+<span class="source-line" id="L875"><a class="line-num" href="#L875">875</a></span>
+<span class="source-line" id="L876"><a class="line-num" href="#L876">876</a>function UBFuuuAdjustManager:trimFarmStarFailCountMap(_map)</span>
+<span class="source-line" id="L877"><a class="line-num" href="#L877">877</a>    local _total = 0</span>
+<span class="source-line" id="L878"><a class="line-num" href="#L878">878</a>    for _ in pairs(_map or {}) do _total = _total + 1 end</span>
+<span class="source-line" id="L879"><a class="line-num" href="#L879">879</a>    if _total &lt;= _farm_star_fail_count_maxKeep then return false end</span>
+<span class="source-line" id="L880"><a class="line-num" href="#L880">880</a></span>
+<span class="source-line" id="L881"><a class="line-num" href="#L881">881</a>    local _candidates = {}</span>
+<span class="source-line" id="L882"><a class="line-num" href="#L882">882</a>    for k, v in pairs(_map) do</span>
+<span class="source-line" id="L883"><a class="line-num" href="#L883">883</a>        table.insert(_candidates, { key = k, time = (type(v) == &quot;table&quot; and v.updateTime) or 0 })</span>
+<span class="source-line" id="L884"><a class="line-num" href="#L884">884</a>    end</span>
+<span class="source-line" id="L885"><a class="line-num" href="#L885">885</a>    table.sort(_candidates, function(a, b) return a.time &lt; b.time end)</span>
+<span class="source-line" id="L886"><a class="line-num" href="#L886">886</a></span>
+<span class="source-line" id="L887"><a class="line-num" href="#L887">887</a>    local _needRemove = _total - _farm_star_fail_count_maxKeep</span>
+<span class="source-line" id="L888"><a class="line-num" href="#L888">888</a>    for i = 1, math.min(_needRemove, #_candidates) do</span>
+<span class="source-line" id="L889"><a class="line-num" href="#L889">889</a>        _map[_candidates[i].key] = nil</span>
+<span class="source-line" id="L890"><a class="line-num" href="#L890">890</a>    end</span>
+<span class="source-line" id="L891"><a class="line-num" href="#L891">891</a></span>
+<span class="source-line" id="L892"><a class="line-num" href="#L892">892</a>    return true</span>
+<span class="source-line" id="L893"><a class="line-num" href="#L893">893</a>end</span>
+<span class="source-line" id="L894"><a class="line-num" href="#L894">894</a></span>
+<span class="source-line" id="L895"><a class="line-num" href="#L895">895</a>-- 服务端下发入口（登录 diffDsMap 与 ubfuuuGetNext30DiffFixDataV2 共用）</span>
+<span class="source-line" id="L896"><a class="line-num" href="#L896">896</a>function UBFuuuAdjustManager:onUpdateFarmStarFailCountMap(serverData)</span>
+<span class="source-line" id="L897"><a class="line-num" href="#L897">897</a>    if serverData == nil then return end</span>
+<span class="source-line" id="L898"><a class="line-num" href="#L898">898</a></span>
+<span class="source-line" id="L899"><a class="line-num" href="#L899">899</a>    local _serverMap = self:parseFarmStarFailCountMap(serverData)</span>
+<span class="source-line" id="L900"><a class="line-num" href="#L900">900</a>    if not next(_serverMap) then return end</span>
+<span class="source-line" id="L901"><a class="line-num" href="#L901">901</a></span>
+<span class="source-line" id="L902"><a class="line-num" href="#L902">902</a>    local _map = self:getFarmStarFailCountMap()</span>
+<span class="source-line" id="L903"><a class="line-num" href="#L903">903</a>    local _merged = UBFuuuAdjustManager.mergeFarmStarFailCountMap(_map, _serverMap, self:timeInSec())</span>
+<span class="source-line" id="L904"><a class="line-num" href="#L904">904</a>    self:auditFarmStarFailCountMap(_merged, _serverMap)</span>
+<span class="source-line" id="L905"><a class="line-num" href="#L905">905</a>    self:trimFarmStarFailCountMap(_merged)</span>
+<span class="source-line" id="L906"><a class="line-num" href="#L906">906</a></span>
+<span class="source-line" id="L907"><a class="line-num" href="#L907">907</a>    _farm_star_fail_Map = _merged</span>
+<span class="source-line" id="L908"><a class="line-num" href="#L908">908</a>    self:saveData(_merged, _farm_star_fail_count_mapFileName)</span>
+<span class="source-line" id="L909"><a class="line-num" href="#L909">909</a></span>
+<span class="source-line" id="L910"><a class="line-num" href="#L910">910</a>    if _debug then printx(1, &quot;UBFuuuAdjustManager:onUpdateFarmStarFailCountMap serverMap =&quot;, tts(_serverMap)) end</span>
+<span class="source-line" id="L911"><a class="line-num" href="#L911">911</a>end</span>
+<span class="source-line" id="L912"><a class="line-num" href="#L912">912</a></span>
+<span class="source-line" id="L913"><a class="line-num" href="#L913">913</a>-- 进关时做一次冷数据审计（含旧版本遗留字段清理）</span>
+<span class="source-line" id="L914"><a class="line-num" href="#L914">914</a>function UBFuuuAdjustManager:cleanFarmStarFailCountOnStartLevel(ubfSLRuntime)</span>
+<span class="source-line" id="L915"><a class="line-num" href="#L915">915</a>    local _map = self:getFarmStarFailCountMap()</span>
+<span class="source-line" id="L916"><a class="line-num" href="#L916">916</a>    local _changed = self:auditFarmStarFailCountMap(_map, nil)</span>
+<span class="source-line" id="L917"><a class="line-num" href="#L917">917</a>    if self:trimFarmStarFailCountMap(_map) then _changed = true end</span>
+<span class="source-line" id="L918"><a class="line-num" href="#L918">918</a>    if _changed then</span>
+<span class="source-line" id="L919"><a class="line-num" href="#L919">919</a>        _farm_star_fail_Map = _map</span>
+<span class="source-line" id="L920"><a class="line-num" href="#L920">920</a>        self:saveData(_map, _farm_star_fail_count_mapFileName)</span>
+<span class="source-line" id="L921"><a class="line-num" href="#L921">921</a>    end</span>
+<span class="source-line" id="L922"><a class="line-num" href="#L922">922</a>end</span>
+<span class="source-line" id="L923"><a class="line-num" href="#L923">923</a></span>
+<span class="source-line" id="L924"><a class="line-num" href="#L924">924</a>------------------------------------------------</span>
+<span class="source-line" id="L925"><a class="line-num" href="#L925">925</a></span>
+<span class="source-line" id="L926"><a class="line-num" href="#L926">926</a>function UBFuuuAdjustManager:onStartLevel( ubfSLRuntime )</span>
+<span class="source-line" id="L927"><a class="line-num" href="#L927">927</a></span>
+<span class="source-line" id="L928"><a class="line-num" href="#L928">928</a>    local levelId = nil</span>
+<span class="source-line" id="L929"><a class="line-num" href="#L929">929</a>    levelId = ubfSLRuntime.levelId</span>
+<span class="source-line" id="L930"><a class="line-num" href="#L930">930</a></span>
+<span class="source-line" id="L931"><a class="line-num" href="#L931">931</a>    if _debug then printx(1 , &quot;UBFuuuAdjustManager:onStartLevel  &quot;, levelId ) end</span>
+<span class="source-line" id="L932"><a class="line-num" href="#L932">932</a></span>
+<span class="source-line" id="L933"><a class="line-num" href="#L933">933</a>    self:cleanFarmStarFailCountOnStartLevel(ubfSLRuntime)</span>
+<span class="source-line" id="L934"><a class="line-num" href="#L934">934</a></span>
+<span class="source-line" id="L935"><a class="line-num" href="#L935">935</a>    local contextData = self:getAdjustContextData() or {}</span>
+<span class="source-line" id="L936"><a class="line-num" href="#L936">936</a></span>
+<span class="source-line" id="L937"><a class="line-num" href="#L937">937</a>    local nowtime = self:timeInSec()</span>
+<span class="source-line" id="L938"><a class="line-num" href="#L938">938</a>    local nowtimeDay = time2day(nowtime)</span>
+<span class="source-line" id="L939"><a class="line-num" href="#L939">939</a></span>
+<span class="source-line" id="L940"><a class="line-num" href="#L940">940</a>    local _needSave = false</span>
+<span class="source-line" id="L941"><a class="line-num" href="#L941">941</a>    local _doUpdate = false</span>
+<span class="source-line" id="L942"><a class="line-num" href="#L942">942</a></span>
+<span class="source-line" id="L943"><a class="line-num" href="#L943">943</a>    local isMainLevel = UBFLevelRangeUtil:isMainLevel(levelId, ubfSLRuntime.levelScene)</span>
+<span class="source-line" id="L944"><a class="line-num" href="#L944">944</a>    if isMainLevel then</span>
+<span class="source-line" id="L945"><a class="line-num" href="#L945">945</a></span>
+<span class="source-line" id="L946"><a class="line-num" href="#L946">946</a>        local areaId = math.floor( (levelId - 1) / 15 )</span>
+<span class="source-line" id="L947"><a class="line-num" href="#L947">947</a>        if _debug then printx(1 , &quot;UBFuuuAdjustManager:onStartLevel  levelId:&quot;, levelId, &quot;areaId:&quot;, areaId, &quot;contextData.currAreaId:&quot;, contextData.currAreaId ) end</span>
+<span class="source-line" id="L948"><a class="line-num" href="#L948">948</a></span>
+<span class="source-line" id="L949"><a class="line-num" href="#L949">949</a>        if not contextData.currAreaId then</span>
+<span class="source-line" id="L950"><a class="line-num" href="#L950">950</a>            contextData.currAreaId = areaId</span>
+<span class="source-line" id="L951"><a class="line-num" href="#L951">951</a>            _needSave = true</span>
+<span class="source-line" id="L952"><a class="line-num" href="#L952">952</a>        else</span>
+<span class="source-line" id="L953"><a class="line-num" href="#L953">953</a>            if areaId &gt; contextData.currAreaId then</span>
+<span class="source-line" id="L954"><a class="line-num" href="#L954">954</a>                _doUpdate = true</span>
+<span class="source-line" id="L955"><a class="line-num" href="#L955">955</a>            end</span>
+<span class="source-line" id="L956"><a class="line-num" href="#L956">956</a>        end</span>
+<span class="source-line" id="L957"><a class="line-num" href="#L957">957</a></span>
+<span class="source-line" id="L958"><a class="line-num" href="#L958">958</a>        local topLevel = nil</span>
+<span class="source-line" id="L959"><a class="line-num" href="#L959">959</a>        if ubfSLRuntime then</span>
+<span class="source-line" id="L960"><a class="line-num" href="#L960">960</a>            topLevel = ubfSLRuntime:getUserTopLevel()</span>
+<span class="source-line" id="L961"><a class="line-num" href="#L961">961</a>        end</span>
+<span class="source-line" id="L962"><a class="line-num" href="#L962">962</a></span>
+<span class="source-line" id="L963"><a class="line-num" href="#L963">963</a>        if _debug then printx(1 , &quot;UBFuuuAdjustManager:onStartLevel  topLevel =&quot;, topLevel ) end</span>
+<span class="source-line" id="L964"><a class="line-num" href="#L964">964</a></span>
+<span class="source-line" id="L965"><a class="line-num" href="#L965">965</a>        if topLevel and topLevel &lt;= 100 then</span>
+<span class="source-line" id="L966"><a class="line-num" href="#L966">966</a>            _doUpdate = true</span>
+<span class="source-line" id="L967"><a class="line-num" href="#L967">967</a>        end</span>
+<span class="source-line" id="L968"><a class="line-num" href="#L968">968</a>    end</span>
+<span class="source-line" id="L969"><a class="line-num" href="#L969">969</a>                                       </span>
+<span class="source-line" id="L970"><a class="line-num" href="#L970">970</a>    if (not contextData.timeDay) or contextData.timeDay ~= nowtimeDay then</span>
+<span class="source-line" id="L971"><a class="line-num" href="#L971">971</a>        contextData.timeDay = nowtimeDay</span>
+<span class="source-line" id="L972"><a class="line-num" href="#L972">972</a></span>
+<span class="source-line" id="L973"><a class="line-num" href="#L973">973</a>        contextData.todayPlayCount = 0</span>
+<span class="source-line" id="L974"><a class="line-num" href="#L974">974</a>        contextData.todayPassLevelCount = 0</span>
+<span class="source-line" id="L975"><a class="line-num" href="#L975">975</a>        contextData.todayStreakWinCount = 0</span>
+<span class="source-line" id="L976"><a class="line-num" href="#L976">976</a>        contextData.todayStreakWinBreakCount = 0</span>
+<span class="source-line" id="L977"><a class="line-num" href="#L977">977</a>        _needSave = true</span>
+<span class="source-line" id="L978"><a class="line-num" href="#L978">978</a>        _doUpdate = true</span>
+<span class="source-line" id="L979"><a class="line-num" href="#L979">979</a>    end</span>
+<span class="source-line" id="L980"><a class="line-num" href="#L980">980</a></span>
+<span class="source-line" id="L981"><a class="line-num" href="#L981">981</a>    if _doUpdate then</span>
+<span class="source-line" id="L982"><a class="line-num" href="#L982">982</a>        self:updateAdjustContextData()</span>
+<span class="source-line" id="L983"><a class="line-num" href="#L983">983</a>    end</span>
+<span class="source-line" id="L984"><a class="line-num" href="#L984">984</a></span>
+<span class="source-line" id="L985"><a class="line-num" href="#L985">985</a>    if _needSave then</span>
+<span class="source-line" id="L986"><a class="line-num" href="#L986">986</a>        self:setAdjustContextData(contextData)</span>
+<span class="source-line" id="L987"><a class="line-num" href="#L987">987</a>    end</span>
+<span class="source-line" id="L988"><a class="line-num" href="#L988">988</a>end</span>
+<span class="source-line" id="L989"><a class="line-num" href="#L989">989</a></span>
+<span class="source-line" id="L990"><a class="line-num" href="#L990">990</a></span>
+<span class="source-line" id="L991"><a class="line-num" href="#L991">991</a>-- 这个方法仅用于小游戏，待统一</span>
+<span class="source-line" id="L992"><a class="line-num" href="#L992">992</a>function UBFuuuAdjustManager:onEndLevel( ubfELRuntime )</span>
+<span class="source-line" id="L993"><a class="line-num" href="#L993">993</a></span>
+<span class="source-line" id="L994"><a class="line-num" href="#L994">994</a>    -- if _debug then printx(1 , &quot;UBFuuuAdjustManager:onEndLevel  endLevelData =&quot;, tts(ubfELRuntime) ) end</span>
+<span class="source-line" id="L995"><a class="line-num" href="#L995">995</a></span>
+<span class="source-line" id="L996"><a class="line-num" href="#L996">996</a>    --levelId, score, star, isLogicalFail</span>
+<span class="source-line" id="L997"><a class="line-num" href="#L997">997</a>    local levelId = ubfELRuntime:getLevelId()</span>
+<span class="source-line" id="L998"><a class="line-num" href="#L998">998</a>    local isWin = ubfELRuntime:isWin()</span>
+<span class="source-line" id="L999"><a class="line-num" href="#L999">999</a>    local isLogicalFail = ubfELRuntime:isLogicalFail()</span>
+<span class="source-line" id="L1000"><a class="line-num" href="#L1000">1000</a></span>
+<span class="source-line" id="L1001"><a class="line-num" href="#L1001">1001</a>    if _debug then printx(1 , &quot;UBFuuuAdjustManager:onPassLevel -========================= \n&quot;, &quot;levelId:&quot;, levelId, &quot;isWin:&quot;, isWin, &quot;isLogicalFail:&quot;, isLogicalFail ) end</span>
+<span class="source-line" id="L1002"><a class="line-num" href="#L1002">1002</a></span>
+<span class="source-line" id="L1003"><a class="line-num" href="#L1003">1003</a>    local isMainLevel = ubfELRuntime:getLevelType() == GameLevelType.kMainLevel</span>
+<span class="source-line" id="L1004"><a class="line-num" href="#L1004">1004</a>    if not isMainLevel then return end</span>
+<span class="source-line" id="L1005"><a class="line-num" href="#L1005">1005</a></span>
+<span class="source-line" id="L1006"><a class="line-num" href="#L1006">1006</a></span>
+<span class="source-line" id="L1007"><a class="line-num" href="#L1007">1007</a>    local _endGameData = ubfELRuntime:getEndLevelData()</span>
+<span class="source-line" id="L1008"><a class="line-num" href="#L1008">1008</a></span>
+<span class="source-line" id="L1009"><a class="line-num" href="#L1009">1009</a>    local passCollectByUseProp = false</span>
+<span class="source-line" id="L1010"><a class="line-num" href="#L1010">1010</a></span>
+<span class="source-line" id="L1011"><a class="line-num" href="#L1011">1011</a>    local levelInfo = UBFGameSceneManager:getInstance():getLevelInfo()</span>
+<span class="source-line" id="L1012"><a class="line-num" href="#L1012">1012</a>    if levelInfo.usePropList then</span>
+<span class="source-line" id="L1013"><a class="line-num" href="#L1013">1013</a>        local _propPassMap = {</span>
+<span class="source-line" id="L1014"><a class="line-num" href="#L1014">1014</a>            [UBFPropUnitType.kRefresh] = true,</span>
+<span class="source-line" id="L1015"><a class="line-num" href="#L1015">1015</a>            [UBFPropUnitType.kRevert] = true,</span>
+<span class="source-line" id="L1016"><a class="line-num" href="#L1016">1016</a>            [UBFPropUnitType.kAddStep5] = true,</span>
+<span class="source-line" id="L1017"><a class="line-num" href="#L1017">1017</a>            [UBFPropUnitType.kAddStep15] = true,</span>
+<span class="source-line" id="L1018"><a class="line-num" href="#L1018">1018</a>        }</span>
+<span class="source-line" id="L1019"><a class="line-num" href="#L1019">1019</a></span>
+<span class="source-line" id="L1020"><a class="line-num" href="#L1020">1020</a>        for k,v in ipairs(levelInfo.usePropList) do</span>
+<span class="source-line" id="L1021"><a class="line-num" href="#L1021">1021</a>            if not _propPassMap[v.propUnitType] and not v.isPreprop then</span>
+<span class="source-line" id="L1022"><a class="line-num" href="#L1022">1022</a>                passCollectByUseProp = true</span>
+<span class="source-line" id="L1023"><a class="line-num" href="#L1023">1023</a>                break</span>
+<span class="source-line" id="L1024"><a class="line-num" href="#L1024">1024</a>            end</span>
+<span class="source-line" id="L1025"><a class="line-num" href="#L1025">1025</a>        end</span>
+<span class="source-line" id="L1026"><a class="line-num" href="#L1026">1026</a>    end</span>
+<span class="source-line" id="L1027"><a class="line-num" href="#L1027">1027</a></span>
+<span class="source-line" id="L1028"><a class="line-num" href="#L1028">1028</a>    if _endGameData and _endGameData.dcData and _endGameData.dcData.UBFuuu then</span>
+<span class="source-line" id="L1029"><a class="line-num" href="#L1029">1029</a>        _endGameData.dcData.UBFuuu.passCollectByUseProp = passCollectByUseProp</span>
+<span class="source-line" id="L1030"><a class="line-num" href="#L1030">1030</a>    end</span>
+<span class="source-line" id="L1031"><a class="line-num" href="#L1031">1031</a></span>
+<span class="source-line" id="L1032"><a class="line-num" href="#L1032">1032</a></span>
+<span class="source-line" id="L1033"><a class="line-num" href="#L1033">1033</a></span>
+<span class="source-line" id="L1034"><a class="line-num" href="#L1034">1034</a>    if isWin or isLogicalFail then</span>
+<span class="source-line" id="L1035"><a class="line-num" href="#L1035">1035</a>        local contextData = self:getAdjustContextData()</span>
+<span class="source-line" id="L1036"><a class="line-num" href="#L1036">1036</a></span>
+<span class="source-line" id="L1037"><a class="line-num" href="#L1037">1037</a>        if not contextData.todayPlayCount then contextData.todayPlayCount = 0 end</span>
+<span class="source-line" id="L1038"><a class="line-num" href="#L1038">1038</a>        contextData.todayPlayCount = contextData.todayPlayCount + 1</span>
+<span class="source-line" id="L1039"><a class="line-num" href="#L1039">1039</a></span>
+<span class="source-line" id="L1040"><a class="line-num" href="#L1040">1040</a>        if isWin then</span>
+<span class="source-line" id="L1041"><a class="line-num" href="#L1041">1041</a></span>
+<span class="source-line" id="L1042"><a class="line-num" href="#L1042">1042</a>            if not contextData.todayPassLevelCount then</span>
+<span class="source-line" id="L1043"><a class="line-num" href="#L1043">1043</a>                contextData.todayPassLevelCount = 0</span>
+<span class="source-line" id="L1044"><a class="line-num" href="#L1044">1044</a>            end</span>
+<span class="source-line" id="L1045"><a class="line-num" href="#L1045">1045</a></span>
+<span class="source-line" id="L1046"><a class="line-num" href="#L1046">1046</a>            contextData.todayPassLevelCount = contextData.todayPassLevelCount + 1</span>
+<span class="source-line" id="L1047"><a class="line-num" href="#L1047">1047</a>        end</span>
+<span class="source-line" id="L1048"><a class="line-num" href="#L1048">1048</a></span>
+<span class="source-line" id="L1049"><a class="line-num" href="#L1049">1049</a>        self:setAdjustContextData(contextData)</span>
+<span class="source-line" id="L1050"><a class="line-num" href="#L1050">1050</a>    end</span>
+<span class="source-line" id="L1051"><a class="line-num" href="#L1051">1051</a></span>
+<span class="source-line" id="L1052"><a class="line-num" href="#L1052">1052</a>    -- 刷星失败次数：本局最终状态直接更新本地乐观值，联网后由服务端下发覆盖</span>
+<span class="source-line" id="L1053"><a class="line-num" href="#L1053">1053</a>    -- 退出/重玩/非正常结束由纯函数 fail-closed 过滤，首闯 0 星与满星不参与</span>
+<span class="source-line" id="L1054"><a class="line-num" href="#L1054">1054</a>    local _farmStarAction = UBFuuuAdjustManager.resolveFarmStarResultAction({</span>
+<span class="source-line" id="L1055"><a class="line-num" href="#L1055">1055</a>        isWin = isWin,</span>
+<span class="source-line" id="L1056"><a class="line-num" href="#L1056">1056</a>        star = ubfELRuntime:getStar(),</span>
+<span class="source-line" id="L1057"><a class="line-num" href="#L1057">1057</a>        oldStar = ubfELRuntime:getOldStar(),</span>
+<span class="source-line" id="L1058"><a class="line-num" href="#L1058">1058</a>        failReason = ubfELRuntime:getLevelFailReason(),</span>
+<span class="source-line" id="L1059"><a class="line-num" href="#L1059">1059</a>    })</span>
+<span class="source-line" id="L1060"><a class="line-num" href="#L1060">1060</a>    if _farmStarAction then</span>
+<span class="source-line" id="L1061"><a class="line-num" href="#L1061">1061</a>        self:applyFarmStarFailCountResult(levelId, _farmStarAction)</span>
+<span class="source-line" id="L1062"><a class="line-num" href="#L1062">1062</a>    end</span>
+<span class="source-line" id="L1063"><a class="line-num" href="#L1063">1063</a>end</span>
+<span class="source-line" id="L1064"><a class="line-num" href="#L1064">1064</a></span>
+<span class="source-line" id="L1065"><a class="line-num" href="#L1065">1065</a>-- 这个方法仅用于app，待统一</span>
+<span class="source-line" id="L1066"><a class="line-num" href="#L1066">1066</a>function UBFuuuAdjustManager:onPassLevel( levelId, score, star, isLogicalFail )</span>
+<span class="source-line" id="L1067"><a class="line-num" href="#L1067">1067</a>    if _debug then printx(1 , &quot;UBFuuuAdjustManager:onPassLevel -========================= \n&quot;, &quot;levelId:&quot;, levelId, &quot;score:&quot;, score, &quot;star:&quot;, star, &quot;isLogicalFail:&quot;, isLogicalFail ) end</span>
+<span class="source-line" id="L1068"><a class="line-num" href="#L1068">1068</a></span>
+<span class="source-line" id="L1069"><a class="line-num" href="#L1069">1069</a>    local levelScene = UBFLevelIdUtil:tryGetCurrLevelScene()</span>
+<span class="source-line" id="L1070"><a class="line-num" href="#L1070">1070</a>    local isMainLevel = UBFLevelSceneFunc:isMainLevel(levelScene)</span>
+<span class="source-line" id="L1071"><a class="line-num" href="#L1071">1071</a>    if not isMainLevel then return end</span>
+<span class="source-line" id="L1072"><a class="line-num" href="#L1072">1072</a></span>
+<span class="source-line" id="L1073"><a class="line-num" href="#L1073">1073</a>    if star &gt; 0 or isLogicalFail then</span>
+<span class="source-line" id="L1074"><a class="line-num" href="#L1074">1074</a>        local contextData = self:getAdjustContextData()</span>
+<span class="source-line" id="L1075"><a class="line-num" href="#L1075">1075</a></span>
+<span class="source-line" id="L1076"><a class="line-num" href="#L1076">1076</a>        if not contextData.todayPlayCount then contextData.todayPlayCount = 0 end</span>
+<span class="source-line" id="L1077"><a class="line-num" href="#L1077">1077</a>        contextData.todayPlayCount = contextData.todayPlayCount + 1</span>
+<span class="source-line" id="L1078"><a class="line-num" href="#L1078">1078</a></span>
+<span class="source-line" id="L1079"><a class="line-num" href="#L1079">1079</a>        if star &gt; 0 then</span>
+<span class="source-line" id="L1080"><a class="line-num" href="#L1080">1080</a></span>
+<span class="source-line" id="L1081"><a class="line-num" href="#L1081">1081</a>            if not contextData.todayPassLevelCount then</span>
+<span class="source-line" id="L1082"><a class="line-num" href="#L1082">1082</a>                contextData.todayPassLevelCount = 0</span>
+<span class="source-line" id="L1083"><a class="line-num" href="#L1083">1083</a>            end</span>
+<span class="source-line" id="L1084"><a class="line-num" href="#L1084">1084</a></span>
+<span class="source-line" id="L1085"><a class="line-num" href="#L1085">1085</a>            contextData.todayPassLevelCount = contextData.todayPassLevelCount + 1</span>
+<span class="source-line" id="L1086"><a class="line-num" href="#L1086">1086</a>        end</span>
+<span class="source-line" id="L1087"><a class="line-num" href="#L1087">1087</a>        </span>
+<span class="source-line" id="L1088"><a class="line-num" href="#L1088">1088</a>        self:setAdjustContextData(contextData)</span>
+<span class="source-line" id="L1089"><a class="line-num" href="#L1089">1089</a>    end</span>
+<span class="source-line" id="L1090"><a class="line-num" href="#L1090">1090</a>end</span>
+<span class="source-line" id="L1091"><a class="line-num" href="#L1091">1091</a></span>
+<span class="source-line" id="L1092"><a class="line-num" href="#L1092">1092</a>function UBFuuuAdjustManager:onActPassDay()</span>
+<span class="source-line" id="L1093"><a class="line-num" href="#L1093">1093</a>    local contextData = self:getAdjustContextData()</span>
+<span class="source-line" id="L1094"><a class="line-num" href="#L1094">1094</a>    contextData.todayPlayCount = 0</span>
+<span class="source-line" id="L1095"><a class="line-num" href="#L1095">1095</a>    contextData.todayPassLevelCount = 0</span>
+<span class="source-line" id="L1096"><a class="line-num" href="#L1096">1096</a>    contextData.todayStreakWinCount = 0</span>
+<span class="source-line" id="L1097"><a class="line-num" href="#L1097">1097</a>    contextData.todayStreakWinBreakCount = 0</span>
+<span class="source-line" id="L1098"><a class="line-num" href="#L1098">1098</a>    self:setAdjustContextData(contextData)</span>
+<span class="source-line" id="L1099"><a class="line-num" href="#L1099">1099</a></span>
+<span class="source-line" id="L1100"><a class="line-num" href="#L1100">1100</a>    if _debug then printx( 1, &quot;UBFuuuAdjustManager:onActPassDay ------------  contextData =&quot; , contextData ) end</span>
+<span class="source-line" id="L1101"><a class="line-num" href="#L1101">1101</a>end</span>
+<span class="source-line" id="L1102"><a class="line-num" href="#L1102">1102</a></span>
+<span class="source-line" id="L1103"><a class="line-num" href="#L1103">1103</a></span>
+<span class="source-line" id="L1104"><a class="line-num" href="#L1104">1104</a>function UBFuuuAdjustManager:getAdjustContextIniteState()</span>
+<span class="source-line" id="L1105"><a class="line-num" href="#L1105">1105</a>    return self.adjustContextIniteState</span>
+<span class="source-line" id="L1106"><a class="line-num" href="#L1106">1106</a>end</span>
+<span class="source-line" id="L1107"><a class="line-num" href="#L1107">1107</a></span>
+<span class="source-line" id="L1108"><a class="line-num" href="#L1108">1108</a>function UBFuuuAdjustManager:getAdjustContextData()</span>
+<span class="source-line" id="L1109"><a class="line-num" href="#L1109">1109</a>    if not self.contextData then</span>
+<span class="source-line" id="L1110"><a class="line-num" href="#L1110">1110</a>        self.contextData = self:loadData(_UBFuuuContextFileName) or {}</span>
+<span class="source-line" id="L1111"><a class="line-num" href="#L1111">1111</a>    end</span>
+<span class="source-line" id="L1112"><a class="line-num" href="#L1112">1112</a>    return self.contextData</span>
+<span class="source-line" id="L1113"><a class="line-num" href="#L1113">1113</a>end</span>
+<span class="source-line" id="L1114"><a class="line-num" href="#L1114">1114</a></span>
+<span class="source-line" id="L1115"><a class="line-num" href="#L1115">1115</a>function UBFuuuAdjustManager:setAdjustContextData( newContextData, donotSaveToFile )</span>
+<span class="source-line" id="L1116"><a class="line-num" href="#L1116">1116</a>    self.contextData = newContextData</span>
+<span class="source-line" id="L1117"><a class="line-num" href="#L1117">1117</a>    if not donotSaveToFile then</span>
+<span class="source-line" id="L1118"><a class="line-num" href="#L1118">1118</a>        self:saveData(self.contextData, _UBFuuuContextFileName)</span>
+<span class="source-line" id="L1119"><a class="line-num" href="#L1119">1119</a>    end</span>
+<span class="source-line" id="L1120"><a class="line-num" href="#L1120">1120</a>end</span>
+<span class="source-line" id="L1121"><a class="line-num" href="#L1121">1121</a></span>
+<span class="source-line" id="L1122"><a class="line-num" href="#L1122">1122</a>function UBFuuuAdjustManager:__getDcMapByPropUsageMap(propUsageMap)</span>
+<span class="source-line" id="L1123"><a class="line-num" href="#L1123">1123</a>    local _propUsageMap_forDC = {}</span>
+<span class="source-line" id="L1124"><a class="line-num" href="#L1124">1124</a></span>
+<span class="source-line" id="L1125"><a class="line-num" href="#L1125">1125</a>    if propUsageMap then</span>
+<span class="source-line" id="L1126"><a class="line-num" href="#L1126">1126</a>        for k,v in pairs(propUsageMap) do</span>
+<span class="source-line" id="L1127"><a class="line-num" href="#L1127">1127</a></span>
+<span class="source-line" id="L1128"><a class="line-num" href="#L1128">1128</a>            _propUsageMap_forDC[ tostring(k) .. &quot;_bagItemCount&quot; ] = v.bagItemCount</span>
+<span class="source-line" id="L1129"><a class="line-num" href="#L1129">1129</a>            _propUsageMap_forDC[ tostring(k) .. &quot;_discountItemCount&quot; ] = v.discountItemCount</span>
+<span class="source-line" id="L1130"><a class="line-num" href="#L1130">1130</a>            _propUsageMap_forDC[ tostring(k) .. &quot;_videoItemCount&quot; ] = v.videoItemCount</span>
+<span class="source-line" id="L1131"><a class="line-num" href="#L1131">1131</a>            </span>
+<span class="source-line" id="L1132"><a class="line-num" href="#L1132">1132</a>        end</span>
+<span class="source-line" id="L1133"><a class="line-num" href="#L1133">1133</a>    end</span>
+<span class="source-line" id="L1134"><a class="line-num" href="#L1134">1134</a>    return _propUsageMap_forDC</span>
+<span class="source-line" id="L1135"><a class="line-num" href="#L1135">1135</a>end</span>
+<span class="source-line" id="L1136"><a class="line-num" href="#L1136">1136</a></span>
+<span class="source-line" id="L1137"><a class="line-num" href="#L1137">1137</a>function UBFuuuAdjustManager:__creatContextDataByServerResponseBean( datas )</span>
+<span class="source-line" id="L1138"><a class="line-num" href="#L1138">1138</a>    local _contextData = {}</span>
+<span class="source-line" id="L1139"><a class="line-num" href="#L1139">1139</a></span>
+<span class="source-line" id="L1140"><a class="line-num" href="#L1140">1140</a>    --新用户闯关能力标签值（0-99）</span>
+<span class="source-line" id="L1141"><a class="line-num" href="#L1141">1141</a>    _contextData.newUserLevelSkillValue = datas.newUserLevelSkillValue </span>
+<span class="source-line" id="L1142"><a class="line-num" href="#L1142">1142</a></span>
+<span class="source-line" id="L1143"><a class="line-num" href="#L1143">1143</a>    --新用户闯关能力标签，1-8，  标签有可能延迟生成，注意兼容</span>
+<span class="source-line" id="L1144"><a class="line-num" href="#L1144">1144</a>    _contextData.newUserLevelSkillTag = datas.newUserLevelSkillTag </span>
+<span class="source-line" id="L1145"><a class="line-num" href="#L1145">1145</a></span>
+<span class="source-line" id="L1146"><a class="line-num" href="#L1146">1146</a>    --过去 28 天的登录次数的列表（不包含今天），每天一个槽位，列表第一个是昨天（时间越靠前，列表越靠后）</span>
+<span class="source-line" id="L1147"><a class="line-num" href="#L1147">1147</a>    --值为0或1的数字，0表示当日为登录，1表示当日有登录</span>
+<span class="source-line" id="L1148"><a class="line-num" href="#L1148">1148</a>    _contextData.dailyLoginCountList = datas.activeDayInLast28Days</span>
+<span class="source-line" id="L1149"><a class="line-num" href="#L1149">1149</a>    </span>
+<span class="source-line" id="L1150"><a class="line-num" href="#L1150">1150</a>    --过去 30 天的闯关次数（不包含今天），每天一个槽位，列表第一个是昨天（时间越靠前，列表越靠后）</span>
+<span class="source-line" id="L1151"><a class="line-num" href="#L1151">1151</a>    _contextData.dailyPlayCountList = datas.challengeCountInLast30Days --注意，这个字段同时用于判断整个数据的合法性，不能随便改名或者删除</span>
+<span class="source-line" id="L1152"><a class="line-num" href="#L1152">1152</a></span>
+<span class="source-line" id="L1153"><a class="line-num" href="#L1153">1153</a>    --最近最多30个区域的统计信息列表</span>
+<span class="source-line" id="L1154"><a class="line-num" href="#L1154">1154</a>    _contextData.areaStatisticInfoList = datas.areaSummaryBeans</span>
+<span class="source-line" id="L1155"><a class="line-num" href="#L1155">1155</a></span>
+<span class="source-line" id="L1156"><a class="line-num" href="#L1156">1156</a>    --最近一次服务端计算并落库的 activityIndex1 原始查表值，以及对应自然日</span>
+<span class="source-line" id="L1157"><a class="line-num" href="#L1157">1157</a>    _contextData.latestActivityIndex1 = datas.latestActivityIndex1</span>
+<span class="source-line" id="L1158"><a class="line-num" href="#L1158">1158</a>    _contextData.latestActivityIndex1Day = datas.latestActivityIndex1Day</span>
+<span class="source-line" id="L1159"><a class="line-num" href="#L1159">1159</a></span>
+<span class="source-line" id="L1160"><a class="line-num" href="#L1160">1160</a>    --当日闯关次数</span>
+<span class="source-line" id="L1161"><a class="line-num" href="#L1161">1161</a>    _contextData.todayPlayCount = 0</span>
+<span class="source-line" id="L1162"><a class="line-num" href="#L1162">1162</a></span>
+<span class="source-line" id="L1163"><a class="line-num" href="#L1163">1163</a>    _contextData.playCount3 = 0</span>
+<span class="source-line" id="L1164"><a class="line-num" href="#L1164">1164</a>    _contextData.playCount7 = 0</span>
+<span class="source-line" id="L1165"><a class="line-num" href="#L1165">1165</a>    _contextData.playCount30 = 0</span>
+<span class="source-line" id="L1166"><a class="line-num" href="#L1166">1166</a></span>
+<span class="source-line" id="L1167"><a class="line-num" href="#L1167">1167</a>    if _contextData.dailyPlayCountList then</span>
+<span class="source-line" id="L1168"><a class="line-num" href="#L1168">1168</a>        for k,v in ipairs(_contextData.dailyPlayCountList) do</span>
+<span class="source-line" id="L1169"><a class="line-num" href="#L1169">1169</a>            if k == 1 then</span>
+<span class="source-line" id="L1170"><a class="line-num" href="#L1170">1170</a>                _contextData.todayPlayCount = v</span>
+<span class="source-line" id="L1171"><a class="line-num" href="#L1171">1171</a>            elseif k &lt;= 4 then</span>
+<span class="source-line" id="L1172"><a class="line-num" href="#L1172">1172</a>                _contextData.playCount3 = _contextData.playCount3 + v</span>
+<span class="source-line" id="L1173"><a class="line-num" href="#L1173">1173</a>                _contextData.playCount7 = _contextData.playCount7 + v</span>
+<span class="source-line" id="L1174"><a class="line-num" href="#L1174">1174</a>                _contextData.playCount30 = _contextData.playCount30 + v</span>
+<span class="source-line" id="L1175"><a class="line-num" href="#L1175">1175</a>            elseif k &lt;= 8 then</span>
+<span class="source-line" id="L1176"><a class="line-num" href="#L1176">1176</a>                _contextData.playCount7 = _contextData.playCount7 + v</span>
+<span class="source-line" id="L1177"><a class="line-num" href="#L1177">1177</a>                _contextData.playCount30 = _contextData.playCount30 + v</span>
+<span class="source-line" id="L1178"><a class="line-num" href="#L1178">1178</a>            else</span>
+<span class="source-line" id="L1179"><a class="line-num" href="#L1179">1179</a>                _contextData.playCount30 = _contextData.playCount30 + v</span>
+<span class="source-line" id="L1180"><a class="line-num" href="#L1180">1180</a>            end</span>
+<span class="source-line" id="L1181"><a class="line-num" href="#L1181">1181</a>        end</span>
+<span class="source-line" id="L1182"><a class="line-num" href="#L1182">1182</a>    end</span>
+<span class="source-line" id="L1183"><a class="line-num" href="#L1183">1183</a></span>
+<span class="source-line" id="L1184"><a class="line-num" href="#L1184">1184</a>    -- 过去28天（不含今天）的总闯关次数</span>
+<span class="source-line" id="L1185"><a class="line-num" href="#L1185">1185</a>    _contextData.playCount28 = 0</span>
+<span class="source-line" id="L1186"><a class="line-num" href="#L1186">1186</a>    if _contextData.dailyPlayCountList then</span>
+<span class="source-line" id="L1187"><a class="line-num" href="#L1187">1187</a>        for k,v in ipairs(_contextData.dailyPlayCountList) do</span>
+<span class="source-line" id="L1188"><a class="line-num" href="#L1188">1188</a>            if k &gt;= 2 and k &lt;= 29 then  -- index 2=昨天, index 29=28天前</span>
+<span class="source-line" id="L1189"><a class="line-num" href="#L1189">1189</a>                _contextData.playCount28 = _contextData.playCount28 + v</span>
+<span class="source-line" id="L1190"><a class="line-num" href="#L1190">1190</a>            end</span>
+<span class="source-line" id="L1191"><a class="line-num" href="#L1191">1191</a>        end</span>
+<span class="source-line" id="L1192"><a class="line-num" href="#L1192">1192</a>    end</span>
+<span class="source-line" id="L1193"><a class="line-num" href="#L1193">1193</a></span>
+<span class="source-line" id="L1194"><a class="line-num" href="#L1194">1194</a>    --修正后的 最近30天的 加权 打关次数</span>
+<span class="source-line" id="L1195"><a class="line-num" href="#L1195">1195</a>    _contextData.fixedPlayCount1 = math.floor( (_contextData.playCount3/3*1 + _contextData.playCount7/7*2 + _contextData.playCount30/30*2) / 5 + 0.5 )</span>
+<span class="source-line" id="L1196"><a class="line-num" href="#L1196">1196</a>    _contextData.fixedPlayCount2 = math.floor( (_contextData.playCount3/3*1 + _contextData.playCount7/7*3 + _contextData.playCount30/30*16) / 20 + 0.5 )</span>
+<span class="source-line" id="L1197"><a class="line-num" href="#L1197">1197</a>    _contextData.fixedPlayCount = _contextData.fixedPlayCount1</span>
+<span class="source-line" id="L1198"><a class="line-num" href="#L1198">1198</a></span>
+<span class="source-line" id="L1199"><a class="line-num" href="#L1199">1199</a>    --最近28的 登录天数</span>
+<span class="source-line" id="L1200"><a class="line-num" href="#L1200">1200</a>    _contextData.loginDayCount28 = 0</span>
+<span class="source-line" id="L1201"><a class="line-num" href="#L1201">1201</a>    _contextData.loginDayCount7 = 0</span>
+<span class="source-line" id="L1202"><a class="line-num" href="#L1202">1202</a></span>
+<span class="source-line" id="L1203"><a class="line-num" href="#L1203">1203</a>    if _contextData.dailyLoginCountList then</span>
+<span class="source-line" id="L1204"><a class="line-num" href="#L1204">1204</a>        for k,v in ipairs(_contextData.dailyLoginCountList) do</span>
+<span class="source-line" id="L1205"><a class="line-num" href="#L1205">1205</a>            if v &gt; 0 then</span>
+<span class="source-line" id="L1206"><a class="line-num" href="#L1206">1206</a>                _contextData.loginDayCount28 = _contextData.loginDayCount28 + 1</span>
+<span class="source-line" id="L1207"><a class="line-num" href="#L1207">1207</a>                if k &lt;= 7 then</span>
+<span class="source-line" id="L1208"><a class="line-num" href="#L1208">1208</a>                    _contextData.loginDayCount7 = _contextData.loginDayCount7 + 1</span>
+<span class="source-line" id="L1209"><a class="line-num" href="#L1209">1209</a>                end</span>
+<span class="source-line" id="L1210"><a class="line-num" href="#L1210">1210</a>            end</span>
+<span class="source-line" id="L1211"><a class="line-num" href="#L1211">1211</a>        end</span>
+<span class="source-line" id="L1212"><a class="line-num" href="#L1212">1212</a>    end</span>
+<span class="source-line" id="L1213"><a class="line-num" href="#L1213">1213</a></span>
+<span class="source-line" id="L1214"><a class="line-num" href="#L1214">1214</a>    --最近30区域的 加二步 使用数</span>
+<span class="source-line" id="L1215"><a class="line-num" href="#L1215">1215</a>    _contextData.add2StepOnLast30Areas = 0</span>
+<span class="source-line" id="L1216"><a class="line-num" href="#L1216">1216</a></span>
+<span class="source-line" id="L1217"><a class="line-num" href="#L1217">1217</a>    --最近30区域的 激励视频加二步 使用数</span>
+<span class="source-line" id="L1218"><a class="line-num" href="#L1218">1218</a>    _contextData.videoAddStepCount = 0</span>
+<span class="source-line" id="L1219"><a class="line-num" href="#L1219">1219</a></span>
+<span class="source-line" id="L1220"><a class="line-num" href="#L1220">1220</a>    --最近30区域的 加五步 使用数</span>
+<span class="source-line" id="L1221"><a class="line-num" href="#L1221">1221</a>    _contextData.add5StepOnLast30Areas = 0</span>
+<span class="source-line" id="L1222"><a class="line-num" href="#L1222">1222</a></span>
+<span class="source-line" id="L1223"><a class="line-num" href="#L1223">1223</a>    _contextData.hammerOnLast30Areas = 0</span>
+<span class="source-line" id="L1224"><a class="line-num" href="#L1224">1224</a>    _contextData.rocketOnLast30Areas = 0</span>
+<span class="source-line" id="L1225"><a class="line-num" href="#L1225">1225</a>    _contextData.linebrushOnLast30Areas = 0</span>
+<span class="source-line" id="L1226"><a class="line-num" href="#L1226">1226</a>    _contextData.timeHammerOnLast30Areas = 0</span>
+<span class="source-line" id="L1227"><a class="line-num" href="#L1227">1227</a>    _contextData.timeRocketOnLast30Areas = 0</span>
+<span class="source-line" id="L1228"><a class="line-num" href="#L1228">1228</a>    _contextData.timeLinebrushOnLast30Areas = 0</span>
+<span class="source-line" id="L1229"><a class="line-num" href="#L1229">1229</a>    </span>
+<span class="source-line" id="L1230"><a class="line-num" href="#L1230">1230</a>    --最近30区域的 用户打关能力 修正系数</span>
+<span class="source-line" id="L1231"><a class="line-num" href="#L1231">1231</a>    _contextData.playerAbility = datas.playerAbility or 0</span>
+<span class="source-line" id="L1232"><a class="line-num" href="#L1232">1232</a>    _contextData.newUserLevelSkillValue = datas.newUserLevelSkillValue or -1</span>
+<span class="source-line" id="L1233"><a class="line-num" href="#L1233">1233</a>    _contextData.topPlayerAbilityValue = datas.topPlayerAbilityValue or -1</span>
+<span class="source-line" id="L1234"><a class="line-num" href="#L1234">1234</a>    _contextData.newUserAbility20250110Value = datas.newUserAbility20250110Value or -1</span>
+<span class="source-line" id="L1235"><a class="line-num" href="#L1235">1235</a>    _contextData.newUserAbility20250110Index = datas.newUserAbility20250110Index or -1</span>
+<span class="source-line" id="L1236"><a class="line-num" href="#L1236">1236</a></span>
+<span class="source-line" id="L1237"><a class="line-num" href="#L1237">1237</a>    _contextData.avgAbilityV250521Value = datas.avgAbilityV250521Value or -1</span>
+<span class="source-line" id="L1238"><a class="line-num" href="#L1238">1238</a>    _contextData.abilityV250521Index = datas.abilityV250521Index or -1</span>
+<span class="source-line" id="L1239"><a class="line-num" href="#L1239">1239</a></span>
+<span class="source-line" id="L1240"><a class="line-num" href="#L1240">1240</a>    _contextData.areaAbilityDCStr = nil</span>
+<span class="source-line" id="L1241"><a class="line-num" href="#L1241">1241</a>    _contextData.areaAbilityV250521DCStr = nil</span>
+<span class="source-line" id="L1242"><a class="line-num" href="#L1242">1242</a></span>
+<span class="source-line" id="L1243"><a class="line-num" href="#L1243">1243</a>    --上一个区域的 难度指数</span>
+<span class="source-line" id="L1244"><a class="line-num" href="#L1244">1244</a>    _contextData.diffIndexOnLastArea = 6 --todo</span>
+<span class="source-line" id="L1245"><a class="line-num" href="#L1245">1245</a></span>
+<span class="source-line" id="L1246"><a class="line-num" href="#L1246">1246</a>    _contextData.topLevelLastPLayDiffIndex = datas.prevLogicDiffIndex</span>
+<span class="source-line" id="L1247"><a class="line-num" href="#L1247">1247</a></span>
+<span class="source-line" id="L1248"><a class="line-num" href="#L1248">1248</a>    --当前topLevel是否处于保底状态</span>
+<span class="source-line" id="L1249"><a class="line-num" href="#L1249">1249</a>    _contextData.toplevelBaoDiFlag = datas.toplevelBaoDiFlag</span>
+<span class="source-line" id="L1250"><a class="line-num" href="#L1250">1250</a></span>
+<span class="source-line" id="L1251"><a class="line-num" href="#L1251">1251</a>    if _contextData.toplevelBaoDiFlag then</span>
+<span class="source-line" id="L1252"><a class="line-num" href="#L1252">1252</a>        _contextData.toplevelBaoDiLevel = UserManager:getInstance():getUserRef():getTopLevelId()</span>
+<span class="source-line" id="L1253"><a class="line-num" href="#L1253">1253</a>    end</span>
+<span class="source-line" id="L1254"><a class="line-num" href="#L1254">1254</a>    </span>
+<span class="source-line" id="L1255"><a class="line-num" href="#L1255">1255</a></span>
+<span class="source-line" id="L1256"><a class="line-num" href="#L1256">1256</a>    --当日的过关次数</span>
+<span class="source-line" id="L1257"><a class="line-num" href="#L1257">1257</a>    _contextData.todayPassLevelCount = datas.todayPassLevelCount</span>
+<span class="source-line" id="L1258"><a class="line-num" href="#L1258">1258</a>    _contextData.todayStreakWinCount = datas.todayStreakWinCount or 0</span>
+<span class="source-line" id="L1259"><a class="line-num" href="#L1259">1259</a>    _contextData.todayStreakWinBreakCount = datas.todayStreakWinBreakCount or 0</span>
+<span class="source-line" id="L1260"><a class="line-num" href="#L1260">1260</a>    -- printx( 1, &quot;UBFuuuAdjustManager:__creatContextDataByServerResponseBean ------------  todayPassLevelCount =&quot;, _contextData.todayPassLevelCount, &quot;  todayStreakWinCount:&quot;, datas.todayStreakWinCount, &quot;  todayStreakWinBreakCount:&quot;, datas.todayStreakWinBreakCount )</span>
+<span class="source-line" id="L1261"><a class="line-num" href="#L1261">1261</a></span>
+<span class="source-line" id="L1262"><a class="line-num" href="#L1262">1262</a>    local _abilitySum = 0</span>
+<span class="source-line" id="L1263"><a class="line-num" href="#L1263">1263</a>    local _abilityCount = 0</span>
+<span class="source-line" id="L1264"><a class="line-num" href="#L1264">1264</a>    local _areaAbilityDCStrTime = nil</span>
+<span class="source-line" id="L1265"><a class="line-num" href="#L1265">1265</a></span>
+<span class="source-line" id="L1266"><a class="line-num" href="#L1266">1266</a>    local _areaCashValueDcString = nil</span>
+<span class="source-line" id="L1267"><a class="line-num" href="#L1267">1267</a>    local _areaFarmCashValueDcString = nil</span>
+<span class="source-line" id="L1268"><a class="line-num" href="#L1268">1268</a>    local _areaTotalCashValueDcString = nil</span>
+<span class="source-line" id="L1269"><a class="line-num" href="#L1269">1269</a></span>
+<span class="source-line" id="L1270"><a class="line-num" href="#L1270">1270</a>    if _contextData.areaStatisticInfoList then</span>
+<span class="source-line" id="L1271"><a class="line-num" href="#L1271">1271</a>        for k,areaStatisticInfo in ipairs(_contextData.areaStatisticInfoList) do</span>
+<span class="source-line" id="L1272"><a class="line-num" href="#L1272">1272</a></span>
+<span class="source-line" id="L1273"><a class="line-num" href="#L1273">1273</a>            if areaStatisticInfo.areaId &gt; 40002 or areaStatisticInfo.areaId == 0 then</span>
+<span class="source-line" id="L1274"><a class="line-num" href="#L1274">1274</a>                _contextData.add2StepOnLast30Areas = _contextData.add2StepOnLast30Areas + (areaStatisticInfo.add2StepCount or 0)</span>
+<span class="source-line" id="L1275"><a class="line-num" href="#L1275">1275</a>                _contextData.videoAddStepCount = _contextData.videoAddStepCount + (areaStatisticInfo.videoAddStepCount or 0)</span>
+<span class="source-line" id="L1276"><a class="line-num" href="#L1276">1276</a>                _contextData.add5StepOnLast30Areas = _contextData.add5StepOnLast30Areas + (areaStatisticInfo.add5StepCount or 0)</span>
+<span class="source-line" id="L1277"><a class="line-num" href="#L1277">1277</a></span>
+<span class="source-line" id="L1278"><a class="line-num" href="#L1278">1278</a>                if areaStatisticInfo.areaId ~= 40003 then</span>
+<span class="source-line" id="L1279"><a class="line-num" href="#L1279">1279</a>                    _contextData.hammerOnLast30Areas = _contextData.hammerOnLast30Areas + (areaStatisticInfo.hammerCount or 0)</span>
+<span class="source-line" id="L1280"><a class="line-num" href="#L1280">1280</a>                    _contextData.timeHammerOnLast30Areas = _contextData.timeHammerOnLast30Areas + (areaStatisticInfo.timeHammerCount or 0)</span>
+<span class="source-line" id="L1281"><a class="line-num" href="#L1281">1281</a>                end</span>
+<span class="source-line" id="L1282"><a class="line-num" href="#L1282">1282</a>                _contextData.rocketOnLast30Areas = _contextData.rocketOnLast30Areas + (areaStatisticInfo.rocketCount or 0)</span>
+<span class="source-line" id="L1283"><a class="line-num" href="#L1283">1283</a>                _contextData.timeRocketOnLast30Areas = _contextData.timeRocketOnLast30Areas + (areaStatisticInfo.timeRocketCount or 0)</span>
+<span class="source-line" id="L1284"><a class="line-num" href="#L1284">1284</a>                _contextData.linebrushOnLast30Areas = _contextData.linebrushOnLast30Areas + (areaStatisticInfo.lineBrushCount or 0)</span>
+<span class="source-line" id="L1285"><a class="line-num" href="#L1285">1285</a>                _contextData.timeLinebrushOnLast30Areas = _contextData.timeLinebrushOnLast30Areas + (areaStatisticInfo.timeLineBrushCount or 0)</span>
+<span class="source-line" id="L1286"><a class="line-num" href="#L1286">1286</a>            end</span>
+<span class="source-line" id="L1287"><a class="line-num" href="#L1287">1287</a></span>
+<span class="source-line" id="L1288"><a class="line-num" href="#L1288">1288</a>            if not _areaCashValueDcString then</span>
+<span class="source-line" id="L1289"><a class="line-num" href="#L1289">1289</a>                _areaCashValueDcString = tostring( areaStatisticInfo.v250801CashValue or 0 )</span>
+<span class="source-line" id="L1290"><a class="line-num" href="#L1290">1290</a>            else</span>
+<span class="source-line" id="L1291"><a class="line-num" href="#L1291">1291</a>                _areaCashValueDcString = _areaCashValueDcString .. &quot;_&quot; .. tostring( areaStatisticInfo.v250801CashValue or 0 )</span>
+<span class="source-line" id="L1292"><a class="line-num" href="#L1292">1292</a>            end</span>
+<span class="source-line" id="L1293"><a class="line-num" href="#L1293">1293</a></span>
+<span class="source-line" id="L1294"><a class="line-num" href="#L1294">1294</a>            if not _areaFarmCashValueDcString then</span>
+<span class="source-line" id="L1295"><a class="line-num" href="#L1295">1295</a>                _areaFarmCashValueDcString = tostring( areaStatisticInfo.v250801FarmCashValue or 0 )</span>
+<span class="source-line" id="L1296"><a class="line-num" href="#L1296">1296</a>            else</span>
+<span class="source-line" id="L1297"><a class="line-num" href="#L1297">1297</a>                _areaFarmCashValueDcString = _areaFarmCashValueDcString .. &quot;_&quot; .. tostring( areaStatisticInfo.v250801FarmCashValue or 0 )</span>
+<span class="source-line" id="L1298"><a class="line-num" href="#L1298">1298</a>            end</span>
+<span class="source-line" id="L1299"><a class="line-num" href="#L1299">1299</a></span>
+<span class="source-line" id="L1300"><a class="line-num" href="#L1300">1300</a>            if not _areaTotalCashValueDcString then</span>
+<span class="source-line" id="L1301"><a class="line-num" href="#L1301">1301</a>                _areaTotalCashValueDcString = tostring( (areaStatisticInfo.v250801CashValue or 0) + (areaStatisticInfo.v250801FarmCashValue or 0) )</span>
+<span class="source-line" id="L1302"><a class="line-num" href="#L1302">1302</a>            else</span>
+<span class="source-line" id="L1303"><a class="line-num" href="#L1303">1303</a>                _areaTotalCashValueDcString = _areaTotalCashValueDcString .. &quot;_&quot; .. tostring( (areaStatisticInfo.v250801CashValue or 0) + (areaStatisticInfo.v250801FarmCashValue or 0) )</span>
+<span class="source-line" id="L1304"><a class="line-num" href="#L1304">1304</a>            end</span>
+<span class="source-line" id="L1305"><a class="line-num" href="#L1305">1305</a>            </span>
+<span class="source-line" id="L1306"><a class="line-num" href="#L1306">1306</a>            local _num = tonumber(areaStatisticInfo.regionChallengeAbility or 0)</span>
+<span class="source-line" id="L1307"><a class="line-num" href="#L1307">1307</a>            local _num_top = tonumber(areaStatisticInfo.topRegionChallengeAbility or 0)</span>
+<span class="source-line" id="L1308"><a class="line-num" href="#L1308">1308</a>            </span>
+<span class="source-line" id="L1309"><a class="line-num" href="#L1309">1309</a>            local _numStr = &quot;0&quot;</span>
+<span class="source-line" id="L1310"><a class="line-num" href="#L1310">1310</a></span>
+<span class="source-line" id="L1311"><a class="line-num" href="#L1311">1311</a>            if _num &gt; 0 then</span>
+<span class="source-line" id="L1312"><a class="line-num" href="#L1312">1312</a>                _numStr = tostring( math.floor(_num * 1000) / 1000 )</span>
+<span class="source-line" id="L1313"><a class="line-num" href="#L1313">1313</a>            elseif _num_top &gt; 0 then</span>
+<span class="source-line" id="L1314"><a class="line-num" href="#L1314">1314</a>                _numStr = &quot;T&quot; .. tostring( math.floor(_num_top * 1000) / 1000 )</span>
+<span class="source-line" id="L1315"><a class="line-num" href="#L1315">1315</a>            end</span>
+<span class="source-line" id="L1316"><a class="line-num" href="#L1316">1316</a>            </span>
+<span class="source-line" id="L1317"><a class="line-num" href="#L1317">1317</a>            --区域15关平均闯关能力（1-8）</span>
+<span class="source-line" id="L1318"><a class="line-num" href="#L1318">1318</a>            if _contextData.areaAbilityDCStr then</span>
+<span class="source-line" id="L1319"><a class="line-num" href="#L1319">1319</a>                _contextData.areaAbilityDCStr = _contextData.areaAbilityDCStr .. &quot;_&quot; .. _numStr</span>
+<span class="source-line" id="L1320"><a class="line-num" href="#L1320">1320</a>            else</span>
+<span class="source-line" id="L1321"><a class="line-num" href="#L1321">1321</a>                _contextData.areaAbilityDCStr = _numStr</span>
+<span class="source-line" id="L1322"><a class="line-num" href="#L1322">1322</a>            end</span>
+<span class="source-line" id="L1323"><a class="line-num" href="#L1323">1323</a></span>
+<span class="source-line" id="L1324"><a class="line-num" href="#L1324">1324</a>            if areaStatisticInfo.abilityV250521 then</span>
+<span class="source-line" id="L1325"><a class="line-num" href="#L1325">1325</a></span>
+<span class="source-line" id="L1326"><a class="line-num" href="#L1326">1326</a>                local _numV250521 = tonumber( areaStatisticInfo.abilityV250521 )</span>
+<span class="source-line" id="L1327"><a class="line-num" href="#L1327">1327</a>                </span>
+<span class="source-line" id="L1328"><a class="line-num" href="#L1328">1328</a>                if _numV250521 &gt; 0 then</span>
+<span class="source-line" id="L1329"><a class="line-num" href="#L1329">1329</a>                    local _str = tostring( math.floor(_numV250521 * 1000) / 1000 )</span>
+<span class="source-line" id="L1330"><a class="line-num" href="#L1330">1330</a>                    if _contextData.areaAbilityV250521DCStr then</span>
+<span class="source-line" id="L1331"><a class="line-num" href="#L1331">1331</a>                        _contextData.areaAbilityV250521DCStr = _contextData.areaAbilityV250521DCStr .. &quot;_&quot; .. _str</span>
+<span class="source-line" id="L1332"><a class="line-num" href="#L1332">1332</a>                    else</span>
+<span class="source-line" id="L1333"><a class="line-num" href="#L1333">1333</a>                        _contextData.areaAbilityV250521DCStr = _str</span>
+<span class="source-line" id="L1334"><a class="line-num" href="#L1334">1334</a>                    end</span>
+<span class="source-line" id="L1335"><a class="line-num" href="#L1335">1335</a>                end</span>
+<span class="source-line" id="L1336"><a class="line-num" href="#L1336">1336</a>            end</span>
+<span class="source-line" id="L1337"><a class="line-num" href="#L1337">1337</a></span>
+<span class="source-line" id="L1338"><a class="line-num" href="#L1338">1338</a>            _areaAbilityDCStrTime = self:timeInSec()</span>
+<span class="source-line" id="L1339"><a class="line-num" href="#L1339">1339</a></span>
+<span class="source-line" id="L1340"><a class="line-num" href="#L1340">1340</a>            if areaStatisticInfo.regionChallengeAbility and areaStatisticInfo.regionChallengeAbility ~= 0 then</span>
+<span class="source-line" id="L1341"><a class="line-num" href="#L1341">1341</a>                _abilitySum = _abilitySum + areaStatisticInfo.regionChallengeAbility</span>
+<span class="source-line" id="L1342"><a class="line-num" href="#L1342">1342</a>                _abilityCount = _abilityCount + 1</span>
+<span class="source-line" id="L1343"><a class="line-num" href="#L1343">1343</a>            end</span>
+<span class="source-line" id="L1344"><a class="line-num" href="#L1344">1344</a>            </span>
+<span class="source-line" id="L1345"><a class="line-num" href="#L1345">1345</a></span>
+<span class="source-line" id="L1346"><a class="line-num" href="#L1346">1346</a>            if k == 1 then</span>
+<span class="source-line" id="L1347"><a class="line-num" href="#L1347">1347</a>                if areaStatisticInfo.regionDiffAdjustIndexV2 then</span>
+<span class="source-line" id="L1348"><a class="line-num" href="#L1348">1348</a>                    _contextData.diffIndexOnLastArea = areaStatisticInfo.regionDiffAdjustIndexV2</span>
+<span class="source-line" id="L1349"><a class="line-num" href="#L1349">1349</a>                else</span>
+<span class="source-line" id="L1350"><a class="line-num" href="#L1350">1350</a>                    _contextData.diffIndexOnLastArea = areaStatisticInfo.regionDiffAdjustIndex or 6</span>
+<span class="source-line" id="L1351"><a class="line-num" href="#L1351">1351</a>                end</span>
+<span class="source-line" id="L1352"><a class="line-num" href="#L1352">1352</a>            end</span>
+<span class="source-line" id="L1353"><a class="line-num" href="#L1353">1353</a>        end</span>
+<span class="source-line" id="L1354"><a class="line-num" href="#L1354">1354</a>    end</span>
+<span class="source-line" id="L1355"><a class="line-num" href="#L1355">1355</a></span>
+<span class="source-line" id="L1356"><a class="line-num" href="#L1356">1356</a>    _contextData._areaCashValueDcString = _areaCashValueDcString</span>
+<span class="source-line" id="L1357"><a class="line-num" href="#L1357">1357</a>    _contextData._areaFarmCashValueDcString = _areaFarmCashValueDcString</span>
+<span class="source-line" id="L1358"><a class="line-num" href="#L1358">1358</a>    _contextData._areaTotalCashValueDcString = _areaTotalCashValueDcString</span>
+<span class="source-line" id="L1359"><a class="line-num" href="#L1359">1359</a></span>
+<span class="source-line" id="L1360"><a class="line-num" href="#L1360">1360</a>    _contextData.v250801PropUsageMap = datas.v250801PropUsageMap</span>
+<span class="source-line" id="L1361"><a class="line-num" href="#L1361">1361</a>    _contextData.v250801PropUsageMap_forDC = self:__getDcMapByPropUsageMap( datas.v250801PropUsageMap )</span>
+<span class="source-line" id="L1362"><a class="line-num" href="#L1362">1362</a>    _contextData.v250801CashValue = datas.v250801CashValue</span>
+<span class="source-line" id="L1363"><a class="line-num" href="#L1363">1363</a></span>
+<span class="source-line" id="L1364"><a class="line-num" href="#L1364">1364</a>    _contextData.v250801FarmPropUsageMap = datas.v250801FarmPropUsageMap</span>
+<span class="source-line" id="L1365"><a class="line-num" href="#L1365">1365</a>    _contextData.v250801FarmPropUsageMap_forDC = self:__getDcMapByPropUsageMap( datas.v250801FarmPropUsageMap )</span>
+<span class="source-line" id="L1366"><a class="line-num" href="#L1366">1366</a>    _contextData.v250801FarmCashValue = datas.v250801FarmCashValue</span>
+<span class="source-line" id="L1367"><a class="line-num" href="#L1367">1367</a></span>
+<span class="source-line" id="L1368"><a class="line-num" href="#L1368">1368</a>    if _areaAbilityDCStrTime then</span>
+<span class="source-line" id="L1369"><a class="line-num" href="#L1369">1369</a>        _contextData.areaAbilityDCStrTime = _areaAbilityDCStrTime</span>
+<span class="source-line" id="L1370"><a class="line-num" href="#L1370">1370</a>    end</span>
+<span class="source-line" id="L1371"><a class="line-num" href="#L1371">1371</a></span>
+<span class="source-line" id="L1372"><a class="line-num" href="#L1372">1372</a>    if _abilitySum ~= 0 and _abilityCount ~= 0 then</span>
+<span class="source-line" id="L1373"><a class="line-num" href="#L1373">1373</a>        _contextData.playerAbilityValue = math.floor((_abilitySum / _abilityCount) * 1000) / 1000</span>
+<span class="source-line" id="L1374"><a class="line-num" href="#L1374">1374</a>    else</span>
+<span class="source-line" id="L1375"><a class="line-num" href="#L1375">1375</a>        _contextData.playerAbilityValue = 0</span>
+<span class="source-line" id="L1376"><a class="line-num" href="#L1376">1376</a>    end</span>
+<span class="source-line" id="L1377"><a class="line-num" href="#L1377">1377</a>    </span>
+<span class="source-line" id="L1378"><a class="line-num" href="#L1378">1378</a>    local nowtime = self:timeInSec()</span>
+<span class="source-line" id="L1379"><a class="line-num" href="#L1379">1379</a>    local nowtimeDay = time2day(nowtime)</span>
+<span class="source-line" id="L1380"><a class="line-num" href="#L1380">1380</a>    _contextData.timeDay = nowtimeDay</span>
+<span class="source-line" id="L1381"><a class="line-num" href="#L1381">1381</a></span>
+<span class="source-line" id="L1382"><a class="line-num" href="#L1382">1382</a>    local topLevel = UserManager:getInstance():getUserRef():getTopLevelId()</span>
+<span class="source-line" id="L1383"><a class="line-num" href="#L1383">1383</a>    _contextData.currAreaId = math.floor( (topLevel - 1) / 15)</span>
+<span class="source-line" id="L1384"><a class="line-num" href="#L1384">1384</a></span>
+<span class="source-line" id="L1385"><a class="line-num" href="#L1385">1385</a>    if _debug then printx(1 , &quot;UBFuuuAdjustManager:__creatContextDataByServerResponseBean  topLevel:&quot;, topLevel, &quot;contextData.currAreaId:&quot;, _contextData.currAreaId ) end</span>
+<span class="source-line" id="L1386"><a class="line-num" href="#L1386">1386</a></span>
+<span class="source-line" id="L1387"><a class="line-num" href="#L1387">1387</a>    return _contextData</span>
+<span class="source-line" id="L1388"><a class="line-num" href="#L1388">1388</a>end</span>
+<span class="source-line" id="L1389"><a class="line-num" href="#L1389">1389</a></span>
+<span class="source-line" id="L1390"><a class="line-num" href="#L1390">1390</a></span>
+<span class="source-line" id="L1391"><a class="line-num" href="#L1391">1391</a></span>
+<span class="source-line" id="L1392"><a class="line-num" href="#L1392">1392</a></span>
+<span class="source-line" id="L1393"><a class="line-num" href="#L1393">1393</a>function UBFuuuAdjustManager:onUpdateAdjustContextData( datas )</span>
+<span class="source-line" id="L1394"><a class="line-num" href="#L1394">1394</a></span>
+<span class="source-line" id="L1395"><a class="line-num" href="#L1395">1395</a>    self.adjustContextIniteState = self.adjustContextIniteState + 2</span>
+<span class="source-line" id="L1396"><a class="line-num" href="#L1396">1396</a></span>
+<span class="source-line" id="L1397"><a class="line-num" href="#L1397">1397</a>    local newContextData = self:__creatContextDataByServerResponseBean( datas )</span>
+<span class="source-line" id="L1398"><a class="line-num" href="#L1398">1398</a>    newContextData.logicVer = 1</span>
+<span class="source-line" id="L1399"><a class="line-num" href="#L1399">1399</a>    newContextData.clientReceiveTime = self:timeInSec()</span>
+<span class="source-line" id="L1400"><a class="line-num" href="#L1400">1400</a></span>
+<span class="source-line" id="L1401"><a class="line-num" href="#L1401">1401</a>    if _debug then printx(1, &quot;UBFuuuAdjustManager:onUpdateAdjustContextData  newContextData =&quot;, newContextData, newContextData.todayPlayCount, newContextData.todayPassLevelCount ) end</span>
+<span class="source-line" id="L1402"><a class="line-num" href="#L1402">1402</a></span>
+<span class="source-line" id="L1403"><a class="line-num" href="#L1403">1403</a>    self:setAdjustContextData(newContextData, false)</span>
+<span class="source-line" id="L1404"><a class="line-num" href="#L1404">1404</a>    self.adjustContextIniteState = self.adjustContextIniteState + 4</span>
+<span class="source-line" id="L1405"><a class="line-num" href="#L1405">1405</a>end</span>
+<span class="source-line" id="L1406"><a class="line-num" href="#L1406">1406</a></span>
+<span class="source-line" id="L1407"><a class="line-num" href="#L1407">1407</a>function UBFuuuAdjustManager:_updateAdjustContextData( datas, callback )</span>
+<span class="source-line" id="L1408"><a class="line-num" href="#L1408">1408</a>    local getUBFuuuStatisticInfoHttp = require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.GetUBFuuuStatisticInfoHttp&quot;</span>
+<span class="source-line" id="L1409"><a class="line-num" href="#L1409">1409</a>    getUBFuuuStatisticInfoHttp:post(datas):next(</span>
+<span class="source-line" id="L1410"><a class="line-num" href="#L1410">1410</a></span>
+<span class="source-line" id="L1411"><a class="line-num" href="#L1411">1411</a>    function ( response )</span>
+<span class="source-line" id="L1412"><a class="line-num" href="#L1412">1412</a>        local data = response:getData()</span>
+<span class="source-line" id="L1413"><a class="line-num" href="#L1413">1413</a></span>
+<span class="source-line" id="L1414"><a class="line-num" href="#L1414">1414</a>        if _debug then printx(1 , &quot;UBFuuuAdjustManager:updateAdjustContextData   GetUBFuuuStatisticInfoHttp  ---- kSussece &quot; , tts(data) ) end</span>
+<span class="source-line" id="L1415"><a class="line-num" href="#L1415">1415</a></span>
+<span class="source-line" id="L1416"><a class="line-num" href="#L1416">1416</a>        if data then</span>
+<span class="source-line" id="L1417"><a class="line-num" href="#L1417">1417</a>            self:onUpdateAdjustContextData( data )</span>
+<span class="source-line" id="L1418"><a class="line-num" href="#L1418">1418</a>            if callback then callback(true) end</span>
+<span class="source-line" id="L1419"><a class="line-num" href="#L1419">1419</a>        else</span>
+<span class="source-line" id="L1420"><a class="line-num" href="#L1420">1420</a>            if callback then callback(false) end</span>
+<span class="source-line" id="L1421"><a class="line-num" href="#L1421">1421</a>        end</span>
+<span class="source-line" id="L1422"><a class="line-num" href="#L1422">1422</a>    end,</span>
+<span class="source-line" id="L1423"><a class="line-num" href="#L1423">1423</a></span>
+<span class="source-line" id="L1424"><a class="line-num" href="#L1424">1424</a>    function ( response )</span>
+<span class="source-line" id="L1425"><a class="line-num" href="#L1425">1425</a>        -- body</span>
+<span class="source-line" id="L1426"><a class="line-num" href="#L1426">1426</a>        if _debug then printx(1 , &quot;UBFuuuAdjustManager:updateAdjustContextData   GetUBFuuuStatisticInfoHttp  ---- kError &quot; , tts(response:getData()) ) end</span>
+<span class="source-line" id="L1427"><a class="line-num" href="#L1427">1427</a>        if callback then callback(false) end</span>
+<span class="source-line" id="L1428"><a class="line-num" href="#L1428">1428</a>    end</span>
+<span class="source-line" id="L1429"><a class="line-num" href="#L1429">1429</a>    )</span>
+<span class="source-line" id="L1430"><a class="line-num" href="#L1430">1430</a>end</span>
+<span class="source-line" id="L1431"><a class="line-num" href="#L1431">1431</a></span>
+<span class="source-line" id="L1432"><a class="line-num" href="#L1432">1432</a>function UBFuuuAdjustManager:updateAdjustContextData( callback )</span>
+<span class="source-line" id="L1433"><a class="line-num" href="#L1433">1433</a></span>
+<span class="source-line" id="L1434"><a class="line-num" href="#L1434">1434</a>    if _debug then printx(1 , &quot;UBFuuuAdjustManager:updateAdjustContextData   UBFGetLevelStatisticInfoHttp&quot; ) end</span>
+<span class="source-line" id="L1435"><a class="line-num" href="#L1435">1435</a></span>
+<span class="source-line" id="L1436"><a class="line-num" href="#L1436">1436</a>    self.adjustContextIniteState = self.adjustContextIniteState + 1</span>
+<span class="source-line" id="L1437"><a class="line-num" href="#L1437">1437</a></span>
+<span class="source-line" id="L1438"><a class="line-num" href="#L1438">1438</a>    local UBFuuuSelectAdjust = require(&quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuSelectAdjust&quot;)</span>
+<span class="source-line" id="L1439"><a class="line-num" href="#L1439">1439</a>    local switchInfos = UBFuuuSelectAdjust:createSwitchInfos(true)</span>
+<span class="source-line" id="L1440"><a class="line-num" href="#L1440">1440</a>    local configGroup = UBFuuuSelectAdjust:createConfigGroupMap(switchInfos.cfgGroup, switchInfos.CAGroup)</span>
+<span class="source-line" id="L1441"><a class="line-num" href="#L1441">1441</a></span>
+<span class="source-line" id="L1442"><a class="line-num" href="#L1442">1442</a>    local datas = {}</span>
+<span class="source-line" id="L1443"><a class="line-num" href="#L1443">1443</a>    datas.configGroup = configGroup</span>
+<span class="source-line" id="L1444"><a class="line-num" href="#L1444">1444</a>    </span>
+<span class="source-line" id="L1445"><a class="line-num" href="#L1445">1445</a>    datas.maxLevelId = UBFLevelRangeUtil:getMaxLevelForAdjust()</span>
+<span class="source-line" id="L1446"><a class="line-num" href="#L1446">1446</a>    datas.topRangeLength = UBFLevelRangeUtil:getTopLevelRangeLength() or 30</span>
+<span class="source-line" id="L1447"><a class="line-num" href="#L1447">1447</a>    datas.secTopRangeLength = UBFLevelRangeUtil:getSecTopLevelRangeLength()</span>
+<span class="source-line" id="L1448"><a class="line-num" href="#L1448">1448</a></span>
+<span class="source-line" id="L1449"><a class="line-num" href="#L1449">1449</a>    self:_updateAdjustContextData( datas, callback )</span>
+<span class="source-line" id="L1450"><a class="line-num" href="#L1450">1450</a>end</span>
+<span class="source-line" id="L1451"><a class="line-num" href="#L1451">1451</a></span>
+<span class="source-line" id="L1452"><a class="line-num" href="#L1452">1452</a>------------------------------</span>
+<span class="source-line" id="L1453"><a class="line-num" href="#L1453">1453</a></span>
+<span class="source-line" id="L1454"><a class="line-num" href="#L1454">1454</a>function UBFuuuAdjustManager:getLastAdjustResultData() --不保证时效性和正确性，仅用于宏观统计打点，不要用于业务逻辑计算！</span>
+<span class="source-line" id="L1455"><a class="line-num" href="#L1455">1455</a>    local uid = UserManager:getInstance():getUID()</span>
+<span class="source-line" id="L1456"><a class="line-num" href="#L1456">1456</a>    local _resultData = self:loadData( _lastAdjustResultFileName .. &quot;_&quot; .. tostring(uid) )</span>
+<span class="source-line" id="L1457"><a class="line-num" href="#L1457">1457</a>    return _resultData</span>
+<span class="source-line" id="L1458"><a class="line-num" href="#L1458">1458</a>end</span>
+<span class="source-line" id="L1459"><a class="line-num" href="#L1459">1459</a></span>
+<span class="source-line" id="L1460"><a class="line-num" href="#L1460">1460</a>function UBFuuuAdjustManager:setLastAdjustResultData( resultData )</span>
+<span class="source-line" id="L1461"><a class="line-num" href="#L1461">1461</a>    local uid = UserManager:getInstance():getUID()</span>
+<span class="source-line" id="L1462"><a class="line-num" href="#L1462">1462</a>    self:saveData(resultData, _lastAdjustResultFileName .. &quot;_&quot; .. tostring(uid))</span>
+<span class="source-line" id="L1463"><a class="line-num" href="#L1463">1463</a>end</span>
+<span class="source-line" id="L1464"><a class="line-num" href="#L1464">1464</a></span>
+<span class="source-line" id="L1465"><a class="line-num" href="#L1465">1465</a></span>
+<span class="source-line" id="L1466"><a class="line-num" href="#L1466">1466</a>function UBFuuuAdjustManager:getPlayerAbility() --获取当前本地数据中的闯关能力档位，可能不是最新</span>
+<span class="source-line" id="L1467"><a class="line-num" href="#L1467">1467</a>    local ubfuuuStatisticInfo = self:getAdjustContextData()</span>
+<span class="source-line" id="L1468"><a class="line-num" href="#L1468">1468</a>    local playerAbility = ubfuuuStatisticInfo.playerAbility or 0</span>
+<span class="source-line" id="L1469"><a class="line-num" href="#L1469">1469</a>    return playerAbility</span>
+<span class="source-line" id="L1470"><a class="line-num" href="#L1470">1470</a>end</span>
+<span class="source-line" id="L1471"><a class="line-num" href="#L1471">1471</a></span>
+<span class="source-line" id="L1472"><a class="line-num" href="#L1472">1472</a>--</span>
+<span class="source-line" id="L1473"><a class="line-num" href="#L1473">1473</a>--</span>
+<span class="source-line" id="L1474"><a class="line-num" href="#L1474">1474</a>--</span>
+<span class="source-line" id="L1475"><a class="line-num" href="#L1475">1475</a>--</span>
+<span class="source-line" id="L1476"><a class="line-num" href="#L1476">1476</a>--</span>
+<span class="source-line" id="L1477"><a class="line-num" href="#L1477">1477</a>--</span>
+<span class="source-line" id="L1478"><a class="line-num" href="#L1478">1478</a>--</span>
+<span class="source-line" id="L1479"><a class="line-num" href="#L1479">1479</a>--</span>
+<span class="source-line" id="L1480"><a class="line-num" href="#L1480">1480</a>--</span>
+<span class="source-line" id="L1481"><a class="line-num" href="#L1481">1481</a>--</span>
+<span class="source-line" id="L1482"><a class="line-num" href="#L1482">1482</a></span>
+<span class="source-line" id="L1483"><a class="line-num" href="#L1483">1483</a></span>
+<span class="source-line" id="L1484"><a class="line-num" href="#L1484">1484</a>return UBFuuuAdjustManager</span></code></pre></main></body></html>

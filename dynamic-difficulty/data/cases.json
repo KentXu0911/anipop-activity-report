@@ -1,0 +1,1559 @@
+{
+  "schema_version": 1,
+  "research_date": "2026-10-21",
+  "evidence_kind": "offline_static_recalculation",
+  "source_path_base": "/Users/kenny/Desktop/test-小游戏开发/research/anipop-2026-10-21",
+  "case_count": 4,
+  "verification": {
+    "parser": "Python stdlib regex parses key=value scalar fields from actual decoded Lua lines; no game execution",
+    "checks": [
+      "all cited source paths and one-based line numbers exist",
+      "8 real Lua config tables parsed",
+      "history windows and playCount28 recomputed from explicit 31-slot input",
+      "all matrix/final/ability/baodi values selected from parsed rows",
+      "4 expected targets asserted",
+      "failure threshold schedule asserted",
+      "JSON reloaded successfully"
+    ],
+    "source_sha256": {
+      "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_ds_avg_map_config.lua": "e162f09a7ebff9c72f4c7478c8b8c30294bb64df589737aefd5d8aa046f4d5b7",
+      "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua": "4a373289086e8e8f99c9e7a919f89f125f856c72f79fb0dc24742b1fe85e6eaa",
+      "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_payment_index_map_config.lua": "9d8bb9a264cf1cf59440851720cd198c26ce803dfe3fe210d9b9fb6f9d1c7782",
+      "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuAdjustManager.lua": "7b3bad0ba93c75a57e5ccde4380f294f03406a93c7958ed8477b614fe2a3fe36",
+      "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_activity_index_map_config.lua": "1a0eb9b9270a7f12177e07e559a64e2fe8ef3af0e15c2596b66907d6851dc171",
+      "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_diff_index_map_config.lua": "686663d9353359b57e6fea2651cec019951280f2ff67db6e8e58794c27dd8879",
+      "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_player_ability_fixvalue_map_config.lua": "1d85f72b00a78b4e3f89f053a621f686d90d4dc6959b927b090ed5bce4271be7",
+      "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_final_diff_map_config.lua": "80068d4a9798146a8fad3e5dfef4473420d44d0bd032c9568f7fd5017f8b5c48",
+      "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_baodi_count_map_config.lua": "dd327dabe12c80a236b5500aa764a1b849989c034904f00c84526fc575889de7",
+      "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_activity_index_map_by_28activeday_playcount_v202604_config.lua": "aa8e589e636c1b8a3065bc7545d51ae94ab4c0c485b831d02a245c59fd6bfae7"
+    }
+  },
+  "cases": [
+    {
+      "id": "level99-traditional-today0",
+      "title": "第99关：传统活跃，今日过关0，目标3.59",
+      "assumptions": {
+        "evidence_type": "static_source_and_real_packaged_config_recalculation",
+        "platform": {
+          "os": "Android",
+          "channel": "HE",
+          "isOhos": false,
+          "isMiniGame": false
+        },
+        "level": {
+          "levelId": 99,
+          "topLevel": 99,
+          "levelStar": 0,
+          "levelScene": "MAIN",
+          "levelExp": "default",
+          "levelGroup": "default",
+          "maxLevelId": 13335,
+          "topRangeLength": 30,
+          "notInTopNewLevelRange": true,
+          "areaId": 7,
+          "topLevelAreaId": 7
+        },
+        "userCreateDays": 60,
+        "server_context": {
+          "dailyPlayCountList": [
+            0,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20
+          ],
+          "dailyLoginCountList": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "playCount3": 60,
+          "playCount7": 140,
+          "playCount30": 600,
+          "playCount28": 560,
+          "loginDayCount7": 7,
+          "loginDayCount28": 28,
+          "todayPlayCount": 0,
+          "todayPassLevelCount": 0,
+          "playerAbility": 2,
+          "v250801CashValue": 100,
+          "v250801FarmCashValue": 0,
+          "diffIndexOnLastArea": 6,
+          "logicVer": "valid_non_nil",
+          "dailyPlayCountList_is_present": true,
+          "fixedPlayCount_is_present": true
+        },
+        "modGroup": {
+          "A3": false,
+          "A4": false,
+          "A5": false,
+          "A6": false,
+          "A7": false,
+          "A8": false,
+          "A9": false,
+          "D3": false,
+          "E4": false,
+          "E5": false,
+          "E6": false,
+          "E7": false,
+          "baodiV1": false,
+          "baodiV2": false
+        },
+        "config_groups": {
+          "ubfuuu_ds_avg_map": 0,
+          "ubfuuu_activity_index_map": 0,
+          "ubfuuu_activity_index_map_by_28activeday_playcount_v202604": 1,
+          "ubfuuu_payment_index_map": 0,
+          "ubfuuu_diff_index_map": 0,
+          "ubfuuu_player_ability_fixvalue_map": 1,
+          "ubfuuu_final_diff_map": 0,
+          "ubfuuu_baodi_count_map": 0
+        },
+        "adjustments": {
+          "activityIndex1FixInfo": [],
+          "kPaymentIndex": [],
+          "kActivityIndex": [],
+          "kDiffIndex": [],
+          "kReplaceUBFuuuConfigFile": {},
+          "kDesiredDiffAvgBeforeBaodi": [],
+          "kFixedDesiredDiffAvg": []
+        },
+        "failure_snapshot": {
+          "topLevelFailCount": 0,
+          "toplevelBaoDiFlag": false,
+          "toplevelBaoDiLevel": null,
+          "no_stale_baodi_lock": true,
+          "farmStarFailCount": 0
+        },
+        "other_conditions": [
+          "无A4回流上限；无A9覆盖；无E7主线/刷星价值合并。",
+          "无Prophet或其他策略替代本目标链；仅解释UBFuuu目标函数。",
+          "无额外活动/道具/开关注入目标或指数修正。",
+          "所有表值和个人输入在本算例内冻结，单例从干净配置缓存开始。",
+          "最终指数为整数，不使用小数指数的playId随机取整分支。",
+          "首闯0星参与保底，刷星baodiV2分支不参与。",
+          "maxLevelId等为明确设定的演算上下文，不宣称是账号当前服务端实际值。"
+        ]
+      },
+      "steps": [
+        {
+          "label": "读取第99关基础目标",
+          "input": {
+            "levelId": 99,
+            "levelGroup": "default",
+            "targetColumn": "avg",
+            "isTopNewRange": false
+          },
+          "output": 4.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_ds_avg_map_config.lua",
+          "line": 100
+        },
+        {
+          "label": "选择价值输入，E7关闭不合并刷星cash",
+          "input": {
+            "v250801CashValue": 100,
+            "v250801FarmCashValue": 0,
+            "isOhos": false,
+            "E7": false
+          },
+          "output": 100,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1353
+        },
+        {
+          "label": "按area7命中area10并查价值档",
+          "input": {
+            "group": 0,
+            "topLevelAreaId": 7,
+            "value": 100,
+            "index2": 83.0,
+            "index3": 138.0
+          },
+          "output": 3,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_payment_index_map_config.lua",
+          "line": 3
+        },
+        {
+          "label": "传统历史加权闯关量C1",
+          "input": {
+            "playCount3": 60,
+            "playCount7": 140,
+            "playCount30": 600
+          },
+          "output": 20,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuAdjustManager.lua",
+          "line": 1195
+        },
+        {
+          "label": "传统登录频次修正",
+          "input": {
+            "C1": 20,
+            "loginDayCount7": 7,
+            "userCreateDays": 60,
+            "A7": false
+          },
+          "output": 20.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1453
+        },
+        {
+          "label": "传统活跃阈值：18.46<20≤21",
+          "input": {
+            "fixedPlayCount": 20.0,
+            "group": 0,
+            "A10": 18.46,
+            "A11": 21.0
+          },
+          "output": 11,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_activity_index_map_config.lua",
+          "line": 3
+        },
+        {
+          "label": "今日过关上调，默认每10关加1档",
+          "input": {
+            "activityIndexBeforeToday": 11,
+            "todayPassLevelCount": 0,
+            "defaultN": 10,
+            "A3": false,
+            "A4": false,
+            "A5": false,
+            "A6": false
+          },
+          "output": 11,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1523
+        },
+        {
+          "label": "活跃行×价值列查难度指数",
+          "input": {
+            "group": 0,
+            "activityIndex": 11,
+            "paymentIndex": 3
+          },
+          "output": -2.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_diff_index_map_config.lua",
+          "line": 13
+        },
+        {
+          "label": "能力档2的偏移值",
+          "input": {
+            "group": 1,
+            "areaId": 7,
+            "playerAbility": 2
+          },
+          "output": 1.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_player_ability_fixvalue_map_config.lua",
+          "line": 5
+        },
+        {
+          "label": "加能力偏移并应用正偏移上限",
+          "input": {
+            "diffIndex1": -2.0,
+            "fixByAbility": 1.0
+          },
+          "output": -1.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1585
+        },
+        {
+          "label": "无活动指数修正，D3关闭，上一区域+2上限",
+          "input": {
+            "diffIndex3": -1.0,
+            "diffIndexOnLastArea": 6,
+            "D3": false
+          },
+          "output": -1.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1327
+        },
+        {
+          "label": "基础目标4×整数难度指数查final表",
+          "input": {
+            "group": 0,
+            "desiredDiffAvg": 4,
+            "diffIndex": -1.0,
+            "column": "diffIndexN1"
+          },
+          "output": 3.59,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_final_diff_map_config.lua",
+          "line": 17
+        },
+        {
+          "label": "无保底前目标修正，Fix2保持Fix1",
+          "input": {
+            "desiredDiffAvgFix1": 3.59,
+            "kDesiredDiffAvgBeforeBaodi": []
+          },
+          "output": 3.59,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1741
+        },
+        {
+          "label": "选择保底门槛；本例0失败、无已有锁定不触发",
+          "input": {
+            "lookupDiffAvg": 3.59,
+            "baodiV1": false,
+            "failCount": 0,
+            "toplevelBaoDiFlag": false
+          },
+          "output": {
+            "max": 4.0,
+            "baodiCount": 5.0,
+            "triggered": false
+          },
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_baodi_count_map_config.lua",
+          "line": 7
+        },
+        {
+          "label": "无保底后修正，输出fixedDesiredDiffAvg",
+          "input": {
+            "desiredDiffAvgFix": 3.59,
+            "kFixedDesiredDiffAvg": []
+          },
+          "output": 3.59,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1897
+        },
+        {
+          "label": "仅改变累计逻辑失败的what-if；其他输入冻结且无残留异关锁定",
+          "input": {
+            "failureCounts": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "baseTargetFrozen": 3.59,
+            "toplevelBaoDiFlagAtFreshEvaluation": false,
+            "noPostBaodiAdjustments": true
+          },
+          "output": {
+            "0": 3.59,
+            "1": 3.59,
+            "2": 3.59,
+            "3": 3.59,
+            "4": 3.59,
+            "5": 2.0,
+            "6": 2.0,
+            "7": 1.0,
+            "8": 1.0
+          },
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_baodi_count_map_config.lua",
+          "line": 7
+        }
+      ],
+      "expected": {
+        "activityIndex": 11,
+        "paymentIndex": 3,
+        "diffIndex1": -2.0,
+        "abilityFix": 1.0,
+        "finalDiffIndex": -1.0,
+        "desiredDiffAvg": 4,
+        "fixedDesiredDiffAvgAtZeroFailures": 3.59,
+        "baodiCount": 5.0
+      },
+      "unknowns": [
+        "这是包内配置与假设输入的客户端数学复算，不是游戏运行结果或真实账号实测。",
+        "desiredDiffAvg/fixedDesiredDiffAvg 的当前服务端统计分子、分母及平滑公式未确认；目标不能换算成个人平均尝试次数或通关概率。",
+        "v250801CashValue 的服务端生成单位未确认，100 不代表已证实的100元。",
+        "实际账号维护开关、配置分组、热更新及反馈池未知；此处人为冻结这些前提。",
+        "本例停在目标阶段，未给出反馈map、diffFix、最终ds、颜色改写或通关结果。",
+        "累计失败的what-if分段假定其他个人/活动/配置输入不变；真实重试时这些输入仍可能更新。"
+      ]
+    },
+    {
+      "id": "level99-a8-today0",
+      "title": "第99关：A8活跃，今日过关0，目标2.34",
+      "assumptions": {
+        "evidence_type": "static_source_and_real_packaged_config_recalculation",
+        "platform": {
+          "os": "Android",
+          "channel": "HE",
+          "isOhos": false,
+          "isMiniGame": false
+        },
+        "level": {
+          "levelId": 99,
+          "topLevel": 99,
+          "levelStar": 0,
+          "levelScene": "MAIN",
+          "levelExp": "default",
+          "levelGroup": "default",
+          "maxLevelId": 13335,
+          "topRangeLength": 30,
+          "notInTopNewLevelRange": true,
+          "areaId": 7,
+          "topLevelAreaId": 7
+        },
+        "userCreateDays": 60,
+        "server_context": {
+          "dailyPlayCountList": [
+            0,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20
+          ],
+          "dailyLoginCountList": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "playCount3": 60,
+          "playCount7": 140,
+          "playCount30": 600,
+          "playCount28": 560,
+          "loginDayCount7": 7,
+          "loginDayCount28": 28,
+          "todayPlayCount": 0,
+          "todayPassLevelCount": 0,
+          "playerAbility": 2,
+          "v250801CashValue": 100,
+          "v250801FarmCashValue": 0,
+          "diffIndexOnLastArea": 6,
+          "logicVer": "valid_non_nil",
+          "dailyPlayCountList_is_present": true,
+          "fixedPlayCount_is_present": true
+        },
+        "modGroup": {
+          "A3": false,
+          "A4": false,
+          "A5": false,
+          "A6": false,
+          "A7": false,
+          "A8": true,
+          "A9": false,
+          "D3": false,
+          "E4": false,
+          "E5": false,
+          "E6": false,
+          "E7": false,
+          "baodiV1": false,
+          "baodiV2": false
+        },
+        "config_groups": {
+          "ubfuuu_ds_avg_map": 0,
+          "ubfuuu_activity_index_map": 0,
+          "ubfuuu_activity_index_map_by_28activeday_playcount_v202604": 1,
+          "ubfuuu_payment_index_map": 0,
+          "ubfuuu_diff_index_map": 0,
+          "ubfuuu_player_ability_fixvalue_map": 1,
+          "ubfuuu_final_diff_map": 0,
+          "ubfuuu_baodi_count_map": 0
+        },
+        "adjustments": {
+          "activityIndex1FixInfo": [],
+          "kPaymentIndex": [],
+          "kActivityIndex": [],
+          "kDiffIndex": [],
+          "kReplaceUBFuuuConfigFile": {},
+          "kDesiredDiffAvgBeforeBaodi": [],
+          "kFixedDesiredDiffAvg": []
+        },
+        "failure_snapshot": {
+          "topLevelFailCount": 0,
+          "toplevelBaoDiFlag": false,
+          "toplevelBaoDiLevel": null,
+          "no_stale_baodi_lock": true,
+          "farmStarFailCount": 0
+        },
+        "other_conditions": [
+          "无A4回流上限；无A9覆盖；无E7主线/刷星价值合并。",
+          "无Prophet或其他策略替代本目标链；仅解释UBFuuu目标函数。",
+          "无额外活动/道具/开关注入目标或指数修正。",
+          "所有表值和个人输入在本算例内冻结，单例从干净配置缓存开始。",
+          "最终指数为整数，不使用小数指数的playId随机取整分支。",
+          "首闯0星参与保底，刷星baodiV2分支不参与。",
+          "maxLevelId等为明确设定的演算上下文，不宣称是账号当前服务端实际值。"
+        ]
+      },
+      "steps": [
+        {
+          "label": "读取第99关基础目标",
+          "input": {
+            "levelId": 99,
+            "levelGroup": "default",
+            "targetColumn": "avg",
+            "isTopNewRange": false
+          },
+          "output": 4.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_ds_avg_map_config.lua",
+          "line": 100
+        },
+        {
+          "label": "选择价值输入，E7关闭不合并刷星cash",
+          "input": {
+            "v250801CashValue": 100,
+            "v250801FarmCashValue": 0,
+            "isOhos": false,
+            "E7": false
+          },
+          "output": 100,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1353
+        },
+        {
+          "label": "按area7命中area10并查价值档",
+          "input": {
+            "group": 0,
+            "topLevelAreaId": 7,
+            "value": 100,
+            "index2": 83.0,
+            "index3": 138.0
+          },
+          "output": 3,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_payment_index_map_config.lua",
+          "line": 3
+        },
+        {
+          "label": "A8：28活跃日的日均闯关量",
+          "input": {
+            "playCount28": 560,
+            "loginDayCount28": 28,
+            "userCreateDays": 60
+          },
+          "output": 20.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1425
+        },
+        {
+          "label": "A8二维表：playcount20/day28",
+          "input": {
+            "group": 1,
+            "avgPlayCountPerDay": 20,
+            "dayKey": "day28"
+          },
+          "output": 8,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_activity_index_map_by_28activeday_playcount_v202604_config.lua",
+          "line": 6
+        },
+        {
+          "label": "今日过关上调，默认每10关加1档",
+          "input": {
+            "activityIndexBeforeToday": 8,
+            "todayPassLevelCount": 0,
+            "defaultN": 10,
+            "A3": false,
+            "A4": false,
+            "A5": false,
+            "A6": false
+          },
+          "output": 8,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1523
+        },
+        {
+          "label": "活跃行×价值列查难度指数",
+          "input": {
+            "group": 0,
+            "activityIndex": 8,
+            "paymentIndex": 3
+          },
+          "output": -5.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_diff_index_map_config.lua",
+          "line": 10
+        },
+        {
+          "label": "能力档2的偏移值",
+          "input": {
+            "group": 1,
+            "areaId": 7,
+            "playerAbility": 2
+          },
+          "output": 1.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_player_ability_fixvalue_map_config.lua",
+          "line": 5
+        },
+        {
+          "label": "加能力偏移并应用正偏移上限",
+          "input": {
+            "diffIndex1": -5.0,
+            "fixByAbility": 1.0
+          },
+          "output": -4.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1585
+        },
+        {
+          "label": "无活动指数修正，D3关闭，上一区域+2上限",
+          "input": {
+            "diffIndex3": -4.0,
+            "diffIndexOnLastArea": 6,
+            "D3": false
+          },
+          "output": -4.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1327
+        },
+        {
+          "label": "基础目标4×整数难度指数查final表",
+          "input": {
+            "group": 0,
+            "desiredDiffAvg": 4,
+            "diffIndex": -4.0,
+            "column": "diffIndexN4"
+          },
+          "output": 2.34,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_final_diff_map_config.lua",
+          "line": 17
+        },
+        {
+          "label": "无保底前目标修正，Fix2保持Fix1",
+          "input": {
+            "desiredDiffAvgFix1": 2.34,
+            "kDesiredDiffAvgBeforeBaodi": []
+          },
+          "output": 2.34,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1741
+        },
+        {
+          "label": "选择保底门槛；本例0失败、无已有锁定不触发",
+          "input": {
+            "lookupDiffAvg": 2.34,
+            "baodiV1": false,
+            "failCount": 0,
+            "toplevelBaoDiFlag": false
+          },
+          "output": {
+            "max": 2.5,
+            "baodiCount": 3.0,
+            "triggered": false
+          },
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_baodi_count_map_config.lua",
+          "line": 5
+        },
+        {
+          "label": "无保底后修正，输出fixedDesiredDiffAvg",
+          "input": {
+            "desiredDiffAvgFix": 2.34,
+            "kFixedDesiredDiffAvg": []
+          },
+          "output": 2.34,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1897
+        },
+        {
+          "label": "仅改变累计逻辑失败的what-if；其他输入冻结且无残留异关锁定",
+          "input": {
+            "failureCounts": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "baseTargetFrozen": 2.34,
+            "toplevelBaoDiFlagAtFreshEvaluation": false,
+            "noPostBaodiAdjustments": true
+          },
+          "output": {
+            "0": 2.34,
+            "1": 2.34,
+            "2": 2.34,
+            "3": 1.0,
+            "4": 1.0,
+            "5": 1.0,
+            "6": 1.0,
+            "7": 1.0,
+            "8": 1.0
+          },
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_baodi_count_map_config.lua",
+          "line": 5
+        }
+      ],
+      "expected": {
+        "activityIndex": 8,
+        "paymentIndex": 3,
+        "diffIndex1": -5.0,
+        "abilityFix": 1.0,
+        "finalDiffIndex": -4.0,
+        "desiredDiffAvg": 4,
+        "fixedDesiredDiffAvgAtZeroFailures": 2.34,
+        "baodiCount": 3.0
+      },
+      "unknowns": [
+        "这是包内配置与假设输入的客户端数学复算，不是游戏运行结果或真实账号实测。",
+        "desiredDiffAvg/fixedDesiredDiffAvg 的当前服务端统计分子、分母及平滑公式未确认；目标不能换算成个人平均尝试次数或通关概率。",
+        "v250801CashValue 的服务端生成单位未确认，100 不代表已证实的100元。",
+        "实际账号维护开关、配置分组、热更新及反馈池未知；此处人为冻结这些前提。",
+        "本例停在目标阶段，未给出反馈map、diffFix、最终ds、颜色改写或通关结果。",
+        "累计失败的what-if分段假定其他个人/活动/配置输入不变；真实重试时这些输入仍可能更新。"
+      ]
+    },
+    {
+      "id": "level99-traditional-today20",
+      "title": "第99关：传统活跃，今日过关20，目标从3.59变4",
+      "assumptions": {
+        "evidence_type": "static_source_and_real_packaged_config_recalculation",
+        "platform": {
+          "os": "Android",
+          "channel": "HE",
+          "isOhos": false,
+          "isMiniGame": false
+        },
+        "level": {
+          "levelId": 99,
+          "topLevel": 99,
+          "levelStar": 0,
+          "levelScene": "MAIN",
+          "levelExp": "default",
+          "levelGroup": "default",
+          "maxLevelId": 13335,
+          "topRangeLength": 30,
+          "notInTopNewLevelRange": true,
+          "areaId": 7,
+          "topLevelAreaId": 7
+        },
+        "userCreateDays": 60,
+        "server_context": {
+          "dailyPlayCountList": [
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20
+          ],
+          "dailyLoginCountList": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "playCount3": 60,
+          "playCount7": 140,
+          "playCount30": 600,
+          "playCount28": 560,
+          "loginDayCount7": 7,
+          "loginDayCount28": 28,
+          "todayPlayCount": 20,
+          "todayPassLevelCount": 20,
+          "playerAbility": 2,
+          "v250801CashValue": 100,
+          "v250801FarmCashValue": 0,
+          "diffIndexOnLastArea": 6,
+          "logicVer": "valid_non_nil",
+          "dailyPlayCountList_is_present": true,
+          "fixedPlayCount_is_present": true
+        },
+        "modGroup": {
+          "A3": false,
+          "A4": false,
+          "A5": false,
+          "A6": false,
+          "A7": false,
+          "A8": false,
+          "A9": false,
+          "D3": false,
+          "E4": false,
+          "E5": false,
+          "E6": false,
+          "E7": false,
+          "baodiV1": false,
+          "baodiV2": false
+        },
+        "config_groups": {
+          "ubfuuu_ds_avg_map": 0,
+          "ubfuuu_activity_index_map": 0,
+          "ubfuuu_activity_index_map_by_28activeday_playcount_v202604": 1,
+          "ubfuuu_payment_index_map": 0,
+          "ubfuuu_diff_index_map": 0,
+          "ubfuuu_player_ability_fixvalue_map": 1,
+          "ubfuuu_final_diff_map": 0,
+          "ubfuuu_baodi_count_map": 0
+        },
+        "adjustments": {
+          "activityIndex1FixInfo": [],
+          "kPaymentIndex": [],
+          "kActivityIndex": [],
+          "kDiffIndex": [],
+          "kReplaceUBFuuuConfigFile": {},
+          "kDesiredDiffAvgBeforeBaodi": [],
+          "kFixedDesiredDiffAvg": []
+        },
+        "failure_snapshot": {
+          "topLevelFailCount": 0,
+          "toplevelBaoDiFlag": false,
+          "toplevelBaoDiLevel": null,
+          "no_stale_baodi_lock": true,
+          "farmStarFailCount": 0
+        },
+        "other_conditions": [
+          "无A4回流上限；无A9覆盖；无E7主线/刷星价值合并。",
+          "无Prophet或其他策略替代本目标链；仅解释UBFuuu目标函数。",
+          "无额外活动/道具/开关注入目标或指数修正。",
+          "所有表值和个人输入在本算例内冻结，单例从干净配置缓存开始。",
+          "最终指数为整数，不使用小数指数的playId随机取整分支。",
+          "首闯0星参与保底，刷星baodiV2分支不参与。",
+          "maxLevelId等为明确设定的演算上下文，不宣称是账号当前服务端实际值。"
+        ]
+      },
+      "steps": [
+        {
+          "label": "读取第99关基础目标",
+          "input": {
+            "levelId": 99,
+            "levelGroup": "default",
+            "targetColumn": "avg",
+            "isTopNewRange": false
+          },
+          "output": 4.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_ds_avg_map_config.lua",
+          "line": 100
+        },
+        {
+          "label": "选择价值输入，E7关闭不合并刷星cash",
+          "input": {
+            "v250801CashValue": 100,
+            "v250801FarmCashValue": 0,
+            "isOhos": false,
+            "E7": false
+          },
+          "output": 100,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1353
+        },
+        {
+          "label": "按area7命中area10并查价值档",
+          "input": {
+            "group": 0,
+            "topLevelAreaId": 7,
+            "value": 100,
+            "index2": 83.0,
+            "index3": 138.0
+          },
+          "output": 3,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_payment_index_map_config.lua",
+          "line": 3
+        },
+        {
+          "label": "传统历史加权闯关量C1",
+          "input": {
+            "playCount3": 60,
+            "playCount7": 140,
+            "playCount30": 600
+          },
+          "output": 20,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuAdjustManager.lua",
+          "line": 1195
+        },
+        {
+          "label": "传统登录频次修正",
+          "input": {
+            "C1": 20,
+            "loginDayCount7": 7,
+            "userCreateDays": 60,
+            "A7": false
+          },
+          "output": 20.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1453
+        },
+        {
+          "label": "传统活跃阈值：18.46<20≤21",
+          "input": {
+            "fixedPlayCount": 20.0,
+            "group": 0,
+            "A10": 18.46,
+            "A11": 21.0
+          },
+          "output": 11,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_activity_index_map_config.lua",
+          "line": 3
+        },
+        {
+          "label": "今日过关上调，默认每10关加1档",
+          "input": {
+            "activityIndexBeforeToday": 11,
+            "todayPassLevelCount": 20,
+            "defaultN": 10,
+            "A3": false,
+            "A4": false,
+            "A5": false,
+            "A6": false
+          },
+          "output": 13,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1523
+        },
+        {
+          "label": "活跃行×价值列查难度指数",
+          "input": {
+            "group": 0,
+            "activityIndex": 13,
+            "paymentIndex": 3
+          },
+          "output": -1.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_diff_index_map_config.lua",
+          "line": 15
+        },
+        {
+          "label": "能力档2的偏移值",
+          "input": {
+            "group": 1,
+            "areaId": 7,
+            "playerAbility": 2
+          },
+          "output": 1.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_player_ability_fixvalue_map_config.lua",
+          "line": 5
+        },
+        {
+          "label": "加能力偏移并应用正偏移上限",
+          "input": {
+            "diffIndex1": -1.0,
+            "fixByAbility": 1.0
+          },
+          "output": 0.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1585
+        },
+        {
+          "label": "无活动指数修正，D3关闭，上一区域+2上限",
+          "input": {
+            "diffIndex3": 0.0,
+            "diffIndexOnLastArea": 6,
+            "D3": false
+          },
+          "output": 0.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1327
+        },
+        {
+          "label": "基础目标4×整数难度指数查final表",
+          "input": {
+            "group": 0,
+            "desiredDiffAvg": 4,
+            "diffIndex": 0.0,
+            "column": "diffIndex0"
+          },
+          "output": 4.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_final_diff_map_config.lua",
+          "line": 17
+        },
+        {
+          "label": "无保底前目标修正，Fix2保持Fix1",
+          "input": {
+            "desiredDiffAvgFix1": 4.0,
+            "kDesiredDiffAvgBeforeBaodi": []
+          },
+          "output": 4.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1741
+        },
+        {
+          "label": "选择保底门槛；本例0失败、无已有锁定不触发",
+          "input": {
+            "lookupDiffAvg": 4.0,
+            "baodiV1": false,
+            "failCount": 0,
+            "toplevelBaoDiFlag": false
+          },
+          "output": {
+            "max": 4.0,
+            "baodiCount": 5.0,
+            "triggered": false
+          },
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_baodi_count_map_config.lua",
+          "line": 7
+        },
+        {
+          "label": "无保底后修正，输出fixedDesiredDiffAvg",
+          "input": {
+            "desiredDiffAvgFix": 4.0,
+            "kFixedDesiredDiffAvg": []
+          },
+          "output": 4.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1897
+        },
+        {
+          "label": "仅改变累计逻辑失败的what-if；其他输入冻结且无残留异关锁定",
+          "input": {
+            "failureCounts": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "baseTargetFrozen": 4.0,
+            "toplevelBaoDiFlagAtFreshEvaluation": false,
+            "noPostBaodiAdjustments": true
+          },
+          "output": {
+            "0": 4.0,
+            "1": 4.0,
+            "2": 4.0,
+            "3": 4.0,
+            "4": 4.0,
+            "5": 2.0,
+            "6": 2.0,
+            "7": 1.0,
+            "8": 1.0
+          },
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_baodi_count_map_config.lua",
+          "line": 7
+        }
+      ],
+      "expected": {
+        "activityIndex": 13,
+        "paymentIndex": 3,
+        "diffIndex1": -1.0,
+        "abilityFix": 1.0,
+        "finalDiffIndex": 0.0,
+        "desiredDiffAvg": 4,
+        "fixedDesiredDiffAvgAtZeroFailures": 4.0,
+        "baodiCount": 5.0
+      },
+      "unknowns": [
+        "这是包内配置与假设输入的客户端数学复算，不是游戏运行结果或真实账号实测。",
+        "desiredDiffAvg/fixedDesiredDiffAvg 的当前服务端统计分子、分母及平滑公式未确认；目标不能换算成个人平均尝试次数或通关概率。",
+        "v250801CashValue 的服务端生成单位未确认，100 不代表已证实的100元。",
+        "实际账号维护开关、配置分组、热更新及反馈池未知；此处人为冻结这些前提。",
+        "本例停在目标阶段，未给出反馈map、diffFix、最终ds、颜色改写或通关结果。",
+        "累计失败的what-if分段假定其他个人/活动/配置输入不变；真实重试时这些输入仍可能更新。"
+      ]
+    },
+    {
+      "id": "level99-a8-today20",
+      "title": "第99关：A8活跃，今日过关20，目标从2.34变3.17",
+      "assumptions": {
+        "evidence_type": "static_source_and_real_packaged_config_recalculation",
+        "platform": {
+          "os": "Android",
+          "channel": "HE",
+          "isOhos": false,
+          "isMiniGame": false
+        },
+        "level": {
+          "levelId": 99,
+          "topLevel": 99,
+          "levelStar": 0,
+          "levelScene": "MAIN",
+          "levelExp": "default",
+          "levelGroup": "default",
+          "maxLevelId": 13335,
+          "topRangeLength": 30,
+          "notInTopNewLevelRange": true,
+          "areaId": 7,
+          "topLevelAreaId": 7
+        },
+        "userCreateDays": 60,
+        "server_context": {
+          "dailyPlayCountList": [
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20
+          ],
+          "dailyLoginCountList": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "playCount3": 60,
+          "playCount7": 140,
+          "playCount30": 600,
+          "playCount28": 560,
+          "loginDayCount7": 7,
+          "loginDayCount28": 28,
+          "todayPlayCount": 20,
+          "todayPassLevelCount": 20,
+          "playerAbility": 2,
+          "v250801CashValue": 100,
+          "v250801FarmCashValue": 0,
+          "diffIndexOnLastArea": 6,
+          "logicVer": "valid_non_nil",
+          "dailyPlayCountList_is_present": true,
+          "fixedPlayCount_is_present": true
+        },
+        "modGroup": {
+          "A3": false,
+          "A4": false,
+          "A5": false,
+          "A6": false,
+          "A7": false,
+          "A8": true,
+          "A9": false,
+          "D3": false,
+          "E4": false,
+          "E5": false,
+          "E6": false,
+          "E7": false,
+          "baodiV1": false,
+          "baodiV2": false
+        },
+        "config_groups": {
+          "ubfuuu_ds_avg_map": 0,
+          "ubfuuu_activity_index_map": 0,
+          "ubfuuu_activity_index_map_by_28activeday_playcount_v202604": 1,
+          "ubfuuu_payment_index_map": 0,
+          "ubfuuu_diff_index_map": 0,
+          "ubfuuu_player_ability_fixvalue_map": 1,
+          "ubfuuu_final_diff_map": 0,
+          "ubfuuu_baodi_count_map": 0
+        },
+        "adjustments": {
+          "activityIndex1FixInfo": [],
+          "kPaymentIndex": [],
+          "kActivityIndex": [],
+          "kDiffIndex": [],
+          "kReplaceUBFuuuConfigFile": {},
+          "kDesiredDiffAvgBeforeBaodi": [],
+          "kFixedDesiredDiffAvg": []
+        },
+        "failure_snapshot": {
+          "topLevelFailCount": 0,
+          "toplevelBaoDiFlag": false,
+          "toplevelBaoDiLevel": null,
+          "no_stale_baodi_lock": true,
+          "farmStarFailCount": 0
+        },
+        "other_conditions": [
+          "无A4回流上限；无A9覆盖；无E7主线/刷星价值合并。",
+          "无Prophet或其他策略替代本目标链；仅解释UBFuuu目标函数。",
+          "无额外活动/道具/开关注入目标或指数修正。",
+          "所有表值和个人输入在本算例内冻结，单例从干净配置缓存开始。",
+          "最终指数为整数，不使用小数指数的playId随机取整分支。",
+          "首闯0星参与保底，刷星baodiV2分支不参与。",
+          "maxLevelId等为明确设定的演算上下文，不宣称是账号当前服务端实际值。"
+        ]
+      },
+      "steps": [
+        {
+          "label": "读取第99关基础目标",
+          "input": {
+            "levelId": 99,
+            "levelGroup": "default",
+            "targetColumn": "avg",
+            "isTopNewRange": false
+          },
+          "output": 4.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_ds_avg_map_config.lua",
+          "line": 100
+        },
+        {
+          "label": "选择价值输入，E7关闭不合并刷星cash",
+          "input": {
+            "v250801CashValue": 100,
+            "v250801FarmCashValue": 0,
+            "isOhos": false,
+            "E7": false
+          },
+          "output": 100,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1353
+        },
+        {
+          "label": "按area7命中area10并查价值档",
+          "input": {
+            "group": 0,
+            "topLevelAreaId": 7,
+            "value": 100,
+            "index2": 83.0,
+            "index3": 138.0
+          },
+          "output": 3,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_payment_index_map_config.lua",
+          "line": 3
+        },
+        {
+          "label": "A8：28活跃日的日均闯关量",
+          "input": {
+            "playCount28": 560,
+            "loginDayCount28": 28,
+            "userCreateDays": 60
+          },
+          "output": 20.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1425
+        },
+        {
+          "label": "A8二维表：playcount20/day28",
+          "input": {
+            "group": 1,
+            "avgPlayCountPerDay": 20,
+            "dayKey": "day28"
+          },
+          "output": 8,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_activity_index_map_by_28activeday_playcount_v202604_config.lua",
+          "line": 6
+        },
+        {
+          "label": "今日过关上调，默认每10关加1档",
+          "input": {
+            "activityIndexBeforeToday": 8,
+            "todayPassLevelCount": 20,
+            "defaultN": 10,
+            "A3": false,
+            "A4": false,
+            "A5": false,
+            "A6": false
+          },
+          "output": 10,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1523
+        },
+        {
+          "label": "活跃行×价值列查难度指数",
+          "input": {
+            "group": 0,
+            "activityIndex": 10,
+            "paymentIndex": 3
+          },
+          "output": -3.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_diff_index_map_config.lua",
+          "line": 12
+        },
+        {
+          "label": "能力档2的偏移值",
+          "input": {
+            "group": 1,
+            "areaId": 7,
+            "playerAbility": 2
+          },
+          "output": 1.0,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_player_ability_fixvalue_map_config.lua",
+          "line": 5
+        },
+        {
+          "label": "加能力偏移并应用正偏移上限",
+          "input": {
+            "diffIndex1": -3.0,
+            "fixByAbility": 1.0
+          },
+          "output": -2.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1585
+        },
+        {
+          "label": "无活动指数修正，D3关闭，上一区域+2上限",
+          "input": {
+            "diffIndex3": -2.0,
+            "diffIndexOnLastArea": 6,
+            "D3": false
+          },
+          "output": -2.0,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1327
+        },
+        {
+          "label": "基础目标4×整数难度指数查final表",
+          "input": {
+            "group": 0,
+            "desiredDiffAvg": 4,
+            "diffIndex": -2.0,
+            "column": "diffIndexN2"
+          },
+          "output": 3.17,
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_final_diff_map_config.lua",
+          "line": 17
+        },
+        {
+          "label": "无保底前目标修正，Fix2保持Fix1",
+          "input": {
+            "desiredDiffAvgFix1": 3.17,
+            "kDesiredDiffAvgBeforeBaodi": []
+          },
+          "output": 3.17,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1741
+        },
+        {
+          "label": "选择保底门槛；本例0失败、无已有锁定不触发",
+          "input": {
+            "lookupDiffAvg": 3.17,
+            "baodiV1": false,
+            "failCount": 0,
+            "toplevelBaoDiFlag": false
+          },
+          "output": {
+            "max": 4.0,
+            "baodiCount": 5.0,
+            "triggered": false
+          },
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_baodi_count_map_config.lua",
+          "line": 7
+        },
+        {
+          "label": "无保底后修正，输出fixedDesiredDiffAvg",
+          "input": {
+            "desiredDiffAvgFix": 3.17,
+            "kFixedDesiredDiffAvg": []
+          },
+          "output": 3.17,
+          "source": "analysis/native_decode/decoded/ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuSelectAdjust.lua",
+          "line": 1897
+        },
+        {
+          "label": "仅改变累计逻辑失败的what-if；其他输入冻结且无残留异关锁定",
+          "input": {
+            "failureCounts": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "baseTargetFrozen": 3.17,
+            "toplevelBaoDiFlagAtFreshEvaluation": false,
+            "noPostBaodiAdjustments": true
+          },
+          "output": {
+            "0": 3.17,
+            "1": 3.17,
+            "2": 3.17,
+            "3": 3.17,
+            "4": 3.17,
+            "5": 2.0,
+            "6": 2.0,
+            "7": 1.0,
+            "8": 1.0
+          },
+          "source": "analysis/native_decode/decoded/ubf/metaConfig/ubfuuu_baodi_count_map_config.lua",
+          "line": 7
+        }
+      ],
+      "expected": {
+        "activityIndex": 10,
+        "paymentIndex": 3,
+        "diffIndex1": -3.0,
+        "abilityFix": 1.0,
+        "finalDiffIndex": -2.0,
+        "desiredDiffAvg": 4,
+        "fixedDesiredDiffAvgAtZeroFailures": 3.17,
+        "baodiCount": 5.0
+      },
+      "unknowns": [
+        "这是包内配置与假设输入的客户端数学复算，不是游戏运行结果或真实账号实测。",
+        "desiredDiffAvg/fixedDesiredDiffAvg 的当前服务端统计分子、分母及平滑公式未确认；目标不能换算成个人平均尝试次数或通关概率。",
+        "v250801CashValue 的服务端生成单位未确认，100 不代表已证实的100元。",
+        "实际账号维护开关、配置分组、热更新及反馈池未知；此处人为冻结这些前提。",
+        "本例停在目标阶段，未给出反馈map、diffFix、最终ds、颜色改写或通关结果。",
+        "累计失败的what-if分段假定其他个人/活动/配置输入不变；真实重试时这些输入仍可能更新。"
+      ]
+    }
+  ]
+}

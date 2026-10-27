@@ -1,0 +1,855 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFShadowTargetLogic.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFShadowTargetLogic.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFShadowTargetLogic.lua<br>SHA-256 f3039d1fdc599c660d279e4a408d3af9bb8bf6d3f44b03170c42847aa61428aa · 855 行 · 恢复原文，未经改写</p><a href="UBFShadowTargetLogic-ab8a2799.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>UBFShadowTargetLogic = class2( &quot;UBFShadowTargetLogic&quot; , UBFBaseLogic )</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>UBFShadowTargetLogic.shadowTargetsKey = &quot;shadowTargets&quot;</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a></span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a></span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>UBFShadowTargetLogic.DebugMode = true</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a></span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a></span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>function UBFShadowTargetLogic:build( createData )</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    self.gameBoardLogic = createData.gameBoardLogic</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>    self.levelContext = self.gameBoardLogic.levelContext</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>    self.boardId = 1</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a></span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>end</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a></span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>function UBFShadowTargetLogic:gameInit( createData )</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a></span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>    local shadowTargetData = {</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>    	progressDataList = {},</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    	shadowTargetsMap = {},</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>    	watchEvents = {},</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>		staticTypes = {</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>	    	[UBFShadowTargetStatisticType.kBase] = true,</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>	    	[UBFShadowTargetStatisticType.kBanding] = true,</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>	    }</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>    }</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>    self.levelContext:setValue( UBFShadowTargetLogic.shadowTargetsKey  , shadowTargetData )</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a></span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a></span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a></span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    local levelConfig = createData.levelConfig</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>	local featureMap = createData.featureMap</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a></span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>    self:registerWatchShadowTargets(featureMap)</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>	self:doWatchInit()</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>	self:calGlobalShadowTarget()</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>    self:pushTakeStepProgressData()</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>end</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a></span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>function UBFShadowTargetLogic:getShadowTargetsMap( ... )</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>	local context = self.levelContext:getValue( UBFShadowTargetLogic.shadowTargetsKey)</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>    local shadowTargetsMap = context and context.shadowTargetsMap</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a></span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>    return shadowTargetsMap</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>end</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a></span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>function UBFShadowTargetLogic:getProgressDataList( ... )</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>	local context = self.levelContext:getValue( UBFShadowTargetLogic.shadowTargetsKey)</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>    local progressDataList = context and context.progressDataList</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>    return progressDataList</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>end</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a></span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>function UBFShadowTargetLogic:getWatchEvents( ... )</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>	local context = self.levelContext:getValue( UBFShadowTargetLogic.shadowTargetsKey)</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>    local watchEvents = context and context.watchEvents</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>    return watchEvents</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>end</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a></span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>function UBFShadowTargetLogic:getStaticTypes( ... )</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>	local context = self.levelContext:getValue( UBFShadowTargetLogic.shadowTargetsKey)</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>    local staticTypes = context and context.staticTypes</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>    return staticTypes</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>end</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a></span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a></span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>function UBFShadowTargetLogic:isStaticType( type )</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>	local staticTypes = self:getStaticTypes()</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>	return 	staticTypes[type]</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>end</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a></span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a></span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>function UBFShadowTargetLogic:registerWatchShadowTargets( featureMap )</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>	local watchEvents = self:getWatchEvents()</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>	local shadowTargetsMap = self:getShadowTargetsMap()</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>    for shadowTargetType , watchConfigs in pairs(UBFShadowTargetConfig) do </span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>    	local needWatch = false</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>    	local watchDataList = {}</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>    	-- printx(16,shadowTargetType)</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>		assert(type(watchConfigs)==&quot;table&quot;,&quot;watchConfigs NOT table at:&quot;..tostring(shadowTargetType) .. &quot;-value:&quot;.. tostring(watchConfigs))</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>		for index,watchConfig in ipairs(watchConfigs) do</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>			-- self:registerWatchShadowTarget(watchConfig)</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>			local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>			local headItemType = watchConfig.watch.headItemType </span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>			local bindingItemType = watchConfig.watch.bindingItemType </span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a></span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>			local eventName = watchConfig.watch.UBFGamePlayEventEnum</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>			if eventName then</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>				watchEvents[eventName] = true</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>			end</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>			needWatch = needWatch or self:isNeedWatch(watchConfig,featureMap)</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a></span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>			local watchData = { enable = true,cur = 0,curMap = {},initNum = nil}</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>			watchDataList[index] = watchData</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>		end</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>		if needWatch then</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>			shadowTargetsMap[shadowTargetType] = watchDataList</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>		end</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a></span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>    end</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>end</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a></span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>function UBFShadowTargetLogic:isNeedWatch( watchConfig,featureMap )</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>	local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>	local headItemType = watchConfig.watch.headItemType </span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>	local bindingItemType = watchConfig.watch.bindingItemType </span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a></span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>	local checkFeatureMap = function ( itemType )</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>		return featureMap[itemType]</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>	end</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a></span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>	if bindingItemType and not(checkFeatureMap(bindingItemType)) then return false end</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>	if itemType and not(checkFeatureMap(itemType)) then return false end</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>	if headItemType and not(checkFeatureMap(headItemType)) then return false end</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a></span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>	-- printx(16,bindingItemType,itemType,headItemType,tts(watchConfig))</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a></span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>	return true</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>end</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a></span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a></span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a></span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>-- function UBFShadowTargetLogic:_calPathBanding( itemType,pathItemType )</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>-- 	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a></span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>--     local baseItemRaws = boardContext:filter({</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>--         isGlobal = true,</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>--         itemType = itemType, </span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>--     })</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>--     local progress = 0</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>--     for _,itemRaw in ipairs(baseItemRaws) do </span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>--     	progress = progress + self:getPathPos(pos,pathItemType)</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>--     end</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>--     boardContext:release()</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a></span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>--     return progress</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>-- end</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a></span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>function UBFShadowTargetLogic:getPathPos( pos,pathItemType )</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>    local progress = 0</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>	local pathItemContext = boardContext:getItemContextByPosType(pos,pathItemType)</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>	if pathItemContext then</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>		progress = progress + pathItemContext:getRawData().route.index - 1</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>		pathItemContext:release()</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>	end</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>    boardContext:release()</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a></span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>    return progress</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>end</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a></span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>-- 当前距离路径终点的剩余距离</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>function UBFShadowTargetLogic:getPathPosToEnd(pos, pathItemType)</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>    local progress = 0</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>	local pathItemContext = boardContext:getItemContextByPosType(pos, pathItemType)	--多条路径时，这里会随机取一条</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>	if pathItemContext then</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>		local routeItemData = pathItemContext:getRawData().route</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>		if routeItemData and routeItemData.routeRef then</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>			local routeData = routeItemData.routeRef</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>			local wholeRouteLength = routeData.initLength</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>			local leftLength = wholeRouteLength - routeItemData.index</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>			progress = progress + leftLength</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>		end</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>		pathItemContext:release()</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>	end</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>    boardContext:release()</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a></span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>    return progress</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>end</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a></span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>function UBFShadowTargetLogic:calLine(  )</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a></span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>	local tmp = {}</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>	for k,v in pairs(self.dynamicStatisticsTargets) do </span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>		local watchConfigs = UBFShadowTargetConfig[k]</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>		local cur = 0</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>		for _,watchConfig in ipairs(watchConfigs) do </span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>			if watchConfig.watch.type == UBFShadowTargetStatisticType.kCalculateRow then</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>				local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>				local direction = watchConfig.watch.direction</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>				local progress = self:_calRow(itemType,direction)</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>				cur = cur + progress</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>			elseif watchConfig.watch.type == UBFShadowTargetStatisticType.kCalculateCol then</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>				local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>				local direction = watchConfig.watch.direction</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>				local progress = self:_calCol(itemType,direction)</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>				cur = cur + progress</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>			end</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>		end</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>		if cur &gt; 0 then tmp[k] = cur end</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>	end</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>	for k,v in pairs(tmp) do </span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>		self.dynamicStatisticsTargets[k].cur = v</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>	end</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>	boardContext:release()</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>end</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a></span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>function UBFShadowTargetLogic:_calRow( itemType,direction )</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>	local rowMap = {}</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>    local baseItemRaws = boardContext:filter({</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>        isGlobal = true,</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>        itemType = itemType, </span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>    })</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>    for _,itemRaw in ipairs(baseItemRaws) do</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>    	rowMap[itemRaw.pos.r] = true</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>    end</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a></span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>    local boardSize = boardContext:getBoardSize()</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>    local ret = 0</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>    if direction ~= UBFDirection.kDown then</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>	    for row = boardSize.height , 1, -1 do</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>	    	if rowMap[row] then </span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>	    		ret = row</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>	    		break</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>	    	end</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>	    end</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>    else</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>	    for row = 1 , boardSize.height do</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>	    	if rowMap[row] then </span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>	    		ret = row</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>	    		break</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>	    	end</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>	    end</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>	 end</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a></span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>	boardContext:release()</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a></span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>	return ret</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>end</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a></span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>function UBFShadowTargetLogic:_calCol( itemType,direction )</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>	local colMap = {}</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>    local baseItemRaws = boardContext:filter({</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>        isGlobal = true,</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>        itemType = itemType, </span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>    })</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>    for _,itemRaw in ipairs(baseItemRaws) do</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>    	colMap[itemRaw.pos.c] = true</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>    end</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a></span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>    local boardSize = boardContext:getBoardSize()</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>    local ret = 0</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>    if direction ~= UBFDirection.kRight then</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>	    for col = 1 , boardSize.width do</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>	    	if colMap[col] then </span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>	    		ret = col</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>	    		break</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>	    	end</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>	    end</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>    else</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>	    for col = 1 , boardSize.width do</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>	    	if colMap[col] then </span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>	    		ret = col</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>	    		break</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>	    	end</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>	    end</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>	end</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a></span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>	boardContext:release()</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a></span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>	return ret</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>end</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a></span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a></span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>function UBFShadowTargetLogic:calBoard(  )</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a></span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>	local tmp = {}</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>	for k,v in pairs(self.dynamicStatisticsTargets) do </span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>		local watchConfigs = UBFShadowTargetConfig[k]</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>		local cur = 0</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>		for _,watchConfig in ipairs(watchConfigs) do </span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>			-- printx(16,watchConfig.watch.type,&quot;watchConfig.watch.type&quot;)</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>			if watchConfig.watch.type == UBFShadowTargetStatisticType.kCalculateViewVoard then</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>				local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>				local progress = self:_calBoard(itemType,watchConfig.watch.fieldsCheck,false)</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>				cur = cur + progress</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>				-- printx(16,&quot;calBoard&quot;,progress)</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>			elseif watchConfig.watch.type == UBFShadowTargetStatisticType.kCalculateAllVoard then</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>				local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>				local progress = self:_calBoard(itemType,watchConfig.watch.fieldsCheck,true)</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>				cur = cur + progress</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>				-- printx(16,&quot;calBoard x&quot;,progress)</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>			end</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>		end</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>		if cur &gt; 0 then tmp[k] = cur end</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>	end</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a></span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>	for k,v in pairs(tmp) do </span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>		self.dynamicStatisticsTargets[k].cur = v</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>	end</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>	boardContext:release()</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>end</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a></span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a></span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>function UBFShadowTargetLogic:_calBoard( itemType,fieldsCheck,isGlobal )</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a></span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>	local filterData = {</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>		isGlobal = isGlobal,</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>        itemType = itemType,</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>        fieldCond = {}</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a></span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>	}</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>	for k,check in ipairs(fieldsCheck or {}) do </span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>		if check.value then</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>			table.insert(filterData.fieldCond,{</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>				field = check.field,</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>				mode = UBFBoardFilterConst.kValue,</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>				val = check.value</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>			})</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>		elseif check.range then</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>			table.insert(filterData.fieldCond,{</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>				field = check.field,</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>				mode = UBFBoardFilterConst.kRange,</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>				min = check.range[1] , </span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>				max = check.range[2] ,</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>			})</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>		end</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>	end</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>    local baseItemRaws = boardContext:filter(filterData)</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a></span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a></span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>    if baseItemRaws then</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>    	return #baseItemRaws</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>    else</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>    	return 0</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>    end</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a></span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>    boardContext:release()</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>end</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a></span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a></span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a></span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a></span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a></span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a></span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a></span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a></span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>----------------------计算影子目标的时机</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a></span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>function UBFShadowTargetLogic:onEnterWaiting( boardContext )</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>	self:reInitWatch()</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>	self:calGlobalShadowTarget()</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>	self:pushTakeStepProgressData()</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>end</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a></span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>function UBFShadowTargetLogic:genStepProgressList( ... )</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>	local shadowTargetsMap = self:getShadowTargetsMap()</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>	local progressList = {}</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>	for shadowTargetType,watchDataList in pairs(shadowTargetsMap) do </span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>		local cur = 0</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a></span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>		for _,watchData in ipairs(watchDataList) do </span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>			if watchData.flipNum then</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>				cur = cur + watchData.flipNum</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>			else</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>				cur = cur + watchData.cur</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>			end</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a></span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>			if watchData.flipNumMap then</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>				for _,value in pairs(watchData.flipNumMap) do </span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>					cur = cur + value</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>				end</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>			else</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>				for _,value in pairs(watchData.curMap) do </span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>					cur = cur + value</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>				end</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>			end</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>			</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>			-- printx(16,&quot;genStepProgressList&quot;,cur,tts(watchData))</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a></span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>		end</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a></span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a></span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>		table.insert(progressList,{</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>			cv = cur,</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>			id = shadowTargetType,</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>			tv = 0,</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>			shadow = true, </span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>			isDone = true,</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>			isFuuuDone = true,</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>		})</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>	end</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>	return progressList</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>end</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a></span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>function UBFShadowTargetLogic:pushTakeStepProgressData( ... )</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>	-- body</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>	local progressDataList = self:getProgressDataList()</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>	local step = self.gameBoardLogic:leagueCall( &quot;getMoveCount&quot; )</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>	local staticStep = self.gameBoardLogic:leagueCall( &quot;getStaticMoveCount&quot; )</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>	-- if step &gt; staticStep then return nil end --不急了超过最大步数的</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>	-- printx(16,step,&quot;xxxxxxxxxxxx&quot;,debug.traceback())</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>	progressDataList[step] = {</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>		list = self:genStepProgressList(),</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>		restMove = self.gameBoardLogic:leagueCall( &quot;getRestMoveCount&quot; )</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>	}</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a></span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>end</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a></span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a></span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>function UBFShadowTargetLogic:checkBindingItemType( watchConfig,itemContextRaw )</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>	if not watchConfig then return end</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>	if not watchConfig.watch then return end</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>	--没有绑定直接返回true</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>	if not watchConfig.watch.bindingItemType then return true end</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a></span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>	local bindingItemType = watchConfig.watch.bindingItemType</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>	local itemContext = boardContext:getItemContextByPosType( itemContextRaw.pos,bindingItemType)</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a></span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>	if not itemContext then</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>		local pos = itemContextRaw.pos</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>		local gridContext = boardContext:getGridContextByPos( pos.r , pos.c , pos.d )</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>		local bodyRows = gridContext:getItemContextListByItemType( UBFGameItemType.kBody )</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>		for _,bodyRow in ipairs(bodyRows) do </span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>			local headItemRaw = UBFFeatureHelper:getHomologousHead(boardContext, bodyRow)</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>			if headItemRaw and headItemRaw.itemType == bindingItemType then</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>				itemContext = headItemRaw</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>				break</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a>			end</span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>		end</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a></span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>		gridContext:release()</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>	end</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a></span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>	boardContext:release()</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a></span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>	return not (not itemContext)</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>end</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a></span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>function UBFShadowTargetLogic:checkWatchConfigFields( watchConfig,itemContextRaw )</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>	if watchConfig.watch.fieldsCheck then</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>		local fieldsCheck = watchConfig.watch.fieldsCheck</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a>		for _,eachrule in ipairs(fieldsCheck) do </span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>            if not eachrule.field then return false end</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>            local value = itemContextRaw[eachrule.field]</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>            if eachrule.range then </span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>                local min = eachrule.range[1] or 0</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>                local max = eachrule.range[2] or 0xffff</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>                if value &lt; min or value &gt; max then return false end</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>            else</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>                if value ~= eachrule.value then return false end</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>            end</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>		end</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>		return true</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>	end</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>	return true</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>end</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a></span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a></span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a></span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>function UBFShadowTargetLogic:isEventOk( watchConfig,event )</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>	local eventName = event.eventName</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>	local itemContextRaw = event.itemContextRaw</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>	local itemType = itemContextRaw and itemContextRaw.itemType</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a></span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a></span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>	local eventOk = watchConfig.watch.UBFGamePlayEventEnum == eventName</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>	local itemTypeOk = itemType == watchConfig.watch.itemType</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a></span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>	local fieldsOk = self:checkWatchConfigFields( watchConfig,itemContextRaw )</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>	local bindingItemTypeOk = self:checkBindingItemType(watchConfig,itemContextRaw )</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a></span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>	-- printx(16,&quot;eventOk&quot;,eventOk,eventName)</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>	-- printx(16,&quot;itemTypeOk&quot;,itemTypeOk,itemType)</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a>	-- printx(16,&quot;fieldsOk&quot;,fieldsOk)</span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>	-- printx(16,&quot;bindingItemTypeOk&quot;,bindingItemTypeOk)</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>	-- printx(16,tts(watchConfig))</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>	-- printx(16,&quot;----------------------&quot;)</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a></span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a></span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>	return eventOk and itemTypeOk and fieldsOk and bindingItemTypeOk</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>end</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a></span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a></span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>function UBFShadowTargetLogic:onGamePlayEvent( event )</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>	local eventName = event.eventName</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>	local itemContextRaw = event.itemContextRaw</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>	local itemType = itemContextRaw and itemContextRaw.itemType</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>	local watchEvents = self:getWatchEvents()</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>	if not watchEvents then return end</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a></span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a></span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>	if not watchEvents[eventName] then return end</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a></span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>	local shadowTargetsMap = self:getShadowTargetsMap()</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a></span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>	-- printx(16,&quot;onGamePlayEvent&quot;,itemType)</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a></span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>	for shadowTargetType,watchDataList in pairs(shadowTargetsMap) do </span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>		local watchConfigs = UBFShadowTargetConfig[shadowTargetType]</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>		for index,watchData in ipairs(watchDataList) do </span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>			local watchConfig = watchConfigs[index]</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>			-- if itemType == UBFGameItemType.kIce then</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>			-- 	printx(16,&quot;self:isEventOk(watchConfig,event)&quot;,itemType,eventName,self:isEventOk(watchConfig,event))</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>			-- end</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>			if self:isEventOk(watchConfig,event) then</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>				self:updateWatchData(watchData,watchConfig,event)</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>			end</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>		end</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>	end</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a></span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>end</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a></span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a></span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a></span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>function UBFShadowTargetLogic:updateWatchData(watchData,watchConfig,event)</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>	local eventName = event.eventName</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>	local itemContextRaw = event.itemContextRaw</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a>	-- printx(16,itemContextRaw.level)</span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a></span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>	-- printx(16,&quot;===============&quot;,self:checkWatchConfigFields( watchConfig,itemContextRaw ),&quot;self:checkWatchConfigFields( watchConfig,itemContextRaw )&quot;)</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>	-- if not self:checkWatchConfigFields( watchConfig,itemContextRaw ) then</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>	-- 	return</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>	-- end</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a></span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>	lua_switch(eventName){</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>		[UBFGamePlayEventEnum.kItemFieldChange] = function (  )</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>			local field = event.field</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>			if field == watchConfig.watch.eventExtend then</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>				self:doWatchAction(watchData,watchConfig,{</span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>					diff = event.oldVal - itemContextRaw[field]</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a>				})</span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>			end</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>		end,</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>		[UBFGamePlayEventEnum.kItemDestroyed] = function (  )</span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>			self:doWatchAction(watchData,watchConfig,{</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>				level = itemContextRaw.level,</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a>			})</span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>		end,</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>		[UBFGamePlayEventEnum.kBeforeAddTally] = function ( ... )</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a>			local tallyId = event.tallyId</span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>			if tallyId == watchConfig.watch.eventExtend then</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>				self:doWatchAction(watchData,watchConfig,{</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>					diff = event.count</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>				})</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>			end</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>		end,</span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a></span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>		[UBFGamePlayEventEnum.kItemProduced] = function ( ... )</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a>			self:doWatchAction(watchData,watchConfig,{</span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>				level = itemContextRaw.level</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>			})</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>		end,</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>	}</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>end</span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a></span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>local function checkCoverage( coverage,value )</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>	local min = coverage[1] or -10000</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>	local max = coverage[2] or 10000</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a></span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>	return value &gt;= min and value &lt;= max</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a>end</span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a></span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>local function clamp(value, a, b) return math.max(a, math.min(value, b)) end</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a></span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>function UBFShadowTargetLogic:ensureResultRange(watchData,range)</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>	local min = range[1] or -10000</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a>	local max = range[2] or 10000</span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a></span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a>	watchData.cur = clamp(watchData.cur,min,max)</span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>	if watchData.curMap then</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a>		for k,v in pairs(watchData.curMap) do </span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>			watchData.curMap[k] = clamp(v,min,max)</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>		end</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a>	end</span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a>end</span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a></span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>function UBFShadowTargetLogic:calResultOffset(watchData,offset)</span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>	watchData.cur = watchData.cur + offset</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a>	if watchData.curMap then</span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>		for k,v in pairs(watchData.curMap) do </span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>			watchData.curMap[k] = v + offset</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a>		end</span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>	end</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a>end</span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a></span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>function UBFShadowTargetLogic:doWatchAction( watchData,watchConfig,params )</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>	local action = watchConfig.action</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>	local coverage = action.coverage</span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a>	local resultRange = action.resultRange</span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>	local resultOffset = action.resultOffset</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>	local flip = action.flip</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a></span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>	lua_switch(action.mode){</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>		[UBFShadawTargetActionMode.FIELD_DIFF] = function ( ... )</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>			local diff =  params.diff</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a>			local scale =  action.scale or 1</span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>			if coverage and (not checkCoverage(coverage,diff)) then return end</span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>			watchData.cur = watchData.cur + diff * scale</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a>		end,</span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>		[UBFShadawTargetActionMode.NUM_CHANGE] = function ( ... )</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a>			local value =  action.value</span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>			local scale =  action.scale or 1</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a>			watchData.cur = watchData.cur + value * scale</span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>		end,</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>		[UBFShadawTargetActionMode.CUR_LEVEL] = function ( ... )</span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>			local scale =  action.scale or 1</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>			if coverage and (not checkCoverage(coverage,params.level)) then return end</span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a>			watchData.cur = watchData.cur + params.level * scale</span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a>		end,</span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a>		[UBFShadawTargetActionMode.PATH_POS] = function ( ... )</span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a>			self:calBindingPath(watchData,watchConfig)</span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>		end,</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a>		[UBFShadawTargetActionMode.PATH_POS_TO_END] = function ( ... )</span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a>			self:calPathPosToEnd(watchData, watchConfig)</span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>		end,</span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a>		[UBFShadawTargetActionMode.INIT_PATH_LEN] = function ( ... )</span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a>			self:calPathLength(watchData,watchConfig)</span>
+<span class="source-line" id="L614"><a class="line-num" href="#L614">614</a>		end,</span>
+<span class="source-line" id="L615"><a class="line-num" href="#L615">615</a>	}</span>
+<span class="source-line" id="L616"><a class="line-num" href="#L616">616</a></span>
+<span class="source-line" id="L617"><a class="line-num" href="#L617">617</a>	-- printx(16,flip,watchData.initNum,watchConfig.watch.itemType)</span>
+<span class="source-line" id="L618"><a class="line-num" href="#L618">618</a>	if flip and watchData.initNum then</span>
+<span class="source-line" id="L619"><a class="line-num" href="#L619">619</a>		watchData.flipNum  = watchData.initNum - watchData.cur</span>
+<span class="source-line" id="L620"><a class="line-num" href="#L620">620</a>	end</span>
+<span class="source-line" id="L621"><a class="line-num" href="#L621">621</a>	if flip and watchData.initNumMap then</span>
+<span class="source-line" id="L622"><a class="line-num" href="#L622">622</a>		if not watchData.flipNumMap then</span>
+<span class="source-line" id="L623"><a class="line-num" href="#L623">623</a>		 	watchData.flipNumMap = {}</span>
+<span class="source-line" id="L624"><a class="line-num" href="#L624">624</a>		 end</span>
+<span class="source-line" id="L625"><a class="line-num" href="#L625">625</a></span>
+<span class="source-line" id="L626"><a class="line-num" href="#L626">626</a>		for id,cur in pairs(watchData.curMap) do</span>
+<span class="source-line" id="L627"><a class="line-num" href="#L627">627</a>			local initNum = watchData.initNumMap[id]</span>
+<span class="source-line" id="L628"><a class="line-num" href="#L628">628</a>			if initNum then</span>
+<span class="source-line" id="L629"><a class="line-num" href="#L629">629</a>				watchData.flipNumMap[id] = initNum - cur</span>
+<span class="source-line" id="L630"><a class="line-num" href="#L630">630</a>			end</span>
+<span class="source-line" id="L631"><a class="line-num" href="#L631">631</a>		end</span>
+<span class="source-line" id="L632"><a class="line-num" href="#L632">632</a>		-- printx(16,tts(watchData))</span>
+<span class="source-line" id="L633"><a class="line-num" href="#L633">633</a>	end</span>
+<span class="source-line" id="L634"><a class="line-num" href="#L634">634</a></span>
+<span class="source-line" id="L635"><a class="line-num" href="#L635">635</a></span>
+<span class="source-line" id="L636"><a class="line-num" href="#L636">636</a>	if resultOffset then</span>
+<span class="source-line" id="L637"><a class="line-num" href="#L637">637</a>		self:calResultOffset(watchData,resultOffset)</span>
+<span class="source-line" id="L638"><a class="line-num" href="#L638">638</a>	end</span>
+<span class="source-line" id="L639"><a class="line-num" href="#L639">639</a></span>
+<span class="source-line" id="L640"><a class="line-num" href="#L640">640</a>	if resultRange then</span>
+<span class="source-line" id="L641"><a class="line-num" href="#L641">641</a>		self:ensureResultRange(watchData,resultRange)</span>
+<span class="source-line" id="L642"><a class="line-num" href="#L642">642</a>	end</span>
+<span class="source-line" id="L643"><a class="line-num" href="#L643">643</a></span>
+<span class="source-line" id="L644"><a class="line-num" href="#L644">644</a></span>
+<span class="source-line" id="L645"><a class="line-num" href="#L645">645</a></span>
+<span class="source-line" id="L646"><a class="line-num" href="#L646">646</a>end</span>
+<span class="source-line" id="L647"><a class="line-num" href="#L647">647</a></span>
+<span class="source-line" id="L648"><a class="line-num" href="#L648">648</a></span>
+<span class="source-line" id="L649"><a class="line-num" href="#L649">649</a>function UBFShadowTargetLogic:calGlobalShadowTarget(  )</span>
+<span class="source-line" id="L650"><a class="line-num" href="#L650">650</a>	-- isStaticType</span>
+<span class="source-line" id="L651"><a class="line-num" href="#L651">651</a>	local shadowTargetsMap = self:getShadowTargetsMap()</span>
+<span class="source-line" id="L652"><a class="line-num" href="#L652">652</a>	for shadowTargetType,watchDataList in pairs(shadowTargetsMap) do </span>
+<span class="source-line" id="L653"><a class="line-num" href="#L653">653</a>		local watchConfigs = UBFShadowTargetConfig[shadowTargetType]</span>
+<span class="source-line" id="L654"><a class="line-num" href="#L654">654</a>		for index,watchData in ipairs(watchDataList) do </span>
+<span class="source-line" id="L655"><a class="line-num" href="#L655">655</a>			local watchConfig = watchConfigs[index]</span>
+<span class="source-line" id="L656"><a class="line-num" href="#L656">656</a>			-- printx(16, not self:isStaticType(watchConfig.watch.type),&quot;------------------------&quot;)</span>
+<span class="source-line" id="L657"><a class="line-num" href="#L657">657</a>			if not self:isStaticType(watchConfig.watch.type) then</span>
+<span class="source-line" id="L658"><a class="line-num" href="#L658">658</a>				-- self:updateWatchData(watchData,watchConfig,event)</span>
+<span class="source-line" id="L659"><a class="line-num" href="#L659">659</a>				self:calWatchData(watchData,watchConfig)</span>
+<span class="source-line" id="L660"><a class="line-num" href="#L660">660</a>			end</span>
+<span class="source-line" id="L661"><a class="line-num" href="#L661">661</a>		end</span>
+<span class="source-line" id="L662"><a class="line-num" href="#L662">662</a>	end</span>
+<span class="source-line" id="L663"><a class="line-num" href="#L663">663</a>end</span>
+<span class="source-line" id="L664"><a class="line-num" href="#L664">664</a></span>
+<span class="source-line" id="L665"><a class="line-num" href="#L665">665</a>function UBFShadowTargetLogic:doWatchInit( )</span>
+<span class="source-line" id="L666"><a class="line-num" href="#L666">666</a></span>
+<span class="source-line" id="L667"><a class="line-num" href="#L667">667</a>	local initByCur = function ( watchData )</span>
+<span class="source-line" id="L668"><a class="line-num" href="#L668">668</a>		local curMap = watchData.curMap</span>
+<span class="source-line" id="L669"><a class="line-num" href="#L669">669</a>		local initNumMap = {}</span>
+<span class="source-line" id="L670"><a class="line-num" href="#L670">670</a></span>
+<span class="source-line" id="L671"><a class="line-num" href="#L671">671</a>		for id,cur in pairs(curMap) do</span>
+<span class="source-line" id="L672"><a class="line-num" href="#L672">672</a>			initNumMap[id] = cur</span>
+<span class="source-line" id="L673"><a class="line-num" href="#L673">673</a>		end</span>
+<span class="source-line" id="L674"><a class="line-num" href="#L674">674</a>		watchData.initNumMap = initNumMap</span>
+<span class="source-line" id="L675"><a class="line-num" href="#L675">675</a>		watchData.initNum = watchData.cur</span>
+<span class="source-line" id="L676"><a class="line-num" href="#L676">676</a>	end</span>
+<span class="source-line" id="L677"><a class="line-num" href="#L677">677</a></span>
+<span class="source-line" id="L678"><a class="line-num" href="#L678">678</a></span>
+<span class="source-line" id="L679"><a class="line-num" href="#L679">679</a>	local shadowTargetsMap = self:getShadowTargetsMap()</span>
+<span class="source-line" id="L680"><a class="line-num" href="#L680">680</a>	for shadowTargetType,watchDataList in pairs(shadowTargetsMap) do </span>
+<span class="source-line" id="L681"><a class="line-num" href="#L681">681</a>		local watchConfigs = UBFShadowTargetConfig[shadowTargetType]</span>
+<span class="source-line" id="L682"><a class="line-num" href="#L682">682</a>		for index,watchData in ipairs(watchDataList) do </span>
+<span class="source-line" id="L683"><a class="line-num" href="#L683">683</a>			local watchConfig = watchConfigs[index]</span>
+<span class="source-line" id="L684"><a class="line-num" href="#L684">684</a>			-- printx(16,watchConfig.watch.recordInit,&quot;watchConfig.watch.recordInit&quot;)</span>
+<span class="source-line" id="L685"><a class="line-num" href="#L685">685</a>			if watchConfig.watch.recordInit then</span>
+<span class="source-line" id="L686"><a class="line-num" href="#L686">686</a>				self:doWatchAction(watchData,watchConfig)</span>
+<span class="source-line" id="L687"><a class="line-num" href="#L687">687</a>				initByCur(watchData)</span>
+<span class="source-line" id="L688"><a class="line-num" href="#L688">688</a>			end</span>
+<span class="source-line" id="L689"><a class="line-num" href="#L689">689</a>		end</span>
+<span class="source-line" id="L690"><a class="line-num" href="#L690">690</a>	end</span>
+<span class="source-line" id="L691"><a class="line-num" href="#L691">691</a></span>
+<span class="source-line" id="L692"><a class="line-num" href="#L692">692</a>end</span>
+<span class="source-line" id="L693"><a class="line-num" href="#L693">693</a></span>
+<span class="source-line" id="L694"><a class="line-num" href="#L694">694</a></span>
+<span class="source-line" id="L695"><a class="line-num" href="#L695">695</a>function UBFShadowTargetLogic:reInitWatch(  )</span>
+<span class="source-line" id="L696"><a class="line-num" href="#L696">696</a>	local reInitByCur = function ( watchData )</span>
+<span class="source-line" id="L697"><a class="line-num" href="#L697">697</a>		local curMap = watchData.curMap</span>
+<span class="source-line" id="L698"><a class="line-num" href="#L698">698</a></span>
+<span class="source-line" id="L699"><a class="line-num" href="#L699">699</a>		for id,cur in pairs(curMap) do</span>
+<span class="source-line" id="L700"><a class="line-num" href="#L700">700</a>			if not watchData.initNumMap[id] then</span>
+<span class="source-line" id="L701"><a class="line-num" href="#L701">701</a>				watchData.initNumMap[id] = cur</span>
+<span class="source-line" id="L702"><a class="line-num" href="#L702">702</a>			end</span>
+<span class="source-line" id="L703"><a class="line-num" href="#L703">703</a>		end</span>
+<span class="source-line" id="L704"><a class="line-num" href="#L704">704</a>	end</span>
+<span class="source-line" id="L705"><a class="line-num" href="#L705">705</a></span>
+<span class="source-line" id="L706"><a class="line-num" href="#L706">706</a></span>
+<span class="source-line" id="L707"><a class="line-num" href="#L707">707</a>	local shadowTargetsMap = self:getShadowTargetsMap()</span>
+<span class="source-line" id="L708"><a class="line-num" href="#L708">708</a>	for shadowTargetType,watchDataList in pairs(shadowTargetsMap) do </span>
+<span class="source-line" id="L709"><a class="line-num" href="#L709">709</a>		local watchConfigs = UBFShadowTargetConfig[shadowTargetType]</span>
+<span class="source-line" id="L710"><a class="line-num" href="#L710">710</a>		for index,watchData in ipairs(watchDataList) do </span>
+<span class="source-line" id="L711"><a class="line-num" href="#L711">711</a>			local watchConfig = watchConfigs[index]</span>
+<span class="source-line" id="L712"><a class="line-num" href="#L712">712</a>			-- printx(16,watchConfig.watch.recordInit,&quot;watchConfig.watch.recordInit&quot;)</span>
+<span class="source-line" id="L713"><a class="line-num" href="#L713">713</a>			if watchConfig.watch.recordInit then</span>
+<span class="source-line" id="L714"><a class="line-num" href="#L714">714</a>				self:doWatchAction(watchData,watchConfig)</span>
+<span class="source-line" id="L715"><a class="line-num" href="#L715">715</a>				-- printx(16,tts(watchData))</span>
+<span class="source-line" id="L716"><a class="line-num" href="#L716">716</a>				reInitByCur(watchData)</span>
+<span class="source-line" id="L717"><a class="line-num" href="#L717">717</a>				-- printx(16,tts(watchData))</span>
+<span class="source-line" id="L718"><a class="line-num" href="#L718">718</a>			end</span>
+<span class="source-line" id="L719"><a class="line-num" href="#L719">719</a>		end</span>
+<span class="source-line" id="L720"><a class="line-num" href="#L720">720</a>	end</span>
+<span class="source-line" id="L721"><a class="line-num" href="#L721">721</a></span>
+<span class="source-line" id="L722"><a class="line-num" href="#L722">722</a>end</span>
+<span class="source-line" id="L723"><a class="line-num" href="#L723">723</a></span>
+<span class="source-line" id="L724"><a class="line-num" href="#L724">724</a>local function convert2fieldCond( fieldsCheck )</span>
+<span class="source-line" id="L725"><a class="line-num" href="#L725">725</a>	-- body</span>
+<span class="source-line" id="L726"><a class="line-num" href="#L726">726</a>	local fieldCond = {}</span>
+<span class="source-line" id="L727"><a class="line-num" href="#L727">727</a>	for _,rule in ipairs(fieldsCheck) do</span>
+<span class="source-line" id="L728"><a class="line-num" href="#L728">728</a>		if rule.value then</span>
+<span class="source-line" id="L729"><a class="line-num" href="#L729">729</a>			table.insert(fieldCond,{</span>
+<span class="source-line" id="L730"><a class="line-num" href="#L730">730</a>            	 val = rule.value , </span>
+<span class="source-line" id="L731"><a class="line-num" href="#L731">731</a>            	 field = rule.field , </span>
+<span class="source-line" id="L732"><a class="line-num" href="#L732">732</a>            	 mode = UBFBoardFilterConst.kValue,</span>
+<span class="source-line" id="L733"><a class="line-num" href="#L733">733</a>			})	</span>
+<span class="source-line" id="L734"><a class="line-num" href="#L734">734</a>		elseif rule.range then</span>
+<span class="source-line" id="L735"><a class="line-num" href="#L735">735</a>			table.insert(fieldCond,{ </span>
+<span class="source-line" id="L736"><a class="line-num" href="#L736">736</a>				min = rule.range[1], </span>
+<span class="source-line" id="L737"><a class="line-num" href="#L737">737</a>				max = rule.range[2] , </span>
+<span class="source-line" id="L738"><a class="line-num" href="#L738">738</a>				field = rule.field , </span>
+<span class="source-line" id="L739"><a class="line-num" href="#L739">739</a>				mode = UBFBoardFilterConst.kRange ,</span>
+<span class="source-line" id="L740"><a class="line-num" href="#L740">740</a>			})</span>
+<span class="source-line" id="L741"><a class="line-num" href="#L741">741</a>		end</span>
+<span class="source-line" id="L742"><a class="line-num" href="#L742">742</a>	end</span>
+<span class="source-line" id="L743"><a class="line-num" href="#L743">743</a>	return fieldCond</span>
+<span class="source-line" id="L744"><a class="line-num" href="#L744">744</a>end</span>
+<span class="source-line" id="L745"><a class="line-num" href="#L745">745</a></span>
+<span class="source-line" id="L746"><a class="line-num" href="#L746">746</a></span>
+<span class="source-line" id="L747"><a class="line-num" href="#L747">747</a>function UBFShadowTargetLogic:calWatchData( watchData,watchConfig )</span>
+<span class="source-line" id="L748"><a class="line-num" href="#L748">748</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L749"><a class="line-num" href="#L749">749</a>	</span>
+<span class="source-line" id="L750"><a class="line-num" href="#L750">750</a>	local watch = watchConfig.watch</span>
+<span class="source-line" id="L751"><a class="line-num" href="#L751">751</a></span>
+<span class="source-line" id="L752"><a class="line-num" href="#L752">752</a>	lua_switch(watch.type){</span>
+<span class="source-line" id="L753"><a class="line-num" href="#L753">753</a>		[UBFShadowTargetStatisticType.kCalculateViewVoard] = function ( ... )</span>
+<span class="source-line" id="L754"><a class="line-num" href="#L754">754</a>			local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L755"><a class="line-num" href="#L755">755</a>			local filter = {</span>
+<span class="source-line" id="L756"><a class="line-num" href="#L756">756</a>		        isGlobal = true,</span>
+<span class="source-line" id="L757"><a class="line-num" href="#L757">757</a>		        itemType = itemType, </span>
+<span class="source-line" id="L758"><a class="line-num" href="#L758">758</a>		        fieldCond = convert2fieldCond(watchConfig.watch.fieldsCheck)</span>
+<span class="source-line" id="L759"><a class="line-num" href="#L759">759</a>		    }</span>
+<span class="source-line" id="L760"><a class="line-num" href="#L760">760</a>		    local itemRawList = boardContext:filter(filter)</span>
+<span class="source-line" id="L761"><a class="line-num" href="#L761">761</a>		    watchData.cur = #itemRawList</span>
+<span class="source-line" id="L762"><a class="line-num" href="#L762">762</a>		end,</span>
+<span class="source-line" id="L763"><a class="line-num" href="#L763">763</a>		[UBFShadowTargetStatisticType.kBandingPath] = function ( ... )</span>
+<span class="source-line" id="L764"><a class="line-num" href="#L764">764</a>			-- self:calBindingPath(watchData,watchConfig)</span>
+<span class="source-line" id="L765"><a class="line-num" href="#L765">765</a>			self:doWatchAction(watchData,watchConfig)</span>
+<span class="source-line" id="L766"><a class="line-num" href="#L766">766</a>		end,</span>
+<span class="source-line" id="L767"><a class="line-num" href="#L767">767</a>		[UBFShadowTargetStatisticType.kPathPosToEnd] = function ( ... )</span>
+<span class="source-line" id="L768"><a class="line-num" href="#L768">768</a>			-- self:calPathPosToEnd(watchData, watchConfig)</span>
+<span class="source-line" id="L769"><a class="line-num" href="#L769">769</a>			self:doWatchAction(watchData,watchConfig)</span>
+<span class="source-line" id="L770"><a class="line-num" href="#L770">770</a>		end,</span>
+<span class="source-line" id="L771"><a class="line-num" href="#L771">771</a>		[UBFShadowTargetStatisticType.kPathLength] = function ( ... )</span>
+<span class="source-line" id="L772"><a class="line-num" href="#L772">772</a>			self:doWatchAction(watchData,watchConfig)</span>
+<span class="source-line" id="L773"><a class="line-num" href="#L773">773</a>			-- self:calPathLength(watchData,watchConfig)</span>
+<span class="source-line" id="L774"><a class="line-num" href="#L774">774</a>		end</span>
+<span class="source-line" id="L775"><a class="line-num" href="#L775">775</a>	}</span>
+<span class="source-line" id="L776"><a class="line-num" href="#L776">776</a>	boardContext:release()</span>
+<span class="source-line" id="L777"><a class="line-num" href="#L777">777</a>end</span>
+<span class="source-line" id="L778"><a class="line-num" href="#L778">778</a></span>
+<span class="source-line" id="L779"><a class="line-num" href="#L779">779</a>function UBFShadowTargetLogic:calBindingPath( watchData,watchConfig )</span>
+<span class="source-line" id="L780"><a class="line-num" href="#L780">780</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L781"><a class="line-num" href="#L781">781</a></span>
+<span class="source-line" id="L782"><a class="line-num" href="#L782">782</a>	local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L783"><a class="line-num" href="#L783">783</a>	local bindingPathItemType = watchConfig.watch.bindingPathItemType</span>
+<span class="source-line" id="L784"><a class="line-num" href="#L784">784</a>    local baseItemRaws = boardContext:filter({</span>
+<span class="source-line" id="L785"><a class="line-num" href="#L785">785</a>        isGlobal = true,</span>
+<span class="source-line" id="L786"><a class="line-num" href="#L786">786</a>        itemType = itemType, </span>
+<span class="source-line" id="L787"><a class="line-num" href="#L787">787</a>    })	</span>
+<span class="source-line" id="L788"><a class="line-num" href="#L788">788</a>	for _,itemRaw in ipairs(baseItemRaws) do </span>
+<span class="source-line" id="L789"><a class="line-num" href="#L789">789</a>		local pos = itemRaw.pos</span>
+<span class="source-line" id="L790"><a class="line-num" href="#L790">790</a>		local id = itemRaw.id</span>
+<span class="source-line" id="L791"><a class="line-num" href="#L791">791</a>   		local cur = self:getPathPos(pos,bindingPathItemType)</span>
+<span class="source-line" id="L792"><a class="line-num" href="#L792">792</a>   		watchData.curMap[id] = cur</span>
+<span class="source-line" id="L793"><a class="line-num" href="#L793">793</a>    end</span>
+<span class="source-line" id="L794"><a class="line-num" href="#L794">794</a></span>
+<span class="source-line" id="L795"><a class="line-num" href="#L795">795</a>	boardContext:release()</span>
+<span class="source-line" id="L796"><a class="line-num" href="#L796">796</a>end</span>
+<span class="source-line" id="L797"><a class="line-num" href="#L797">797</a></span>
+<span class="source-line" id="L798"><a class="line-num" href="#L798">798</a>-- 当前距离路径终点的剩余距离</span>
+<span class="source-line" id="L799"><a class="line-num" href="#L799">799</a>function UBFShadowTargetLogic:calPathPosToEnd(watchData, watchConfig)</span>
+<span class="source-line" id="L800"><a class="line-num" href="#L800">800</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L801"><a class="line-num" href="#L801">801</a></span>
+<span class="source-line" id="L802"><a class="line-num" href="#L802">802</a>	local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L803"><a class="line-num" href="#L803">803</a>	local bindingPathItemType = watchConfig.watch.bindingPathItemType</span>
+<span class="source-line" id="L804"><a class="line-num" href="#L804">804</a>    local baseItemRaws = boardContext:filter({</span>
+<span class="source-line" id="L805"><a class="line-num" href="#L805">805</a>        isGlobal = true,</span>
+<span class="source-line" id="L806"><a class="line-num" href="#L806">806</a>        itemType = itemType, </span>
+<span class="source-line" id="L807"><a class="line-num" href="#L807">807</a>    })	</span>
+<span class="source-line" id="L808"><a class="line-num" href="#L808">808</a>	for _, itemRaw in ipairs(baseItemRaws) do </span>
+<span class="source-line" id="L809"><a class="line-num" href="#L809">809</a>		local pos = itemRaw.pos</span>
+<span class="source-line" id="L810"><a class="line-num" href="#L810">810</a>		local id = itemRaw.id</span>
+<span class="source-line" id="L811"><a class="line-num" href="#L811">811</a>   		local cur = self:getPathPosToEnd(pos, bindingPathItemType)</span>
+<span class="source-line" id="L812"><a class="line-num" href="#L812">812</a>   		watchData.curMap[id] = cur</span>
+<span class="source-line" id="L813"><a class="line-num" href="#L813">813</a>    end</span>
+<span class="source-line" id="L814"><a class="line-num" href="#L814">814</a></span>
+<span class="source-line" id="L815"><a class="line-num" href="#L815">815</a>	boardContext:release()</span>
+<span class="source-line" id="L816"><a class="line-num" href="#L816">816</a>end</span>
+<span class="source-line" id="L817"><a class="line-num" href="#L817">817</a></span>
+<span class="source-line" id="L818"><a class="line-num" href="#L818">818</a>function UBFShadowTargetLogic:calPathLength( watchData,watchConfig )</span>
+<span class="source-line" id="L819"><a class="line-num" href="#L819">819</a>	local boardContext = self.levelContext:getBoardContext(self.boardId)</span>
+<span class="source-line" id="L820"><a class="line-num" href="#L820">820</a></span>
+<span class="source-line" id="L821"><a class="line-num" href="#L821">821</a>	local itemType = watchConfig.watch.itemType</span>
+<span class="source-line" id="L822"><a class="line-num" href="#L822">822</a>    local baseItemRaws = boardContext:filter({</span>
+<span class="source-line" id="L823"><a class="line-num" href="#L823">823</a>        isGlobal = true,</span>
+<span class="source-line" id="L824"><a class="line-num" href="#L824">824</a>        itemType = itemType, </span>
+<span class="source-line" id="L825"><a class="line-num" href="#L825">825</a>    })</span>
+<span class="source-line" id="L826"><a class="line-num" href="#L826">826</a>    local visited = {}</span>
+<span class="source-line" id="L827"><a class="line-num" href="#L827">827</a>	for _,itemRaw in ipairs(baseItemRaws) do </span>
+<span class="source-line" id="L828"><a class="line-num" href="#L828">828</a>        local startItemRow =  UBFFeatureHelper:getRouteStartItemContextRaw(boardContext, itemRaw)</span>
+<span class="source-line" id="L829"><a class="line-num" href="#L829">829</a>        if not visited[startItemRow.id] then</span>
+<span class="source-line" id="L830"><a class="line-num" href="#L830">830</a>        	-- printx(16,tts(startItemRow.route))</span>
+<span class="source-line" id="L831"><a class="line-num" href="#L831">831</a>        	local currLength = startItemRow.route.routeRef.currLength</span>
+<span class="source-line" id="L832"><a class="line-num" href="#L832">832</a>        	local initLength = startItemRow.route.routeRef.initLength</span>
+<span class="source-line" id="L833"><a class="line-num" href="#L833">833</a></span>
+<span class="source-line" id="L834"><a class="line-num" href="#L834">834</a>        	visited[startItemRow.id] = true</span>
+<span class="source-line" id="L835"><a class="line-num" href="#L835">835</a>        	watchData.curMap[startItemRow.id] = (initLength - currLength)</span>
+<span class="source-line" id="L836"><a class="line-num" href="#L836">836</a>        end</span>
+<span class="source-line" id="L837"><a class="line-num" href="#L837">837</a>    end</span>
+<span class="source-line" id="L838"><a class="line-num" href="#L838">838</a>	boardContext:release()</span>
+<span class="source-line" id="L839"><a class="line-num" href="#L839">839</a>end</span>
+<span class="source-line" id="L840"><a class="line-num" href="#L840">840</a></span>
+<span class="source-line" id="L841"><a class="line-num" href="#L841">841</a></span>
+<span class="source-line" id="L842"><a class="line-num" href="#L842">842</a></span>
+<span class="source-line" id="L843"><a class="line-num" href="#L843">843</a></span>
+<span class="source-line" id="L844"><a class="line-num" href="#L844">844</a></span>
+<span class="source-line" id="L845"><a class="line-num" href="#L845">845</a></span>
+<span class="source-line" id="L846"><a class="line-num" href="#L846">846</a></span>
+<span class="source-line" id="L847"><a class="line-num" href="#L847">847</a></span>
+<span class="source-line" id="L848"><a class="line-num" href="#L848">848</a></span>
+<span class="source-line" id="L849"><a class="line-num" href="#L849">849</a></span>
+<span class="source-line" id="L850"><a class="line-num" href="#L850">850</a></span>
+<span class="source-line" id="L851"><a class="line-num" href="#L851">851</a></span>
+<span class="source-line" id="L852"><a class="line-num" href="#L852">852</a></span>
+<span class="source-line" id="L853"><a class="line-num" href="#L853">853</a></span>
+<span class="source-line" id="L854"><a class="line-num" href="#L854">854</a></span>
+<span class="source-line" id="L855"><a class="line-num" href="#L855">855</a></span></code></pre></main></body></html>

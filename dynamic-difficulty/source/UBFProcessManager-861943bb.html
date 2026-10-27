@@ -1,0 +1,558 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFProcessManager.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFProcessManager.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/processFlow/UBFProcessManager.lua<br>SHA-256 acbf9b1f5d63a4a813584d3451e6a7a319aead5b425615fa031ec77956d341e0 · 558 行 · 恢复原文，未经改写</p><a href="UBFProcessManager-861943bb.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>UBFProcessManager = {}</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a></span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>local function buildBridgeError(code, message, details)</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>    return {</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>        code = code,</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>        message = message,</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>        details = details or {},</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    }</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>end</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a></span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>local function validateProcessCmd(cmd, params, currProcess)</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>    if not currProcess then</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>        UBFLogN(&quot;Ignore process cmd&quot;, cmd, &quot;current process not found&quot;, params)</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>        return false</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>    end</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>    if type(params) ~= &quot;table&quot; then</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>        return false, buildBridgeError(UBFAmfBridge.ErrorCode.INVALID_PARAMS, &quot;params must be table&quot;)</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>    end</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    local processId = params.processId</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>    if processId == nil then</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>        return false, buildBridgeError(UBFAmfBridge.ErrorCode.INVALID_PARAMS, &quot;params.processId is required&quot;)</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>    end</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>    local currentProcessId = currProcess:getProcessId()</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>    if processId ~= currentProcessId then</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>        UBFLogN(&quot;Ignore process cmd&quot;, cmd, &quot;processId does not match, request&quot;, processId, &quot;current&quot;, currentProcessId, params)</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>        return false</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>    end</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a></span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>    return true</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>end</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a></span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>---------------------------------------------------------------------------------------------</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>--                              ..*.* 外部接口 *.*..</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>---------------------------------------------------------------------------------------------</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a></span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>-- static</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>function UBFProcessManager:showResourceLoadFailMessage()</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>    CommonTip:showTip(&quot;资源加载失败，点击关卡花重新加载吧~&quot;)</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>end</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a></span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>function UBFProcessManager:launch(enum, launchData)</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>	require(&quot;ubf.UBF.utils.UBFCommonRequire&quot;)(&quot;*&quot;)</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>    if self[enum] then </span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>        return self[enum](self, launchData)</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>    elseif launchData.isLaunchEndLevelProcess then</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>        return self:_launchEndLevelProcess(enum, launchData)</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>    end</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>end</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a></span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>function UBFProcessManager:getCurrStartProcess()</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>    return self.currStartProcess</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>end</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a></span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>function UBFProcessManager:getCurrEndProcess()</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>    return self.currEndProcess</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>end</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a></span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>function UBFProcessManager:clearCurrStartProcess()</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>   self:_clearCurrStartProcess()</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>end</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a></span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>function UBFProcessManager:clearCurrEndProcess()</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>   self:_clearCurrEndProcess()</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>end</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a></span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>function UBFProcessManager:registerBridgeCmd()</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>    if _G.AutoPlayEnv then return end</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a></span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>    UBFAmfBridge:registerUbfCmd(UBFCmd.UPDATE_SL_DATA, function(params)</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>        local currProcess = self:getCurrStartProcess()</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>        local valid, error = validateProcessCmd(UBFCmd.UPDATE_SL_DATA, params, currProcess)</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>        if not valid then</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>            return nil, error</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>        end</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a></span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>        local runtime = currProcess:getResult(&quot;runtime&quot;)</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>        UBFProcessAmfDataHelper:updateStartLevelData(runtime, params)</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>        return</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>    end)</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a></span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>    UBFAmfBridge:registerUbfCmd(UBFCmd.UPDATE_EL_DATA, function(params)</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>        local currProcess = self:getCurrEndProcess()</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>        local valid, error = validateProcessCmd(UBFCmd.UPDATE_EL_DATA, params, currProcess)</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>        if not valid then</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>            return nil, error</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>        end</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a></span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>        local runtime = currProcess:getResult(&quot;runtime&quot;)</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>        UBFProcessAmfDataHelper:updateEndLevelData(runtime, params)</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>        return</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>    end)</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>end</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a></span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>function UBFProcessManager:_setCurrStartProcess(process)</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>    self.currStartProcess = process </span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>    if not process then return end</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>    local function dispose()</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>        if self.currStartProcess == process then</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>            self.currStartProcess = nil</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>            UBFCachedFile:clearCache()</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>        end</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>    end</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>    process:afterEnd():next(dispose)</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>    process:afterAbort():next(dispose)</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>end</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a></span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>UBFProcessManager:registerBridgeCmd()</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a></span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>function UBFProcessManager:_clearCurrStartProcess()</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>    if self.currStartProcess then</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>        if self.currStartProcess:isFinished() or self.currStartProcess:isAborted() then </span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>            self.currStartProcess = nil</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>        else</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>            self.currStartProcess:abort()</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>            self.currStartProcess = nil</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>        end</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>    end</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>end</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a></span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>function UBFProcessManager:_setCurrEndProcess(process)</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>    self.currEndProcess = process </span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>    if not process then return end</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>    local function dispose()</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>        if self.currEndProcess == process then</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>            self.currEndProcess = nil</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>            UBFCachedFile:clearCache()</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>        end</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>    end</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>    process:afterEnd():next(dispose)</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>    process:afterAbort():next(dispose)</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>end</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a></span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>function UBFProcessManager:_clearCurrEndProcess()</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>    if self.currEndProcess then</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>        if self.currEndProcess:isFinished() or self.currEndProcess:isAborted() then </span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>            self.currEndProcess = nil</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>        else</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>            self.currEndProcess:abort()</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>            self.currEndProcess = nil</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>        end</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>    end</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>end</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a></span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>--start level process</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>function UBFProcessManager:_doStartRun(launchData, processCreator, runtimeCreator)</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>	-- 正常启动进关流程时需要检查当前是否存在未完成的出关流程的,skipEndProcessCheck为true时跳过该检查</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>    if not launchData.skipEndProcessCheck and self.currEndProcess then</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>        local msg = &quot;[UBFProcessManager] Cannot start level process: unfinished end-level process exists!&quot;</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>        if EnvUtil:isDevelopMode() then</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>            UBFLogE(msg) </span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>            CommonTip:showTip(msg)</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>        else</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>            he_log_error(msg)</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>        end</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>    end</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>    -- 同一时间只能有一个进关process运行，当已有process未完成时，拒绝开启新的process</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>    local process = processCreator()</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>    if self.currStartProcess then</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>        if not launchData.forceLaunchNew then</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>            -- UBFDevAlert(&quot;同一时间只能有一个进关process运行，当前有process未完成时，拒绝开启新的process&quot;)</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>            process:abort()</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>            return process</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>        end</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>    end</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a></span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>    UBFCachedFile:clearCache()</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>    self:_clearCurrStartProcess()</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>    self:_setCurrStartProcess(process)</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a></span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>    local levelId = launchData.levelId</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>    local levelScene = launchData.levelScene</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a></span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>    local function nextStep(data)</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>        UBFPerfMonitor.mark(&quot;OpenSlp&quot;, &quot;SuperBaseResEnd&quot;)</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>        if process ~= self:getCurrStartProcess() then return end</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>        if not data.success then </span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>            UBFProcessManager:showResourceLoadFailMessage()</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>            self:_clearCurrStartProcess()</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>            process:abort()</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>            return</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>        end</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>        local runtime = runtimeCreator()</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>        if launchData.startSource then runtime.startSource = launchData.startSource end</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>        process:setResult(&quot;runtime&quot;, runtime)</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>        if launchData.hook then launchData.hook(process) end</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>        process:start()</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>    end</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a></span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>    UBFPerfMonitor.mark(&quot;OpenSlp&quot;, &quot;SuperBaseResStart&quot;)</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>    if launchData.editorMode then self:_prepareSuperBaseResourceForEditor(launchData.levelCfg):next(nextStep)</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>    else UBFGameSceneResourceMgr:prepareSuperBaseResource(levelId, levelScene):next(nextStep) end</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a></span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>    return process</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>end</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a></span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>function UBFProcessManager:_normalStart(launchData)</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>    return self:_doStartRun(</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>        launchData, </span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>        function() </span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>            return UBFSLProcessFlowController:create(UBFSLProcessFlowController:getDefaultStartLevelProcessCreateData()) </span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>        end, </span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>        function()</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>            local ctx = self:__createPlayId()</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>            return UBFSLRuntime:create { </span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>                levelId = launchData.levelId, </span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>                levelScene = launchData.levelScene,</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>                startLevelType = launchData.startLevelType,</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>                playId = ctx.playId,</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>                startTime = ctx.startTime,</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>                editorMode = _G.editorMode,</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>                extra = launchData.extra,</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>                lastElRuntime = launchData.lastElRuntime,</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a></span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>                -- NOTE 这两纯粹为了兼容旧代码，新的代码别用了</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>                startSource = launchData.startSource,</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>                detailPanelParams = launchData.detailPanelParams,</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>            }</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>        end</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>    )</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>end</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a></span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>function UBFProcessManager:_manualStart(launchData)</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>    return self:_doStartRun( </span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>        launchData, </span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>        function() </span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>            return UBFSLProcessFlowController:create(UBFSLProcessFlowController:getManualStartLevelProcessCreateData()) </span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>        end, </span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>        function()</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>            assert((launchData.playId == nil) == (launchData.startTime == nil),</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>                &quot;playId and startTime must be provided together&quot;)</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>            local ctx = launchData.playId and {</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>                playId = launchData.playId,</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>                startTime = launchData.startTime,</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>            } or self:__createPlayId()</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>            return UBFSLRuntime:create { </span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>                levelId = launchData.levelId, </span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>                levelScene = launchData.levelScene,</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>                startLevelType = launchData.startLevelType or UBFStartLevelType.kCommon,</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>                playId = ctx.playId,</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>                startTime = ctx.startTime,</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>                levelCfg = launchData.levelCfg,</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>                levelGroupInfo = launchData.levelGroupInfo,</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>                forceLuaGameLogic = launchData.forceLuaGameLogic,</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>                continuePlayMode = launchData.continuePlayMode,</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>                ai_actDataMap = launchData.ai_actDataMap,</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>                editorMode = _G.editorMode,</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>                extra = launchData.extra,</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>                lastElRuntime = launchData.lastElRuntime,</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a></span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>                -- NOTE 这两纯粹为了兼容旧代码，新的代码别用了</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>                startSource = launchData.startSource,</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>                detailPanelParams = launchData.detailPanelParams,</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>            }</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>        end</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>    )</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>end</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a></span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>function UBFProcessManager:_retryStart(launchData)</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>    return self:_doStartRun( </span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>        launchData, </span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>        function() </span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>            return UBFSLProcessFlowController:create(UBFSLProcessFlowController:getRetryStartLevelProcessCreateData()) </span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>        end, </span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>        function()</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>            local ctx = self:__createPlayId()</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>            return UBFSLRuntime:create({ </span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>                levelId = launchData.levelId, </span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>                levelScene = launchData.levelScene,</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>                startLevelType = launchData.startLevelType or UBFStartLevelType.kCommon,</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>                playId = ctx.playId,</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>                startTime = ctx.startTime,</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>                editorMode = _G.editorMode,</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>                retryData = launchData.retryData,</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>                extra = launchData.extra,</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>                lastElRuntime = launchData.lastElRuntime,</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a></span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>                -- NOTE 这两纯粹为了兼容旧代码，新的代码别用了</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>                startSource = launchData.startSource,</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>                detailPanelParams = launchData.detailPanelParams,</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>            })</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>        end</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>    )</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>end</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a></span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>function UBFProcessManager:_resumeStart(launchData)</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>    local sectionData = launchData.sectionData</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>    local levelInfo = sectionData.levelInfo</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>    launchData.levelId = levelInfo.levelId</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>    launchData.levelScene = levelInfo.levelScene</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>    return self:_doStartRun( </span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>        launchData, </span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>        function() </span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>            return UBFSLProcessFlowController:create(UBFSLProcessFlowController:getResumeStartLevelProcessCreateData()) </span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>        end, </span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>        function()</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>            return UBFSLRuntime:create({ sectionData = launchData.sectionData })</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>        end</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>    )</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>end</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a></span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>function UBFProcessManager:_replayStart(launchData)</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>    local function doReplay(launchData)</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>        local oplog = launchData.wReplayLog or launchData.oplog</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>        local levelId = oplog.gEnv.levelId</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>        local levelScene = oplog.gEnv.levelScene or LevelScene.kDefault</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>        launchData.levelId = levelId</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>        launchData.levelScene = levelScene</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>        launchData.wReplayLog = oplog</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>        </span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>        return self:_doStartRun( </span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>            launchData, </span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>            function() </span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>                return UBFSLProcessFlowController:create(UBFSLProcessFlowController:getWonderfulReplayLevelProcessCreateData()) </span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>            end, </span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>            function()</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>                return UBFSLRuntime:create({ </span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>                    levelId = launchData.levelId, </span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>                    levelScene = launchData.levelScene,</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>                    replayLog = launchData.wReplayLog,</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>                    wonderfulReplay = true,</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>                    extra = launchData.extra,</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>                    lastElRuntime = launchData.lastElRuntime,</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a></span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>                    -- NOTE 这两纯粹为了兼容旧代码，新的代码别用了</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>                    startSource = launchData.startSource,</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>                    detailPanelParams = launchData.detailPanelParams,</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>                })</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>            end</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>        )</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>    end</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>    if not launchData.oplogStr or not launchData.oplog then</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>        return doReplay(launchData)</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>    end</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a></span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>    local oplogStr = launchData.oplogStr</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>    local oplog = launchData.oplog or table.deserialize(launchData.oplogStr)</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>    return doReplay({</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>        wReplayLog = oplog,</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>    })</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>end</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a></span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>function UBFProcessManager:_debugReplayStart(launchData)</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>    local function doReplay(launchData)</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>        local oplog = launchData.wReplayLog or launchData.oplog</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>        local levelId = oplog.gEnv.levelId</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>        local levelScene = oplog.gEnv.levelScene or LevelScene.kDefault</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>        launchData.levelId = levelId</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>        launchData.levelScene = levelScene</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>        launchData.oplog = oplog</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>        launchData.levelCfg = oplog.levelCfg</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>		-- 跳过出关流程检查，正常启动进关流程时需要检查当前是否存在未完成的出关流程的。</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>		launchData.skipEndProcessCheck = true</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>        local result = self:_doStartRun( </span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>            launchData, </span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>            function() </span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>                return UBFSLProcessFlowController:create(UBFSLProcessFlowController:getDebugReplayLevelProcessCreateData()) </span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>            end, </span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>            function()</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>                return UBFSLRuntime:create({ </span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>                    levelId = launchData.levelId, </span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>                    levelScene = launchData.levelScene,</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>                    replayLog = launchData.oplog,</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>                    debugReplay = true,</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>                    extra = launchData.extra,</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>                    lastElRuntime = launchData.lastElRuntime,</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>                    levelCfg = launchData.levelCfg,</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a></span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>                    -- NOTE 这两纯粹为了兼容旧代码，新的代码别用了</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>                    startSource = launchData.startSource,</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>                    detailPanelParams = launchData.detailPanelParams,</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>                })</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>            end</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>        )</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>        return result</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>    end</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>    if not launchData.oplogStr or not launchData.oplog then</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>        return doReplay(launchData)</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>    end</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a></span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>    local oplogStr = launchData.oplogStr</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>    local oplog = launchData.oplog or table.deserialize(launchData.oplogStr)</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>    return doReplay({</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>        oplog = oplog,</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>    })</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>end</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a></span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>function UBFProcessManager:_editorStart(launchData)</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>    _G.editorMode = true</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>    launchData.editorMode = true</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>    return self:_doStartRun(</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>        launchData,</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>        function() return UBFSLProcessFlowController:create(UBFSLProcessFlowController:getEditorStartLevelProcessCreateData()) end, </span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>        function()</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>            local ctx = {</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>                startTime = os.time() + (__g_utcDiffSeconds or 0),</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>                playId = &quot;SuperUBFEditor&quot;</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>            }</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>            local slRuntime = UBFSLRuntime:create {</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>                levelId = launchData.levelId,</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>                levelScene = launchData.levelScene,</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a>                startLevelType = launchData.startLevelType or UBFStartLevelType.kCommon,</span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>                levelCfg = launchData.levelCfg,</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>                playId = ctx.playId,</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a>                startTime = ctx.startTime,</span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>                editorMode = true,</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>                randomSeed = launchData.randomSeed or ctx.startTime, -- 先随便来一个值</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>                extra =  launchData.extra,</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>            }</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a></span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>            -- 编辑器进关给SLRuntime填充fuuu数据</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>            local ubfuuuInfo = _G.lastEditorData and _G.lastEditorData.ubfuuu</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>            local fuuuGraph = nil</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>            if ubfuuuInfo and ubfuuuInfo.fuuuChartV3 then</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>                fuuuGraph = {}</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>                fuuuGraph.fuuuChartV3 = ubfuuuInfo.fuuuChartV3</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>                fuuuGraph.fuuuChartV3Info = ubfuuuInfo.fuuuChartV3Info</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>            end</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>            slRuntime:setFuuuGraphV3(fuuuGraph)</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a></span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>            return slRuntime</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>        end</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>    )</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>end</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a></span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>--创建PlayId from StartGamePanel2020Manager.getInstance():__createPlayId(self)</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>function UBFProcessManager:__createPlayId()</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>    local ctx = {}</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>	local uid =  UserManager:getInstance():getUID() or &quot;12345&quot;</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>	local udid = MetaInfo:getInstance():getUdid() or &quot;noUdid&quot;</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>	ctx.startTime = os.time() + (__g_utcDiffSeconds or 0)</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>	local list = {tostring(uid),tostring(udid),tostring(ctx.startTime)}</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>    ctx.playId = table.concat(list,&quot;_&quot;)</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>	return ctx</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>end</span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a></span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>--准备最最最最基础的资源 For Editor</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>function UBFProcessManager:_prepareSuperBaseResourceForEditor(levelCfg)</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a>    local segment = UBFPromise:segment()</span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>    local pCalc = UBFProgressCalculator:create()</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>    local rtable = { success = true }</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a></span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>    segment:retain()</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>    UBFResourceLoader.file:async(&quot;#gameplay_scene_before_must&quot;):next(function(status)</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>        rtable.success = (status == UBResourceLoadStatus.READY) and rtable.success</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>        segment:release()</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>    end)</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>    pCalc:add(function() return UBFResourceLoader.file:progress(&quot;#gameplay_scene_before_must&quot;) end)</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a></span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>    segment:retain()</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>    local promise = UBFGameSceneResourceMgr:loadSuperBaseResource():next(function(status)</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>        rtable.success = (status == UBResourceLoadStatus.READY) and rtable.success</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>        segment:release()</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>    end)</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>    pCalc:add(function() return promise:getProgress() end, 10)</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a></span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>    segment:resolve(rtable)</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a></span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>    return segment</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>end</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a></span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>-- end level process</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>function UBFProcessManager:_launchEndLevelProcess(processType, runtime)</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>    local processCreateData = self:_getProcessCreateDataByType(runtime, processType)</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>	local process = UBFELProcessFlowController:create(processCreateData)</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>    -- 同一时间只能有一个出关process运行，当已有process未完成时，拒绝开启新的process</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>    if self.currEndProcess then</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a>        UBFDevAlert(&quot;同一时间只能有一个出关process运行，当前有process未完成时，拒绝开启新的process&quot;)</span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>        process:abort()</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>        return process</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a>    end</span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>    UBFCachedFile:clearCache()</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>    self:_clearCurrEndProcess(process)</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>    self:_setCurrEndProcess(process)</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>	self:_pushEndLevelProcess(process)</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>	setNextFrame(function() process:start() end)</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>    return process</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>end</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a></span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>function UBFProcessManager:_getProcessCreateDataByType(runtime, processType)</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>	local processCreateData</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>    lua_switch(processType){</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>        [UBFGameProcessEnum.CRASH] = function ( ... )</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>            processCreateData = UBFELProcessFlowController:getCrashProcessCreateData()</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>        end,</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>        [UBFGameProcessEnum.YUNGAME] = function ( ... )</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>            processCreateData = UBFELProcessFlowController:getYunGameEndLevelProcessCreateData()</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a>        end,</span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>        [UBFGameProcessEnum.WONDER_FULREPLAY] = function ( ... )</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>            processCreateData = UBFELProcessFlowController:getWonderfulEndLevelProcessCreateData()</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>        end,</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>        [UBFGameProcessEnum.AFH_PASS_LEVEL] = function ( ... )</span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>            processCreateData = UBFELProcessFlowController:getAFHPassLevelProcessCreateData()</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>        end,</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>        [UBFGameProcessEnum.AFH_FAIL_LEVEL] = function ( ... )</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>            processCreateData = UBFELProcessFlowController:getAFHFailLevelProcessCreateData()</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>        end,</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>        [UBFGameProcessEnum.NORMAL_PASS_LEVEL] = function ( ... )</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>            processCreateData = UBFELProcessFlowController:getNormalPassLevelProcessCreateData()</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>        end,</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>        [UBFGameProcessEnum.ACTIVITY_DEPUTY_PASS_LEVEL] = function ( ... )</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>            processCreateData = UBFELProcessFlowController:getActivityDeputyPassLevelProcessCreateData()</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>        end,</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>        [UBFGameProcessEnum.NORMAL_FAIL_LEVEL] = function ( ... )</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>            processCreateData = UBFELProcessFlowController:getNormalFailLevelProcessCreateData()</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>        end,</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>        [UBFGameProcessEnum.QUIT_LEVEL] = function ( ... )</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>            processCreateData = UBFELProcessFlowController:getNormalQuitLevelProcessCreateData()</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>        end,</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>        [UBFGameProcessEnum.RETRY_LEVEL] = function ( ... )</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>            processCreateData = UBFELProcessFlowController:getRetryLevelProcessCreateData()</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>        end</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>    }</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>    if processCreateData then</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a>        processCreateData.runtime = runtime</span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>        processCreateData.gameProcessType = processType</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>    else</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>        UBFThrow(&quot;UBFProcessManager:没有找到对应的processCreateData, processType = &quot; .. tostring(processType))</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>    end</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a></span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>	return processCreateData</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>end</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a></span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>function UBFProcessManager:_pushEndLevelProcess(procress)</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>    if not procress then return end</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>    local next </span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>    next = function()</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a>        next = function() end</span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>        local currStartProcess = self:getCurrStartProcess()</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>        UBFHelper:invoke(currStartProcess, &quot;onEndLevelProcessFinish&quot;, procress)</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>    end</span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>    procress:afterEnd():next(next)</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>    procress:afterAbort():next(next)</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a>end</span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a></span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>_G.UBFMigratorLaunch = function(data, startPanelCreator)</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a>    if _G.isLocalDevelopMode then </span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>        if not data.levelScene then </span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>            UBFThrow(&quot;你启动关卡的levelScene呢？？？？？&quot;) </span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>        end</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>    end</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>    UBFProcessManager:launch(UBFGameProcessEnum.NORMAL_START, {</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>        levelId = data.levelId,</span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a>		startLevelType = data.startLevelType or StartLevelType.kCommon,</span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>        levelScene = data.levelScene,</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a></span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>        extra = data.extra,</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a></span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>        -- NOTE 这两纯粹为了兼容旧代码，新的代码别用了</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>        startSource = data.startSource,</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>        detailPanelParams = data.detailPanelParams,</span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a></span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>        hook = function(process)</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>			process._createOldStartPanel = startPanelCreator</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>		end,</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>    })</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>end</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a></span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>_G.UBFMigratorNoCompatibleLaunch = _G.UBFMigratorLaunch</span></code></pre></main></body></html>

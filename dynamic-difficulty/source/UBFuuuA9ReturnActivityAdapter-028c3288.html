@@ -1,0 +1,336 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFuuuA9ReturnActivityAdapter.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFuuuA9ReturnActivityAdapter.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuA9ReturnActivityAdapter.lua<br>SHA-256 538b927e8684db951e875467f12371048000a30f06aef15aba3b93a918e231cd · 336 行 · 恢复原文，未经改写</p><a href="UBFuuuA9ReturnActivityAdapter-028c3288.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>local UBFuuuA9ReturnActivityAdapter = {}</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a></span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>local ACT_KEY = &quot;A9_return_activity&quot;</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>local ACTIVITY_INDEX_MIN = 1</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>local ACTIVITY_INDEX_MAX = 16</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a></span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>local function getA9Info(adjustContext)</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    adjustContext.a9ReturnActivityInfo = adjustContext.a9ReturnActivityInfo or {}</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    return adjustContext.a9ReturnActivityInfo</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>end</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a></span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>local function boolValue(value)</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>    return value == true or value == 1 or value == &quot;1&quot; or value == &quot;true&quot;</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>end</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a></span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>local function safeCall(func, ...)</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>    local ok, ret = pcall(func, ...)</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>    if ok then</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>        return ret</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>    end</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>    return nil</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>end</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a></span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>local function cloneMap(source)</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>    local target = {}</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>    if type(source) == &quot;table&quot; then</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>        for k, v in pairs(source) do</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>            target[k] = v</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>        end</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    end</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>    return target</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>end</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a></span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>local function isTopLevel(adjustContext)</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>    if type(adjustContext) ~= &quot;table&quot; then</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>        return false</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>    end</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>    local levelId = tonumber(adjustContext.levelId)</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>    local maxLevelId = tonumber(adjustContext.maxLevelId)</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>    local topRangeLength = tonumber(adjustContext.topRangeLength)</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>    if not levelId or not maxLevelId or not topRangeLength then</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>        return false</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>    end</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>    return levelId &gt; maxLevelId - topRangeLength</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>end</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a></span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>local function getStatisticInfo(adjustContext)</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>    return adjustContext and adjustContext.ubfuuuStatisticInfo or {}</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>end</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a></span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>local function getDailyPlayCountList(adjustContext)</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>    local statisticInfo = getStatisticInfo(adjustContext)</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>    if type(statisticInfo.dailyPlayCountList) == &quot;table&quot; then</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>        return statisticInfo.dailyPlayCountList</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>    end</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>    if type(adjustContext.dailyPlayCountList) == &quot;table&quot; then</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>        return adjustContext.dailyPlayCountList</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>    end</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>    return {}</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>end</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a></span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>local function getTodayPlayCount(adjustContext)</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>    local statisticInfo = getStatisticInfo(adjustContext)</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>    local todayPlayCount = tonumber(adjustContext.todayPlayCount or statisticInfo.todayPlayCount)</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>    if todayPlayCount ~= nil then</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>        return todayPlayCount</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>    end</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>    local dailyPlayCountList = getDailyPlayCountList(adjustContext)</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>    return tonumber(dailyPlayCountList[1]) or 0</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>end</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a></span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>local function getCurrentNaturalDay()</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>    local nowTime = nil</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>    local ok, UBFuuuAdjustManager = pcall(require, &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuAdjustManager&quot;)</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>    if ok and UBFuuuAdjustManager and UBFuuuAdjustManager.timeInSec then</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>        nowTime = UBFuuuAdjustManager:timeInSec()</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>    end</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a></span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>    nowTime = nowTime or os.time()</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>    if time2day then</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>        return time2day(nowTime)</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>    end</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>    return nil</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>end</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a></span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>function UBFuuuA9ReturnActivityAdapter:loadReturnDayConfig()</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>    local ok, config = pcall(require, &quot;zoo.config.meta.ubfuuu_activity_index_map_by_returnday_playcount_config&quot;)</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>    if ok and type(config) == &quot;table&quot; then</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>        return config, &quot;zoo.config.meta&quot;</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>    end</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a></span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>    ok, config = pcall(require, &quot;ubf.metaConfig.ubfuuu_activity_index_map_by_returnday_playcount_config&quot;)</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>    if ok and type(config) == &quot;table&quot; then</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>        return config, &quot;ubf.metaConfig&quot;</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>    end</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a></span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>    return nil, &quot;missing&quot;</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>end</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a></span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>function UBFuuuA9ReturnActivityAdapter:getReturnDayForA9(adjustContext)</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>    local returnDayIndex = tonumber(adjustContext and adjustContext.returnDayIndex) or 0</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>    if returnDayIndex &lt;= 0 then</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>        return 0</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>    end</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>    return math.max(returnDayIndex - 1, 0)</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>end</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a></span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>function UBFuuuA9ReturnActivityAdapter:calcReturnAvgPlayCount(adjustContext, returnDayForA9)</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>    local dayCount = math.max((tonumber(returnDayForA9) or 0) + 1, 1)</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>    local dailyPlayCountList = getDailyPlayCountList(adjustContext)</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>    local playCount = getTodayPlayCount(adjustContext)</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a></span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>    if dayCount &gt; 1 then</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>        for i = 2, dayCount do</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>            playCount = playCount + (tonumber(dailyPlayCountList[i]) or 0)</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>        end</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>    end</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a></span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>    return playCount / dayCount, playCount, dayCount</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>end</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a></span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>function UBFuuuA9ReturnActivityAdapter:findA9ActivityIndex(configMap, group, returnDayForA9, avgPlayCount)</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>    if type(configMap) ~= &quot;table&quot; then</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>        return nil, &quot;config_nil&quot;</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>    end</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a></span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>    local dayKey = &quot;day&quot; .. tostring(returnDayForA9 or 0)</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>    local selectedRow = nil</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>    for _, row in ipairs(configMap) do</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>        if tonumber(row.group) == tonumber(group) and (tonumber(avgPlayCount) or 0) &lt;= (tonumber(row.playcount) or 0) then</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>            selectedRow = row</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>            break</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>        end</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>    end</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a></span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>    if not selectedRow then</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>        return nil, &quot;row_not_found&quot;</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>    end</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a></span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>    local value = selectedRow[dayKey]</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>    if value == nil or value == &quot;&quot; then</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>        return nil, &quot;empty&quot;</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>    end</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a></span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>    local activityIndex = tonumber(value)</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>    if not activityIndex then</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>        return nil, &quot;invalid_value&quot;</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>    end</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a></span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>    return activityIndex, nil, selectedRow</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>end</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a></span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>function UBFuuuA9ReturnActivityAdapter:_readReturnKeyFromTag()</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>    local UBFTagManager = rawget(_G, &quot;UBFTagManager&quot;)</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>    local ReturnUserActivityType = rawget(_G, &quot;ReturnUserActivityType&quot;)</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>    if UBFTagManager and ReturnUserActivityType and UBFTagManager.getReturnTime then</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>        return safeCall(function()</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>            return UBFTagManager:getReturnTime(ReturnUserActivityType.kAllPlayLevel)</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>        end)</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>    end</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>end</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a></span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>function UBFuuuA9ReturnActivityAdapter:normalizeContext(adjustContext)</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>    if type(adjustContext) ~= &quot;table&quot; then</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>        return adjustContext</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>    end</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a></span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>    adjustContext.modGroup = adjustContext.modGroup or {}</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>    adjustContext.CAGroup = adjustContext.CAGroup or {}</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>    adjustContext.reportModGroup = adjustContext.reportModGroup or cloneMap(adjustContext.modGroup)</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a></span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>    local info = getA9Info(adjustContext)</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>    local enabled = info.enabled</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>    if enabled == nil then</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>        if adjustContext.modGroup.A9 ~= nil then</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>            enabled = boolValue(adjustContext.modGroup.A9)</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>        elseif adjustContext.switchName then</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>            local maintenanceManager = MaintenanceManager and MaintenanceManager.getInstance and MaintenanceManager:getInstance()</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>            if maintenanceManager and maintenanceManager.isEnabledInGroup then</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>                enabled = maintenanceManager:isEnabledInGroup(adjustContext.switchName, &quot;A9&quot;) == true</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>            else</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>                enabled = false</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>            end</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>        else</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>            enabled = false</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>        end</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>    else</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>        enabled = boolValue(enabled)</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>    end</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a></span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>    info.enabled = enabled</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>    info.a8InjectedByA9 = nil</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>    adjustContext.a8InjectedByA9 = nil</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>    adjustContext.modGroup.A9 = enabled or nil</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>    adjustContext.reportModGroup.A9 = enabled or nil</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a></span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>    if enabled then</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>        -- A9 只在外层追加 activityIndex1 fix；基础活跃档位仍复用现有 A8 逻辑。</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>        if not adjustContext.reportModGroup.A8 then</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>            info.a8InjectedByA9 = true</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>            adjustContext.a8InjectedByA9 = true</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>        end</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>        adjustContext.modGroup.A8 = true</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>    end</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a></span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>    info.group = tonumber(info.group or adjustContext.CAGroup.CA10) or 1</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>    info.returnKey = info.returnKey or adjustContext.returnKey or adjustContext.returnTime or self:_readReturnKeyFromTag()</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>    if info.returnKey == nil and adjustContext.returnState then</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>        info.returnKey = tostring(adjustContext.lostDay or &quot;lost&quot;) .. &quot;_&quot; .. tostring(adjustContext.returnDayIndex or &quot;day&quot;)</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>    end</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a></span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>    return adjustContext</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>end</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a></span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>function UBFuuuA9ReturnActivityAdapter:isEnabled(adjustContext)</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>    local info = getA9Info(adjustContext or {})</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>    return info.enabled == true</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>end</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a></span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>function UBFuuuA9ReturnActivityAdapter:_getServerSmoothMaxValue(adjustContext, info)</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>    local statisticInfo = getStatisticInfo(adjustContext)</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>    local latestActivityIndex1 = tonumber(statisticInfo.latestActivityIndex1 or adjustContext.latestActivityIndex1)</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>    local latestActivityIndex1Day = tonumber(statisticInfo.latestActivityIndex1Day or adjustContext.latestActivityIndex1Day)</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>    local currentDay = getCurrentNaturalDay()</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a></span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>    info.latestActivityIndex1 = latestActivityIndex1</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>    info.latestActivityIndex1Day = latestActivityIndex1Day</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>    info.currentDay = currentDay</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a></span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>    if not latestActivityIndex1 or latestActivityIndex1 &lt; ACTIVITY_INDEX_MIN then</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>        return nil, &quot;latest_activity_index_invalid&quot;</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>    end</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>    if not latestActivityIndex1Day or not currentDay then</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>        return nil, &quot;latest_activity_day_invalid&quot;</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>    end</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>    if latestActivityIndex1Day &gt; currentDay then</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>        return nil, &quot;latest_activity_day_after_current_day&quot;</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>    end</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a></span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>    return math.min(latestActivityIndex1 + 2, ACTIVITY_INDEX_MAX)</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>end</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a></span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>function UBFuuuA9ReturnActivityAdapter:_appendActivityIndex1Fix(adjustContext, sourceName, value, fixMode, datas)</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>    if type(adjustContext) ~= &quot;table&quot; then</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>        return false</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>    end</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a></span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>    adjustContext.activityIndex1FixInfo = adjustContext.activityIndex1FixInfo or {}</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>    datas = datas or {}</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>    local fixInfo = {</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>        sourceName = sourceName,</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>        value = value or 0,</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>        fixMode = fixMode or UBFuuuFixMode.kaddVaule,</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>        rangeMin = datas.rangeMin,</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>        rangeMax = datas.rangeMax,</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>        resultMin = datas.resultMin,</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>        resultMax = datas.resultMax,</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>        minValue = datas.minValue,</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>        maxValue = datas.maxValue,</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>    }</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>    table.insert(adjustContext.activityIndex1FixInfo, fixInfo)</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>    return true</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>end</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a></span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>function UBFuuuA9ReturnActivityAdapter:beforeCheck(ubfSLRuntime, adjustContext, modEnvData)</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>    self:normalizeContext(adjustContext)</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>    local info = getA9Info(adjustContext)</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>    modEnvData = modEnvData or {}</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a></span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>    if not info.enabled then</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>        info.source = &quot;Disabled&quot;</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>        return</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>    end</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a></span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>    if isTopLevel(adjustContext) then</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>        info.source = &quot;TopLevel&quot;</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>        info.a9ActivityIndex = ACTIVITY_INDEX_MAX</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>        self:_appendActivityIndex1Fix(adjustContext, ACT_KEY .. &quot;_top_level&quot;, ACTIVITY_INDEX_MAX, UBFuuuFixMode.kSetVaule, {</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>            minValue = ACTIVITY_INDEX_MIN,</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>            maxValue = ACTIVITY_INDEX_MAX,</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>        })</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>        return</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>    end</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a></span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>    if not adjustContext.returnState then</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>        info.source = &quot;NotReturn&quot;</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>        info.fallbackReason = &quot;not_return&quot;</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>        return</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>    end</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a></span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>    local configMap, configSource = self:loadReturnDayConfig()</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>    info.configSource = configSource</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>    if not configMap then</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>        info.source = &quot;A8Fallback&quot;</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>        info.fallbackReason = &quot;config_nil&quot;</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>        return</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>    end</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a></span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>    local returnDayForA9 = self:getReturnDayForA9(adjustContext)</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>    local avgPlayCount, totalPlayCount, dayCount = self:calcReturnAvgPlayCount(adjustContext, returnDayForA9)</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>    local group = tonumber(info.group or adjustContext.CAGroup.CA10) or 1</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>    local activityIndex, fallbackReason, selectedRow = self:findA9ActivityIndex(configMap, group, returnDayForA9, avgPlayCount)</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a></span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>    info.group = group</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>    info.returnDayForA9 = returnDayForA9</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>    info.returnAvgPlayCount = avgPlayCount</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>    info.returnTotalPlayCount = totalPlayCount</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>    info.returnDayCount = dayCount</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>    info.selectedConfigId = selectedRow and selectedRow.id or nil</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a></span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>    if activityIndex then</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>        info.source = &quot;A9&quot;</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>        info.a9ActivityIndex = activityIndex</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>        self:_appendActivityIndex1Fix(adjustContext, ACT_KEY, activityIndex, UBFuuuFixMode.kSetVaule, {</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>            minValue = ACTIVITY_INDEX_MIN,</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>            maxValue = ACTIVITY_INDEX_MAX,</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>        })</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>        return</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>    end</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a></span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>    info.source = &quot;A8Fallback&quot;</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>    info.fallbackReason = fallbackReason or &quot;empty&quot;</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a></span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>    local maxValue, smoothReason = self:_getServerSmoothMaxValue(adjustContext, info)</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>    info.maxValue = maxValue</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a></span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>    if maxValue then</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>        self:_appendActivityIndex1Fix(adjustContext, ACT_KEY .. &quot;_smooth&quot;, 0, UBFuuuFixMode.kaddVaule, {</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>            maxValue = maxValue,</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>        })</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>    else</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>        info.fallbackReason = info.fallbackReason .. &quot;_&quot; .. tostring(smoothReason or &quot;missing_latest_activity_index&quot;)</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>    end</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>end</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a></span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>return UBFuuuA9ReturnActivityAdapter</span></code></pre></main></body></html>

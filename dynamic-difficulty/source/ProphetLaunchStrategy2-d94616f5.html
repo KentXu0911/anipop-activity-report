@@ -1,0 +1,1150 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ProphetLaunchStrategy2.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>ProphetLaunchStrategy2.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ProphetLaunchStrategy2.lua<br>SHA-256 f9a19584dd433eccda44e0694bed606a104409d4c77da2998feff0f11e84ccde · 1150 行 · 恢复原文，未经改写</p><a href="ProphetLaunchStrategy2-d94616f5.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>-- 候选启动策略：当前生产入口仍使用 ProphetLaunchStrategy。</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>-- 切换前必须保持新旧黑盒等价测试通过，不允许同时执行两套 apply。</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>local ProphetLaunchStrategy2 = {}</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a></span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>if not RustProphet then</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>    require &quot;ubf.UBFPlay.rust.RustProphet&quot;</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>end</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a></span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>local NEW_USER_PROPHET_CONFIGS =</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>    require &quot;ubf.UBFPlay.rust.ProphetNewUserExperienceConfig&quot;</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a></span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>local NEW_USER_CONFIG_KEYS = {</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>    ordinary = &quot;newuser_prophet_ordinary&quot;,</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>    smooth = &quot;newuser_prophet_smooth&quot;,</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>}</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a></span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>for configType, configKey in pairs(NEW_USER_CONFIG_KEYS) do</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>    local config = NEW_USER_PROPHET_CONFIGS[configType]</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    if config then</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>        RustProphet.config[configKey] = config</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>    end</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>end</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a></span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>local NEW_USER_SMOOTH_LEVEL_IDS = {</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>    [8] = true, [11] = true, [14] = true, [17] = true, [20] = true,</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>    [23] = true, [26] = true, [29] = true, [32] = true, [35] = true,</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>    [38] = true, [40] = true, [43] = true, [45] = true, [48] = true,</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>    [50] = true, [53] = true, [55] = true, [58] = true, [60] = true,</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>    [63] = true, [65] = true, [68] = true, [70] = true, [73] = true,</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    [75] = true, [78] = true, [80] = true, [83] = true, [85] = true,</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>    [88] = true, [90] = true, [93] = true, [95] = true, [98] = true,</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>    [100] = true, [103] = true, [105] = true, [108] = true, [110] = true,</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>    [113] = true, [115] = true, [118] = true, [120] = true, [123] = true,</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>    [125] = true, [128] = true, [130] = true, [133] = true, [135] = true,</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>    [138] = true, [140] = true, [143] = true, [145] = true, [148] = true,</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>    [150] = true, [153] = true, [155] = true, [158] = true, [160] = true,</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>    [163] = true, [165] = true, [168] = true, [170] = true, [173] = true,</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>    [175] = true, [178] = true, [180] = true, [183] = true, [185] = true,</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>    [188] = true, [190] = true, [193] = true, [195] = true, [198] = true,</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>    [200] = true,</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>}</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a></span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>local EXPERIENCE_ROUTES = {</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>    {</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>        id = &quot;hard_no_super_bird&quot;,</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>        when = {</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>            { field = &quot;difficultyClass&quot;, op = &quot;eq&quot;, value = &quot;hard&quot; },</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>            { field = &quot;superBirdActive&quot;, op = &quot;eq&quot;, value = false },</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>        },</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>        configs = {</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>            tracking_only = RustProphet.enum.EXPERIENCE_NEAR_PASS_TRACKING_ONLY,</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>            full = RustProphet.enum.EXPERIENCE_NEAR_PASS,</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>        },</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>    },</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>    {</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>        id = &quot;hard_with_super_bird&quot;,</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>        when = {</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>            { field = &quot;difficultyClass&quot;, op = &quot;eq&quot;, value = &quot;hard&quot; },</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>            { field = &quot;superBirdActive&quot;, op = &quot;eq&quot;, value = true },</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>        },</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>        configs = {</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>            tracking_only = RustProphet.enum.EXPERIENCE_NEAR_PASS_TRACKING_ONLY,</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>            full = RustProphet.enum.EXPERIENCE_NEAR_PASS,</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>        },</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>    },</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>    {</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>        id = &quot;normal_no_super_bird_baodi&quot;,</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>        when = {</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>            { field = &quot;difficultyClass&quot;, op = &quot;eq&quot;, value = &quot;normal&quot; },</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>            { field = &quot;superBirdActive&quot;, op = &quot;eq&quot;, value = false },</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>            { field = &quot;toplevelBaoDi&quot;, op = &quot;eq&quot;, value = true },</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>        },</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>        configs = {</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>            tracking_only =</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>                RustProphet.enum.EXPERIENCE_NEAR_PASS_GUARANTEED_TRACKING_ONLY,</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>            full = RustProphet.enum.EXPERIENCE_NEAR_PASS_GUARANTEED,</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>        },</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>    },</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>    {</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>        id = &quot;normal_no_super_bird&quot;,</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>        when = {</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>            { field = &quot;difficultyClass&quot;, op = &quot;eq&quot;, value = &quot;normal&quot; },</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>            { field = &quot;superBirdActive&quot;, op = &quot;eq&quot;, value = false },</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>            { field = &quot;toplevelBaoDi&quot;, op = &quot;eq&quot;, value = false },</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>        },</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>        configs = {</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>            tracking_only = RustProphet.enum.EXPERIENCE_SMOOTH_PASS_TRACKING_ONLY,</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>            full = RustProphet.enum.EXPERIENCE_SMOOTH_PASS,</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>        },</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>    },</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>    {</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>        id = &quot;normal_with_super_bird&quot;,</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>        when = {</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>            { field = &quot;difficultyClass&quot;, op = &quot;eq&quot;, value = &quot;normal&quot; },</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>            { field = &quot;superBirdActive&quot;, op = &quot;eq&quot;, value = true },</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>        },</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>        configs = {</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>            tracking_only =</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>                RustProphet.enum.EXPERIENCE_VERY_SMOOTH_PASS_TRACKING_ONLY,</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>            full = RustProphet.enum.EXPERIENCE_VERY_SMOOTH_PASS,</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>        },</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>    },</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>}</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a></span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>local EXPERIENCE_GROUPS = {</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>    OFF = {</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>        enableProphet = false,</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>        requireToplevelBaoDi = false,</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>    },</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>    ON1 = {</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>        enableProphet = true,</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>        requireToplevelBaoDi = false,</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>        routeMode = &quot;tracking_only&quot;,</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>    },</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>    ON2 = {</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>        enableProphet = true,</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>        requireToplevelBaoDi = false,</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>        routeMode = &quot;full&quot;,</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>    },</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>}</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a></span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>local CONFIG = {</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>    enabled = true,</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>    blockedLevelIds = {</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>        [39] = true, [44] = true, [49] = true, [54] = true,</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>        [59] = true, [64] = true, [69] = true, [74] = true, [79] = true, [84] = true,</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>        [89] = true, [94] = true, [99] = true, [104] = true, [109] = true, [114] = true,</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>        [119] = true, [124] = true, [129] = true, [134] = true, [139] = true, [144] = true, [149] = true,</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>        [154] = true, [159] = true, [164] = true, [169] = true, [174] = true, [179] = true, [184] = true,</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>        [189] = true, [194] = true, [199] = true,</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>    },</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>    selfFeedbackEnabledWhenLaunched = false,</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>    actions = {</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>        &quot;record_decision&quot;,</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>        &quot;set_self_feedback&quot;,</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>        &quot;capture_adjust_fix_info&quot;,</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>        &quot;set_prophet&quot;,</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>        &quot;remove_diff_fix&quot;,</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>    },</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>    experiments = {</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>        {</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>            id = &quot;new_user&quot;,</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>            activation = {</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>                type = &quot;maintenance_group&quot;,</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>                maintenanceName = &quot;newuser_prophet&quot;,</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>                groups = { &quot;ON&quot; },</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>            },</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>            -- 新手期规则未完全满足时继续检查旧体验矩阵，保持现有优先级和回退语义。</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>            rejectPolicy = &quot;continue&quot;,</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>            conditions = {</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>                {</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>                    id = &quot;not_mini_game&quot;,</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>                    field = &quot;isMiniGame&quot;,</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>                    op = &quot;eq&quot;,</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>                    value = false,</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>                    reason = &quot;platform_not_allowed&quot;,</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>                },</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>                {</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>                    id = &quot;android_only&quot;,</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>                    field = &quot;platform&quot;,</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>                    op = &quot;eq&quot;,</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>                    value = &quot;android&quot;,</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>                    reason = &quot;platform_not_allowed&quot;,</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>                },</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>                {</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>                    id = &quot;exclude_he&quot;,</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>                    field = &quot;channel&quot;,</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>                    op = &quot;not_eq&quot;,</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>                    value = &quot;he&quot;,</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>                    reason = &quot;platform_not_allowed&quot;,</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>                },</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>                {</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>                    id = &quot;bundle_version&quot;,</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>                    field = &quot;bundleVersion&quot;,</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>                    op = &quot;version_min&quot;,</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>                    value = &quot;1.160&quot;,</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>                    reason = &quot;rust_lib_not_allowed&quot;,</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>                },</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>                {</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>                    id = &quot;rust_dynamic_ready&quot;,</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>                    field = &quot;isRustDyGoReady&quot;,</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>                    op = &quot;eq&quot;,</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>                    value = true,</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>                    reason = &quot;rust_lib_not_allowed&quot;,</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>                },</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>                {</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>                    id = &quot;rust_runtime&quot;,</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>                    field = &quot;isInRust&quot;,</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>                    op = &quot;eq&quot;,</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>                    value = true,</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>                    reason = &quot;not_rust&quot;,</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>                },</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>                {</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>                    id = &quot;not_replay&quot;,</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>                    field = &quot;isReplay&quot;,</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>                    op = &quot;eq&quot;,</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>                    value = false,</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>                    reason = &quot;replay&quot;,</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>                },</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>                {</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>                    id = &quot;main_level&quot;,</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>                    field = &quot;isMainLevel&quot;,</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>                    op = &quot;eq&quot;,</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>                    value = true,</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>                    reason = &quot;not_main_level&quot;,</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>                },</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>                {</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>                    id = &quot;not_blocked&quot;,</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>                    field = &quot;isBlockedLevel&quot;,</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>                    op = &quot;eq&quot;,</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>                    value = false,</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>                    reason = &quot;blocked_level&quot;,</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>                },</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>                {</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>                    id = &quot;new_user_top_level&quot;,</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>                    field = &quot;userTopLevel&quot;,</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>                    op = &quot;number_max&quot;,</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>                    value = 200,</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>                    inclusive = false,</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>                    missingReason = &quot;user_top_level_missing&quot;,</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>                    reason = &quot;user_top_level_above_threshold&quot;,</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>                },</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>                {</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>                    id = &quot;check_result&quot;,</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>                    field = &quot;checkResultPresent&quot;,</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>                    op = &quot;eq&quot;,</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>                    value = true,</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>                    reason = &quot;check_result_missing&quot;,</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>                },</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>                {</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>                    id = &quot;difficulty&quot;,</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>                    field = &quot;fixedDesiredDiffAvg&quot;,</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>                    op = &quot;number_max&quot;,</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>                    value = 1.03,</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>                    epsilon = 0.0001,</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>                    missingReason = &quot;fixed_desired_diff_missing&quot;,</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>                    reason = &quot;difficulty_above_threshold&quot;,</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>                },</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>                {</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>                    id = &quot;level_min&quot;,</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>                    field = &quot;numericLevelId&quot;,</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>                    op = &quot;number_min&quot;,</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>                    value = 1,</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>                    missingReason = &quot;level_id_invalid&quot;,</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>                    reason = &quot;level_id_out_of_range&quot;,</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>                },</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>                {</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>                    id = &quot;level_max&quot;,</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>                    field = &quot;numericLevelId&quot;,</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>                    op = &quot;number_max&quot;,</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>                    value = 200,</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>                    missingReason = &quot;level_id_invalid&quot;,</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>                    reason = &quot;level_id_out_of_range&quot;,</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>                },</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>            },</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>            route = {</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>                type = &quot;ordered&quot;,</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>                routes = {</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>                    {</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>                        id = &quot;new_user_smooth&quot;,</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>                        when = {</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>                            {</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>                                field = &quot;numericLevelId&quot;,</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>                                op = &quot;in_set&quot;,</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>                                value = NEW_USER_SMOOTH_LEVEL_IDS,</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>                            },</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>                        },</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>                        configKey = NEW_USER_CONFIG_KEYS.smooth,</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>                        experienceType = &quot;new_user_smooth&quot;,</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>                        context = { configType = &quot;smooth&quot; },</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>                    },</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>                    {</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>                        id = &quot;new_user_ordinary&quot;,</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>                        when = {},</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>                        configKey = NEW_USER_CONFIG_KEYS.ordinary,</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>                        experienceType = &quot;new_user_ordinary&quot;,</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>                        context = { configType = &quot;ordinary&quot; },</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>                    },</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>                },</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>            },</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>        },</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>        {</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>            id = &quot;experience_matrix&quot;,</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>            activation = {</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>                type = &quot;platform_maintenance&quot;,</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>                groupOrder = { &quot;OFF&quot;, &quot;ON1&quot;, &quot;ON2&quot;, &quot;ON3&quot; },</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>                platformOrder = { &quot;ohos&quot;, &quot;ios&quot;, &quot;android_he&quot;, &quot;android&quot; },</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>                platforms = {</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>                    ohos = {</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>                        detect = &quot;isOhos&quot;,</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>                        accessId = &quot;ohos&quot;,</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>                        maintenanceName = &quot;prophet_test_oh&quot;,</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>                    },</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>                    ios = {</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>                        detect = &quot;isIOS&quot;,</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>                        accessId = &quot;ios&quot;,</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>                        maintenanceName = &quot;prophet_test_ios&quot;,</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>                    },</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>                    android_he = {</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>                        detect = &quot;isAndroidPlatform&quot;,</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>                        detectArg = &quot;kHE&quot;,</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>                        accessId = &quot;android&quot;,</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>                        maintenanceName = &quot;prophet_test_he&quot;,</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>                    },</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>                    android = {</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>                        detect = &quot;isAndroid&quot;,</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>                        accessId = &quot;android&quot;,</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>                        maintenanceName = &quot;prophet_test_android_nohe&quot;,</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>                    },</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>                },</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>                groups = EXPERIENCE_GROUPS,</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>            },</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>            rejectPolicy = &quot;return&quot;,</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>            conditionStages = {</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>                beforeAvailability = {</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>                    {</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>                        id = &quot;not_mini_game&quot;,</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>                        field = &quot;isMiniGame&quot;,</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>                        op = &quot;eq&quot;,</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>                        value = false,</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>                        reason = &quot;platform_not_allowed&quot;,</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>                    },</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>                    {</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>                        id = &quot;bundle_version&quot;,</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>                        field = &quot;bundleVersion&quot;,</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>                        op = &quot;version_min&quot;,</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>                        value = &quot;1.160&quot;,</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>                        reason = &quot;rust_lib_not_allowed&quot;,</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>                    },</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>                    {</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>                        id = &quot;rust_runtime&quot;,</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>                        field = &quot;isInRust&quot;,</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>                        op = &quot;eq&quot;,</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>                        value = true,</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>                        reason = &quot;not_rust&quot;,</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>                    },</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>                    {</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>                        id = &quot;not_replay&quot;,</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>                        field = &quot;isReplay&quot;,</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>                        op = &quot;eq&quot;,</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>                        value = false,</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>                        reason = &quot;replay&quot;,</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>                    },</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>                    {</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>                        id = &quot;main_level&quot;,</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>                        field = &quot;isMainLevel&quot;,</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>                        op = &quot;eq&quot;,</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>                        value = true,</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>                        reason = &quot;not_main_level&quot;,</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>                    },</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>                    {</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>                        id = &quot;not_blocked&quot;,</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>                        field = &quot;isBlockedLevel&quot;,</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>                        op = &quot;eq&quot;,</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>                        value = false,</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>                        reason = &quot;blocked_level&quot;,</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>                    },</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>                },</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>                afterAvailability = {</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>                    {</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>                        id = &quot;experienced_user&quot;,</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>                        field = &quot;userTopLevel&quot;,</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>                        op = &quot;number_min&quot;,</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>                        value = 200,</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>                        missingReason = &quot;user_top_level_missing&quot;,</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>                        reason = &quot;user_top_level_below_threshold&quot;,</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>                    },</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>                    {</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>                        id = &quot;check_result&quot;,</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>                        field = &quot;checkResultPresent&quot;,</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>                        op = &quot;eq&quot;,</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>                        value = true,</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>                        reason = &quot;check_result_missing&quot;,</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>                    },</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>                    {</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>                        id = &quot;difficulty&quot;,</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>                        field = &quot;fixedDesiredDiffAvg&quot;,</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>                        op = &quot;number_max&quot;,</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>                        value = 1.03,</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>                        epsilon = 0.0001,</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>                        missingReason = &quot;fixed_desired_diff_missing&quot;,</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>                        reason = &quot;difficulty_above_threshold&quot;,</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>                    },</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>                },</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>            },</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>            route = {</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>                type = &quot;ordered_by_group_mode&quot;,</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>                routes = EXPERIENCE_ROUTES,</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>                noMatchReason = &quot;experience_route_not_matched&quot;,</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>            },</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>        },</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>    },</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>}</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a></span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>local unpackValues = _G.unpack or table.unpack</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a></span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>local function findExperiment(experimentId)</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>    for _, experiment in ipairs(CONFIG.experiments or {}) do</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>        if experiment.id == experimentId then</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>            return experiment</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a>        end</span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>    end</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>    return nil</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a>end</span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a></span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>local function safeCall(target, methodName, ...)</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>    local method = type(target) == &quot;table&quot; and target[methodName] or nil</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>    if type(method) ~= &quot;function&quot; then</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>        return false, nil</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>    end</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>    local args = { ... }</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>    local ok, result = pcall(function()</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>        return method(target, unpackValues(args))</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>    end)</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>    return ok, result</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>end</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a></span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>local function compareVersion(left, right)</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>    local function toParts(value)</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>        local parts = {}</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>        for part in tostring(value or &quot;&quot;):gmatch(&quot;[^.]+&quot;) do</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>            parts[#parts + 1] = tonumber(part) or 0</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>        end</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a>        return parts</span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>    end</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a></span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>    local leftParts = toParts(left)</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>    local rightParts = toParts(right)</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>    local count = math.max(#leftParts, #rightParts)</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>    for index = 1, count do</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>        local leftValue = leftParts[index] or 0</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>        local rightValue = rightParts[index] or 0</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>        if leftValue ~= rightValue then</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>            return leftValue &lt; rightValue and -1 or 1</span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>        end</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>    end</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>    return 0</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a>end</span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a></span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>local function detectPlatformProfile(activation)</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>    if not EnvUtil then</span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>        return nil</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>    end</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a></span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>    for _, platformId in ipairs(activation.platformOrder or {}) do</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>        local profile = activation.platforms and activation.platforms[platformId]</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>        if profile then</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>            local arg</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>            if profile.detectArg then</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>                arg = PlatformNameEnum and PlatformNameEnum[profile.detectArg]</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>            end</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>            local ok, matched = safeCall(EnvUtil, profile.detect, arg)</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>            if ok and matched == true then</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>                return platformId, profile</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>            end</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>        end</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>    end</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>    return nil</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>end</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a></span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>local function getSuperBirdActive(runtime)</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>    local activityId = UBFActivityIdConst</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>        and UBFActivityIdConst.kSuperMagicBird2024</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>    local modMgr = runtime</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>        and runtime.getModMgr</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>        and runtime:getModMgr()</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a>    if not activityId or not modMgr then</span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>        return false</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>    end</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a></span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>    if modMgr.getModContextData then</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>        local context = modMgr:getModContextData(activityId)</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>        if type(context) == &quot;table&quot;</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>            and type(context.smbEffective) == &quot;boolean&quot; then</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>            return context.smbEffective</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>        end</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>    end</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a></span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>    if modMgr.getModData then</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>        local dataList = modMgr:getModData(activityId)</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>        local data = type(dataList) == &quot;table&quot; and dataList[1]</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>        local env = data and data.env</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>        if type(env) == &quot;table&quot; and type(env.hasSuperPower) == &quot;boolean&quot; then</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>            return env.hasSuperPower</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>        end</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>    end</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a></span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>    return false</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>end</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a></span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>local function getToplevelBaoDiFlag(checkResult)</span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>    local calculation = checkResult and checkResult.calculateDiffIndexResult</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>    return calculation and calculation.toplevelBaoDiFlag == true or false</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>end</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a></span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>local function buildContext(runtime, resultDatas)</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>    local checkResult = resultDatas and resultDatas.checkResult</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>    local levelId = runtime</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>        and runtime.getLevelId</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>        and runtime:getLevelId()</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>    local numericLevelId = tonumber(levelId)</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>    local levelScene = runtime</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>        and runtime.getLevelScene</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>        and runtime:getLevelScene()</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>    local levelJsonData = runtime and runtime.levelJsonData</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>    if not levelJsonData</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>        and runtime</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>        and runtime.getLevelJsonData then</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>        levelJsonData = runtime:getLevelJsonData()</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>    end</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a></span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>    local difficultyFlag</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>    if levelJsonData and levelJsonData.getLevelDifficultFlag then</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a>        difficultyFlag = levelJsonData:getLevelDifficultFlag()</span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>    end</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>    local normalFlag = LevelDiffcultFlag and LevelDiffcultFlag.kNormal</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>    local difficultyClass</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>    if difficultyFlag ~= nil and normalFlag ~= nil then</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>        difficultyClass = difficultyFlag == normalFlag and &quot;normal&quot; or &quot;hard&quot;</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>    end</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a></span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>    local userTopLevel</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>    local ok, value = safeCall(runtime, &quot;getUserTopLevel&quot;)</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>    if ok then</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>        userTopLevel = tonumber(value)</span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>    end</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a></span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>    local isMiniGame</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>    ok, value = safeCall(EnvUtil, &quot;isMiniGame&quot;)</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>    if ok then</span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>        isMiniGame = value</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>    end</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a></span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>    local experienceExperiment = findExperiment(&quot;experience_matrix&quot;)</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>    local platformId, platformProfile = detectPlatformProfile(</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a>        experienceExperiment and experienceExperiment.activation or {}</span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>    )</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>    local channel = platformId == &quot;android_he&quot; and &quot;he&quot; or &quot;other&quot;</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a></span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>    local rustReady</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>    ok, value = safeCall(runtime, &quot;isRustDyGoReady&quot;)</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>    if ok and value ~= nil then</span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a>        rustReady = value</span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>    else</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a>        rustReady = UBFRustManager</span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>            and UBFRustManager.isRustDyGoReady == true</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>            or false</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>    end</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a></span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>    local isInRust</span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a>    ok, value = safeCall(runtime, &quot;isInRust&quot;)</span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>    if ok then</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>        isInRust = value == true</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>    else</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>        isInRust = false</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>    end</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a></span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>    local isMainLevel = UBFLevelSceneFunc</span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>        and UBFLevelSceneFunc.isMainLevel</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a>        and UBFLevelSceneFunc:isMainLevel(levelScene)</span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>        or false</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a></span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a>    return {</span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a>        runtime = runtime,</span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a>        resultDatas = resultDatas,</span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>        checkResult = checkResult,</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a>        isMiniGame = isMiniGame,</span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>        platform = platformProfile and platformProfile.accessId or nil,</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>        platformId = platformId,</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a>        platformProfile = platformProfile,</span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a>        channel = channel,</span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>        bundleVersion = _G.bundleVersion,</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>        isRustDyGoReady = rustReady,</span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>        isInRust = isInRust,</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a>        isReplay = _G.REPLAY_STAGE and true or false,</span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>        isMainLevel = isMainLevel,</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>        levelId = levelId,</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a>        numericLevelId = numericLevelId,</span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>        levelScene = levelScene,</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a>        isBlockedLevel = levelId ~= nil</span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a>            and CONFIG.blockedLevelIds[numericLevelId or levelId] == true</span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>            or false,</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>        checkResultPresent = type(checkResult) == &quot;table&quot;,</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>        userTopLevel = userTopLevel,</span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a>        fixedDesiredDiffAvg = checkResult</span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>            and tonumber(checkResult.fixedDesiredDiffAvg),</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>        desiredDiffAvg = checkResult</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a>            and tonumber(checkResult.desiredDiffAvg),</span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>        diffIndex = checkResult and checkResult.diffIndex,</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>        toplevelBaoDi = getToplevelBaoDiFlag(checkResult),</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>        difficultyFlag = difficultyFlag,</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a>        difficultyClass = difficultyClass,</span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>        superBirdActive = getSuperBirdActive(runtime),</span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>        adjustDataPresent = runtime and type(runtime.adjustData) == &quot;table&quot;,</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a>    }</span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>end</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a></span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>local function valueMatches(actual, condition)</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a>    local op = condition.op</span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>    local expected = condition.value</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a></span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>    if op == &quot;eq&quot; then</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>        return actual == expected</span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a>    end</span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a>    if op == &quot;not_eq&quot; then</span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a>        return actual ~= expected</span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a>    end</span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>    if op == &quot;in_set&quot; then</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a>        return type(expected) == &quot;table&quot; and expected[actual] == true</span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a>    end</span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>    if op == &quot;version_min&quot; then</span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a>        return compareVersion(actual, expected) &gt;= 0</span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a>    end</span>
+<span class="source-line" id="L614"><a class="line-num" href="#L614">614</a>    if op == &quot;number_min&quot; or op == &quot;number_max&quot; then</span>
+<span class="source-line" id="L615"><a class="line-num" href="#L615">615</a>        local numericActual = tonumber(actual)</span>
+<span class="source-line" id="L616"><a class="line-num" href="#L616">616</a>        local numericExpected = tonumber(expected)</span>
+<span class="source-line" id="L617"><a class="line-num" href="#L617">617</a>        if numericActual == nil or numericExpected == nil then</span>
+<span class="source-line" id="L618"><a class="line-num" href="#L618">618</a>            return false</span>
+<span class="source-line" id="L619"><a class="line-num" href="#L619">619</a>        end</span>
+<span class="source-line" id="L620"><a class="line-num" href="#L620">620</a>        local epsilon = tonumber(condition.epsilon) or 0</span>
+<span class="source-line" id="L621"><a class="line-num" href="#L621">621</a>        if op == &quot;number_min&quot; then</span>
+<span class="source-line" id="L622"><a class="line-num" href="#L622">622</a>            if condition.inclusive == false then</span>
+<span class="source-line" id="L623"><a class="line-num" href="#L623">623</a>                return numericActual &gt; numericExpected - epsilon</span>
+<span class="source-line" id="L624"><a class="line-num" href="#L624">624</a>            end</span>
+<span class="source-line" id="L625"><a class="line-num" href="#L625">625</a>            return numericActual &gt;= numericExpected - epsilon</span>
+<span class="source-line" id="L626"><a class="line-num" href="#L626">626</a>        end</span>
+<span class="source-line" id="L627"><a class="line-num" href="#L627">627</a>        if condition.inclusive == false then</span>
+<span class="source-line" id="L628"><a class="line-num" href="#L628">628</a>            return numericActual &lt; numericExpected + epsilon</span>
+<span class="source-line" id="L629"><a class="line-num" href="#L629">629</a>        end</span>
+<span class="source-line" id="L630"><a class="line-num" href="#L630">630</a>        return numericActual &lt;= numericExpected + epsilon</span>
+<span class="source-line" id="L631"><a class="line-num" href="#L631">631</a>    end</span>
+<span class="source-line" id="L632"><a class="line-num" href="#L632">632</a>    return false</span>
+<span class="source-line" id="L633"><a class="line-num" href="#L633">633</a>end</span>
+<span class="source-line" id="L634"><a class="line-num" href="#L634">634</a></span>
+<span class="source-line" id="L635"><a class="line-num" href="#L635">635</a>local function expectedDescription(condition)</span>
+<span class="source-line" id="L636"><a class="line-num" href="#L636">636</a>    return {</span>
+<span class="source-line" id="L637"><a class="line-num" href="#L637">637</a>        op = condition.op,</span>
+<span class="source-line" id="L638"><a class="line-num" href="#L638">638</a>        value = condition.value,</span>
+<span class="source-line" id="L639"><a class="line-num" href="#L639">639</a>        inclusive = condition.inclusive ~= false,</span>
+<span class="source-line" id="L640"><a class="line-num" href="#L640">640</a>        epsilon = condition.epsilon,</span>
+<span class="source-line" id="L641"><a class="line-num" href="#L641">641</a>    }</span>
+<span class="source-line" id="L642"><a class="line-num" href="#L642">642</a>end</span>
+<span class="source-line" id="L643"><a class="line-num" href="#L643">643</a></span>
+<span class="source-line" id="L644"><a class="line-num" href="#L644">644</a>local function evaluateConditions(context, conditions)</span>
+<span class="source-line" id="L645"><a class="line-num" href="#L645">645</a>    for _, condition in ipairs(conditions or {}) do</span>
+<span class="source-line" id="L646"><a class="line-num" href="#L646">646</a>        local actual = context[condition.field]</span>
+<span class="source-line" id="L647"><a class="line-num" href="#L647">647</a>        if not valueMatches(actual, condition) then</span>
+<span class="source-line" id="L648"><a class="line-num" href="#L648">648</a>            local missing = actual == nil</span>
+<span class="source-line" id="L649"><a class="line-num" href="#L649">649</a>            return false, {</span>
+<span class="source-line" id="L650"><a class="line-num" href="#L650">650</a>                stage = &quot;condition&quot;,</span>
+<span class="source-line" id="L651"><a class="line-num" href="#L651">651</a>                ruleId = condition.id,</span>
+<span class="source-line" id="L652"><a class="line-num" href="#L652">652</a>                field = condition.field,</span>
+<span class="source-line" id="L653"><a class="line-num" href="#L653">653</a>                actual = actual,</span>
+<span class="source-line" id="L654"><a class="line-num" href="#L654">654</a>                expected = expectedDescription(condition),</span>
+<span class="source-line" id="L655"><a class="line-num" href="#L655">655</a>                reason = missing and condition.missingReason or condition.reason,</span>
+<span class="source-line" id="L656"><a class="line-num" href="#L656">656</a>            }</span>
+<span class="source-line" id="L657"><a class="line-num" href="#L657">657</a>        end</span>
+<span class="source-line" id="L658"><a class="line-num" href="#L658">658</a>    end</span>
+<span class="source-line" id="L659"><a class="line-num" href="#L659">659</a>    return true</span>
+<span class="source-line" id="L660"><a class="line-num" href="#L660">660</a>end</span>
+<span class="source-line" id="L661"><a class="line-num" href="#L661">661</a></span>
+<span class="source-line" id="L662"><a class="line-num" href="#L662">662</a>local function routeMatches(context, route)</span>
+<span class="source-line" id="L663"><a class="line-num" href="#L663">663</a>    return evaluateConditions(context, route.when)</span>
+<span class="source-line" id="L664"><a class="line-num" href="#L664">664</a>end</span>
+<span class="source-line" id="L665"><a class="line-num" href="#L665">665</a></span>
+<span class="source-line" id="L666"><a class="line-num" href="#L666">666</a>local function selectRoute(context, routeConfig, routeMode)</span>
+<span class="source-line" id="L667"><a class="line-num" href="#L667">667</a>    for _, route in ipairs(routeConfig.routes or {}) do</span>
+<span class="source-line" id="L668"><a class="line-num" href="#L668">668</a>        local matched = routeMatches(context, route)</span>
+<span class="source-line" id="L669"><a class="line-num" href="#L669">669</a>        if matched then</span>
+<span class="source-line" id="L670"><a class="line-num" href="#L670">670</a>            local configKey = route.configKey</span>
+<span class="source-line" id="L671"><a class="line-num" href="#L671">671</a>            if route.configs then</span>
+<span class="source-line" id="L672"><a class="line-num" href="#L672">672</a>                configKey = route.configs[routeMode]</span>
+<span class="source-line" id="L673"><a class="line-num" href="#L673">673</a>            end</span>
+<span class="source-line" id="L674"><a class="line-num" href="#L674">674</a>            return {</span>
+<span class="source-line" id="L675"><a class="line-num" href="#L675">675</a>                routeId = route.id,</span>
+<span class="source-line" id="L676"><a class="line-num" href="#L676">676</a>                configKey = configKey,</span>
+<span class="source-line" id="L677"><a class="line-num" href="#L677">677</a>                experienceType = route.experienceType or route.id,</span>
+<span class="source-line" id="L678"><a class="line-num" href="#L678">678</a>                context = route.context,</span>
+<span class="source-line" id="L679"><a class="line-num" href="#L679">679</a>            }</span>
+<span class="source-line" id="L680"><a class="line-num" href="#L680">680</a>        end</span>
+<span class="source-line" id="L681"><a class="line-num" href="#L681">681</a>    end</span>
+<span class="source-line" id="L682"><a class="line-num" href="#L682">682</a>    return nil</span>
+<span class="source-line" id="L683"><a class="line-num" href="#L683">683</a>end</span>
+<span class="source-line" id="L684"><a class="line-num" href="#L684">684</a></span>
+<span class="source-line" id="L685"><a class="line-num" href="#L685">685</a>local function getMaintenanceManager()</span>
+<span class="source-line" id="L686"><a class="line-num" href="#L686">686</a>    if not MaintenanceManager or not MaintenanceManager.getInstance then</span>
+<span class="source-line" id="L687"><a class="line-num" href="#L687">687</a>        return nil</span>
+<span class="source-line" id="L688"><a class="line-num" href="#L688">688</a>    end</span>
+<span class="source-line" id="L689"><a class="line-num" href="#L689">689</a>    return MaintenanceManager:getInstance()</span>
+<span class="source-line" id="L690"><a class="line-num" href="#L690">690</a>end</span>
+<span class="source-line" id="L691"><a class="line-num" href="#L691">691</a></span>
+<span class="source-line" id="L692"><a class="line-num" href="#L692">692</a>local function activateMaintenanceGroup(activation)</span>
+<span class="source-line" id="L693"><a class="line-num" href="#L693">693</a>    local manager = getMaintenanceManager()</span>
+<span class="source-line" id="L694"><a class="line-num" href="#L694">694</a>    if not manager then</span>
+<span class="source-line" id="L695"><a class="line-num" href="#L695">695</a>        return nil</span>
+<span class="source-line" id="L696"><a class="line-num" href="#L696">696</a>    end</span>
+<span class="source-line" id="L697"><a class="line-num" href="#L697">697</a>    for _, groupName in ipairs(activation.groups or {}) do</span>
+<span class="source-line" id="L698"><a class="line-num" href="#L698">698</a>        if manager:isEnabledInGroup(activation.maintenanceName, groupName) then</span>
+<span class="source-line" id="L699"><a class="line-num" href="#L699">699</a>            return {</span>
+<span class="source-line" id="L700"><a class="line-num" href="#L700">700</a>                group = groupName,</span>
+<span class="source-line" id="L701"><a class="line-num" href="#L701">701</a>                maintenanceName = activation.maintenanceName,</span>
+<span class="source-line" id="L702"><a class="line-num" href="#L702">702</a>                experimentSwitch = activation.maintenanceName,</span>
+<span class="source-line" id="L703"><a class="line-num" href="#L703">703</a>            }</span>
+<span class="source-line" id="L704"><a class="line-num" href="#L704">704</a>        end</span>
+<span class="source-line" id="L705"><a class="line-num" href="#L705">705</a>    end</span>
+<span class="source-line" id="L706"><a class="line-num" href="#L706">706</a>    return nil</span>
+<span class="source-line" id="L707"><a class="line-num" href="#L707">707</a>end</span>
+<span class="source-line" id="L708"><a class="line-num" href="#L708">708</a></span>
+<span class="source-line" id="L709"><a class="line-num" href="#L709">709</a>local function activatePlatformMaintenance(activation, context)</span>
+<span class="source-line" id="L710"><a class="line-num" href="#L710">710</a>    local manager = getMaintenanceManager()</span>
+<span class="source-line" id="L711"><a class="line-num" href="#L711">711</a>    local profile = context.platformProfile</span>
+<span class="source-line" id="L712"><a class="line-num" href="#L712">712</a>    if not manager or not profile then</span>
+<span class="source-line" id="L713"><a class="line-num" href="#L713">713</a>        return nil</span>
+<span class="source-line" id="L714"><a class="line-num" href="#L714">714</a>    end</span>
+<span class="source-line" id="L715"><a class="line-num" href="#L715">715</a></span>
+<span class="source-line" id="L716"><a class="line-num" href="#L716">716</a>    for _, groupName in ipairs(activation.groupOrder or {}) do</span>
+<span class="source-line" id="L717"><a class="line-num" href="#L717">717</a>        if manager:isEnabledInGroup(profile.maintenanceName, groupName) then</span>
+<span class="source-line" id="L718"><a class="line-num" href="#L718">718</a>            return {</span>
+<span class="source-line" id="L719"><a class="line-num" href="#L719">719</a>                group = groupName,</span>
+<span class="source-line" id="L720"><a class="line-num" href="#L720">720</a>                groupConfig = activation.groups[groupName],</span>
+<span class="source-line" id="L721"><a class="line-num" href="#L721">721</a>                maintenanceName = profile.maintenanceName,</span>
+<span class="source-line" id="L722"><a class="line-num" href="#L722">722</a>                experimentSwitch = &quot;experience_matrix_v1&quot;,</span>
+<span class="source-line" id="L723"><a class="line-num" href="#L723">723</a>                platformId = context.platformId,</span>
+<span class="source-line" id="L724"><a class="line-num" href="#L724">724</a>            }</span>
+<span class="source-line" id="L725"><a class="line-num" href="#L725">725</a>        end</span>
+<span class="source-line" id="L726"><a class="line-num" href="#L726">726</a>    end</span>
+<span class="source-line" id="L727"><a class="line-num" href="#L727">727</a>    return nil</span>
+<span class="source-line" id="L728"><a class="line-num" href="#L728">728</a>end</span>
+<span class="source-line" id="L729"><a class="line-num" href="#L729">729</a></span>
+<span class="source-line" id="L730"><a class="line-num" href="#L730">730</a>local function activateExperiment(experiment, context)</span>
+<span class="source-line" id="L731"><a class="line-num" href="#L731">731</a>    local activation = experiment.activation or {}</span>
+<span class="source-line" id="L732"><a class="line-num" href="#L732">732</a>    if activation.type == &quot;maintenance_group&quot; then</span>
+<span class="source-line" id="L733"><a class="line-num" href="#L733">733</a>        return activateMaintenanceGroup(activation)</span>
+<span class="source-line" id="L734"><a class="line-num" href="#L734">734</a>    end</span>
+<span class="source-line" id="L735"><a class="line-num" href="#L735">735</a>    if activation.type == &quot;platform_maintenance&quot; then</span>
+<span class="source-line" id="L736"><a class="line-num" href="#L736">736</a>        return activatePlatformMaintenance(activation, context)</span>
+<span class="source-line" id="L737"><a class="line-num" href="#L737">737</a>    end</span>
+<span class="source-line" id="L738"><a class="line-num" href="#L738">738</a>    return nil</span>
+<span class="source-line" id="L739"><a class="line-num" href="#L739">739</a>end</span>
+<span class="source-line" id="L740"><a class="line-num" href="#L740">740</a></span>
+<span class="source-line" id="L741"><a class="line-num" href="#L741">741</a>local function isProphetConfigAvailable(configKey)</span>
+<span class="source-line" id="L742"><a class="line-num" href="#L742">742</a>    return configKey</span>
+<span class="source-line" id="L743"><a class="line-num" href="#L743">743</a>        and RustProphet</span>
+<span class="source-line" id="L744"><a class="line-num" href="#L744">744</a>        and RustProphet.config</span>
+<span class="source-line" id="L745"><a class="line-num" href="#L745">745</a>        and RustProphet.config[configKey] ~= nil</span>
+<span class="source-line" id="L746"><a class="line-num" href="#L746">746</a>end</span>
+<span class="source-line" id="L747"><a class="line-num" href="#L747">747</a></span>
+<span class="source-line" id="L748"><a class="line-num" href="#L748">748</a>local function newUserDecision(context, activation, route)</span>
+<span class="source-line" id="L749"><a class="line-num" href="#L749">749</a>    local routeContext = route.context or {}</span>
+<span class="source-line" id="L750"><a class="line-num" href="#L750">750</a>    return {</span>
+<span class="source-line" id="L751"><a class="line-num" href="#L751">751</a>        available = true,</span>
+<span class="source-line" id="L752"><a class="line-num" href="#L752">752</a>        enabled = false,</span>
+<span class="source-line" id="L753"><a class="line-num" href="#L753">753</a>        group = activation.group,</span>
+<span class="source-line" id="L754"><a class="line-num" href="#L754">754</a>        maintenanceName = activation.maintenanceName,</span>
+<span class="source-line" id="L755"><a class="line-num" href="#L755">755</a>        experimentSwitch = activation.experimentSwitch,</span>
+<span class="source-line" id="L756"><a class="line-num" href="#L756">756</a>        configKey = route.configKey,</span>
+<span class="source-line" id="L757"><a class="line-num" href="#L757">757</a>        removeDiffFix = true,</span>
+<span class="source-line" id="L758"><a class="line-num" href="#L758">758</a>        originalDiffFix = context.resultDatas and context.resultDatas.diffFix,</span>
+<span class="source-line" id="L759"><a class="line-num" href="#L759">759</a>        fixedDesiredDiffAvg = context.checkResult</span>
+<span class="source-line" id="L760"><a class="line-num" href="#L760">760</a>            and context.checkResult.fixedDesiredDiffAvg,</span>
+<span class="source-line" id="L761"><a class="line-num" href="#L761">761</a>        desiredDiffAvg = context.checkResult</span>
+<span class="source-line" id="L762"><a class="line-num" href="#L762">762</a>            and context.checkResult.desiredDiffAvg,</span>
+<span class="source-line" id="L763"><a class="line-num" href="#L763">763</a>        diffIndex = context.checkResult and context.checkResult.diffIndex,</span>
+<span class="source-line" id="L764"><a class="line-num" href="#L764">764</a>        requireToplevelBaoDi = false,</span>
+<span class="source-line" id="L765"><a class="line-num" href="#L765">765</a>        toplevelBaoDiFlag = context.toplevelBaoDi,</span>
+<span class="source-line" id="L766"><a class="line-num" href="#L766">766</a>        experienceType = route.experienceType,</span>
+<span class="source-line" id="L767"><a class="line-num" href="#L767">767</a>        experienceRouteReason = &quot;new_user_level_route&quot;,</span>
+<span class="source-line" id="L768"><a class="line-num" href="#L768">768</a>        userTopLevel = context.userTopLevel,</span>
+<span class="source-line" id="L769"><a class="line-num" href="#L769">769</a>        experienceContext = {</span>
+<span class="source-line" id="L770"><a class="line-num" href="#L770">770</a>            levelId = context.numericLevelId,</span>
+<span class="source-line" id="L771"><a class="line-num" href="#L771">771</a>            userTopLevel = context.userTopLevel,</span>
+<span class="source-line" id="L772"><a class="line-num" href="#L772">772</a>            configType = routeContext.configType,</span>
+<span class="source-line" id="L773"><a class="line-num" href="#L773">773</a>        },</span>
+<span class="source-line" id="L774"><a class="line-num" href="#L774">774</a>    }</span>
+<span class="source-line" id="L775"><a class="line-num" href="#L775">775</a>end</span>
+<span class="source-line" id="L776"><a class="line-num" href="#L776">776</a></span>
+<span class="source-line" id="L777"><a class="line-num" href="#L777">777</a>local function experienceDecision(context, activation)</span>
+<span class="source-line" id="L778"><a class="line-num" href="#L778">778</a>    local groupConfig = activation.groupConfig</span>
+<span class="source-line" id="L779"><a class="line-num" href="#L779">779</a>    return {</span>
+<span class="source-line" id="L780"><a class="line-num" href="#L780">780</a>        available = groupConfig and groupConfig.enableProphet == true or false,</span>
+<span class="source-line" id="L781"><a class="line-num" href="#L781">781</a>        enabled = false,</span>
+<span class="source-line" id="L782"><a class="line-num" href="#L782">782</a>        group = activation.group,</span>
+<span class="source-line" id="L783"><a class="line-num" href="#L783">783</a>        maintenanceName = activation.maintenanceName,</span>
+<span class="source-line" id="L784"><a class="line-num" href="#L784">784</a>        experimentSwitch = activation.experimentSwitch,</span>
+<span class="source-line" id="L785"><a class="line-num" href="#L785">785</a>        configKey = nil,</span>
+<span class="source-line" id="L786"><a class="line-num" href="#L786">786</a>        removeDiffFix = groupConfig and groupConfig.enableProphet == true or false,</span>
+<span class="source-line" id="L787"><a class="line-num" href="#L787">787</a>        originalDiffFix = context.resultDatas and context.resultDatas.diffFix,</span>
+<span class="source-line" id="L788"><a class="line-num" href="#L788">788</a>        fixedDesiredDiffAvg = context.checkResult</span>
+<span class="source-line" id="L789"><a class="line-num" href="#L789">789</a>            and context.checkResult.fixedDesiredDiffAvg,</span>
+<span class="source-line" id="L790"><a class="line-num" href="#L790">790</a>        desiredDiffAvg = context.checkResult</span>
+<span class="source-line" id="L791"><a class="line-num" href="#L791">791</a>            and context.checkResult.desiredDiffAvg,</span>
+<span class="source-line" id="L792"><a class="line-num" href="#L792">792</a>        diffIndex = context.checkResult and context.checkResult.diffIndex,</span>
+<span class="source-line" id="L793"><a class="line-num" href="#L793">793</a>        requireToplevelBaoDi = groupConfig</span>
+<span class="source-line" id="L794"><a class="line-num" href="#L794">794</a>            and groupConfig.requireToplevelBaoDi == true</span>
+<span class="source-line" id="L795"><a class="line-num" href="#L795">795</a>            or false,</span>
+<span class="source-line" id="L796"><a class="line-num" href="#L796">796</a>        toplevelBaoDiFlag = context.toplevelBaoDi,</span>
+<span class="source-line" id="L797"><a class="line-num" href="#L797">797</a>        experienceType = &quot;experience&quot;,</span>
+<span class="source-line" id="L798"><a class="line-num" href="#L798">798</a>    }</span>
+<span class="source-line" id="L799"><a class="line-num" href="#L799">799</a>end</span>
+<span class="source-line" id="L800"><a class="line-num" href="#L800">800</a></span>
+<span class="source-line" id="L801"><a class="line-num" href="#L801">801</a>local function appendAttempt(report, experimentId, status, detail)</span>
+<span class="source-line" id="L802"><a class="line-num" href="#L802">802</a>    report.attempts[#report.attempts + 1] = {</span>
+<span class="source-line" id="L803"><a class="line-num" href="#L803">803</a>        experimentId = experimentId,</span>
+<span class="source-line" id="L804"><a class="line-num" href="#L804">804</a>        status = status,</span>
+<span class="source-line" id="L805"><a class="line-num" href="#L805">805</a>        detail = detail,</span>
+<span class="source-line" id="L806"><a class="line-num" href="#L806">806</a>    }</span>
+<span class="source-line" id="L807"><a class="line-num" href="#L807">807</a>end</span>
+<span class="source-line" id="L808"><a class="line-num" href="#L808">808</a></span>
+<span class="source-line" id="L809"><a class="line-num" href="#L809">809</a>local function evaluateNewUser(experiment, context, activation, report)</span>
+<span class="source-line" id="L810"><a class="line-num" href="#L810">810</a>    local passed, rejection = evaluateConditions(context, experiment.conditions)</span>
+<span class="source-line" id="L811"><a class="line-num" href="#L811">811</a>    if not passed then</span>
+<span class="source-line" id="L812"><a class="line-num" href="#L812">812</a>        appendAttempt(report, experiment.id, &quot;rejected&quot;, rejection)</span>
+<span class="source-line" id="L813"><a class="line-num" href="#L813">813</a>        return nil, experiment.rejectPolicy == &quot;continue&quot;</span>
+<span class="source-line" id="L814"><a class="line-num" href="#L814">814</a>    end</span>
+<span class="source-line" id="L815"><a class="line-num" href="#L815">815</a></span>
+<span class="source-line" id="L816"><a class="line-num" href="#L816">816</a>    local route = selectRoute(context, experiment.route)</span>
+<span class="source-line" id="L817"><a class="line-num" href="#L817">817</a>    if not route then</span>
+<span class="source-line" id="L818"><a class="line-num" href="#L818">818</a>        local decision = newUserDecision(context, activation, {</span>
+<span class="source-line" id="L819"><a class="line-num" href="#L819">819</a>            routeId = nil,</span>
+<span class="source-line" id="L820"><a class="line-num" href="#L820">820</a>            configKey = nil,</span>
+<span class="source-line" id="L821"><a class="line-num" href="#L821">821</a>            experienceType = &quot;new_user&quot;,</span>
+<span class="source-line" id="L822"><a class="line-num" href="#L822">822</a>            context = {},</span>
+<span class="source-line" id="L823"><a class="line-num" href="#L823">823</a>        })</span>
+<span class="source-line" id="L824"><a class="line-num" href="#L824">824</a>        decision.reason = &quot;new_user_route_not_matched&quot;</span>
+<span class="source-line" id="L825"><a class="line-num" href="#L825">825</a>        appendAttempt(report, experiment.id, &quot;selected_but_disabled&quot;, {</span>
+<span class="source-line" id="L826"><a class="line-num" href="#L826">826</a>            stage = &quot;route&quot;,</span>
+<span class="source-line" id="L827"><a class="line-num" href="#L827">827</a>            ruleId = &quot;no_route_matched&quot;,</span>
+<span class="source-line" id="L828"><a class="line-num" href="#L828">828</a>            reason = decision.reason,</span>
+<span class="source-line" id="L829"><a class="line-num" href="#L829">829</a>        })</span>
+<span class="source-line" id="L830"><a class="line-num" href="#L830">830</a>        return decision, false</span>
+<span class="source-line" id="L831"><a class="line-num" href="#L831">831</a>    end</span>
+<span class="source-line" id="L832"><a class="line-num" href="#L832">832</a>    local decision = newUserDecision(context, activation, route)</span>
+<span class="source-line" id="L833"><a class="line-num" href="#L833">833</a>    report.selectedExperiment = experiment.id</span>
+<span class="source-line" id="L834"><a class="line-num" href="#L834">834</a>    report.selectedRoute = route.routeId</span>
+<span class="source-line" id="L835"><a class="line-num" href="#L835">835</a></span>
+<span class="source-line" id="L836"><a class="line-num" href="#L836">836</a>    if not context.adjustDataPresent then</span>
+<span class="source-line" id="L837"><a class="line-num" href="#L837">837</a>        decision.reason = &quot;adjust_data_missing&quot;</span>
+<span class="source-line" id="L838"><a class="line-num" href="#L838">838</a>        appendAttempt(report, experiment.id, &quot;selected_but_disabled&quot;, {</span>
+<span class="source-line" id="L839"><a class="line-num" href="#L839">839</a>            stage = &quot;pre_action&quot;,</span>
+<span class="source-line" id="L840"><a class="line-num" href="#L840">840</a>            ruleId = &quot;adjust_data_present&quot;,</span>
+<span class="source-line" id="L841"><a class="line-num" href="#L841">841</a>            field = &quot;adjustDataPresent&quot;,</span>
+<span class="source-line" id="L842"><a class="line-num" href="#L842">842</a>            actual = false,</span>
+<span class="source-line" id="L843"><a class="line-num" href="#L843">843</a>            expected = { op = &quot;eq&quot;, value = true },</span>
+<span class="source-line" id="L844"><a class="line-num" href="#L844">844</a>            reason = decision.reason,</span>
+<span class="source-line" id="L845"><a class="line-num" href="#L845">845</a>        })</span>
+<span class="source-line" id="L846"><a class="line-num" href="#L846">846</a>        return decision, false</span>
+<span class="source-line" id="L847"><a class="line-num" href="#L847">847</a>    end</span>
+<span class="source-line" id="L848"><a class="line-num" href="#L848">848</a></span>
+<span class="source-line" id="L849"><a class="line-num" href="#L849">849</a>    if not isProphetConfigAvailable(decision.configKey) then</span>
+<span class="source-line" id="L850"><a class="line-num" href="#L850">850</a>        decision.reason = &quot;new_user_config_missing&quot;</span>
+<span class="source-line" id="L851"><a class="line-num" href="#L851">851</a>        appendAttempt(report, experiment.id, &quot;selected_but_disabled&quot;, {</span>
+<span class="source-line" id="L852"><a class="line-num" href="#L852">852</a>            stage = &quot;route&quot;,</span>
+<span class="source-line" id="L853"><a class="line-num" href="#L853">853</a>            ruleId = route.routeId,</span>
+<span class="source-line" id="L854"><a class="line-num" href="#L854">854</a>            field = &quot;configKey&quot;,</span>
+<span class="source-line" id="L855"><a class="line-num" href="#L855">855</a>            actual = decision.configKey,</span>
+<span class="source-line" id="L856"><a class="line-num" href="#L856">856</a>            expected = { op = &quot;registered_config&quot; },</span>
+<span class="source-line" id="L857"><a class="line-num" href="#L857">857</a>            reason = decision.reason,</span>
+<span class="source-line" id="L858"><a class="line-num" href="#L858">858</a>        })</span>
+<span class="source-line" id="L859"><a class="line-num" href="#L859">859</a>        return decision, false</span>
+<span class="source-line" id="L860"><a class="line-num" href="#L860">860</a>    end</span>
+<span class="source-line" id="L861"><a class="line-num" href="#L861">861</a></span>
+<span class="source-line" id="L862"><a class="line-num" href="#L862">862</a>    decision.enabled = true</span>
+<span class="source-line" id="L863"><a class="line-num" href="#L863">863</a>    decision.reason = &quot;enabled&quot;</span>
+<span class="source-line" id="L864"><a class="line-num" href="#L864">864</a>    appendAttempt(report, experiment.id, &quot;selected&quot;, {</span>
+<span class="source-line" id="L865"><a class="line-num" href="#L865">865</a>        stage = &quot;route&quot;,</span>
+<span class="source-line" id="L866"><a class="line-num" href="#L866">866</a>        ruleId = route.routeId,</span>
+<span class="source-line" id="L867"><a class="line-num" href="#L867">867</a>        reason = decision.reason,</span>
+<span class="source-line" id="L868"><a class="line-num" href="#L868">868</a>    })</span>
+<span class="source-line" id="L869"><a class="line-num" href="#L869">869</a>    return decision, false</span>
+<span class="source-line" id="L870"><a class="line-num" href="#L870">870</a>end</span>
+<span class="source-line" id="L871"><a class="line-num" href="#L871">871</a></span>
+<span class="source-line" id="L872"><a class="line-num" href="#L872">872</a>local function evaluateExperienceMatrix(experiment, context, activation, report)</span>
+<span class="source-line" id="L873"><a class="line-num" href="#L873">873</a>    local decision = experienceDecision(context, activation)</span>
+<span class="source-line" id="L874"><a class="line-num" href="#L874">874</a>    report.selectedExperiment = experiment.id</span>
+<span class="source-line" id="L875"><a class="line-num" href="#L875">875</a></span>
+<span class="source-line" id="L876"><a class="line-num" href="#L876">876</a>    if not activation.groupConfig then</span>
+<span class="source-line" id="L877"><a class="line-num" href="#L877">877</a>        decision.reason = &quot;experience_config_missing&quot;</span>
+<span class="source-line" id="L878"><a class="line-num" href="#L878">878</a>        appendAttempt(report, experiment.id, &quot;selected_but_disabled&quot;, {</span>
+<span class="source-line" id="L879"><a class="line-num" href="#L879">879</a>            stage = &quot;activation&quot;,</span>
+<span class="source-line" id="L880"><a class="line-num" href="#L880">880</a>            ruleId = activation.group,</span>
+<span class="source-line" id="L881"><a class="line-num" href="#L881">881</a>            field = &quot;groupConfig&quot;,</span>
+<span class="source-line" id="L882"><a class="line-num" href="#L882">882</a>            actual = nil,</span>
+<span class="source-line" id="L883"><a class="line-num" href="#L883">883</a>            expected = { op = &quot;defined&quot; },</span>
+<span class="source-line" id="L884"><a class="line-num" href="#L884">884</a>            reason = decision.reason,</span>
+<span class="source-line" id="L885"><a class="line-num" href="#L885">885</a>        })</span>
+<span class="source-line" id="L886"><a class="line-num" href="#L886">886</a>        return decision</span>
+<span class="source-line" id="L887"><a class="line-num" href="#L887">887</a>    end</span>
+<span class="source-line" id="L888"><a class="line-num" href="#L888">888</a></span>
+<span class="source-line" id="L889"><a class="line-num" href="#L889">889</a>    local stages = experiment.conditionStages or {}</span>
+<span class="source-line" id="L890"><a class="line-num" href="#L890">890</a>    local passed, rejection = evaluateConditions(</span>
+<span class="source-line" id="L891"><a class="line-num" href="#L891">891</a>        context,</span>
+<span class="source-line" id="L892"><a class="line-num" href="#L892">892</a>        stages.beforeAvailability</span>
+<span class="source-line" id="L893"><a class="line-num" href="#L893">893</a>    )</span>
+<span class="source-line" id="L894"><a class="line-num" href="#L894">894</a>    if not passed then</span>
+<span class="source-line" id="L895"><a class="line-num" href="#L895">895</a>        decision.reason = rejection.reason</span>
+<span class="source-line" id="L896"><a class="line-num" href="#L896">896</a>        appendAttempt(report, experiment.id, &quot;rejected&quot;, rejection)</span>
+<span class="source-line" id="L897"><a class="line-num" href="#L897">897</a>        return decision</span>
+<span class="source-line" id="L898"><a class="line-num" href="#L898">898</a>    end</span>
+<span class="source-line" id="L899"><a class="line-num" href="#L899">899</a></span>
+<span class="source-line" id="L900"><a class="line-num" href="#L900">900</a>    if not decision.available then</span>
+<span class="source-line" id="L901"><a class="line-num" href="#L901">901</a>        decision.reason = &quot;control_group&quot;</span>
+<span class="source-line" id="L902"><a class="line-num" href="#L902">902</a>        appendAttempt(report, experiment.id, &quot;selected_but_disabled&quot;, {</span>
+<span class="source-line" id="L903"><a class="line-num" href="#L903">903</a>            stage = &quot;group&quot;,</span>
+<span class="source-line" id="L904"><a class="line-num" href="#L904">904</a>            ruleId = activation.group,</span>
+<span class="source-line" id="L905"><a class="line-num" href="#L905">905</a>            field = &quot;enableProphet&quot;,</span>
+<span class="source-line" id="L906"><a class="line-num" href="#L906">906</a>            actual = false,</span>
+<span class="source-line" id="L907"><a class="line-num" href="#L907">907</a>            expected = { op = &quot;eq&quot;, value = true },</span>
+<span class="source-line" id="L908"><a class="line-num" href="#L908">908</a>            reason = decision.reason,</span>
+<span class="source-line" id="L909"><a class="line-num" href="#L909">909</a>        })</span>
+<span class="source-line" id="L910"><a class="line-num" href="#L910">910</a>        return decision</span>
+<span class="source-line" id="L911"><a class="line-num" href="#L911">911</a>    end</span>
+<span class="source-line" id="L912"><a class="line-num" href="#L912">912</a></span>
+<span class="source-line" id="L913"><a class="line-num" href="#L913">913</a>    decision.userTopLevel = context.userTopLevel</span>
+<span class="source-line" id="L914"><a class="line-num" href="#L914">914</a>    passed, rejection = evaluateConditions(</span>
+<span class="source-line" id="L915"><a class="line-num" href="#L915">915</a>        context,</span>
+<span class="source-line" id="L916"><a class="line-num" href="#L916">916</a>        stages.afterAvailability</span>
+<span class="source-line" id="L917"><a class="line-num" href="#L917">917</a>    )</span>
+<span class="source-line" id="L918"><a class="line-num" href="#L918">918</a>    if not passed then</span>
+<span class="source-line" id="L919"><a class="line-num" href="#L919">919</a>        decision.reason = rejection.reason</span>
+<span class="source-line" id="L920"><a class="line-num" href="#L920">920</a>        appendAttempt(report, experiment.id, &quot;rejected&quot;, rejection)</span>
+<span class="source-line" id="L921"><a class="line-num" href="#L921">921</a>        return decision</span>
+<span class="source-line" id="L922"><a class="line-num" href="#L922">922</a>    end</span>
+<span class="source-line" id="L923"><a class="line-num" href="#L923">923</a></span>
+<span class="source-line" id="L924"><a class="line-num" href="#L924">924</a>    if decision.requireToplevelBaoDi and not context.toplevelBaoDi then</span>
+<span class="source-line" id="L925"><a class="line-num" href="#L925">925</a>        decision.reason = &quot;toplevel_baodi_not_enabled&quot;</span>
+<span class="source-line" id="L926"><a class="line-num" href="#L926">926</a>        appendAttempt(report, experiment.id, &quot;rejected&quot;, {</span>
+<span class="source-line" id="L927"><a class="line-num" href="#L927">927</a>            stage = &quot;condition&quot;,</span>
+<span class="source-line" id="L928"><a class="line-num" href="#L928">928</a>            ruleId = &quot;toplevel_baodi&quot;,</span>
+<span class="source-line" id="L929"><a class="line-num" href="#L929">929</a>            field = &quot;toplevelBaoDi&quot;,</span>
+<span class="source-line" id="L930"><a class="line-num" href="#L930">930</a>            actual = context.toplevelBaoDi,</span>
+<span class="source-line" id="L931"><a class="line-num" href="#L931">931</a>            expected = { op = &quot;eq&quot;, value = true },</span>
+<span class="source-line" id="L932"><a class="line-num" href="#L932">932</a>            reason = decision.reason,</span>
+<span class="source-line" id="L933"><a class="line-num" href="#L933">933</a>        })</span>
+<span class="source-line" id="L934"><a class="line-num" href="#L934">934</a>        return decision</span>
+<span class="source-line" id="L935"><a class="line-num" href="#L935">935</a>    end</span>
+<span class="source-line" id="L936"><a class="line-num" href="#L936">936</a></span>
+<span class="source-line" id="L937"><a class="line-num" href="#L937">937</a>    decision.experienceContext = {</span>
+<span class="source-line" id="L938"><a class="line-num" href="#L938">938</a>        levelId = context.levelId,</span>
+<span class="source-line" id="L939"><a class="line-num" href="#L939">939</a>        levelScene = context.levelScene,</span>
+<span class="source-line" id="L940"><a class="line-num" href="#L940">940</a>        difficultyFlag = context.difficultyFlag,</span>
+<span class="source-line" id="L941"><a class="line-num" href="#L941">941</a>        difficultyClass = context.difficultyClass,</span>
+<span class="source-line" id="L942"><a class="line-num" href="#L942">942</a>        superBirdActive = context.superBirdActive,</span>
+<span class="source-line" id="L943"><a class="line-num" href="#L943">943</a>        toplevelBaoDi = context.toplevelBaoDi,</span>
+<span class="source-line" id="L944"><a class="line-num" href="#L944">944</a>        userTopLevel = context.userTopLevel,</span>
+<span class="source-line" id="L945"><a class="line-num" href="#L945">945</a>        fixedDesiredDiffAvg = context.fixedDesiredDiffAvg,</span>
+<span class="source-line" id="L946"><a class="line-num" href="#L946">946</a>        desiredDiffAvg = context.desiredDiffAvg,</span>
+<span class="source-line" id="L947"><a class="line-num" href="#L947">947</a>        diffIndex = context.diffIndex,</span>
+<span class="source-line" id="L948"><a class="line-num" href="#L948">948</a>    }</span>
+<span class="source-line" id="L949"><a class="line-num" href="#L949">949</a></span>
+<span class="source-line" id="L950"><a class="line-num" href="#L950">950</a>    local route = selectRoute(</span>
+<span class="source-line" id="L951"><a class="line-num" href="#L951">951</a>        decision.experienceContext,</span>
+<span class="source-line" id="L952"><a class="line-num" href="#L952">952</a>        experiment.route,</span>
+<span class="source-line" id="L953"><a class="line-num" href="#L953">953</a>        activation.groupConfig.routeMode</span>
+<span class="source-line" id="L954"><a class="line-num" href="#L954">954</a>    )</span>
+<span class="source-line" id="L955"><a class="line-num" href="#L955">955</a>    if not route then</span>
+<span class="source-line" id="L956"><a class="line-num" href="#L956">956</a>        decision.experienceRouteReason = experiment.route.noMatchReason</span>
+<span class="source-line" id="L957"><a class="line-num" href="#L957">957</a>        decision.reason = experiment.route.noMatchReason</span>
+<span class="source-line" id="L958"><a class="line-num" href="#L958">958</a>        appendAttempt(report, experiment.id, &quot;rejected&quot;, {</span>
+<span class="source-line" id="L959"><a class="line-num" href="#L959">959</a>            stage = &quot;route&quot;,</span>
+<span class="source-line" id="L960"><a class="line-num" href="#L960">960</a>            ruleId = &quot;no_route_matched&quot;,</span>
+<span class="source-line" id="L961"><a class="line-num" href="#L961">961</a>            reason = decision.reason,</span>
+<span class="source-line" id="L962"><a class="line-num" href="#L962">962</a>        })</span>
+<span class="source-line" id="L963"><a class="line-num" href="#L963">963</a>        return decision</span>
+<span class="source-line" id="L964"><a class="line-num" href="#L964">964</a>    end</span>
+<span class="source-line" id="L965"><a class="line-num" href="#L965">965</a></span>
+<span class="source-line" id="L966"><a class="line-num" href="#L966">966</a>    decision.experienceRouteReason = &quot;experience_route_matched&quot;</span>
+<span class="source-line" id="L967"><a class="line-num" href="#L967">967</a>    decision.experienceType = route.experienceType</span>
+<span class="source-line" id="L968"><a class="line-num" href="#L968">968</a>    decision.configKey = route.configKey</span>
+<span class="source-line" id="L969"><a class="line-num" href="#L969">969</a>    report.selectedRoute = route.routeId</span>
+<span class="source-line" id="L970"><a class="line-num" href="#L970">970</a></span>
+<span class="source-line" id="L971"><a class="line-num" href="#L971">971</a>    if decision.removeDiffFix and not context.adjustDataPresent then</span>
+<span class="source-line" id="L972"><a class="line-num" href="#L972">972</a>        decision.reason = &quot;adjust_data_missing&quot;</span>
+<span class="source-line" id="L973"><a class="line-num" href="#L973">973</a>        appendAttempt(report, experiment.id, &quot;selected_but_disabled&quot;, {</span>
+<span class="source-line" id="L974"><a class="line-num" href="#L974">974</a>            stage = &quot;pre_action&quot;,</span>
+<span class="source-line" id="L975"><a class="line-num" href="#L975">975</a>            ruleId = &quot;adjust_data_present&quot;,</span>
+<span class="source-line" id="L976"><a class="line-num" href="#L976">976</a>            field = &quot;adjustDataPresent&quot;,</span>
+<span class="source-line" id="L977"><a class="line-num" href="#L977">977</a>            actual = false,</span>
+<span class="source-line" id="L978"><a class="line-num" href="#L978">978</a>            expected = { op = &quot;eq&quot;, value = true },</span>
+<span class="source-line" id="L979"><a class="line-num" href="#L979">979</a>            reason = decision.reason,</span>
+<span class="source-line" id="L980"><a class="line-num" href="#L980">980</a>        })</span>
+<span class="source-line" id="L981"><a class="line-num" href="#L981">981</a>        return decision</span>
+<span class="source-line" id="L982"><a class="line-num" href="#L982">982</a>    end</span>
+<span class="source-line" id="L983"><a class="line-num" href="#L983">983</a></span>
+<span class="source-line" id="L984"><a class="line-num" href="#L984">984</a>    if not isProphetConfigAvailable(decision.configKey) then</span>
+<span class="source-line" id="L985"><a class="line-num" href="#L985">985</a>        decision.reason = &quot;experience_config_missing&quot;</span>
+<span class="source-line" id="L986"><a class="line-num" href="#L986">986</a>        appendAttempt(report, experiment.id, &quot;selected_but_disabled&quot;, {</span>
+<span class="source-line" id="L987"><a class="line-num" href="#L987">987</a>            stage = &quot;route&quot;,</span>
+<span class="source-line" id="L988"><a class="line-num" href="#L988">988</a>            ruleId = route.routeId,</span>
+<span class="source-line" id="L989"><a class="line-num" href="#L989">989</a>            field = &quot;configKey&quot;,</span>
+<span class="source-line" id="L990"><a class="line-num" href="#L990">990</a>            actual = decision.configKey,</span>
+<span class="source-line" id="L991"><a class="line-num" href="#L991">991</a>            expected = { op = &quot;registered_config&quot; },</span>
+<span class="source-line" id="L992"><a class="line-num" href="#L992">992</a>            reason = decision.reason,</span>
+<span class="source-line" id="L993"><a class="line-num" href="#L993">993</a>        })</span>
+<span class="source-line" id="L994"><a class="line-num" href="#L994">994</a>        return decision</span>
+<span class="source-line" id="L995"><a class="line-num" href="#L995">995</a>    end</span>
+<span class="source-line" id="L996"><a class="line-num" href="#L996">996</a></span>
+<span class="source-line" id="L997"><a class="line-num" href="#L997">997</a>    decision.enabled = true</span>
+<span class="source-line" id="L998"><a class="line-num" href="#L998">998</a>    decision.reason = &quot;enabled&quot;</span>
+<span class="source-line" id="L999"><a class="line-num" href="#L999">999</a>    appendAttempt(report, experiment.id, &quot;selected&quot;, {</span>
+<span class="source-line" id="L1000"><a class="line-num" href="#L1000">1000</a>        stage = &quot;route&quot;,</span>
+<span class="source-line" id="L1001"><a class="line-num" href="#L1001">1001</a>        ruleId = route.routeId,</span>
+<span class="source-line" id="L1002"><a class="line-num" href="#L1002">1002</a>        reason = decision.reason,</span>
+<span class="source-line" id="L1003"><a class="line-num" href="#L1003">1003</a>    })</span>
+<span class="source-line" id="L1004"><a class="line-num" href="#L1004">1004</a>    return decision</span>
+<span class="source-line" id="L1005"><a class="line-num" href="#L1005">1005</a>end</span>
+<span class="source-line" id="L1006"><a class="line-num" href="#L1006">1006</a></span>
+<span class="source-line" id="L1007"><a class="line-num" href="#L1007">1007</a>function ProphetLaunchStrategy2:evaluateDetailed(runtime, resultDatas)</span>
+<span class="source-line" id="L1008"><a class="line-num" href="#L1008">1008</a>    local report = {</span>
+<span class="source-line" id="L1009"><a class="line-num" href="#L1009">1009</a>        selectedExperiment = nil,</span>
+<span class="source-line" id="L1010"><a class="line-num" href="#L1010">1010</a>        selectedRoute = nil,</span>
+<span class="source-line" id="L1011"><a class="line-num" href="#L1011">1011</a>        attempts = {},</span>
+<span class="source-line" id="L1012"><a class="line-num" href="#L1012">1012</a>    }</span>
+<span class="source-line" id="L1013"><a class="line-num" href="#L1013">1013</a>    if not CONFIG.enabled then</span>
+<span class="source-line" id="L1014"><a class="line-num" href="#L1014">1014</a>        report.disabled = true</span>
+<span class="source-line" id="L1015"><a class="line-num" href="#L1015">1015</a>        return nil, report</span>
+<span class="source-line" id="L1016"><a class="line-num" href="#L1016">1016</a>    end</span>
+<span class="source-line" id="L1017"><a class="line-num" href="#L1017">1017</a></span>
+<span class="source-line" id="L1018"><a class="line-num" href="#L1018">1018</a>    local context = buildContext(runtime, resultDatas)</span>
+<span class="source-line" id="L1019"><a class="line-num" href="#L1019">1019</a>    for _, experiment in ipairs(CONFIG.experiments) do</span>
+<span class="source-line" id="L1020"><a class="line-num" href="#L1020">1020</a>        local activation = activateExperiment(experiment, context)</span>
+<span class="source-line" id="L1021"><a class="line-num" href="#L1021">1021</a>        if not activation then</span>
+<span class="source-line" id="L1022"><a class="line-num" href="#L1022">1022</a>            appendAttempt(report, experiment.id, &quot;not_activated&quot;, {</span>
+<span class="source-line" id="L1023"><a class="line-num" href="#L1023">1023</a>                stage = &quot;activation&quot;,</span>
+<span class="source-line" id="L1024"><a class="line-num" href="#L1024">1024</a>                ruleId = experiment.activation.type,</span>
+<span class="source-line" id="L1025"><a class="line-num" href="#L1025">1025</a>                reason = &quot;experiment_not_activated&quot;,</span>
+<span class="source-line" id="L1026"><a class="line-num" href="#L1026">1026</a>            })</span>
+<span class="source-line" id="L1027"><a class="line-num" href="#L1027">1027</a>        elseif experiment.id == &quot;new_user&quot; then</span>
+<span class="source-line" id="L1028"><a class="line-num" href="#L1028">1028</a>            local decision, shouldContinue =</span>
+<span class="source-line" id="L1029"><a class="line-num" href="#L1029">1029</a>                evaluateNewUser(experiment, context, activation, report)</span>
+<span class="source-line" id="L1030"><a class="line-num" href="#L1030">1030</a>            if decision or not shouldContinue then</span>
+<span class="source-line" id="L1031"><a class="line-num" href="#L1031">1031</a>                return decision, report</span>
+<span class="source-line" id="L1032"><a class="line-num" href="#L1032">1032</a>            end</span>
+<span class="source-line" id="L1033"><a class="line-num" href="#L1033">1033</a>        elseif experiment.id == &quot;experience_matrix&quot; then</span>
+<span class="source-line" id="L1034"><a class="line-num" href="#L1034">1034</a>            return evaluateExperienceMatrix(</span>
+<span class="source-line" id="L1035"><a class="line-num" href="#L1035">1035</a>                experiment,</span>
+<span class="source-line" id="L1036"><a class="line-num" href="#L1036">1036</a>                context,</span>
+<span class="source-line" id="L1037"><a class="line-num" href="#L1037">1037</a>                activation,</span>
+<span class="source-line" id="L1038"><a class="line-num" href="#L1038">1038</a>                report</span>
+<span class="source-line" id="L1039"><a class="line-num" href="#L1039">1039</a>            ), report</span>
+<span class="source-line" id="L1040"><a class="line-num" href="#L1040">1040</a>        end</span>
+<span class="source-line" id="L1041"><a class="line-num" href="#L1041">1041</a>    end</span>
+<span class="source-line" id="L1042"><a class="line-num" href="#L1042">1042</a>    return nil, report</span>
+<span class="source-line" id="L1043"><a class="line-num" href="#L1043">1043</a>end</span>
+<span class="source-line" id="L1044"><a class="line-num" href="#L1044">1044</a></span>
+<span class="source-line" id="L1045"><a class="line-num" href="#L1045">1045</a>function ProphetLaunchStrategy2:evaluate(runtime, resultDatas)</span>
+<span class="source-line" id="L1046"><a class="line-num" href="#L1046">1046</a>    local decision = self:evaluateDetailed(runtime, resultDatas)</span>
+<span class="source-line" id="L1047"><a class="line-num" href="#L1047">1047</a>    return decision</span>
+<span class="source-line" id="L1048"><a class="line-num" href="#L1048">1048</a>end</span>
+<span class="source-line" id="L1049"><a class="line-num" href="#L1049">1049</a></span>
+<span class="source-line" id="L1050"><a class="line-num" href="#L1050">1050</a>function ProphetLaunchStrategy2:getExperienceContext(</span>
+<span class="source-line" id="L1051"><a class="line-num" href="#L1051">1051</a>    runtime,</span>
+<span class="source-line" id="L1052"><a class="line-num" href="#L1052">1052</a>    checkResult,</span>
+<span class="source-line" id="L1053"><a class="line-num" href="#L1053">1053</a>    userTopLevel</span>
+<span class="source-line" id="L1054"><a class="line-num" href="#L1054">1054</a>)</span>
+<span class="source-line" id="L1055"><a class="line-num" href="#L1055">1055</a>    local context = buildContext(runtime, { checkResult = checkResult })</span>
+<span class="source-line" id="L1056"><a class="line-num" href="#L1056">1056</a>    return {</span>
+<span class="source-line" id="L1057"><a class="line-num" href="#L1057">1057</a>        levelId = context.levelId,</span>
+<span class="source-line" id="L1058"><a class="line-num" href="#L1058">1058</a>        levelScene = context.levelScene,</span>
+<span class="source-line" id="L1059"><a class="line-num" href="#L1059">1059</a>        difficultyFlag = context.difficultyFlag,</span>
+<span class="source-line" id="L1060"><a class="line-num" href="#L1060">1060</a>        difficultyClass = context.difficultyClass,</span>
+<span class="source-line" id="L1061"><a class="line-num" href="#L1061">1061</a>        superBirdActive = context.superBirdActive,</span>
+<span class="source-line" id="L1062"><a class="line-num" href="#L1062">1062</a>        toplevelBaoDi = context.toplevelBaoDi,</span>
+<span class="source-line" id="L1063"><a class="line-num" href="#L1063">1063</a>        userTopLevel = userTopLevel,</span>
+<span class="source-line" id="L1064"><a class="line-num" href="#L1064">1064</a>        fixedDesiredDiffAvg = context.fixedDesiredDiffAvg,</span>
+<span class="source-line" id="L1065"><a class="line-num" href="#L1065">1065</a>        desiredDiffAvg = context.desiredDiffAvg,</span>
+<span class="source-line" id="L1066"><a class="line-num" href="#L1066">1066</a>        diffIndex = context.diffIndex,</span>
+<span class="source-line" id="L1067"><a class="line-num" href="#L1067">1067</a>    }</span>
+<span class="source-line" id="L1068"><a class="line-num" href="#L1068">1068</a>end</span>
+<span class="source-line" id="L1069"><a class="line-num" href="#L1069">1069</a></span>
+<span class="source-line" id="L1070"><a class="line-num" href="#L1070">1070</a>function ProphetLaunchStrategy2:getConfig()</span>
+<span class="source-line" id="L1071"><a class="line-num" href="#L1071">1071</a>    return CONFIG</span>
+<span class="source-line" id="L1072"><a class="line-num" href="#L1072">1072</a>end</span>
+<span class="source-line" id="L1073"><a class="line-num" href="#L1073">1073</a></span>
+<span class="source-line" id="L1074"><a class="line-num" href="#L1074">1074</a>local ACTION_HANDLERS = {}</span>
+<span class="source-line" id="L1075"><a class="line-num" href="#L1075">1075</a></span>
+<span class="source-line" id="L1076"><a class="line-num" href="#L1076">1076</a>function ACTION_HANDLERS.record_decision(runtime, _, decision)</span>
+<span class="source-line" id="L1077"><a class="line-num" href="#L1077">1077</a>    runtime.prophetLaunchInfo = decision</span>
+<span class="source-line" id="L1078"><a class="line-num" href="#L1078">1078</a>    return true</span>
+<span class="source-line" id="L1079"><a class="line-num" href="#L1079">1079</a>end</span>
+<span class="source-line" id="L1080"><a class="line-num" href="#L1080">1080</a></span>
+<span class="source-line" id="L1081"><a class="line-num" href="#L1081">1081</a>function ACTION_HANDLERS.set_self_feedback(runtime, _, decision)</span>
+<span class="source-line" id="L1082"><a class="line-num" href="#L1082">1082</a>    local adjustLogic = runtime.UBFuuuAdjustLogic</span>
+<span class="source-line" id="L1083"><a class="line-num" href="#L1083">1083</a>    if not adjustLogic or not adjustLogic.setSelfFeedbackEnableFlag then</span>
+<span class="source-line" id="L1084"><a class="line-num" href="#L1084">1084</a>        decision.enabled = false</span>
+<span class="source-line" id="L1085"><a class="line-num" href="#L1085">1085</a>        decision.reason = &quot;self_feedback_control_missing&quot;</span>
+<span class="source-line" id="L1086"><a class="line-num" href="#L1086">1086</a>        return false</span>
+<span class="source-line" id="L1087"><a class="line-num" href="#L1087">1087</a>    end</span>
+<span class="source-line" id="L1088"><a class="line-num" href="#L1088">1088</a>    adjustLogic:setSelfFeedbackEnableFlag(</span>
+<span class="source-line" id="L1089"><a class="line-num" href="#L1089">1089</a>        decision.maintenanceName .. &quot;_&quot; .. decision.group,</span>
+<span class="source-line" id="L1090"><a class="line-num" href="#L1090">1090</a>        CONFIG.selfFeedbackEnabledWhenLaunched</span>
+<span class="source-line" id="L1091"><a class="line-num" href="#L1091">1091</a>    )</span>
+<span class="source-line" id="L1092"><a class="line-num" href="#L1092">1092</a>    return true</span>
+<span class="source-line" id="L1093"><a class="line-num" href="#L1093">1093</a>end</span>
+<span class="source-line" id="L1094"><a class="line-num" href="#L1094">1094</a></span>
+<span class="source-line" id="L1095"><a class="line-num" href="#L1095">1095</a>function ACTION_HANDLERS.capture_adjust_fix_info(runtime, resultDatas)</span>
+<span class="source-line" id="L1096"><a class="line-num" href="#L1096">1096</a>    local checkResult = resultDatas and resultDatas.checkResult</span>
+<span class="source-line" id="L1097"><a class="line-num" href="#L1097">1097</a>    local adjustLogic = runtime.UBFuuuAdjustLogic</span>
+<span class="source-line" id="L1098"><a class="line-num" href="#L1098">1098</a>    if checkResult and adjustLogic.getUbfuuuAdjustFixInfo then</span>
+<span class="source-line" id="L1099"><a class="line-num" href="#L1099">1099</a>        checkResult.adjustFixInfo = adjustLogic:getUbfuuuAdjustFixInfo()</span>
+<span class="source-line" id="L1100"><a class="line-num" href="#L1100">1100</a>    end</span>
+<span class="source-line" id="L1101"><a class="line-num" href="#L1101">1101</a>    return true</span>
+<span class="source-line" id="L1102"><a class="line-num" href="#L1102">1102</a>end</span>
+<span class="source-line" id="L1103"><a class="line-num" href="#L1103">1103</a></span>
+<span class="source-line" id="L1104"><a class="line-num" href="#L1104">1104</a>function ACTION_HANDLERS.set_prophet(runtime, _, decision)</span>
+<span class="source-line" id="L1105"><a class="line-num" href="#L1105">1105</a>    runtime:setProphet(decision.configKey)</span>
+<span class="source-line" id="L1106"><a class="line-num" href="#L1106">1106</a>    return true</span>
+<span class="source-line" id="L1107"><a class="line-num" href="#L1107">1107</a>end</span>
+<span class="source-line" id="L1108"><a class="line-num" href="#L1108">1108</a></span>
+<span class="source-line" id="L1109"><a class="line-num" href="#L1109">1109</a>function ACTION_HANDLERS.remove_diff_fix(runtime, _, decision)</span>
+<span class="source-line" id="L1110"><a class="line-num" href="#L1110">1110</a>    if decision.removeDiffFix and runtime.adjustData then</span>
+<span class="source-line" id="L1111"><a class="line-num" href="#L1111">1111</a>        runtime.adjustData.diffFix = nil</span>
+<span class="source-line" id="L1112"><a class="line-num" href="#L1112">1112</a>    end</span>
+<span class="source-line" id="L1113"><a class="line-num" href="#L1113">1113</a>    return true</span>
+<span class="source-line" id="L1114"><a class="line-num" href="#L1114">1114</a>end</span>
+<span class="source-line" id="L1115"><a class="line-num" href="#L1115">1115</a></span>
+<span class="source-line" id="L1116"><a class="line-num" href="#L1116">1116</a>function ProphetLaunchStrategy2:apply(runtime, resultDatas)</span>
+<span class="source-line" id="L1117"><a class="line-num" href="#L1117">1117</a>    local decision = self:evaluate(runtime, resultDatas)</span>
+<span class="source-line" id="L1118"><a class="line-num" href="#L1118">1118</a>    if not decision then</span>
+<span class="source-line" id="L1119"><a class="line-num" href="#L1119">1119</a>        return nil</span>
+<span class="source-line" id="L1120"><a class="line-num" href="#L1120">1120</a>    end</span>
+<span class="source-line" id="L1121"><a class="line-num" href="#L1121">1121</a></span>
+<span class="source-line" id="L1122"><a class="line-num" href="#L1122">1122</a>    for _, actionName in ipairs(CONFIG.actions) do</span>
+<span class="source-line" id="L1123"><a class="line-num" href="#L1123">1123</a>        if actionName ~= &quot;record_decision&quot; and not decision.enabled then</span>
+<span class="source-line" id="L1124"><a class="line-num" href="#L1124">1124</a>            break</span>
+<span class="source-line" id="L1125"><a class="line-num" href="#L1125">1125</a>        end</span>
+<span class="source-line" id="L1126"><a class="line-num" href="#L1126">1126</a>        local handler = ACTION_HANDLERS[actionName]</span>
+<span class="source-line" id="L1127"><a class="line-num" href="#L1127">1127</a>        if handler and handler(runtime, resultDatas, decision) == false then</span>
+<span class="source-line" id="L1128"><a class="line-num" href="#L1128">1128</a>            break</span>
+<span class="source-line" id="L1129"><a class="line-num" href="#L1129">1129</a>        end</span>
+<span class="source-line" id="L1130"><a class="line-num" href="#L1130">1130</a>    end</span>
+<span class="source-line" id="L1131"><a class="line-num" href="#L1131">1131</a>    return decision</span>
+<span class="source-line" id="L1132"><a class="line-num" href="#L1132">1132</a>end</span>
+<span class="source-line" id="L1133"><a class="line-num" href="#L1133">1133</a></span>
+<span class="source-line" id="L1134"><a class="line-num" href="#L1134">1134</a>function ProphetLaunchStrategy2:applySafely(runtime, resultDatas)</span>
+<span class="source-line" id="L1135"><a class="line-num" href="#L1135">1135</a>    local ok, result = pcall(self.apply, self, runtime, resultDatas)</span>
+<span class="source-line" id="L1136"><a class="line-num" href="#L1136">1136</a>    if ok then</span>
+<span class="source-line" id="L1137"><a class="line-num" href="#L1137">1137</a>        return result</span>
+<span class="source-line" id="L1138"><a class="line-num" href="#L1138">1138</a>    end</span>
+<span class="source-line" id="L1139"><a class="line-num" href="#L1139">1139</a></span>
+<span class="source-line" id="L1140"><a class="line-num" href="#L1140">1140</a>    if he_log_error then</span>
+<span class="source-line" id="L1141"><a class="line-num" href="#L1141">1141</a>        he_log_error(&quot;ProphetLaunchStrategy2_apply_error_&quot; .. tostring(result))</span>
+<span class="source-line" id="L1142"><a class="line-num" href="#L1142">1142</a>    elseif printx then</span>
+<span class="source-line" id="L1143"><a class="line-num" href="#L1143">1143</a>        printx(0, &quot;ProphetLaunchStrategy2:applySafely error&quot;, tostring(result))</span>
+<span class="source-line" id="L1144"><a class="line-num" href="#L1144">1144</a>    else</span>
+<span class="source-line" id="L1145"><a class="line-num" href="#L1145">1145</a>        print(&quot;ProphetLaunchStrategy2:applySafely error&quot;, tostring(result))</span>
+<span class="source-line" id="L1146"><a class="line-num" href="#L1146">1146</a>    end</span>
+<span class="source-line" id="L1147"><a class="line-num" href="#L1147">1147</a>    return nil</span>
+<span class="source-line" id="L1148"><a class="line-num" href="#L1148">1148</a>end</span>
+<span class="source-line" id="L1149"><a class="line-num" href="#L1149">1149</a></span>
+<span class="source-line" id="L1150"><a class="line-num" href="#L1150">1150</a>return ProphetLaunchStrategy2</span></code></pre></main></body></html>

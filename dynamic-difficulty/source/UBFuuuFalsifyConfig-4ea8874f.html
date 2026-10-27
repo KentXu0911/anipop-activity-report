@@ -1,0 +1,858 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFuuuFalsifyConfig.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFuuuFalsifyConfig.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/configs/UBFuuuFalsifyConfig.lua<br>SHA-256 e9f2d2bad1a846087cc41e22afd36c28cbb4cd0bbf0cb2cf58ec365b150268c1 · 858 行 · 恢复原文，未经改写</p><a href="UBFuuuFalsifyConfig-4ea8874f.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>--[[</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>	</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>####################################################################################################</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>#####################################################LLLLjj#########################################</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>##################################################iiiiLLLLLLj#######################################</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>################################################ft  ttLLLLLLLj######################################</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>###############################################LttttGGGGLLLLLff#####################################</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>###############################################jjjjGGGGGGGGGGff#####################################</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>##############################################DjjjDDDGGGGGGGfff#####################################</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>##############################################GffDDDDDDDDDDLLL######################################</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>##############################################EGGEEEDDDDDLLL########################################</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>##############################################EGGEEEEEEGG###########################################</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>############################################,.:DDEEEEDG::,##########################################</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>#########################################,.:::::EEEED.::::::########################################</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>#######################################:.::::::::EEE.:::::::::######################################</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>#####################################.::::::::::::;:::::::::::::####################################</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>###################################.:::::::. ::::::::::::::::::::,##################################</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>#################################:::,:::     ::::::::::::::::::::::#################################</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>###############################:::,,,,      :::::::::::::::::::,,,,::###############################</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>#############################,.:,,,,       ::::::::::::::::,,,,,,,,,::,#############################</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>############################.::,,,       :::::::::::::::::::,,,,,,,,,,::############################</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>##########################,::,,,,       :::::::::::::::::::::,,,,,,,,,,::###########################</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>#########################.:,,,,....   :::::::::::::::::::::::::,,,,,,,,,::,#########################</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>#######################,::,,,........:::::::::::::::::::::::::::,,,,,,,,,,::########################</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>######################.:,;,,::::...::::::::::::::::::::::::::::::,,,,,,,,,,,:#######################</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>####################,:,;;;:::::...:::::::::::::::::::::::::::::::::,,,,,,,;;,:,#####################</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>###################.,,;;;,,,,:::iiiii:::::::::::::::::::::::::iiii,:;;;;;;;;;,,,####################</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>##################:,,;;,,,,,,::::::::::::::::::::::::::::::::::::::::;;;;;;;;;,,,###################</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>################,,,;;;;;;,,,:,,:::::::::::::::::::::::::::::::::::::::;;;;;;;;;,,,##################</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>###############:,,;;;;;;;;;:ffEDDDff::::::::::::::::::::::::::::ffEEDDff;;;;;;;;,,,#################</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>##############:;,;;;;;;;;;ff   ###GGf,,,,,:::::::ii::::::::::,,f   ###GGff;;;;;;;;,,,###############</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>#############:;;ii;i;;;;;,fED######GLf,,,,,,,,,i;;,ii,,,,,,,,,fED######GLf;;;;;;;;;,,,##############</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>############,;;iiiiiiiii,,fDD#####jLLf,,,,,,,t;;,,,tttt,,,,,,,fDD#####KLLf;;;;;;ii;;;;,#############</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>##########,;;;iiiiiiiii;;;;fGGG##LLLf,,,,,,j;,,,,..ttttt,,,,,,,fGGG##LLLf;,iiiiiiiii;;;;############</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>#########,;;;iiiiiiiiii;;;;;fffLLfff,,,,,,jjj,,,,  jjjjjji,,,,,,ffLLLLff;;;;iiiiiiiii;;;;###########</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>########,;;;iiiiiiiitiiiiii;;;;;,,,,,,,,,,;ffDDDDDDDDDLjj,,,,,,,;;;;;;;;;;;;;iiiiiiiii;;;;##########</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>########,i;iiiiiiiiitiiiiiii;;;;;;;;;;,,,,,fftttttttttfff,,,,,;;;;;iiiiiiiii;iiiiiiiii;;;;,#########</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>#######:iiiiiiiiiiiiiiiiii;;;;;;;;;;;;;;;;;;ffftiiiiffff;;;;;;;;;;;iiiiiiiii;;iiiiiiiii;;;i#########</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>#######;iiiiiiiiiiiii;;;;;;;;;;;;;;;;;;;;;;;;tttttttttt;;;;;;;;;;;;;;;iiiii;;;;iiiiiiii;;;,i########</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>######,iiiiiiiiiiiii;;;;;;;;;;;;;;;;;;;;;;;;;;iiiiiiii;;;;;;;;;;;;;;;;;;;;;;;;;iiiiiiii;;;,i########</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>######,iiiiiiiiiiiiiiii;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;iiiiiiii;;;,,########</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>#######iiiiiiiiiiiiiiiiiiiii;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;iiiiiiiiiiiii;;;,,########</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>#######iiittiiiiiiiiiiiiiiiiiiiiiiii;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;iiiiiiiiiiiiiiiiiii;;;,,,########</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>########iiittttttttiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii;;;,,,,########</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>#########iiittttttttttttiiittttiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii;;;,,,,#########</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>###########iiitttttttttttttttttttttttttttiiiiiittttiiiiiiiiiiiiiiiittttttttttiiiiii;;;,,,###########</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>#############,tiiittttttttttttttttttttttttttttttttiittttttttttttttttttttttiiiiii;;;;;,;#############</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>##################;tiiiiittttttttttttttttttttttttttttttttttttttttttttiiiiiiii;;;;;;#################</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>##########################,,;itttttiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii;,,#########################</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>####################################################################################################</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>####################################################################################################</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a></span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>]]</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a></span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>UBFuuuFalsifyConfig = {</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a></span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>	[&quot;Positive&quot;] = {</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>		[1] = {</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>			ruleA_m1 = 15,</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>			ruleA_m2 = 10,</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>			ruleA_m3 = 10,</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>			ruleA_m4 = 7,</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>			ruleA_n3 = 7,</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a></span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>			ruleB_m1 = 4,</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a></span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>			ruleC_m1 = 8,</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>			ruleC_m2 = 12,</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>			ruleC_m3 = 15,</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>		},</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>		[2] = {</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>			ruleA_m1 = 20,</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>			ruleA_m2 = 15,</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>			ruleA_m3 = 10,</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>			ruleA_m4 = 10,</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>			ruleA_n3 = 7,</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a></span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a></span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>			ruleC_m1 = 10,</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>			ruleC_m2 = 15,</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>			ruleC_m3 = 20,</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>		},</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>		[3] = {</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>			ruleA_m1 = 30,</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>			ruleA_m2 = 20,</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>			ruleA_m3 = 15,</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>			ruleA_m4 = 15,</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>			ruleA_n3 = 7,</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a></span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a></span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>			ruleC_m1 = 13,</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>			ruleC_m2 = 18,</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>			ruleC_m3 = 25,</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>		},</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>		[4] = {</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>			ruleA_m1 = 40,</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>			ruleA_m2 = 30,</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>			ruleA_m3 = 20,</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>			ruleA_m4 = 20,</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a></span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a></span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>			ruleC_m1 = 15,</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>			ruleC_m2 = 20,</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>			ruleC_m3 = 30,</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>		},</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>		[5] = {</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>			ruleA_m1 = 50,</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>			ruleA_m2 = 40,</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>			ruleA_m3 = 30,</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>			ruleA_m4 = 30,</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a></span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>			</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>			ruleC_m1 = 15,</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>			ruleC_m2 = 20,</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>			ruleC_m3 = 40,</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>		},</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>		[6] = {</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>			ruleA_m1 = 60,</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>			ruleA_m2 = 50,</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>			ruleA_m3 = 40,</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>			ruleA_m4 = 40,</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a></span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>			</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>			ruleC_m1 = 15,</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>			ruleC_m2 = 25,</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>			ruleC_m3 = 40,</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>		},</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>		</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>		[7] = {</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>			ruleA_m1 = 65,</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>			ruleA_m2 = 60,</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>			ruleA_m3 = 55,</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>			ruleA_m4 = 50,</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a></span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>			</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>			ruleC_m1 = 20,</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>			ruleC_m2 = 25,</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>			ruleC_m3 = 40,</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>		},</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>		[8] = {</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>			ruleA_m1 = 75,</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>			ruleA_m2 = 65,</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>			ruleA_m3 = 55,</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>			ruleA_m4 = 55,</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a></span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>			</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>			ruleC_m1 = 20,</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>			ruleC_m2 = 25,</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>			ruleC_m3 = 45,</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>		},</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a></span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>		[9] = {</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>			ruleA_m1 = 80,</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>			ruleA_m2 = 70,</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>			ruleA_m3 = 60,</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>			ruleA_m4 = 55,</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a></span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a></span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>			ruleC_m1 = 20,</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>			ruleC_m2 = 30,</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>			ruleC_m3 = 50,</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>		},</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a></span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>		[10] = {</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>			ruleA_m1 = 80,</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>			ruleA_m2 = 70,</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>			ruleA_m3 = 60,</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>			ruleA_m4 = 60,</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a></span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a></span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>			ruleC_m1 = 20,</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>			ruleC_m2 = 30,</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>			ruleC_m3 = 50,</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>		},</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a></span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>		[11] = {</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>			ruleA_m1 = 80,</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>			ruleA_m2 = 70,</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>			ruleA_m3 = 65,</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>			ruleA_m4 = 60,</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a></span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a></span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>			ruleC_m1 = 25,</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>			ruleC_m2 = 30,</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>			ruleC_m3 = 50,</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>		},</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a></span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>		[12] = {</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>			ruleA_m1 = 80,</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>			ruleA_m2 = 75,</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>			ruleA_m3 = 65,</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>			ruleA_m4 = 60,</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a></span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a></span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>			ruleC_m1 = 25,</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>			ruleC_m2 = 35,</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>			ruleC_m3 = 50,</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>		},</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a></span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>		[13] = {</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a>			ruleA_m1 = 80,</span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>			ruleA_m2 = 75,</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>			ruleA_m3 = 70,</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a>			ruleA_m4 = 60,</span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a></span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a></span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>			ruleC_m1 = 30,</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>			ruleC_m2 = 40,</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>			ruleC_m3 = 60,</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>		},</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a></span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>		[14] = {</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>			ruleA_m1 = 85,</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>			ruleA_m2 = 75,</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>			ruleA_m3 = 70,</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>			ruleA_m4 = 65,</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a></span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a></span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>			ruleC_m1 = 30,</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>			ruleC_m2 = 45,</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>			ruleC_m3 = 65,</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>		},</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a></span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>		[15] = {</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>			ruleA_m1 = 85,</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a>			ruleA_m2 = 80,</span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>			ruleA_m3 = 75,</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>			ruleA_m4 = 65,</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>			ruleA_n1 = 3,</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>			ruleA_n2 = 5,</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>			ruleA_n3 = 10,</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>			ruleA_n4 = 9999,</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a></span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>			ruleB_m1 = 5,</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>			ruleB_m2 = 7,</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a>			ruleB_m3 = 10,</span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>			ruleB_m4 = 15,</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a></span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>			ruleC_m1 = 35,</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>			ruleC_m2 = 50,</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>			ruleC_m3 = 70,</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>			ruleC_m4 = 9999,</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>			ruleC_n1 = 1,</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>			ruleC_n2 = 2,</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>			ruleC_n3 = 3,</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>			ruleC_n4 = 5,</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>		},</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>	} ,</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a></span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>	[&quot;Negative&quot;] = {</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>		[1] = {--弱</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>			    </span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>			decreaseAdjust = true,</span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a></span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>			--ruleB 单个掉落口，每掉落n个元素，目标色（C色）的数量不超过m个</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>			ruleB_m1 = 3,</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>			ruleB_m2 = 5,</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>			ruleB_m3 = 8,</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>			ruleB_m4 = 12,</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a></span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>			--ruleD </span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>			ruleD_weight_a1 = 10,</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>			ruleD_weight_a2 = 10,</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>			ruleD_weight_b2 = {2,1},</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>			ruleD_weight_b3 = {3,2,1},</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>			ruleD_weight_b4 = {4,3,2,1},</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>			ruleD_weight_b5 = {5,4,3,2,1},</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>			ruleD_weight_b6 = {6,5,4,3,2,1},</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a></span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>			--ruleE  采样率，数字越小，开销越大，效果越强</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>			ruleE = 20,</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a></span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>		} ,</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a></span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>		[2] = {--较弱</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>			decreaseAdjust = true,</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>			</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>			--ruleB 单个掉落口，每掉落n个元素，目标色（C色）的数量不超过m个</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>			ruleB_m1 = 3,</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>			ruleB_m2 = 5,</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>			ruleB_m3 = 8,</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>			ruleB_m4 = 12,</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a></span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>			--ruleD </span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>			ruleD_weight_a1 = 12,</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>			ruleD_weight_a2 = 10,</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a>			ruleD_weight_b2 = {2,1},</span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>			ruleD_weight_b3 = {3,2,1},</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>			ruleD_weight_b4 = {4,3,2,1},</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a>			ruleD_weight_b5 = {5,4,3,2,1},</span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>			ruleD_weight_b6 = {6,5,4,3,2,1},</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a></span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>			--ruleE  采样率，数字越小，开销越大，效果越强</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>			ruleE = 15,</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a></span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>		} ,</span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a></span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>		[3] = {--中</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a>			decreaseAdjust = true,</span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>			</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>			--ruleB 单个掉落口，每掉落n个元素，目标色（C色）的数量不超过m个</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>			ruleB_m1 = 3,</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a>			ruleB_m2 = 5,</span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>			ruleB_m3 = 8,</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>			ruleB_m4 = 12,</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a></span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a>			--ruleD </span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>			ruleD_weight_a1 = 15,</span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>			ruleD_weight_a2 = 10,</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a>			ruleD_weight_b2 = {2,1},</span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>			ruleD_weight_b3 = {3,2,1},</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>			ruleD_weight_b4 = {4,3,2,1},</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a>			ruleD_weight_b5 = {5,4,3,2,1},</span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a>			ruleD_weight_b6 = {6,5,4,3,2,1},</span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a></span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>			--ruleE  采样率，数字越小，开销越大，效果越强</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a>			ruleE = 10,</span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a></span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>		} ,</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a></span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a>		[4] = {--较强</span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>			decreaseAdjust = true,</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>			</span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>			--ruleB 单个掉落口，每掉落n个元素，目标色（C色）的数量不超过m个</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>			ruleB_m1 = 3,</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a>			ruleB_m2 = 5,</span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a>			ruleB_m3 = 8,</span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>			ruleB_m4 = 12,</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a></span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>			--ruleD </span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a>			ruleD_weight_a1 = 18,</span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>			ruleD_weight_a2 = 10,</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>			ruleD_weight_b2 = {2,1},</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a>			ruleD_weight_b3 = {3,2,1},</span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>			ruleD_weight_b4 = {4,3,2,1},</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>			ruleD_weight_b5 = {5,4,3,2,1},</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>			ruleD_weight_b6 = {6,5,4,3,2,1},</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a></span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>			--ruleE  采样率，数字越小，开销越大，效果越强</span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>			ruleE = 5,</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a></span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>		} ,</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a></span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>		[5] = {--强</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a>			decreaseAdjust = true,</span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>			</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>			--ruleB 单个掉落口，每掉落n个元素，目标色（C色）的数量不超过m个</span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>			ruleB_n1 = 5,</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>			ruleB_m1 = 3,</span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a>			ruleB_n2 = 10,</span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a>			ruleB_m2 = 5,</span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a>			ruleB_n3 = 15,</span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a>			ruleB_m3 = 8,</span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>			ruleB_n4 = 20,</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a>			ruleB_m4 = 12,</span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a></span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>			--ruleD </span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a>			ruleD_weight_a1 = 20,</span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a>			ruleD_weight_a2 = 10,</span>
+<span class="source-line" id="L614"><a class="line-num" href="#L614">614</a>			ruleD_weight_b2 = {2,1},</span>
+<span class="source-line" id="L615"><a class="line-num" href="#L615">615</a>			ruleD_weight_b3 = {3,2,1},</span>
+<span class="source-line" id="L616"><a class="line-num" href="#L616">616</a>			ruleD_weight_b4 = {4,3,2,1},</span>
+<span class="source-line" id="L617"><a class="line-num" href="#L617">617</a>			ruleD_weight_b5 = {5,4,3,2,1},</span>
+<span class="source-line" id="L618"><a class="line-num" href="#L618">618</a>			ruleD_weight_b6 = {6,5,4,3,2,1},</span>
+<span class="source-line" id="L619"><a class="line-num" href="#L619">619</a></span>
+<span class="source-line" id="L620"><a class="line-num" href="#L620">620</a>			--ruleE  采样率，数字越小，开销越大，效果越强</span>
+<span class="source-line" id="L621"><a class="line-num" href="#L621">621</a>			ruleE = 0,</span>
+<span class="source-line" id="L622"><a class="line-num" href="#L622">622</a></span>
+<span class="source-line" id="L623"><a class="line-num" href="#L623">623</a>		} ,</span>
+<span class="source-line" id="L624"><a class="line-num" href="#L624">624</a>	} ,</span>
+<span class="source-line" id="L625"><a class="line-num" href="#L625">625</a></span>
+<span class="source-line" id="L626"><a class="line-num" href="#L626">626</a>	[&quot;UBFuuuAdjustScoreLimitConfig&quot;] = {</span>
+<span class="source-line" id="L627"><a class="line-num" href="#L627">627</a>	</span>
+<span class="source-line" id="L628"><a class="line-num" href="#L628">628</a>		[1] = {</span>
+<span class="source-line" id="L629"><a class="line-num" href="#L629">629</a>			[1] = {</span>
+<span class="source-line" id="L630"><a class="line-num" href="#L630">630</a>				--连消加成</span>
+<span class="source-line" id="L631"><a class="line-num" href="#L631">631</a>				comboScaleThreshold = 28 ,</span>
+<span class="source-line" id="L632"><a class="line-num" href="#L632">632</a>				comboScaleAttenuation = 40 ,</span>
+<span class="source-line" id="L633"><a class="line-num" href="#L633">633</a>				--小动物</span>
+<span class="source-line" id="L634"><a class="line-num" href="#L634">634</a>				numCountThreshold = 10 ,</span>
+<span class="source-line" id="L635"><a class="line-num" href="#L635">635</a>				numCountAttenuation = 15 ,</span>
+<span class="source-line" id="L636"><a class="line-num" href="#L636">636</a>				--冰块</span>
+<span class="source-line" id="L637"><a class="line-num" href="#L637">637</a>				lightCountThreshold = 22 ,</span>
+<span class="source-line" id="L638"><a class="line-num" href="#L638">638</a>				lightCountAttenuation = 32 ,</span>
+<span class="source-line" id="L639"><a class="line-num" href="#L639">639</a>				--水晶球</span>
+<span class="source-line" id="L640"><a class="line-num" href="#L640">640</a>				numCountCrystalThreshold = 10 ,</span>
+<span class="source-line" id="L641"><a class="line-num" href="#L641">641</a>				numCountCrystalAttenuation = 20 ,</span>
+<span class="source-line" id="L642"><a class="line-num" href="#L642">642</a>				--气球</span>
+<span class="source-line" id="L643"><a class="line-num" href="#L643">643</a>				numCountBalloonThreshold = 6 ,</span>
+<span class="source-line" id="L644"><a class="line-num" href="#L644">644</a>				numCountBalloonAttenuation = 12 ,</span>
+<span class="source-line" id="L645"><a class="line-num" href="#L645">645</a>				--流沙</span>
+<span class="source-line" id="L646"><a class="line-num" href="#L646">646</a>				numSandThreshold = 6 ,</span>
+<span class="source-line" id="L647"><a class="line-num" href="#L647">647</a>				numSandAttenuation = 12 ,</span>
+<span class="source-line" id="L648"><a class="line-num" href="#L648">648</a>				--闪电鸟</span>
+<span class="source-line" id="L649"><a class="line-num" href="#L649">649</a>				numTotemsThreshold = 6 ,</span>
+<span class="source-line" id="L650"><a class="line-num" href="#L650">650</a>				numTotemsAttenuation = 12 ,</span>
+<span class="source-line" id="L651"><a class="line-num" href="#L651">651</a>				--兔子</span>
+<span class="source-line" id="L652"><a class="line-num" href="#L652">652</a>				numCountRabbitThreshold = 6 ,</span>
+<span class="source-line" id="L653"><a class="line-num" href="#L653">653</a>				numCountRabbitAttenuation = 12 ,</span>
+<span class="source-line" id="L654"><a class="line-num" href="#L654">654</a>				--火箭</span>
+<span class="source-line" id="L655"><a class="line-num" href="#L655">655</a>				numRocketThreshold = 6 ,</span>
+<span class="source-line" id="L656"><a class="line-num" href="#L656">656</a>				numRocketAttenuation = 12 ,</span>
+<span class="source-line" id="L657"><a class="line-num" href="#L657">657</a>			} ,</span>
+<span class="source-line" id="L658"><a class="line-num" href="#L658">658</a>		} ,</span>
+<span class="source-line" id="L659"><a class="line-num" href="#L659">659</a>	</span>
+<span class="source-line" id="L660"><a class="line-num" href="#L660">660</a>	</span>
+<span class="source-line" id="L661"><a class="line-num" href="#L661">661</a>		[2] = {</span>
+<span class="source-line" id="L662"><a class="line-num" href="#L662">662</a>			[1] = {</span>
+<span class="source-line" id="L663"><a class="line-num" href="#L663">663</a>				--连消加成</span>
+<span class="source-line" id="L664"><a class="line-num" href="#L664">664</a>				comboScaleThreshold = 20 ,</span>
+<span class="source-line" id="L665"><a class="line-num" href="#L665">665</a>				comboScaleAttenuation = 35 ,</span>
+<span class="source-line" id="L666"><a class="line-num" href="#L666">666</a>				--小动物</span>
+<span class="source-line" id="L667"><a class="line-num" href="#L667">667</a>				numCountThreshold = 6 ,</span>
+<span class="source-line" id="L668"><a class="line-num" href="#L668">668</a>				numCountAttenuation = 12 ,</span>
+<span class="source-line" id="L669"><a class="line-num" href="#L669">669</a>				--冰块</span>
+<span class="source-line" id="L670"><a class="line-num" href="#L670">670</a>				lightCountThreshold = 18 ,</span>
+<span class="source-line" id="L671"><a class="line-num" href="#L671">671</a>				lightCountAttenuation = 28 ,</span>
+<span class="source-line" id="L672"><a class="line-num" href="#L672">672</a>				--水晶球</span>
+<span class="source-line" id="L673"><a class="line-num" href="#L673">673</a>				numCountCrystalThreshold = 10 ,</span>
+<span class="source-line" id="L674"><a class="line-num" href="#L674">674</a>				numCountCrystalAttenuation = 18 ,</span>
+<span class="source-line" id="L675"><a class="line-num" href="#L675">675</a>				--气球</span>
+<span class="source-line" id="L676"><a class="line-num" href="#L676">676</a>				numCountBalloonThreshold = 5 ,</span>
+<span class="source-line" id="L677"><a class="line-num" href="#L677">677</a>				numCountBalloonAttenuation = 10 ,</span>
+<span class="source-line" id="L678"><a class="line-num" href="#L678">678</a>				--流沙</span>
+<span class="source-line" id="L679"><a class="line-num" href="#L679">679</a>				numSandThreshold = 5 ,</span>
+<span class="source-line" id="L680"><a class="line-num" href="#L680">680</a>				numSandAttenuation = 10 ,</span>
+<span class="source-line" id="L681"><a class="line-num" href="#L681">681</a>				--闪电鸟</span>
+<span class="source-line" id="L682"><a class="line-num" href="#L682">682</a>				numTotemsThreshold = 5 ,</span>
+<span class="source-line" id="L683"><a class="line-num" href="#L683">683</a>				numTotemsAttenuation = 10 ,</span>
+<span class="source-line" id="L684"><a class="line-num" href="#L684">684</a>				--兔子</span>
+<span class="source-line" id="L685"><a class="line-num" href="#L685">685</a>				numCountRabbitThreshold = 5 ,</span>
+<span class="source-line" id="L686"><a class="line-num" href="#L686">686</a>				numCountRabbitAttenuation = 10 ,</span>
+<span class="source-line" id="L687"><a class="line-num" href="#L687">687</a>				--火箭</span>
+<span class="source-line" id="L688"><a class="line-num" href="#L688">688</a>				numRocketThreshold = 5 ,</span>
+<span class="source-line" id="L689"><a class="line-num" href="#L689">689</a>				numRocketAttenuation = 10 ,</span>
+<span class="source-line" id="L690"><a class="line-num" href="#L690">690</a>			} ,	</span>
+<span class="source-line" id="L691"><a class="line-num" href="#L691">691</a>		} ,</span>
+<span class="source-line" id="L692"><a class="line-num" href="#L692">692</a>	</span>
+<span class="source-line" id="L693"><a class="line-num" href="#L693">693</a>	</span>
+<span class="source-line" id="L694"><a class="line-num" href="#L694">694</a>		[3] = {</span>
+<span class="source-line" id="L695"><a class="line-num" href="#L695">695</a>			[1] = {</span>
+<span class="source-line" id="L696"><a class="line-num" href="#L696">696</a>				--连消加成</span>
+<span class="source-line" id="L697"><a class="line-num" href="#L697">697</a>				comboScaleThreshold = 15 ,</span>
+<span class="source-line" id="L698"><a class="line-num" href="#L698">698</a>				comboScaleAttenuation = 27 ,</span>
+<span class="source-line" id="L699"><a class="line-num" href="#L699">699</a>				--小动物</span>
+<span class="source-line" id="L700"><a class="line-num" href="#L700">700</a>				numCountThreshold = 4 ,</span>
+<span class="source-line" id="L701"><a class="line-num" href="#L701">701</a>				numCountAttenuation = 9 ,</span>
+<span class="source-line" id="L702"><a class="line-num" href="#L702">702</a>				--冰块</span>
+<span class="source-line" id="L703"><a class="line-num" href="#L703">703</a>				lightCountThreshold = 12 ,</span>
+<span class="source-line" id="L704"><a class="line-num" href="#L704">704</a>				lightCountAttenuation = 21 ,</span>
+<span class="source-line" id="L705"><a class="line-num" href="#L705">705</a>				--水晶球</span>
+<span class="source-line" id="L706"><a class="line-num" href="#L706">706</a>				numCountCrystalThreshold = 10 ,</span>
+<span class="source-line" id="L707"><a class="line-num" href="#L707">707</a>				numCountCrystalAttenuation = 15 ,</span>
+<span class="source-line" id="L708"><a class="line-num" href="#L708">708</a>				--气球</span>
+<span class="source-line" id="L709"><a class="line-num" href="#L709">709</a>				numCountBalloonThreshold = 5 ,</span>
+<span class="source-line" id="L710"><a class="line-num" href="#L710">710</a>				numCountBalloonAttenuation = 9 ,</span>
+<span class="source-line" id="L711"><a class="line-num" href="#L711">711</a>				--流沙</span>
+<span class="source-line" id="L712"><a class="line-num" href="#L712">712</a>				numSandThreshold = 5 ,</span>
+<span class="source-line" id="L713"><a class="line-num" href="#L713">713</a>				numSandAttenuation = 9 ,</span>
+<span class="source-line" id="L714"><a class="line-num" href="#L714">714</a>				--闪电鸟</span>
+<span class="source-line" id="L715"><a class="line-num" href="#L715">715</a>				numTotemsThreshold = 5 ,</span>
+<span class="source-line" id="L716"><a class="line-num" href="#L716">716</a>				numTotemsAttenuation = 9 ,</span>
+<span class="source-line" id="L717"><a class="line-num" href="#L717">717</a>				--兔子</span>
+<span class="source-line" id="L718"><a class="line-num" href="#L718">718</a>				numCountRabbitThreshold = 5 ,</span>
+<span class="source-line" id="L719"><a class="line-num" href="#L719">719</a>				numCountRabbitAttenuation = 9 ,</span>
+<span class="source-line" id="L720"><a class="line-num" href="#L720">720</a>				--火箭</span>
+<span class="source-line" id="L721"><a class="line-num" href="#L721">721</a>				numRocketThreshold = 5 ,</span>
+<span class="source-line" id="L722"><a class="line-num" href="#L722">722</a>				numRocketAttenuation = 9 ,</span>
+<span class="source-line" id="L723"><a class="line-num" href="#L723">723</a>			} ,	</span>
+<span class="source-line" id="L724"><a class="line-num" href="#L724">724</a>		} ,</span>
+<span class="source-line" id="L725"><a class="line-num" href="#L725">725</a>	</span>
+<span class="source-line" id="L726"><a class="line-num" href="#L726">726</a>	</span>
+<span class="source-line" id="L727"><a class="line-num" href="#L727">727</a>		[4] = {</span>
+<span class="source-line" id="L728"><a class="line-num" href="#L728">728</a>			[1] = {</span>
+<span class="source-line" id="L729"><a class="line-num" href="#L729">729</a>				--连消加成</span>
+<span class="source-line" id="L730"><a class="line-num" href="#L730">730</a>				comboScaleThreshold = 12 ,</span>
+<span class="source-line" id="L731"><a class="line-num" href="#L731">731</a>				comboScaleAttenuation = 22 ,</span>
+<span class="source-line" id="L732"><a class="line-num" href="#L732">732</a>				--小动物</span>
+<span class="source-line" id="L733"><a class="line-num" href="#L733">733</a>				numCountThreshold = 4 ,</span>
+<span class="source-line" id="L734"><a class="line-num" href="#L734">734</a>				numCountAttenuation = 7 ,</span>
+<span class="source-line" id="L735"><a class="line-num" href="#L735">735</a>				--冰块</span>
+<span class="source-line" id="L736"><a class="line-num" href="#L736">736</a>				lightCountThreshold = 10 ,</span>
+<span class="source-line" id="L737"><a class="line-num" href="#L737">737</a>				lightCountAttenuation = 17 ,</span>
+<span class="source-line" id="L738"><a class="line-num" href="#L738">738</a>				--水晶球</span>
+<span class="source-line" id="L739"><a class="line-num" href="#L739">739</a>				numCountCrystalThreshold = 8 ,</span>
+<span class="source-line" id="L740"><a class="line-num" href="#L740">740</a>				numCountCrystalAttenuation = 13 ,</span>
+<span class="source-line" id="L741"><a class="line-num" href="#L741">741</a>				--气球</span>
+<span class="source-line" id="L742"><a class="line-num" href="#L742">742</a>				numCountBalloonThreshold = 4 ,</span>
+<span class="source-line" id="L743"><a class="line-num" href="#L743">743</a>				numCountBalloonAttenuation = 7 ,</span>
+<span class="source-line" id="L744"><a class="line-num" href="#L744">744</a>				--流沙</span>
+<span class="source-line" id="L745"><a class="line-num" href="#L745">745</a>				numSandThreshold = 4 ,</span>
+<span class="source-line" id="L746"><a class="line-num" href="#L746">746</a>				numSandAttenuation = 7 ,</span>
+<span class="source-line" id="L747"><a class="line-num" href="#L747">747</a>				--闪电鸟</span>
+<span class="source-line" id="L748"><a class="line-num" href="#L748">748</a>				numTotemsThreshold = 4 ,</span>
+<span class="source-line" id="L749"><a class="line-num" href="#L749">749</a>				numTotemsAttenuation = 7 ,</span>
+<span class="source-line" id="L750"><a class="line-num" href="#L750">750</a>				--兔子</span>
+<span class="source-line" id="L751"><a class="line-num" href="#L751">751</a>				numCountRabbitThreshold = 4 ,</span>
+<span class="source-line" id="L752"><a class="line-num" href="#L752">752</a>				numCountRabbitAttenuation = 7 ,</span>
+<span class="source-line" id="L753"><a class="line-num" href="#L753">753</a>				--火箭</span>
+<span class="source-line" id="L754"><a class="line-num" href="#L754">754</a>				numRocketThreshold = 4 ,</span>
+<span class="source-line" id="L755"><a class="line-num" href="#L755">755</a>				numRocketAttenuation = 7 ,</span>
+<span class="source-line" id="L756"><a class="line-num" href="#L756">756</a>			} ,	</span>
+<span class="source-line" id="L757"><a class="line-num" href="#L757">757</a>		} ,</span>
+<span class="source-line" id="L758"><a class="line-num" href="#L758">758</a>	</span>
+<span class="source-line" id="L759"><a class="line-num" href="#L759">759</a>	</span>
+<span class="source-line" id="L760"><a class="line-num" href="#L760">760</a>		[5] = {</span>
+<span class="source-line" id="L761"><a class="line-num" href="#L761">761</a>			[1] = {</span>
+<span class="source-line" id="L762"><a class="line-num" href="#L762">762</a>				--连消加成</span>
+<span class="source-line" id="L763"><a class="line-num" href="#L763">763</a>				comboScaleThreshold = 10 ,</span>
+<span class="source-line" id="L764"><a class="line-num" href="#L764">764</a>				comboScaleAttenuation = 18 ,</span>
+<span class="source-line" id="L765"><a class="line-num" href="#L765">765</a>				--小动物</span>
+<span class="source-line" id="L766"><a class="line-num" href="#L766">766</a>				numCountThreshold = 3 ,</span>
+<span class="source-line" id="L767"><a class="line-num" href="#L767">767</a>				numCountAttenuation = 6 ,</span>
+<span class="source-line" id="L768"><a class="line-num" href="#L768">768</a>				--冰块</span>
+<span class="source-line" id="L769"><a class="line-num" href="#L769">769</a>				lightCountThreshold = 8 ,</span>
+<span class="source-line" id="L770"><a class="line-num" href="#L770">770</a>				lightCountAttenuation = 14 ,</span>
+<span class="source-line" id="L771"><a class="line-num" href="#L771">771</a>				--水晶球</span>
+<span class="source-line" id="L772"><a class="line-num" href="#L772">772</a>				numCountCrystalThreshold = 6 ,</span>
+<span class="source-line" id="L773"><a class="line-num" href="#L773">773</a>				numCountCrystalAttenuation = 10 ,</span>
+<span class="source-line" id="L774"><a class="line-num" href="#L774">774</a>				--气球</span>
+<span class="source-line" id="L775"><a class="line-num" href="#L775">775</a>				numCountBalloonThreshold = 3 ,</span>
+<span class="source-line" id="L776"><a class="line-num" href="#L776">776</a>				numCountBalloonAttenuation = 6 ,</span>
+<span class="source-line" id="L777"><a class="line-num" href="#L777">777</a>				--流沙</span>
+<span class="source-line" id="L778"><a class="line-num" href="#L778">778</a>				numSandThreshold = 3 ,</span>
+<span class="source-line" id="L779"><a class="line-num" href="#L779">779</a>				numSandAttenuation = 6 ,</span>
+<span class="source-line" id="L780"><a class="line-num" href="#L780">780</a>				--闪电鸟</span>
+<span class="source-line" id="L781"><a class="line-num" href="#L781">781</a>				numTotemsThreshold = 3 ,</span>
+<span class="source-line" id="L782"><a class="line-num" href="#L782">782</a>				numTotemsAttenuation = 6 ,</span>
+<span class="source-line" id="L783"><a class="line-num" href="#L783">783</a>				--兔子</span>
+<span class="source-line" id="L784"><a class="line-num" href="#L784">784</a>				numCountRabbitThreshold = 3 ,</span>
+<span class="source-line" id="L785"><a class="line-num" href="#L785">785</a>				numCountRabbitAttenuation = 6 ,</span>
+<span class="source-line" id="L786"><a class="line-num" href="#L786">786</a>				--火箭</span>
+<span class="source-line" id="L787"><a class="line-num" href="#L787">787</a>				numRocketThreshold = 3 ,</span>
+<span class="source-line" id="L788"><a class="line-num" href="#L788">788</a>				numRocketAttenuation = 6 ,</span>
+<span class="source-line" id="L789"><a class="line-num" href="#L789">789</a>			} ,		</span>
+<span class="source-line" id="L790"><a class="line-num" href="#L790">790</a>		} ,</span>
+<span class="source-line" id="L791"><a class="line-num" href="#L791">791</a>	</span>
+<span class="source-line" id="L792"><a class="line-num" href="#L792">792</a>		[6] = {</span>
+<span class="source-line" id="L793"><a class="line-num" href="#L793">793</a>			[1] = {</span>
+<span class="source-line" id="L794"><a class="line-num" href="#L794">794</a>				--连消加成</span>
+<span class="source-line" id="L795"><a class="line-num" href="#L795">795</a>				comboScaleThreshold = 18 ,</span>
+<span class="source-line" id="L796"><a class="line-num" href="#L796">796</a>				comboScaleAttenuation = 31 ,</span>
+<span class="source-line" id="L797"><a class="line-num" href="#L797">797</a>				--小动物</span>
+<span class="source-line" id="L798"><a class="line-num" href="#L798">798</a>				numCountThreshold = 5 ,</span>
+<span class="source-line" id="L799"><a class="line-num" href="#L799">799</a>				numCountAttenuation = 10 ,</span>
+<span class="source-line" id="L800"><a class="line-num" href="#L800">800</a>				--冰块</span>
+<span class="source-line" id="L801"><a class="line-num" href="#L801">801</a>				lightCountThreshold = 15 ,</span>
+<span class="source-line" id="L802"><a class="line-num" href="#L802">802</a>				lightCountAttenuation = 25 ,</span>
+<span class="source-line" id="L803"><a class="line-num" href="#L803">803</a>				--水晶球</span>
+<span class="source-line" id="L804"><a class="line-num" href="#L804">804</a>				numCountCrystalThreshold = 10 ,</span>
+<span class="source-line" id="L805"><a class="line-num" href="#L805">805</a>				numCountCrystalAttenuation = 16 ,</span>
+<span class="source-line" id="L806"><a class="line-num" href="#L806">806</a>				--气球</span>
+<span class="source-line" id="L807"><a class="line-num" href="#L807">807</a>				numCountBalloonThreshold = 5 ,</span>
+<span class="source-line" id="L808"><a class="line-num" href="#L808">808</a>				numCountBalloonAttenuation = 10 ,</span>
+<span class="source-line" id="L809"><a class="line-num" href="#L809">809</a>				--流沙</span>
+<span class="source-line" id="L810"><a class="line-num" href="#L810">810</a>				numSandThreshold = 5 ,</span>
+<span class="source-line" id="L811"><a class="line-num" href="#L811">811</a>				numSandAttenuation = 10 ,</span>
+<span class="source-line" id="L812"><a class="line-num" href="#L812">812</a>				--闪电鸟</span>
+<span class="source-line" id="L813"><a class="line-num" href="#L813">813</a>				numTotemsThreshold = 5 ,</span>
+<span class="source-line" id="L814"><a class="line-num" href="#L814">814</a>				numTotemsAttenuation = 10 ,</span>
+<span class="source-line" id="L815"><a class="line-num" href="#L815">815</a>				--兔子</span>
+<span class="source-line" id="L816"><a class="line-num" href="#L816">816</a>				numCountRabbitThreshold = 5 ,</span>
+<span class="source-line" id="L817"><a class="line-num" href="#L817">817</a>				numCountRabbitAttenuation = 10 ,</span>
+<span class="source-line" id="L818"><a class="line-num" href="#L818">818</a>				--火箭</span>
+<span class="source-line" id="L819"><a class="line-num" href="#L819">819</a>				numRocketThreshold = 5 ,</span>
+<span class="source-line" id="L820"><a class="line-num" href="#L820">820</a>				numRocketAttenuation = 10 ,</span>
+<span class="source-line" id="L821"><a class="line-num" href="#L821">821</a>			} ,		</span>
+<span class="source-line" id="L822"><a class="line-num" href="#L822">822</a>		} ,</span>
+<span class="source-line" id="L823"><a class="line-num" href="#L823">823</a>	</span>
+<span class="source-line" id="L824"><a class="line-num" href="#L824">824</a>		[7] = {</span>
+<span class="source-line" id="L825"><a class="line-num" href="#L825">825</a>			[1] = {</span>
+<span class="source-line" id="L826"><a class="line-num" href="#L826">826</a>				--连消加成</span>
+<span class="source-line" id="L827"><a class="line-num" href="#L827">827</a>				comboScaleThreshold = 6 ,</span>
+<span class="source-line" id="L828"><a class="line-num" href="#L828">828</a>				comboScaleAttenuation = 12 ,</span>
+<span class="source-line" id="L829"><a class="line-num" href="#L829">829</a>				--小动物</span>
+<span class="source-line" id="L830"><a class="line-num" href="#L830">830</a>				numCountThreshold = 2 ,</span>
+<span class="source-line" id="L831"><a class="line-num" href="#L831">831</a>				numCountAttenuation = 5 ,</span>
+<span class="source-line" id="L832"><a class="line-num" href="#L832">832</a>				--冰块</span>
+<span class="source-line" id="L833"><a class="line-num" href="#L833">833</a>				lightCountThreshold = 5 ,</span>
+<span class="source-line" id="L834"><a class="line-num" href="#L834">834</a>				lightCountAttenuation = 8 ,</span>
+<span class="source-line" id="L835"><a class="line-num" href="#L835">835</a>				--水晶球</span>
+<span class="source-line" id="L836"><a class="line-num" href="#L836">836</a>				numCountCrystalThreshold = 6 ,</span>
+<span class="source-line" id="L837"><a class="line-num" href="#L837">837</a>				numCountCrystalAttenuation = 10 ,</span>
+<span class="source-line" id="L838"><a class="line-num" href="#L838">838</a>				--气球</span>
+<span class="source-line" id="L839"><a class="line-num" href="#L839">839</a>				numCountBalloonThreshold = 3 ,</span>
+<span class="source-line" id="L840"><a class="line-num" href="#L840">840</a>				numCountBalloonAttenuation = 6 ,</span>
+<span class="source-line" id="L841"><a class="line-num" href="#L841">841</a>				--流沙</span>
+<span class="source-line" id="L842"><a class="line-num" href="#L842">842</a>				numSandThreshold = 2 ,</span>
+<span class="source-line" id="L843"><a class="line-num" href="#L843">843</a>				numSandAttenuation = 5 ,</span>
+<span class="source-line" id="L844"><a class="line-num" href="#L844">844</a>				--闪电鸟</span>
+<span class="source-line" id="L845"><a class="line-num" href="#L845">845</a>				numTotemsThreshold = 2 ,</span>
+<span class="source-line" id="L846"><a class="line-num" href="#L846">846</a>				numTotemsAttenuation = 5 ,</span>
+<span class="source-line" id="L847"><a class="line-num" href="#L847">847</a>				--兔子</span>
+<span class="source-line" id="L848"><a class="line-num" href="#L848">848</a>				numCountRabbitThreshold = 2 ,</span>
+<span class="source-line" id="L849"><a class="line-num" href="#L849">849</a>				numCountRabbitAttenuation = 5 ,</span>
+<span class="source-line" id="L850"><a class="line-num" href="#L850">850</a>				--火箭</span>
+<span class="source-line" id="L851"><a class="line-num" href="#L851">851</a>				numRocketThreshold = 2 ,</span>
+<span class="source-line" id="L852"><a class="line-num" href="#L852">852</a>				numRocketAttenuation = 5 ,</span>
+<span class="source-line" id="L853"><a class="line-num" href="#L853">853</a>			} ,		</span>
+<span class="source-line" id="L854"><a class="line-num" href="#L854">854</a>		} ,</span>
+<span class="source-line" id="L855"><a class="line-num" href="#L855">855</a>	}</span>
+<span class="source-line" id="L856"><a class="line-num" href="#L856">856</a>}</span>
+<span class="source-line" id="L857"><a class="line-num" href="#L857">857</a></span>
+<span class="source-line" id="L858"><a class="line-num" href="#L858">858</a>return UBFuuuFalsifyConfig</span></code></pre></main></body></html>

@@ -1,0 +1,775 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RustProphet.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>RustProphet.lua</h1><p class="src-meta">ubf/UBFPlay/rust/RustProphet.lua<br>SHA-256 73e77fa3aac90d6fdc5da0cd2a8739fdfcb8a5ae5c7690635fb7a861da6924e2 · 775 行 · 恢复原文，未经改写</p><a href="RustProphet-ea455fd1.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a></span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a></span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>RustProphet = {}</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a></span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>local function cloneComposableConfig(value, seen)</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>    if type(value) ~= &quot;table&quot; then return value end</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>    seen = seen or {}</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    if seen[value] then return seen[value] end</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    local result = {}</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>    seen[value] = result</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>    for key, item in pairs(value) do</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>        result[cloneComposableConfig(key, seen)] = cloneComposableConfig(item, seen)</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>    end</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>    return result</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>end</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a></span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>local function omitEmptySequence(parent, key)</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>    local value = parent and parent[key]</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    if type(value) == &quot;table&quot; and next(value) == nil then</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>        parent[key] = nil</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>    end</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>end</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a></span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>local function normalizeDesignatedBoardAliases(normalized)</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>    local legacy = normalized.exciting_board_adjustment</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>    local current = normalized.designated_board_adjustment</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>    if legacy ~= nil and current ~= nil then</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>        error(&quot;behavior_config must not contain both exciting_board_adjustment and designated_board_adjustment&quot;)</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>    end</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    if current == nil and legacy ~= nil then</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>        normalized.designated_board_adjustment = legacy</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>        normalized.exciting_board_adjustment = nil</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>    end</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>    local policy = normalized.conflict_policy</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>    for index, owner in ipairs((policy and policy.priority) or {}) do</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>        if owner == &quot;ExcitingBoard&quot; then</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>            policy.priority[index] = &quot;DesignatedBoard&quot;</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>        end</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>    end</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>end</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a></span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>local function fillDefaults(target, defaults)</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>    if type(target) ~= &quot;table&quot; or type(defaults) ~= &quot;table&quot; then return target end</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>    for key, value in pairs(defaults) do</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>        if target[key] == nil then</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>            target[key] = cloneComposableConfig(value)</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>        elseif type(target[key]) == &quot;table&quot; and type(value) == &quot;table&quot; then</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>            fillDefaults(target[key], value)</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>        end</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>    end</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>    return target</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>end</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a></span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a></span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>RustProphet.enum = {</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>    STEP_5 = &quot;step-5&quot;,</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>    STEP_10 = &quot;step-10&quot;,</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>    STEP_15 = &quot;step-15&quot;,</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>    PRECISE_FOLLOW_LINE = &quot;precise-follow-line&quot;,</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>    PRECISE_FOLLOW_LINE_EARLY_5 = &quot;precise-follow-line-early-5&quot;,</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>    PRECISE_FOLLOW_LINE_FAIL_80 = &quot;precise-follow-line-fail-80&quot;,</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>    COMPOSABLE_PROGRESS_V1 = &quot;composable-progress-v1&quot;,</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>    COMPOSABLE_PROGRESS_V2 = &quot;composable-progress-v2&quot;,</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>    EXPERIENCE_NEAR_PASS_TRACKING_ONLY = &quot;experience-near-pass-tracking-only&quot;,</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>    EXPERIENCE_NEAR_PASS_GUARANTEED_TRACKING_ONLY = &quot;experience-near-pass-guaranteed-tracking-only&quot;,</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>    EXPERIENCE_SMOOTH_PASS_TRACKING_ONLY = &quot;experience-smooth-pass-tracking-only&quot;,</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>    EXPERIENCE_VERY_SMOOTH_PASS_TRACKING_ONLY = &quot;experience-very-smooth-pass-tracking-only&quot;,</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>    EXPERIENCE_NEAR_PASS = &quot;experience-near-pass&quot;,</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>    EXPERIENCE_NEAR_PASS_GUARANTEED = &quot;experience-near-pass-guaranteed&quot;,</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>    EXPERIENCE_SMOOTH_PASS = &quot;experience-smooth-pass&quot;,</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>    EXPERIENCE_VERY_SMOOTH_PASS = &quot;experience-very-smooth-pass&quot;,</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>}</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a></span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>local function normalizedComposableConfig(behaviorConfig)</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>    assert(type(behaviorConfig) == &quot;table&quot;, &quot;behaviorConfig must be a table&quot;)</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>    local normalized = cloneComposableConfig(behaviorConfig)</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>    normalizeDesignatedBoardAliases(normalized)</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>    omitEmptySequence(normalized.tracking, &quot;strength_rules&quot;)</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>    omitEmptySequence(normalized.fixed_adjustment, &quot;rules&quot;)</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>    omitEmptySequence(normalized.exciting_operation_adjustment, &quot;ranges&quot;)</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>    omitEmptySequence(normalized.designated_board_adjustment, &quot;ranges&quot;)</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>    if normalized.fixed_adjustment then</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>        normalized.fixed_adjustment.on_budget_exhausted = nil</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>    end</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>    return normalized</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>end</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a></span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>function RustProphet.getDefaultExecutionConfig()</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>    return {</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>        schema_version = 1,</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>        executor = {</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>            worker_threads = 10,</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>        },</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>        throttle = {</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>            yield_after_work_ms = 0,</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>            yield_sleep_ms = 1,</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>            level_wall_time_budget_ms = 0,</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>        },</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>        falling = {</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>            max_candidates_per_search = 2000,</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>            target_inflight = 20,</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>            max_simulation_ticks = 0,</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>            max_phase_logic_frames = 10800,</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>        },</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>        waiting = {</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>            max_candidates_per_search = 2000,</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>            max_candidates_per_swap = 100,</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>            target_inflight = 10,</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>            max_inflight_per_swap = 1,</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>        },</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>    }</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>end</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a></span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>function RustProphet.getBusinessEffectiveExecutionConfig()</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>    local config = RustProphet.getDefaultExecutionConfig()</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>    config.falling.target_inflight = 2</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>    config.throttle.yield_after_work_ms = 2</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>    if EnvUtil and EnvUtil.isIOS and EnvUtil:isIOS() then</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>        config.waiting.max_candidates_per_swap = 50</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>    end</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>    if PlatformConfig and PlatformConfig.isPlatform</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>        and PlatformConfig:isPlatform(PlatformNameEnum.kHonor)</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>    then</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>        config.falling.target_inflight = 1</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>        config.throttle.yield_after_work_ms = 1</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>    end</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>    return config</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>end</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a></span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>function RustProphet.normalizeExecutionConfig(executionConfig)</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>    local normalized = type(executionConfig) == &quot;table&quot;</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>        and cloneComposableConfig(executionConfig)</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>        or RustProphet.getDefaultExecutionConfig()</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>    fillDefaults(normalized, RustProphet.getDefaultExecutionConfig())</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>    normalized.schema_version = 1</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>    return normalized</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>end</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a></span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>function RustProphet.normalizeBusinessEffectiveExecutionConfig(executionConfig)</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>    local normalized = type(executionConfig) == &quot;table&quot;</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>        and cloneComposableConfig(executionConfig)</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>        or RustProphet.getBusinessEffectiveExecutionConfig()</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>    fillDefaults(normalized, RustProphet.getBusinessEffectiveExecutionConfig())</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>    normalized.schema_version = 1</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>    return normalized</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>end</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a></span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>local function buildComposableProgressConfig(preset, behaviorConfig, executionConfig)</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>    local result = {</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>        evaluator_preset_name = &quot;composable_progress_v1&quot;,</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>        behavior_config = normalizedComposableConfig(behaviorConfig),</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>    }</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>    result.evaluator_preset_name = preset</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>    if executionConfig ~= nil then</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>        result.execution_config = RustProphet.normalizeExecutionConfig(executionConfig)</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>    end</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>    return result</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>end</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a></span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>function RustProphet.makeComposableProgressV1Config(behaviorConfig, executionConfig)</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>    return buildComposableProgressConfig(</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>        &quot;composable_progress_v1&quot;,</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>        behaviorConfig,</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>        executionConfig</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>    )</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>end</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a></span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>function RustProphet.makeComposableProgressV2Config(behaviorConfig, executionConfig)</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>    return buildComposableProgressConfig(</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>        &quot;composable_progress_v2&quot;,</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>        behaviorConfig,</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>        executionConfig</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>    )</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>end</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a></span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>function RustProphet.makeComposableProgressConfig(behaviorConfig, executionConfig)</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>    if type(behaviorConfig) == &quot;table&quot; and behaviorConfig.schema_version == 2 then</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>        return RustProphet.makeComposableProgressV2Config(behaviorConfig, executionConfig)</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>    end</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>    return RustProphet.makeComposableProgressV1Config(behaviorConfig, executionConfig)</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>end</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a></span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>local function checkStrength(path, value)</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>    if type(value) ~= &quot;number&quot; or value &lt; 0 or value &gt; 10 or value % 1 ~= 0 then</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>        return false, path .. &quot; must be an integer between 0 and 10&quot;</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>    end</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>    return true</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>end</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a></span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>local function checkStepBudget(path, value)</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>    if type(value) ~= &quot;table&quot; or value.enabled ~= true then return true end</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>    local hasLimit = false</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>    for _, key in ipairs({ &quot;max_positive_steps&quot;, &quot;max_negative_steps&quot;, &quot;max_absolute_steps&quot; }) do</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>        local limit = value[key]</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>        if limit ~= nil then</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>            hasLimit = true</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>            if type(limit) ~= &quot;number&quot; or limit &lt; 0 or limit &gt; 10000 then</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>                return false, path .. &quot;.&quot; .. key .. &quot; must be between 0 and 10000&quot;</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>            end</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>        end</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>    end</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>    if not hasLimit then return false, path .. &quot; must define at least one limit when enabled&quot; end</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>    return true</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>end</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a></span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>local function checkComboBudget(path, value)</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>    if type(value) ~= &quot;table&quot; or value.enabled ~= true then return true end</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>    local limit = value.max_combo_count</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>    if type(limit) ~= &quot;number&quot; or limit &lt; 0 or limit &gt; 100000 or limit % 1 ~= 0 then</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>        return false, path .. &quot;.max_combo_count must be an integer between 0 and 100000&quot;</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>    end</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>    return true</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>end</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a></span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>local function checkScopedBudget(path, value)</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>    value = value or {}</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>    local level = value.level or {}</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>    local operation = value.per_operation or {}</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>    for _, item in ipairs({</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>        { path .. &quot;.level.step&quot;, level.step, checkStepBudget },</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>        { path .. &quot;.level.combo&quot;, level.combo, checkComboBudget },</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>        { path .. &quot;.per_operation.step&quot;, operation.step, checkStepBudget },</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>        { path .. &quot;.per_operation.combo&quot;, operation.combo, checkComboBudget },</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>    }) do</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>        local ok, err = item[3](item[1], item[2])</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>        if not ok then return false, err end</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>    end</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>    return true</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>end</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a></span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>local function checkRange(path, range)</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>    if type(range) ~= &quot;table&quot; then return false, path .. &quot; must be a table&quot; end</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>    if range.type == &quot;Single&quot; then</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>        if type(range.move) ~= &quot;number&quot; or range.move % 1 ~= 0</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>            or range.move &lt; 1 or range.move &gt; 10000 then</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>            return false, path .. &quot;.move must be an integer between 1 and 10000&quot;</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>        end</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>    elseif range.type == &quot;Interval&quot; then</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>        if type(range.start) ~= &quot;number&quot; or type(range[&quot;end&quot;]) ~= &quot;number&quot;</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>            or range.start % 1 ~= 0 or range[&quot;end&quot;] % 1 ~= 0</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>            or range.start &lt; 1 or range[&quot;end&quot;] &gt; 10000 or range.start &gt; range[&quot;end&quot;] then</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>            return false, path .. &quot; must be a valid absolute interval&quot;</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>        end</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>    elseif range.type == &quot;RelativeInterval&quot; then</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>        if type(range.start) ~= &quot;number&quot; or type(range[&quot;end&quot;]) ~= &quot;number&quot;</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>            or range.start % 1 ~= 0 or range[&quot;end&quot;] % 1 ~= 0</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>            or range.start &lt; -10000 or range[&quot;end&quot;] &gt; 10000 or range.start &gt; range[&quot;end&quot;] then</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>            return false, path .. &quot; must be a valid relative interval&quot;</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>        end</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>    elseif range.type == &quot;Periodic&quot; then</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>        if type(range.start) ~= &quot;number&quot; or type(range.gap) ~= &quot;number&quot;</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>            or range.start % 1 ~= 0 or range.gap % 1 ~= 0</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>            or range.start &lt; 1 or range.start &gt; 10000 or range.gap &lt; 0 or range.gap &gt; 9999 then</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>            return false, path .. &quot; must define start 1..10000 and gap 0..9999&quot;</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>        end</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>    else</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>        return false, path .. &quot;.type is unsupported&quot;</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>    end</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>    return true</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>end</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a></span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>local function validateCommon(config)</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>    local tracking = config.tracking or {}</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>    if type(tracking.endpoint_shift_moves) ~= &quot;number&quot; or tracking.endpoint_shift_moves &lt; -9999 or tracking.endpoint_shift_moves &gt; 9999 then</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>        return false, &quot;tracking.endpoint_shift_moves must be between -9999 and 9999&quot;</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>    end</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>    for _, item in ipairs({</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>        { &quot;tracking.default_positive_strength&quot;, tracking.default_positive_strength },</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>        { &quot;tracking.default_negative_strength&quot;, tracking.default_negative_strength },</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>        { &quot;prop_adjustment.strength&quot;, config.prop_adjustment and config.prop_adjustment.strength },</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>    }) do</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>        local ok, err = checkStrength(item[1], item[2])</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>        if not ok then return false, err end</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>    end</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>    for index, rule in ipairs(tracking.strength_rules or {}) do</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>        for _, key in ipairs({ &quot;positive_strength&quot;, &quot;negative_strength&quot; }) do</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>            local ok, err = checkStrength(&quot;tracking.strength_rules[&quot; .. index .. &quot;].&quot; .. key, rule[key])</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>            if not ok then return false, err end</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>        end</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>    end</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>    for index, rule in ipairs((config.fixed_adjustment and config.fixed_adjustment.rules) or {}) do</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>        local ok, err = checkStrength(&quot;fixed_adjustment.rules[&quot; .. index .. &quot;].strength&quot;, rule.strength)</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>        if not ok then return false, err end</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>    end</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>    for key, operation in pairs((config.exciting_operation_adjustment and config.exciting_operation_adjustment.operations) or {}) do</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>        local ok, err = checkStrength(&quot;exciting_operation_adjustment.operations.&quot; .. key .. &quot;.strength&quot;, operation.strength)</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>        if not ok then return false, err end</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>    end</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>    local board = config.designated_board_adjustment</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>    if config.exciting_board_adjustment ~= nil and board ~= nil then</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>        return false, &quot;behavior_config must not contain both exciting_board_adjustment and designated_board_adjustment&quot;</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>    end</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>    if board == nil then board = config.exciting_board_adjustment end</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>    local minWeight = config.schema_version == 2 and -99 or 0</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>    for key, weight in pairs((board and board.weights) or {}) do</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>        if type(weight) ~= &quot;number&quot;</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>            or weight &lt; minWeight or weight &gt; 99 or weight % 1 ~= 0</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>        then</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>            return false, &quot;designated_board_adjustment.weights.&quot; .. key</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>                .. &quot; must be an integer between &quot; .. minWeight .. &quot; and 99&quot;</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>        end</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>    end</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>    return true</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>end</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a></span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>function RustProphet.validateComposableBehaviorConfigV1(config)</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>    if type(config) ~= &quot;table&quot; then return false, &quot;behavior_config must be a table&quot; end</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>    if config.schema_version ~= 1 then return false, &quot;schema_version must be 1&quot; end</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>    local checks = {</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>        { &quot;global_budget&quot;, config.global_budget },</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>        { &quot;tracking.budget&quot;, config.tracking and config.tracking.budget },</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>        { &quot;fixed_adjustment.budget&quot;, config.fixed_adjustment and config.fixed_adjustment.budget },</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>        { &quot;prop_adjustment.budget&quot;, config.prop_adjustment and config.prop_adjustment.budget },</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>        { &quot;exciting_operation_adjustment.budget&quot;, config.exciting_operation_adjustment and config.exciting_operation_adjustment.budget },</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>        { &quot;designated_board_adjustment.budget&quot;, (config.designated_board_adjustment or config.exciting_board_adjustment)</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>            and (config.designated_board_adjustment or config.exciting_board_adjustment).budget },</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>    }</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>    for _, item in ipairs(checks) do</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>        local ok, err = checkStepBudget(item[1], item[2])</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>        if not ok then return false, err end</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>    end</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>    return validateCommon(config)</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>end</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a></span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>function RustProphet.validateComposableBehaviorConfigV2(config)</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>    if type(config) ~= &quot;table&quot; then return false, &quot;behavior_config must be a table&quot; end</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>    if config.schema_version ~= 2 then return false, &quot;schema_version must be 2&quot; end</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>    for _, item in ipairs({</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>        { &quot;global_budget&quot;, config.global_budget },</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>        { &quot;tracking.budget&quot;, config.tracking and config.tracking.budget },</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>        { &quot;fixed_adjustment.budget&quot;, config.fixed_adjustment and config.fixed_adjustment.budget },</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>        { &quot;prop_adjustment.budget&quot;, config.prop_adjustment and config.prop_adjustment.budget },</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>        { &quot;exciting_operation_adjustment.budget&quot;, config.exciting_operation_adjustment and config.exciting_operation_adjustment.budget },</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>        { &quot;designated_board_adjustment.budget&quot;, (config.designated_board_adjustment or config.exciting_board_adjustment)</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>            and (config.designated_board_adjustment or config.exciting_board_adjustment).budget },</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>    }) do</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>        local ok, err = checkScopedBudget(item[1], item[2])</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>        if not ok then return false, err end</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>    end</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>    local exciting = config.exciting_operation_adjustment or {}</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>    for index, range in ipairs(exciting.ranges or {}) do</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>        local ok, err = checkRange(&quot;exciting_operation_adjustment.ranges[&quot; .. index .. &quot;]&quot;, range)</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>        if not ok then return false, err end</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>    end</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>    for key, operation in pairs(exciting.operations or {}) do</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>        for _, field in ipairs({</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>            { &quot;per_operation_step_budget&quot;, 10000 },</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>            { &quot;per_operation_combo_budget&quot;, 100000 },</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>            { &quot;max_trigger_count&quot;, 1000 },</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>        }) do</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>            local value = operation[field[1]]</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>            if value ~= nil and (type(value) ~= &quot;number&quot; or value &lt; 0</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>                or value &gt; field[2] or value % 1 ~= 0) then</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>                return false, &quot;exciting_operation_adjustment.operations.&quot; .. key .. &quot;.&quot;</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>                    .. field[1] .. &quot; must be an integer between 0 and &quot; .. field[2]</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>            end</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>        end</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>    end</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>    return validateCommon(config)</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>end</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a></span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>function RustProphet.validateComposableBehaviorConfig(config)</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>    if type(config) == &quot;table&quot; and config.schema_version == 2 then</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>        return RustProphet.validateComposableBehaviorConfigV2(config)</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>    end</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>    return RustProphet.validateComposableBehaviorConfigV1(config)</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>end</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a></span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>local function checkInteger(path, value, minValue, maxValue)</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>    if type(value) ~= &quot;number&quot; or value % 1 ~= 0</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>        or value &lt; minValue or value &gt; maxValue then</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>        return false, path .. &quot; must be an integer between &quot;</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>            .. tostring(minValue) .. &quot; and &quot; .. tostring(maxValue)</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>    end</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>    return true</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>end</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a></span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>function RustProphet.validateExecutionConfig(config)</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>    if type(config) ~= &quot;table&quot; then return false, &quot;execution_config must be a table&quot; end</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>    if config.schema_version ~= 1 then return false, &quot;execution_config.schema_version must be 1&quot; end</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>    local normalized = RustProphet.normalizeExecutionConfig(config)</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>    for _, item in ipairs({</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>        { &quot;executor.worker_threads&quot;, normalized.executor.worker_threads, 1, 64 },</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>        { &quot;throttle.yield_after_work_ms&quot;, normalized.throttle.yield_after_work_ms, 0, 3600000 },</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>        { &quot;throttle.yield_sleep_ms&quot;, normalized.throttle.yield_sleep_ms, 0, 3600000 },</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>        { &quot;throttle.level_wall_time_budget_ms&quot;, normalized.throttle.level_wall_time_budget_ms, 0, 3600000 },</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>        { &quot;falling.max_candidates_per_search&quot;, normalized.falling.max_candidates_per_search, 0, 100000 },</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>        { &quot;falling.target_inflight&quot;, normalized.falling.target_inflight, 1, 1024 },</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>        { &quot;falling.max_simulation_ticks&quot;, normalized.falling.max_simulation_ticks, 0, 4294967295 },</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>        { &quot;falling.max_phase_logic_frames&quot;, normalized.falling.max_phase_logic_frames, 0, 4294967295 },</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>        { &quot;waiting.max_candidates_per_search&quot;, normalized.waiting.max_candidates_per_search, 0, 100000 },</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>        { &quot;waiting.max_candidates_per_swap&quot;, normalized.waiting.max_candidates_per_swap, 0, 100000 },</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>        { &quot;waiting.target_inflight&quot;, normalized.waiting.target_inflight, 1, 1024 },</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>        { &quot;waiting.max_inflight_per_swap&quot;, normalized.waiting.max_inflight_per_swap, 1, 1024 },</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>    }) do</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>        local ok, err = checkInteger(item[1], item[2], item[3], item[4])</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>        if not ok then return false, err end</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>    end</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>    return true</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>end</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a></span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>function RustProphet.makePreciseFollowLineConfig(lineTarget, lineTracking)</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>    local config = {</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a>        evaluator_preset_name = &quot;precise_follow_line&quot;,</span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>        line_target = lineTarget or {</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>            type = &quot;Original&quot;,</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>        },</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>    }</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>    -- 交换动作始终由玩家或 AI 决定；先知只消费实际交换对应的预测并控制后续扰动。</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>    if lineTracking then</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>        config.line_tracking = lineTracking</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>    end</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>    return config</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>end</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a></span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>function RustProphet.makePreciseFollowLineEarlyConfig(earlyMoveCount)</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>    local count = math.max(0, tonumber(earlyMoveCount) or 0)</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>    return RustProphet.makePreciseFollowLineConfig({</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>        type = &quot;FinishMoveOffset&quot;,</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>        offset_moves = -count,</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>    })</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>end</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a></span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a>function RustProphet.makePreciseFollowLineFailConfig(progress)</span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>    local targetProgress = tonumber(progress) or 1</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>    if targetProgress &lt;= 0 then</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>        targetProgress = 1</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>    end</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>    return RustProphet.makePreciseFollowLineConfig({</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>        type = &quot;ProgressAtLineEnd&quot;,</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>        progress = targetProgress,</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>    })</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>end</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a></span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>local function disabledStepBudget()</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>    return {</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>        enabled = false,</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a>        overflow_policy = &quot;RejectCandidate&quot;,</span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>    }</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>end</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a></span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>local function disabledComboBudget()</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>    return {</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>        enabled = false,</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>        overflow_policy = &quot;RejectCandidate&quot;,</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>    }</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>end</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a></span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>local function scopedExperienceBudget()</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>    return {</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>        level = {</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>            step = disabledStepBudget(),</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>            combo = disabledComboBudget(),</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>        },</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>        per_operation = {</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>            step = disabledStepBudget(),</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>            combo = disabledComboBudget(),</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>        },</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>    }</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a>end</span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a></span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>local function experienceStepBudget(maxPositiveSteps, maxNegativeSteps, maxAbsoluteSteps)</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>    return {</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>        enabled = true,</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>        max_positive_steps = maxPositiveSteps,</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>        max_negative_steps = maxNegativeSteps,</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a>        max_absolute_steps = maxAbsoluteSteps,</span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>        overflow_policy = &quot;RejectCandidate&quot;,</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>    }</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a>end</span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a></span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>local function experienceBaseBehaviorConfig()</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>    return {</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>        schema_version = 2,</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>        global_budget = scopedExperienceBudget(),</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>        tracking = {</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>            enabled = false,</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>            endpoint_shift_moves = 0,</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>            fit_algorithm = &quot;Linear&quot;,</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>            require_source_line = true,</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>            require_all_targets = false,</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>            default_positive_strength = 10,</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>            default_negative_strength = 5,</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>            strength_rules = {},</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>            budget = scopedExperienceBudget(),</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>        },</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a>        fixed_adjustment = {</span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>            enabled = false,</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>            rules = {},</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>            budget = scopedExperienceBudget(),</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>        },</span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>        prop_adjustment = {</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>            enabled = false,</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>            direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>            strength = 0,</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>            max_trigger_count = 0,</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>            budget = scopedExperienceBudget(),</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>            trigger_scope = &quot;CurrentOperationOnly&quot;,</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>        },</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>        exciting_operation_adjustment = {</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>            enabled = false,</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>            max_trigger_count = 0,</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>            operations = {</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>                special_create = { enabled = false, direction = &quot;Positive&quot;, strength = 0 },</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>                swap_trigger_special = { enabled = false, direction = &quot;Positive&quot;, strength = 0 },</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>                double_special_swap = { enabled = false, direction = &quot;Positive&quot;, strength = 0 },</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>                magic_bird_create = { enabled = false, direction = &quot;Positive&quot;, strength = 0 },</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>                magic_bird_animal_swap = { enabled = false, direction = &quot;Positive&quot;, strength = 0 },</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>                magic_bird_special_swap = { enabled = false, direction = &quot;Positive&quot;, strength = 0 },</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>                magic_bird_magic_bird_swap = { enabled = false, direction = &quot;Positive&quot;, strength = 0 },</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>                full_star_jar_animal_swap = { enabled = false, direction = &quot;Positive&quot;, strength = 0 },</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>                full_star_jar_full_star_jar_swap = {</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>                    enabled = false,</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a>                    direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>                    strength = 0,</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>                },</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>            },</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>            budget = scopedExperienceBudget(),</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>            ranges = {},</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>        },</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>        designated_board_adjustment = {</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>            enabled = false,</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>            ranges = {},</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>            weights = {</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>                magic_bird_count = 0,</span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>                special_count = 0,</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a>                adjacent_double_magic_bird = 0,</span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>                adjacent_magic_bird_special = 0,</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>                one_move_special = 0,</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>                one_move_magic_bird = 0,</span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>                one_move_double_special = 0,</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>                one_move_magic_bird_special = 0,</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a>            },</span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>            budget = scopedExperienceBudget(),</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>        },</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a>        conflict_policy = {</span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>            mode = &quot;HighestPrioritySingleOwner&quot;,</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>            priority = { &quot;Fixed&quot;, &quot;Prop&quot;, &quot;ExcitingOperation&quot;, &quot;DesignatedBoard&quot;, &quot;Tracking&quot; },</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>        },</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>    }</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>end</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a></span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a>local function enableExperienceTracking(config, endpointShiftMoves, maxPositiveSteps, maxNegativeSteps)</span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>    config.tracking.enabled = true</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a>    config.tracking.endpoint_shift_moves = endpointShiftMoves</span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>    config.tracking.budget.level.step = experienceStepBudget(</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>        maxPositiveSteps,</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>        maxNegativeSteps,</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>        40</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>    )</span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a>end</span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a></span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>local function addFixedExperienceRule(config, id, start, finish, maxPositiveSteps)</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>    config.fixed_adjustment.enabled = true</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>    config.fixed_adjustment.rules = {</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>        {</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a>            id = id,</span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>            ranges = {</span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>                {</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a>                    type = &quot;RelativeInterval&quot;,</span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>                    start = start,</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>                    [&quot;end&quot;] = finish,</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a>                },</span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a>            },</span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a>            direction = &quot;Positive&quot;,</span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>            strength = 10,</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a>        },</span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>    }</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>    config.fixed_adjustment.budget.level.step = experienceStepBudget(</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a>        maxPositiveSteps,</span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a>        nil,</span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>        nil</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>    )</span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>end</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a></span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>local function addExcitingOperation(config, operationName, strength, stepBudget)</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>    local operation = config.exciting_operation_adjustment.operations[operationName]</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a>    operation.enabled = true</span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>    operation.direction = &quot;Positive&quot;</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a>    operation.strength = strength</span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a>    operation.per_operation_step_budget = stepBudget</span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>    operation.per_operation_combo_budget = 20</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>end</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a></span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a>local function enableExcitingOperations(config, operationSpecs)</span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>    config.exciting_operation_adjustment.enabled = true</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>    config.exciting_operation_adjustment.max_trigger_count = 20</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a>    for _, spec in ipairs(operationSpecs) do</span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>        addExcitingOperation(config, spec[1], spec[2], spec[3])</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>    end</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>end</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a></span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>local function enableExcitingBoard(config, rangeType, rangeStart, rangeEnd)</span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>    config.designated_board_adjustment.enabled = true</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a>    config.designated_board_adjustment.ranges = {</span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>        {</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a>            type = rangeType,</span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>            start = rangeStart,</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a>            [&quot;end&quot;] = rangeEnd,</span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>        },</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>    }</span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>    config.designated_board_adjustment.weights.one_move_magic_bird = 1</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>    config.designated_board_adjustment.weights.one_move_magic_bird_special = 1</span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a>end</span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a></span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a>local function makeExperienceBehaviorConfig(</span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a>    endpointShiftMoves,</span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>    trackingPositiveSteps,</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a>    trackingNegativeSteps,</span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a>    fixedRange,</span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>    excitingOperationSpecs,</span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a>    excitingBoardRange</span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a>)</span>
+<span class="source-line" id="L614"><a class="line-num" href="#L614">614</a>    local config = experienceBaseBehaviorConfig()</span>
+<span class="source-line" id="L615"><a class="line-num" href="#L615">615</a>    enableExperienceTracking(</span>
+<span class="source-line" id="L616"><a class="line-num" href="#L616">616</a>        config,</span>
+<span class="source-line" id="L617"><a class="line-num" href="#L617">617</a>        endpointShiftMoves,</span>
+<span class="source-line" id="L618"><a class="line-num" href="#L618">618</a>        trackingPositiveSteps,</span>
+<span class="source-line" id="L619"><a class="line-num" href="#L619">619</a>        trackingNegativeSteps</span>
+<span class="source-line" id="L620"><a class="line-num" href="#L620">620</a>    )</span>
+<span class="source-line" id="L621"><a class="line-num" href="#L621">621</a>    if fixedRange then</span>
+<span class="source-line" id="L622"><a class="line-num" href="#L622">622</a>        addFixedExperienceRule(</span>
+<span class="source-line" id="L623"><a class="line-num" href="#L623">623</a>            config,</span>
+<span class="source-line" id="L624"><a class="line-num" href="#L624">624</a>            fixedRange[1],</span>
+<span class="source-line" id="L625"><a class="line-num" href="#L625">625</a>            fixedRange[2],</span>
+<span class="source-line" id="L626"><a class="line-num" href="#L626">626</a>            fixedRange[3],</span>
+<span class="source-line" id="L627"><a class="line-num" href="#L627">627</a>            fixedRange[4]</span>
+<span class="source-line" id="L628"><a class="line-num" href="#L628">628</a>        )</span>
+<span class="source-line" id="L629"><a class="line-num" href="#L629">629</a>    end</span>
+<span class="source-line" id="L630"><a class="line-num" href="#L630">630</a>    if excitingOperationSpecs then</span>
+<span class="source-line" id="L631"><a class="line-num" href="#L631">631</a>        enableExcitingOperations(config, excitingOperationSpecs)</span>
+<span class="source-line" id="L632"><a class="line-num" href="#L632">632</a>    end</span>
+<span class="source-line" id="L633"><a class="line-num" href="#L633">633</a>    if excitingBoardRange then</span>
+<span class="source-line" id="L634"><a class="line-num" href="#L634">634</a>        enableExcitingBoard(</span>
+<span class="source-line" id="L635"><a class="line-num" href="#L635">635</a>            config,</span>
+<span class="source-line" id="L636"><a class="line-num" href="#L636">636</a>            excitingBoardRange[1],</span>
+<span class="source-line" id="L637"><a class="line-num" href="#L637">637</a>            excitingBoardRange[2],</span>
+<span class="source-line" id="L638"><a class="line-num" href="#L638">638</a>            excitingBoardRange[3]</span>
+<span class="source-line" id="L639"><a class="line-num" href="#L639">639</a>        )</span>
+<span class="source-line" id="L640"><a class="line-num" href="#L640">640</a>    end</span>
+<span class="source-line" id="L641"><a class="line-num" href="#L641">641</a>    return config</span>
+<span class="source-line" id="L642"><a class="line-num" href="#L642">642</a>end</span>
+<span class="source-line" id="L643"><a class="line-num" href="#L643">643</a></span>
+<span class="source-line" id="L644"><a class="line-num" href="#L644">644</a>local function makeExperiencePreset(behaviorConfig)</span>
+<span class="source-line" id="L645"><a class="line-num" href="#L645">645</a>    return buildComposableProgressConfig(</span>
+<span class="source-line" id="L646"><a class="line-num" href="#L646">646</a>        &quot;composable_progress_v2&quot;,</span>
+<span class="source-line" id="L647"><a class="line-num" href="#L647">647</a>        behaviorConfig</span>
+<span class="source-line" id="L648"><a class="line-num" href="#L648">648</a>    )</span>
+<span class="source-line" id="L649"><a class="line-num" href="#L649">649</a>end</span>
+<span class="source-line" id="L650"><a class="line-num" href="#L650">650</a></span>
+<span class="source-line" id="L651"><a class="line-num" href="#L651">651</a>local function makeTrackingOnlyExperiencePreset(</span>
+<span class="source-line" id="L652"><a class="line-num" href="#L652">652</a>    endpointShiftMoves,</span>
+<span class="source-line" id="L653"><a class="line-num" href="#L653">653</a>    trackingPositiveSteps,</span>
+<span class="source-line" id="L654"><a class="line-num" href="#L654">654</a>    trackingNegativeSteps</span>
+<span class="source-line" id="L655"><a class="line-num" href="#L655">655</a>)</span>
+<span class="source-line" id="L656"><a class="line-num" href="#L656">656</a>    return makeExperiencePreset(makeExperienceBehaviorConfig(</span>
+<span class="source-line" id="L657"><a class="line-num" href="#L657">657</a>        endpointShiftMoves,</span>
+<span class="source-line" id="L658"><a class="line-num" href="#L658">658</a>        trackingPositiveSteps,</span>
+<span class="source-line" id="L659"><a class="line-num" href="#L659">659</a>        trackingNegativeSteps</span>
+<span class="source-line" id="L660"><a class="line-num" href="#L660">660</a>    ))</span>
+<span class="source-line" id="L661"><a class="line-num" href="#L661">661</a>end</span>
+<span class="source-line" id="L662"><a class="line-num" href="#L662">662</a></span>
+<span class="source-line" id="L663"><a class="line-num" href="#L663">663</a>local function makeFullExperiencePreset(</span>
+<span class="source-line" id="L664"><a class="line-num" href="#L664">664</a>    endpointShiftMoves,</span>
+<span class="source-line" id="L665"><a class="line-num" href="#L665">665</a>    trackingPositiveSteps,</span>
+<span class="source-line" id="L666"><a class="line-num" href="#L666">666</a>    trackingNegativeSteps,</span>
+<span class="source-line" id="L667"><a class="line-num" href="#L667">667</a>    fixedRange,</span>
+<span class="source-line" id="L668"><a class="line-num" href="#L668">668</a>    excitingOperationSpecs,</span>
+<span class="source-line" id="L669"><a class="line-num" href="#L669">669</a>    excitingBoardRange</span>
+<span class="source-line" id="L670"><a class="line-num" href="#L670">670</a>)</span>
+<span class="source-line" id="L671"><a class="line-num" href="#L671">671</a>    return makeExperiencePreset(makeExperienceBehaviorConfig(</span>
+<span class="source-line" id="L672"><a class="line-num" href="#L672">672</a>        endpointShiftMoves,</span>
+<span class="source-line" id="L673"><a class="line-num" href="#L673">673</a>        trackingPositiveSteps,</span>
+<span class="source-line" id="L674"><a class="line-num" href="#L674">674</a>        trackingNegativeSteps,</span>
+<span class="source-line" id="L675"><a class="line-num" href="#L675">675</a>        fixedRange,</span>
+<span class="source-line" id="L676"><a class="line-num" href="#L676">676</a>        excitingOperationSpecs,</span>
+<span class="source-line" id="L677"><a class="line-num" href="#L677">677</a>        excitingBoardRange</span>
+<span class="source-line" id="L678"><a class="line-num" href="#L678">678</a>    ))</span>
+<span class="source-line" id="L679"><a class="line-num" href="#L679">679</a>end</span>
+<span class="source-line" id="L680"><a class="line-num" href="#L680">680</a></span>
+<span class="source-line" id="L681"><a class="line-num" href="#L681">681</a>local NEAR_PASS_EXCITING_OPERATIONS = {</span>
+<span class="source-line" id="L682"><a class="line-num" href="#L682">682</a>    { &quot;magic_bird_special_swap&quot;, 10, 5 },</span>
+<span class="source-line" id="L683"><a class="line-num" href="#L683">683</a>    { &quot;magic_bird_magic_bird_swap&quot;, 10, 5 },</span>
+<span class="source-line" id="L684"><a class="line-num" href="#L684">684</a>}</span>
+<span class="source-line" id="L685"><a class="line-num" href="#L685">685</a></span>
+<span class="source-line" id="L686"><a class="line-num" href="#L686">686</a>local SMOOTH_PASS_EXCITING_OPERATIONS = {</span>
+<span class="source-line" id="L687"><a class="line-num" href="#L687">687</a>    { &quot;swap_trigger_special&quot;, 10, 3 },</span>
+<span class="source-line" id="L688"><a class="line-num" href="#L688">688</a>    { &quot;double_special_swap&quot;, 10, 3 },</span>
+<span class="source-line" id="L689"><a class="line-num" href="#L689">689</a>    { &quot;magic_bird_animal_swap&quot;, 10, 3 },</span>
+<span class="source-line" id="L690"><a class="line-num" href="#L690">690</a>    { &quot;magic_bird_special_swap&quot;, 10, 5 },</span>
+<span class="source-line" id="L691"><a class="line-num" href="#L691">691</a>    { &quot;magic_bird_magic_bird_swap&quot;, 10, 5 },</span>
+<span class="source-line" id="L692"><a class="line-num" href="#L692">692</a>}</span>
+<span class="source-line" id="L693"><a class="line-num" href="#L693">693</a></span>
+<span class="source-line" id="L694"><a class="line-num" href="#L694">694</a>local VERY_SMOOTH_PASS_EXCITING_OPERATIONS = {</span>
+<span class="source-line" id="L695"><a class="line-num" href="#L695">695</a>    { &quot;swap_trigger_special&quot;, 10, 3 },</span>
+<span class="source-line" id="L696"><a class="line-num" href="#L696">696</a>    { &quot;double_special_swap&quot;, 10, 3 },</span>
+<span class="source-line" id="L697"><a class="line-num" href="#L697">697</a>    { &quot;magic_bird_animal_swap&quot;, 10, 3 },</span>
+<span class="source-line" id="L698"><a class="line-num" href="#L698">698</a>    { &quot;magic_bird_special_swap&quot;, 10, 5 },</span>
+<span class="source-line" id="L699"><a class="line-num" href="#L699">699</a>    { &quot;magic_bird_magic_bird_swap&quot;, 10, 5 },</span>
+<span class="source-line" id="L700"><a class="line-num" href="#L700">700</a>}</span>
+<span class="source-line" id="L701"><a class="line-num" href="#L701">701</a></span>
+<span class="source-line" id="L702"><a class="line-num" href="#L702">702</a>local function relativeBoardRange(start, finish)</span>
+<span class="source-line" id="L703"><a class="line-num" href="#L703">703</a>    return { &quot;RelativeInterval&quot;, start, finish }</span>
+<span class="source-line" id="L704"><a class="line-num" href="#L704">704</a>end</span>
+<span class="source-line" id="L705"><a class="line-num" href="#L705">705</a></span>
+<span class="source-line" id="L706"><a class="line-num" href="#L706">706</a>local function absoluteBoardRange(start, finish)</span>
+<span class="source-line" id="L707"><a class="line-num" href="#L707">707</a>    return { &quot;Interval&quot;, start, finish }</span>
+<span class="source-line" id="L708"><a class="line-num" href="#L708">708</a>end</span>
+<span class="source-line" id="L709"><a class="line-num" href="#L709">709</a></span>
+<span class="source-line" id="L710"><a class="line-num" href="#L710">710</a>-- 10step = _12</span>
+<span class="source-line" id="L711"><a class="line-num" href="#L711">711</a>RustProphet.config = {</span>
+<span class="source-line" id="L712"><a class="line-num" href="#L712">712</a>    [RustProphet.enum.STEP_5] = {</span>
+<span class="source-line" id="L713"><a class="line-num" href="#L713">713</a>        evaluator_preset_name = &quot;easy_full_target_with_step_16&quot;,</span>
+<span class="source-line" id="L714"><a class="line-num" href="#L714">714</a>        max_falling_foresee_frame_diff = 1800,</span>
+<span class="source-line" id="L715"><a class="line-num" href="#L715">715</a>        -- yield_ms = 2,</span>
+<span class="source-line" id="L716"><a class="line-num" href="#L716">716</a>        -- foresee_count_once_batch = 4,</span>
+<span class="source-line" id="L717"><a class="line-num" href="#L717">717</a>    },</span>
+<span class="source-line" id="L718"><a class="line-num" href="#L718">718</a>    [RustProphet.enum.STEP_10] = {</span>
+<span class="source-line" id="L719"><a class="line-num" href="#L719">719</a>        evaluator_preset_name = &quot;easy_full_target_with_step_12&quot;,</span>
+<span class="source-line" id="L720"><a class="line-num" href="#L720">720</a>        max_falling_foresee_frame_diff = 1800,</span>
+<span class="source-line" id="L721"><a class="line-num" href="#L721">721</a>        -- yield_ms = 2,</span>
+<span class="source-line" id="L722"><a class="line-num" href="#L722">722</a>        -- foresee_count_once_batch = 4,</span>
+<span class="source-line" id="L723"><a class="line-num" href="#L723">723</a>    },</span>
+<span class="source-line" id="L724"><a class="line-num" href="#L724">724</a>    [RustProphet.enum.STEP_15] = {</span>
+<span class="source-line" id="L725"><a class="line-num" href="#L725">725</a>        evaluator_preset_name = &quot;easy_full_target_with_step_14&quot;,</span>
+<span class="source-line" id="L726"><a class="line-num" href="#L726">726</a>        max_falling_foresee_frame_diff = 1800,</span>
+<span class="source-line" id="L727"><a class="line-num" href="#L727">727</a>        -- yield_ms = 2,</span>
+<span class="source-line" id="L728"><a class="line-num" href="#L728">728</a>        -- foresee_count_once_batch = 4,</span>
+<span class="source-line" id="L729"><a class="line-num" href="#L729">729</a>    },</span>
+<span class="source-line" id="L730"><a class="line-num" href="#L730">730</a>    [RustProphet.enum.PRECISE_FOLLOW_LINE] = RustProphet.makePreciseFollowLineConfig(),</span>
+<span class="source-line" id="L731"><a class="line-num" href="#L731">731</a>    [RustProphet.enum.PRECISE_FOLLOW_LINE_EARLY_5] =</span>
+<span class="source-line" id="L732"><a class="line-num" href="#L732">732</a>        RustProphet.makePreciseFollowLineEarlyConfig(5),</span>
+<span class="source-line" id="L733"><a class="line-num" href="#L733">733</a>    [RustProphet.enum.PRECISE_FOLLOW_LINE_FAIL_80] =</span>
+<span class="source-line" id="L734"><a class="line-num" href="#L734">734</a>        RustProphet.makePreciseFollowLineFailConfig(0.8),</span>
+<span class="source-line" id="L735"><a class="line-num" href="#L735">735</a>    [RustProphet.enum.EXPERIENCE_NEAR_PASS_TRACKING_ONLY] =</span>
+<span class="source-line" id="L736"><a class="line-num" href="#L736">736</a>        makeTrackingOnlyExperiencePreset(-8, 3, 2),</span>
+<span class="source-line" id="L737"><a class="line-num" href="#L737">737</a>    [RustProphet.enum.EXPERIENCE_NEAR_PASS_GUARANTEED_TRACKING_ONLY] =</span>
+<span class="source-line" id="L738"><a class="line-num" href="#L738">738</a>        makeTrackingOnlyExperiencePreset(-8, 3, 2),</span>
+<span class="source-line" id="L739"><a class="line-num" href="#L739">739</a>    [RustProphet.enum.EXPERIENCE_SMOOTH_PASS_TRACKING_ONLY] =</span>
+<span class="source-line" id="L740"><a class="line-num" href="#L740">740</a>        makeTrackingOnlyExperiencePreset(-10, 3, 2),</span>
+<span class="source-line" id="L741"><a class="line-num" href="#L741">741</a>    [RustProphet.enum.EXPERIENCE_VERY_SMOOTH_PASS_TRACKING_ONLY] =</span>
+<span class="source-line" id="L742"><a class="line-num" href="#L742">742</a>        makeTrackingOnlyExperiencePreset(-15, 3, 2),</span>
+<span class="source-line" id="L743"><a class="line-num" href="#L743">743</a>    [RustProphet.enum.EXPERIENCE_NEAR_PASS] = makeFullExperiencePreset(</span>
+<span class="source-line" id="L744"><a class="line-num" href="#L744">744</a>        -8,</span>
+<span class="source-line" id="L745"><a class="line-num" href="#L745">745</a>        3,</span>
+<span class="source-line" id="L746"><a class="line-num" href="#L746">746</a>        2,</span>
+<span class="source-line" id="L747"><a class="line-num" href="#L747">747</a>        nil,</span>
+<span class="source-line" id="L748"><a class="line-num" href="#L748">748</a>        NEAR_PASS_EXCITING_OPERATIONS,</span>
+<span class="source-line" id="L749"><a class="line-num" href="#L749">749</a>        relativeBoardRange(-5, -4)</span>
+<span class="source-line" id="L750"><a class="line-num" href="#L750">750</a>    ),</span>
+<span class="source-line" id="L751"><a class="line-num" href="#L751">751</a>    [RustProphet.enum.EXPERIENCE_NEAR_PASS_GUARANTEED] = makeFullExperiencePreset(</span>
+<span class="source-line" id="L752"><a class="line-num" href="#L752">752</a>        -8,</span>
+<span class="source-line" id="L753"><a class="line-num" href="#L753">753</a>        3,</span>
+<span class="source-line" id="L754"><a class="line-num" href="#L754">754</a>        2,</span>
+<span class="source-line" id="L755"><a class="line-num" href="#L755">755</a>        { &quot;near_pass_guaranteed&quot;, -3, 0, 5 },</span>
+<span class="source-line" id="L756"><a class="line-num" href="#L756">756</a>        NEAR_PASS_EXCITING_OPERATIONS,</span>
+<span class="source-line" id="L757"><a class="line-num" href="#L757">757</a>        relativeBoardRange(-6, -4)</span>
+<span class="source-line" id="L758"><a class="line-num" href="#L758">758</a>    ),</span>
+<span class="source-line" id="L759"><a class="line-num" href="#L759">759</a>    [RustProphet.enum.EXPERIENCE_SMOOTH_PASS] = makeFullExperiencePreset(</span>
+<span class="source-line" id="L760"><a class="line-num" href="#L760">760</a>        -10,</span>
+<span class="source-line" id="L761"><a class="line-num" href="#L761">761</a>        3,</span>
+<span class="source-line" id="L762"><a class="line-num" href="#L762">762</a>        2,</span>
+<span class="source-line" id="L763"><a class="line-num" href="#L763">763</a>        { &quot;smooth_pass&quot;, -5, 0, 5 },</span>
+<span class="source-line" id="L764"><a class="line-num" href="#L764">764</a>        SMOOTH_PASS_EXCITING_OPERATIONS,</span>
+<span class="source-line" id="L765"><a class="line-num" href="#L765">765</a>        absoluteBoardRange(10, 13)</span>
+<span class="source-line" id="L766"><a class="line-num" href="#L766">766</a>    ),</span>
+<span class="source-line" id="L767"><a class="line-num" href="#L767">767</a>    [RustProphet.enum.EXPERIENCE_VERY_SMOOTH_PASS] = makeFullExperiencePreset(</span>
+<span class="source-line" id="L768"><a class="line-num" href="#L768">768</a>        -15,</span>
+<span class="source-line" id="L769"><a class="line-num" href="#L769">769</a>        3,</span>
+<span class="source-line" id="L770"><a class="line-num" href="#L770">770</a>        2,</span>
+<span class="source-line" id="L771"><a class="line-num" href="#L771">771</a>        { &quot;very_smooth_pass&quot;, -5, 0, 5 },</span>
+<span class="source-line" id="L772"><a class="line-num" href="#L772">772</a>        VERY_SMOOTH_PASS_EXCITING_OPERATIONS,</span>
+<span class="source-line" id="L773"><a class="line-num" href="#L773">773</a>        absoluteBoardRange(5, 8)</span>
+<span class="source-line" id="L774"><a class="line-num" href="#L774">774</a>    ),</span>
+<span class="source-line" id="L775"><a class="line-num" href="#L775">775</a>}</span></code></pre></main></body></html>

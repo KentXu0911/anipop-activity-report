@@ -1,0 +1,464 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFBoardInitAdjustLogic.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFBoardInitAdjustLogic.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFBoardInitAdjustLogic.lua<br>SHA-256 281fc267404cca46c6f682656978e39d052fb354d5e7e9e243a541ac3de3f2ea · 464 行 · 恢复原文，未经改写</p><a href="UBFBoardInitAdjustLogic-9275941f.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>_G.UBF_NO_REQUIRE_LUA_FLAG()</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a></span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>-- fuuu的调整逻辑</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>UBFBoardInitAdjustLogic = class2( &quot;UBFBoardInitAdjustLogic&quot; , UBFBaseLogic )</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a></span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>local seedKey = &quot;BoardInitAdjust&quot;</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>local modeCount = 9</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>local patternConfig = nil</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a></span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>local _needLog = false</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>--</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>--</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a></span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a></span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>function UBFBoardInitAdjustLogic:build(createData)</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>    self.gameBoardLogic = createData.gameBoardLogic</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>    self.levelContext = UBFContextManager:getInstance():getValue({ UBFConst.ContextType.kLevelContext }):hold()</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>end</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a></span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a></span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>function UBFBoardInitAdjustLogic:beforeBoardColorInit(boardContext)</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>    if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic:beforeBoardColorInit .......... &quot; ) end</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>    local gEnv = self.levelContext:getValue( UBFLevelContext.gameEnvKey )</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>    local _adjustData = gEnv.adjustData</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>    if not _adjustData then </span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>        if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic:beforeBoardColorInit return 1 &quot; ) end</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>        return </span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>    end</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a></span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    if not _adjustData.useBoardInitAdjust then</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>        if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic:beforeBoardColorInit return 2 &quot; ) end</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>        return</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>    end</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a></span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>    local result, selectData, allResultList = self:tryChangeBoardByVirtualSeed(_adjustData)</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>    </span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>    if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic:beforeBoardColorInit    result, selectData, allResultList =&quot;, result, selectData, allResultList ) end</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>    </span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>    if result then </span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>        if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic:beforeBoardColorInit ------- selectData =&quot; , tts(selectData) ) end</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>        self:doChangeBoardByVirtualSeed(selectData)</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>    end</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>end</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a></span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>function UBFBoardInitAdjustLogic:tryChangeBoardByVirtualSeed(adjustData)</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>    </span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>    if adjustData then</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>        if adjustData.mode == ProductItemDiffChangeMode.kAddColor then</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>            if adjustData.ds == 7 then</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>                return self:_tryChangeBoardByVirtualSeed(adjustData.ds, false)</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>            end</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>        -- elseif adjustData.mode == ProductItemDiffChangeMode.kAld2023 then</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>        --     if adjustData.ds &gt;= 15 then</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>        --         return self:_tryChangeBoardByVirtualSeed(9 - (20 - adjustData.ds), false)</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>        --     end</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>        end</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>    end</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a></span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>    return false</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>end</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a></span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>--[[</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>    ds     强度，一共9级</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>    lockDs 锁定强度，即不降级，指定ds随机不到，就放弃</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>]]</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>function UBFBoardInitAdjustLogic:_tryChangeBoardByVirtualSeed(ds, lockDs)</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>    </span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>    local resultData = nil</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>    local resultPosList = nil</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>    </span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>    local boardContext = self.levelContext:getBoardContext(1)</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>    local boardBorder = boardContext:getBoardBorder(true)</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a></span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>    local seed = nil</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a></span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>    require &quot;zoo.gamePlay.config.GameInitDiffChangeLogicPatternConfig&quot;</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>    patternConfig = GameInitDiffChangeLogicPatternConfig</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>	-- local mode = self.mode</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>	-- local lockDs = false --是否锁定到某一级mode，即不会自动降级</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>	local onlyCheck = false --只检测并返回结果，并不真正干预</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a></span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>	local usedLogMap = nil</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a></span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>	</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>    if _needLog then</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>        printx( 1 , &quot;=====================================================================================================&quot;)</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>        printx( 1 , &quot;=====================================================================================================&quot;)</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>        printx( 1 , &quot;=====================================================================================================&quot;)</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>        printx( 1 , &quot;=======================UBFBoardInitAdjustLogic:tryChangeBoardByVirtualSeed===========================&quot;)</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>        printx( 1 , &quot;=====================================================================================================&quot;)</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>        printx( 1 , &quot;=====================================================================================================&quot;)</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>        printx( 1 , &quot;=====================================================================================================&quot;)</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>    end</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a></span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a></span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>	local canRandomColorfulList = {}</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>	local canRandomColorfulMap = {}</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a></span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>	local itemAroundMap = {}</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a></span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>	for r = boardBorder.top, boardBorder.bottom do </span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>		for c = boardBorder.left, boardBorder.right do</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a></span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>            local gridRaw = boardContext:getGridRawDataByPos(r, c)</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>            local itemRaw = gridRaw.itemMaster</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a></span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>            -- isColorful</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a></span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>			if itemRaw then</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>				if itemRaw.isColorful</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>					-- and itemRaw.itemType == UBFGameItemType.kAnimal </span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>					and itemRaw.color == 0</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>					then</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a></span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>					table.insert(canRandomColorfulList , itemRaw)</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>					canRandomColorfulMap[gridRaw.posKey] = itemRaw</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>				end</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>			end</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>		end</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>	end</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a></span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>	if _needLog then printx( 1 , &quot;#canRandomColorfulList &quot; , #canRandomColorfulList ) end</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>	if #canRandomColorfulList &gt; 0 then</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a></span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>		for ia = 1 , #canRandomColorfulList do</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a></span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>			local itemRaw = canRandomColorfulList[ia] --交换对象A</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>			local gridRaw = boardContext:getGridRawDataByPos(itemRaw.pos.r, itemRaw.pos.c) --交换对象A所在格子</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a></span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>			if itemRaw and (not gridRaw.isBlockSwap) then</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a></span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>				local mapTable = {}</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>				mapTable.r = itemRaw.pos.r</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>				mapTable.c = itemRaw.pos.c</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>				mapTable.posKey = gridRaw.posKey</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>				mapTable.aroundMap = {}</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a></span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>				table.insert(itemAroundMap, mapTable)</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a></span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>				local function buildMapTable(rf, cf)</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a></span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>					local aroundPosKey = (mapTable.r + rf - 4) * MACRO_POS_STRIDE + (mapTable.c + cf - 4)</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a></span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>					if canRandomColorfulMap[aroundPosKey] then</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>						mapTable.aroundMap[ rf * MACRO_POS_STRIDE + cf ] = true</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>					end</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>				end</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a></span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>				for ib = 1 , 7 do</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>					for ic = 1 , 7 do</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>						if (ib ~= 4 or ic ~= 4) and math.abs(ib - 4) + math.abs(ic - 4) &lt;= 3 then --曼哈顿距离小于等于3，菱形</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>							buildMapTable( ib , ic )</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>						end</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>					end</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>				end</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>                if _needLog then </span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>                    printx( 1, &quot;mapTable ---- &quot; , itemRaw.pos.r,itemRaw.pos.c,gridRaw.posKey )</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>                    printx( 1, &quot;mapTable.aroundMap =&quot; , tts(mapTable.aroundMap) )</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>                end</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>			end</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>		end</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a></span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>	end</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a></span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>	if not onlyCheck then --检测模式无需随机，因为它将遍历所有组合，不会中途跳出</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>		----[[</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>		local randomItemAroundMapIndex = {}</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>		local randomItemAroundMap = {}</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a></span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>		for i = 1 , #itemAroundMap do</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>			table.insert( randomItemAroundMapIndex , i )</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>		end</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a></span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>		for i = 1 , #itemAroundMap do</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>			local ridx = UBFRandom:calcValue( boardContext:nextSeed(seedKey) , 1 , #randomItemAroundMapIndex )</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>			table.insert( randomItemAroundMap , itemAroundMap[randomItemAroundMapIndex[ridx]] )</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>			table.remove( randomItemAroundMapIndex , ridx )</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>		end</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a></span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>		itemAroundMap = randomItemAroundMap</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>		--]]</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>	end</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a></span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>	resultPosList = {}</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>	local selectMode = ds --预期要匹配的模式（1~9）</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a></span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>	local function tryFind(modeIndex)</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a></span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>		local configList = patternConfig[&quot;mode&quot; .. tostring(modeIndex)]</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a></span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>		if not configList then </span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>			return false</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>		end</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a></span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>		if not onlyCheck then --检测模式无需随机，因为它将遍历所有组合，不会中途跳出</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>			----[[</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>			local randomConfigListIndex = {}</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>			local randomConfigList = {}</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a></span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>			for i = 1 , #configList do</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>				table.insert( randomConfigListIndex , i )</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>			end</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a></span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>			for i = 1 , #configList do</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>				local ridx = UBFRandom:calcValue( boardContext:nextSeed(seedKey) , 1 , #randomConfigListIndex )</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>				local rconfig = {}</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>				rconfig.realIndex = randomConfigListIndex[ridx]</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>				rconfig.datas = configList[rconfig.realIndex]</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>				table.insert( randomConfigList , rconfig )</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>				table.remove( randomConfigListIndex , ridx )</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>			end</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a></span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>			configList = randomConfigList</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>			--]]</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>		end</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>		</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>		for k,v in ipairs(itemAroundMap) do</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a></span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>			if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic  tryFind  modeIndex:&quot; , modeIndex , &quot;k:&quot;, k) end</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>			--local centerPos = string.split( k , &quot;_&quot;)</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>			local centerR = v.r</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>			local centerC = v.c</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>			</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>			local aroundItemList = v.aroundMap</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a></span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>			for i = 1 , #configList do</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>				local result = true</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>				local config = nil</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>				local realIndex = i</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a></span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>				if onlyCheck then</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>					config = configList[i]</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>					realIndex = i</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>				else</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>					config = configList[i].datas</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>					realIndex = configList[i].realIndex</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>				end</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>				if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic  tryFind   index -------&quot; , i) end</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>				for k1,v1 in ipairs(config) do</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>					</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a></span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>					local poskey = v1.dr * MACRO_POS_STRIDE + v1.dc --相对坐标，4,4点为起点</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>					-- printx( 1 , &quot;UBFBoardInitAdjustLogic  tryFind aroud  poskey:&quot; , poskey)</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a></span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>					if not aroundItemList[poskey] then</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>						-- printx( 1 , &quot;tryFind  break 1&quot;)</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>						result = false</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>						break</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>					end</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a></span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>					if v1.itemB then --是否为交换对象B</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>						</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a></span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>						--local pos = string.split( k1 , &quot;_&quot;)</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>						local r = centerR + v1.dr - 4</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>						local c = centerC + v1.dc - 4</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a></span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>						if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic  tryFind 交换对象B ---------  &quot; , r , c) end</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a></span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>                        local gridContext_A = boardContext:getGridContextByPos(centerR, centerC)</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>                        local gridContext_B = boardContext:getGridContextByPos(r, c)</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a></span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>						if gridContext_A and gridContext_B then</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a></span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>							if not gridContext_B:getBlockSwap() then</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a></span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>								if centerR &gt; r and centerC == c then</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>									if gridContext_A:hasBorderSwapBlocker( UBFDirection.kUp ) then</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>										if _needLog then printx( 1 , &quot;tryFind  break 2&quot;) end</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>										result = false</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>                                        gridContext_A:release()</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>                                        gridContext_B:release()</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>										break</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>									end</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>								elseif centerR &lt; r and centerC == c then</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>									if gridContext_A:hasBorderSwapBlocker( UBFDirection.kDown ) then</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>										if _needLog then printx( 1 , &quot;tryFind  break 3&quot;) end</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>										result = false</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>                                        gridContext_A:release()</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>                                        gridContext_B:release()</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>										break</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>									end</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>								elseif centerR == r and centerC &gt; c then</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>									if gridContext_A:hasBorderSwapBlocker( UBFDirection.kLeft ) then</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>										if _needLog then printx( 1 , &quot;tryFind  break 4&quot;) end</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>										result = false</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>                                        gridContext_A:release()</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>                                        gridContext_B:release()</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>										break</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>									end</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>								elseif centerR == r and centerC &lt; c then</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>									if gridContext_A:hasBorderSwapBlocker( UBFDirection.kRight ) then</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>										if _needLog then printx( 1 , &quot;tryFind  break 5&quot;) end</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>										result = false</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>                                        gridContext_A:release()</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>                                        gridContext_B:release()</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>										break</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>									end</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>								else</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>									if _needLog then printx( 1 , &quot;tryFind  break 6&quot;) end</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>									if onlyCheck then</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>										CommonTip:showTip( &quot;UBFBoardInitAdjustLogicPatternConfig ERROR !!!&quot; , &quot;negative&quot;, nil, 300)</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>									end</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>									assert(false, &quot;UBFBoardInitAdjustLogic  patternConfig config Error ! modeIndex:&quot; .. tostring(modeIndex) .. &quot; &quot; .. tostring(i) )</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>									result = false</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>                                    gridContext_A:release()</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>                                    gridContext_B:release()</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>									break</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>								end</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>							else</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>								if _needLog then printx( 1 , &quot;tryFind  break 7&quot;) end</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>								result = false</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>                                gridContext_A:release()</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>                                gridContext_B:release()</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>								break</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>							end</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>						else</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>							if _needLog then printx( 1 , &quot;tryFind  break 8&quot;) end</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>							result = false</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>                            if gridContext_A then gridContext_A:release() end</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>                            if gridContext_B then gridContext_B:release() end</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>							break</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>						end</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>					end</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>				end</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a></span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>				if result then</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>					if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic:tryChangeBoardByVirtualSeed result :&quot; , k , &quot;mode&quot; .. tostring(modeIndex) .. &quot;_&quot; .. tostring(i) ) end</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>					table.insert( resultPosList , { centerR = centerR , centerC = centerC , oringinTypeIndex = ds , typeIndex = modeIndex , patternIndex = realIndex })</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a></span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>					if not onlyCheck then</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>						-- 非检测模式无需找到所有pattern，找到任意一个就返回</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>						-- 检测模式则遍历所有可能的结果，并统计</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>						return </span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>					end</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>				end</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>			end</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>		end</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>	end</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a></span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>	tryFind(selectMode)</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>	--usedLogMap</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a></span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>	if not lockDs then</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a></span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>		for i = 1 , modeCount do</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a></span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>			if #resultPosList &gt; 0 then</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>				break</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>			end</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a></span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>			selectMode = selectMode - 1</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a></span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>			if selectMode &lt; 1 then</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>				if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic  mode&quot; .. tostring(selectMode + 1) .. &quot; PASS !&quot;) end</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>				break</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>			end</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a></span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>			if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic  mode&quot; .. tostring(selectMode + 1) .. &quot; PASS !&quot;) end</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a></span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>			if not usedLogMap or not usedLogMap[selectMode] then</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>				tryFind(selectMode)</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>			end</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>		end</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a></span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>		if #resultPosList == 0 then</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>			selectMode = ds</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a></span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>			for i = 1 , modeCount do</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a></span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>				if #resultPosList &gt; 0 then</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>					break</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>				end</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a></span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>				selectMode = selectMode + 1</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a></span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>				if selectMode &gt; modeCount then</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>					if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic  mode&quot; .. tostring(selectMode - 1) .. &quot; PASS !&quot;) end</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>					break</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>				end</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a></span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>				if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic  mode&quot; .. tostring(selectMode - 1) .. &quot; PASS !&quot;) end</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a></span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>				if not usedLogMap or not usedLogMap[selectMode] then</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>					tryFind(selectMode)</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>				end</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>			end</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>		end</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>	end</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a></span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>	if not onlyCheck then</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>		if #resultPosList &gt; 0 then</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>			resultData = resultPosList[ UBFRandom:calcValue( boardContext:nextSeed(seedKey) , 1 , #resultPosList ) ]</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>		end</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>	end</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>	</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>	return #resultPosList &gt; 0 , resultData ,  resultPosList</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>end</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a></span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>function UBFBoardInitAdjustLogic:doChangeBoardByVirtualSeed(resultData)</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a></span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>    local boardContext = self.levelContext:getBoardContext(1)</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>    local availableColorList = boardContext:getUseColors()</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a></span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>    local r = resultData.centerR</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>	local c = resultData.centerC</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a></span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>	local configList = patternConfig[&quot;mode&quot; .. tostring(resultData.typeIndex)]</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>	local config = configList[resultData.patternIndex]</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a></span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>	local resultPosList = {}</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a></span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>	-- local boardModel = self.mainLogic:getBoardModel()</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>	-- local itemMap = self.mainLogic:getItemMap()</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>	-- local boardMap = self.mainLogic:getBoardMap()</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a></span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>    local gridRaw = boardContext:getGridRawDataByPos(r, c)</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>	if gridRaw then</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a></span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>		-- local color = self.mainLogic:randomColor()</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>        </span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>		local cIndex1 = UBFRandom:calcValue( boardContext:nextSeed(seedKey) , 1 , #availableColorList )</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>		local cIndex2 = nil</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a></span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>		if cIndex1 == #availableColorList then</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>			cIndex2 = UBFRandom:calcValue( boardContext:nextSeed(seedKey) , 1 , #availableColorList - 1 )</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>		else</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>			cIndex2 = UBFRandom:calcValue( boardContext:nextSeed(seedKey) , cIndex1 + 1 , #availableColorList )</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>		end</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a></span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>		local color1 =  availableColorList[cIndex1]</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>		local color2 =  availableColorList[cIndex2]</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a></span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>        </span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>		local itemRaw = gridRaw.itemMaster</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>        if itemRaw then</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>            itemRaw.color = color1</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a>        end</span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>		if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic  doChangeBoardByVirtualSeed 111&quot;) end</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a></span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>		for k,v in ipairs(config) do</span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a></span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>			local fixr = v.dr</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>			local fixc = v.dc</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a></span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>			local ra = r + fixr - 4</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>			local ca = c + fixc - 4</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a></span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>			if _needLog then printx( 1 , &quot;UBFBoardInitAdjustLogic  doChangeBoardByVirtualSeed 222&quot; , ra , ca) end</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>            local aroundGridRaw = boardContext:getGridRawDataByPos(ra, ca)</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a></span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>			if aroundGridRaw then</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>				local aroundItemRaw = aroundGridRaw.itemMaster</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>				if aroundItemRaw then</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>                    if v.ct == 1 then</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>                        aroundItemRaw.color = color1</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>                    else</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>                        aroundItemRaw.color = color2</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>                    end</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a>                end</span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>			end</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>		end</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>	end</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>end</span></code></pre></main></body></html>

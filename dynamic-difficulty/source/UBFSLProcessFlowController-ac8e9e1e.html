@@ -1,0 +1,122 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFSLProcessFlowController.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFSLProcessFlowController.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/processFlow/flowController/UBFSLProcessFlowController.lua<br>SHA-256 cde582031f21758db1e2f76b61352cf950e93075b33e8bd9b10d6fedd8b9f604 · 122 行 · 恢复原文，未经改写</p><a href="UBFSLProcessFlowController-ac8e9e1e.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>--注意，这个类的创建必须有始有终，要么完成了(isFinished)，要么放弃了(isAborted)，才允许丢弃引用</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>--! 详细文档请参考UBFProcess.lua最开头的大段注释</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>UBFSLProcessFlowController = class2(&quot;UBFSLProcessFlowController&quot;, UBFProcessFlowController)</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a></span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>local migrator = require(&#x27;ubf.UBFGamePlayScene.logics.processFlow.module.UBFSLMigrator&#x27;)</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a></span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>--获取默认启动关卡的任务流程</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>function UBFSLProcessFlowController:getDefaultStartLevelProcessCreateData()</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    if EnvUtil:isMiniGame() then</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>        return {</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>            name = &quot;启动关卡(小程序)&quot;,</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>            finProcessKey = UBFProcessNodeEnum.PROCESS_FLOW_FINISHED,</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>            processFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowMiniNormal&#x27;,</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>            dynamicProcessFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowDynamic&#x27;,</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>            migrator = migrator.normal,</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>        }</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>    end</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>    return {</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>        name = &quot;启动关卡&quot;,</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>        finProcessKey = UBFProcessNodeEnum.PROCESS_FLOW_FINISHED,</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>        processFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowNormal&#x27;,</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>        dynamicProcessFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowDynamic&#x27;,</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>        migrator = migrator.normal,</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>    }</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>end</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a></span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>--获取默认手动关卡的任务流程</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>function UBFSLProcessFlowController:getManualStartLevelProcessCreateData()</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>    return {</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>        name = &quot;启动关卡(强弹)&quot;,</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>        finProcessKey = UBFProcessNodeEnum.PROCESS_FLOW_FINISHED,</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>        processFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowManualPop&#x27;,</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>        migrator = migrator.normal,</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>    }</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>end</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a></span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>--获取重玩关卡启动流程</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>function UBFSLProcessFlowController:getRetryStartLevelProcessCreateData()</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>    return {</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>        name = &quot;重试关卡&quot;,</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>        finProcessKey = UBFProcessNodeEnum.PROCESS_FLOW_FINISHED,</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>        processFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowRetry&#x27;,</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>        dynamicProcessFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowDynamic&#x27;,</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>        migrator = migrator.normal,</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>    }</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>end</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a></span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>--精彩回放任务流程</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>function UBFSLProcessFlowController:getWonderfulReplayLevelProcessCreateData()</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>    return {</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>        name = &quot;精彩回放&quot;,</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>        finProcessKey = UBFProcessNodeEnum.PROCESS_FLOW_FINISHED,</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>        processFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowReplay&#x27;,</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>    }</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>end</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a></span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>-- 调试回放</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>function UBFSLProcessFlowController:getDebugReplayLevelProcessCreateData()</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>    return {</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>        name = &quot;调试回放&quot;,</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>        finProcessKey = UBFProcessNodeEnum.PROCESS_FLOW_FINISHED,</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>        processFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowReplay&#x27;,</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>    }</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>end</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a></span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>function UBFSLProcessFlowController:getResumeStartLevelProcessCreateData()</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>    return {</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>        name = &quot;闪退恢复&quot;,</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>        finProcessKey = UBFProcessNodeEnum.PROCESS_FLOW_FINISHED,</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>        processFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowResume&#x27;,</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>        migrator = migrator.resume,</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>    }</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>end</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a></span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>--获取编辑器启动关卡的任务流程</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>function UBFSLProcessFlowController:getEditorStartLevelProcessCreateData()</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>    return {</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>        name = &quot;编辑器关卡&quot;,</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>        finProcessKey = UBFProcessNodeEnum.PROCESS_FLOW_FINISHED,</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>        processFlowConfig = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.config.UBFStartLevelFlowEditor&#x27;,</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>    }</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>end</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a></span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>function UBFSLProcessFlowController:init(createData) </span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>	UBFProcessFlowController.init(self, createData)</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>    self:setResult(&quot;runtime&quot;, createData.runtime) -- 不一定开始就有</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>    --代码迁移听众</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>    local migrator = createData.migrator</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>    if migrator then </span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>        for key, func in pairs(migrator.after or {}) do</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>            self:after(key):next(function() func(self:getResult(&quot;runtime&quot;)) end)</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>        end</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>        for key, func in pairs(migrator.before or {}) do</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>            self:before(key):next(function() func(self:getResult(&quot;runtime&quot;)) end)</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>        end</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>    end</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>end</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a></span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>function UBFSLProcessFlowController:getProcessType()</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>    return UBFProcessTypeEnum.START_LEVEL</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>end</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a></span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>function UBFSLProcessFlowController:onEndLevelProcessFinish()</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>    self:operate(UBFProcessNodeEnum.RETRY_END, { isOver = true })</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>end</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a></span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>function UBFSLProcessFlowController:_end()</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>    UBFProcessFlowController._end(self)</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a></span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>    local runtime = self:getResult(&quot;runtime&quot;)</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>    runtime:cleanup()</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>    runtime:onProcessEnd()</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>end</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a></span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>function UBFSLProcessFlowController:_abort(node)</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>    UBFProcessFlowController._abort(self, node)</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a></span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>    local runtime = self:getResult(&quot;runtime&quot;)</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>    if not runtime then return end</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>    runtime:cleanup()</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>    runtime:onProcessEnd()</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>end</span></code></pre></main></body></html>

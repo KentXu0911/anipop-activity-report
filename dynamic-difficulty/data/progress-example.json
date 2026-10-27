@@ -1,0 +1,79 @@
+{
+  "status": "offline_formula_reproduction_not_runtime_observation",
+  "model_provenance": {
+    "source_member": "assets/resource/ubf/fuuuChart/v_0.de316026fcfa7be63b53e05dbf6229bc.fuuuV3Pack",
+    "kind": "fuuu",
+    "record_index": 428,
+    "record_offset": 140103,
+    "gzip_offset": 140109,
+    "next_record_offset": 140404,
+    "header_hex": "00d827010000",
+    "gzip_bytes": 295,
+    "json_bytes": 648,
+    "header_gzip_sha256": "fd723019676cc6e1cc6d9ade4c37d656cbad7f5f9ed7805bc8ba361988b76779",
+    "gzip_sha256": "a298bece284423fee3d32adb4f741a5e489d3ea665caa7b5d5d8a1b6728ad427",
+    "json_sha256": "8675ece88ccd395baa41d92c04f2619a3c686d8b9491d04ef4b135eb3cc35586",
+    "level_id": 9,
+    "uuid": null,
+    "uuid_version": null
+  },
+  "runtime_lookup": {
+    "uuid": 17942,
+    "tag": "UBFDefault",
+    "pack": "v_0",
+    "offset": 140103,
+    "display_level": 9
+  },
+  "hypothetical_inputs": {
+    "target_id": "105",
+    "collected": 10,
+    "used_steps": 10,
+    "static_steps": 22
+  },
+  "assumptions": [
+    "105 is the most lagging target; other targets are no further behind",
+    "No locked deviation, extra-step branch or independent stepFix override",
+    "Only the base ds stage is calculated; speed/defaultDsFix/remaining-step corrections are not applied",
+    "This does not show that level 9 or any account enables this policy"
+  ],
+  "interpolation": {
+    "scaled_value": 1045.4545454545455,
+    "left_point": [
+      7,
+      1031
+    ],
+    "right_point": [
+      8,
+      1136
+    ],
+    "equivalent_step": 7.137662337662338,
+    "lag": 2.862337662337662
+  },
+  "configuration_comparison": [
+    {
+      "diffFix": 7,
+      "lineFix": -5,
+      "fixed_lag": -2.137662337662338,
+      "currRate": -10,
+      "base_ds_before_other_corrections": -1
+    },
+    {
+      "diffFix": 0,
+      "lineFix": 0,
+      "fixed_lag": 2.862337662337662,
+      "currRate": 13,
+      "base_ds_before_other_corrections": 5
+    },
+    {
+      "diffFix": -16,
+      "lineFix": 9,
+      "fixed_lag": 11.862337662337662,
+      "currRate": 53,
+      "base_ds_before_other_corrections": 15
+    }
+  ],
+  "source_sha256": {
+    "ubf/UBFPlay/logics/progress/LevelProgressLogic.lua": "8bec3b1bd96dbe67d79c76baffcdf843fdd9e1c1d9f66547997c7e72600fb9f7",
+    "ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/ubfuuu/UBFuuuDiffLogic.lua": "39782bb84108ac9eb0b0f8fb94647ee82794b010c7dc329c6992ab66146d03b1"
+  }
+}

@@ -1,0 +1,102 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFSLResumeStartProcess.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFSLResumeStartProcess.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/processFlow/flowNode/UBFSLResumeStartProcess.lua<br>SHA-256 3cc452ed42b17b9d6793f8a2e43f59af151958984274e0db4f7cc5067f330903 · 102 行 · 恢复原文，未经改写</p><a href="UBFSLResumeStartProcess-ab3d6827.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>local UBFSLResumeStartProcess = class2(&quot;UBFSLResumeStartProcess&quot;, UBFProcessNode)</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a></span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>function UBFSLResumeStartProcess:doProcess()</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>    local runtime = self:get(&quot;runtime&quot;)</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>    local sectionData = runtime:getResumeData()</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>    local isDevSectionResume = sectionData and sectionData.devSectionResume == true</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a></span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    -- 再次更新断面数据</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    local sceneData = sectionData.section and sectionData.section.sceneData</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>    if sceneData then</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>        sceneData.resumeCount = (sceneData.resumeCount or 0) + 1</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>    end</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>	local levelInfo = sectionData.levelInfo</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>	if levelInfo then </span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>        levelInfo.resumeCount = (levelInfo.resumeCount or 0) + 1</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>	end</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>    if not isDevSectionResume then</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>        UBFSectionResumeHelper:syncClientSection(sectionData)</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    end</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a></span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>	-- 根据replay重置mod素材</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>	local modMgr = runtime:getModMgr()</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>	if modMgr:resumeGamePlayModList(levelInfo.modList) == false then</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>		return self:abort()</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>	end</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a></span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>	-- 开始恢复</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>    self:dispatchModEvent(UBFGameModEventEnum.START_RESUME)</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a></span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    local sceneData = sectionData.sceneData or {}</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>	local playId = runtime:getPlayId()</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>	local levelType = runtime:getLevelType()</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>	local levelScene = runtime:getLevelScene()</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a></span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>    local dcRequest = {</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>		actType = AcType.kExpire90Days,</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>		dcDatas = {</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>			category = &quot;crash_resume&quot;,</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>		    sub_category = &quot;crash_resume_end&quot;,</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>			meta_level_id = runtime:getLevelId(),</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>            t1 = 200,</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>            t2 = runtime:getLevelId(),</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>		    t3 = sectionData.currMoveCount or 0,</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>            t4 = runtime:getUid(), --UserManager:getInstance():getUID(),</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>            t5 = runtime:getUdid(), --MetaInfo:getInstance():getUdid() or &quot;hasNoUdid&quot;,</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>            t6 = runtime:getUid(),</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>            t7 = runtime:getUdid(),</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>            t8 = HeMathUtils:md5(tostring(playId)),</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>            t9 = nil,</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>		},</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>	}</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a></span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>    if not isDevSectionResume then</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>        local dcMgr = runtime:getDCMgr()</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>        dcMgr:dispatch(dcRequest):send(dcRequest)</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>    end</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a></span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>    -- TODO @tao.chen 看看还要不要，app上面有处理</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>    --mod预加载资源</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>	-- local modMgr = runtime:getModMgr()</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>	-- local modlist = levelInfo and levelInfo.modList or {}</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>	-- for k, modData in pairs(modlist) do</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>	-- 	local modClazz = modMgr.modClazzMap[modData.sourceId]</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>	-- 	local prepare = modClazz and modClazz:createModResPrepare(runtime)</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>	-- 	if prepare then</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>	-- 		local sceneReource = runtime:getSceneResourceMgr()</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>	-- 		sceneReource:setModPrepare(modData.sourceId, prepare)</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>	-- 	end</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>	-- end</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>    </span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>	-- DcUtil:crashResumeEnd( </span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>	-- 200 , </span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>	-- levelId ,</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>	-- curStep , </span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>	-- uid , </span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>	-- udid , </span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>	-- ubfResumeData:getUid() , </span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>	-- ubfResumeData:getUdid(), </span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>	-- md5str )</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a></span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>    -- send(AcType.kExpire90Days, {</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>	-- 	category = &quot;crash_resume&quot;,</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>	-- 	sub_category = &quot;crash_resume_end&quot;,</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>	-- 	meta_level_id = LevelMapNoCompatible.getInstance():getMetaLevelId(levelId),</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>	-- 	t1 = result,</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>	-- 	t2 = levelId,</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>	-- 	t3 = finSteps,</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>	-- 	t4 = selfUid,</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>	-- 	t5 = selfUdid,</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>	-- 	t6 = dataUid,</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>	-- 	t7 = dataUdid,</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>	-- 	t8 = md5,</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>	-- 	t9 = totalSteps,</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>	-- 	})</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a></span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>    self:success()</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>end</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a></span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>function UBFSLResumeStartProcess:doRevert()</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>end</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a></span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>return UBFSLResumeStartProcess</span></code></pre></main></body></html>

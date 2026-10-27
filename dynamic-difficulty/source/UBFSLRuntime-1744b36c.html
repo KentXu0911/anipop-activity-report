@@ -1,0 +1,530 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UBFSLRuntime.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>UBFSLRuntime.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/processFlow/module/UBFSLRuntime.lua<br>SHA-256 df9cb6690ddd204041f660bd27068bb585dc16fd0baa0e57258813eea61617d0 · 530 行 · 恢复原文，未经改写</p><a href="UBFSLRuntime-1744b36c.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>UBFSLRuntime = class2(&quot;UBFSLRuntime&quot;, UBFProcessRuntime)</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a></span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>UBFStartLevelType = {</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>	kCommon = 1,</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>	kAskForHelp = 2,</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>}</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a></span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>local function try_launch_lag_check()</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    xpcall(function()</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>		if UBFPlaySwitch:isGameOftenLagPlatform() and not _G.UBF_LAG_LOG_CHECKED_FLAG then</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>			_G.UBF_LAG_LOG_ENABLED = true</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>            _G.UBF_LAG_LOG_CHECKED_FLAG = true</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>            printx(21, &quot;卡顿检查开启&quot;)</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>		end</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>	end, debug.traceback)</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>end</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a></span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>function UBFSLRuntime:init(createData)</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    try_launch_lag_check()</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a></span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>    -- section create</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>    if createData.sectionData then </span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>        self:_buildCreateDataBySectionData(createData, createData.sectionData) </span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>    end</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a></span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>    -- parent init</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>    UBFProcessRuntime.init(self, createData)</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a></span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>    self.forceLuaGameLogic = createData.forceLuaGameLogic == true</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>    if self.forceLuaGameLogic then</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>        self.rustAvailable = nil</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>        self.so_rust = nil</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>    elseif _G.UBF_RUST_ALL_IN then</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>        self.rustAvailable = true</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>        self.so_rust = true</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>    else</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>        local _err</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>        if UBFPlaySwitch:isRustTestEnable() then </span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>            local ok, err = UBFPlaySwitch:isRustSupport(self.levelJsonData, self.levelId, self.levelScene, self.levelGroupInfo)</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>            if ok then </span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>                self.rustAvailable = true</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>                self.so_rust = {}</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>                -- math.randomseed(os.time())</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>                -- local randomPercent = UBFPlaySwitch:getRustRandomPercent()</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>                -- if math.random(100) &lt;= randomPercent then</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>                --     self.so_rust = {}</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>                -- else</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>                --     _err = 99</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>                -- end</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>            else</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>                _err = err</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>            end</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>        end</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a></span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>        --</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>--</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>--</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>--</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a></span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>    end</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>    </span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>    --mgr</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>    self.resMgr = UBFGameSceneResourceMgr:create()</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>    self.enterSourceHelper = require &quot;ubf.UBFGamePlayScene.logics.processFlow.module.UBFSLEnterSourceHelper&quot;</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a></span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>    --seed</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>    self.randomSeed = createData.randomSeed</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a></span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>    --replay</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>    self.replayLog = createData.replayLog</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>    self.wonderfulReplay = createData.wonderfulReplay</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>    if self.replayLog then</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>        if type(self.replayLog.gameUiVisualTuning) == &quot;table&quot; then</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>            local ok, helper = pcall(require, &quot;ubf.debug.wc.dev.GameUiVisualTuningHelper&quot;)</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>            if ok and helper and helper.restoreReplayData then</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>                pcall(helper.restoreReplayData, self.replayLog)</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>            end</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>        end</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>        self.playId = self.replayLog[UBFFastUseEnum.gameEnvKey].playId</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>		self.randomSeed = self.replayLog[UBFFastUseEnum.gameEnvKey].randomSeed</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>        local ver = self.replayLog.ver or 1</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>        if ver == 2 then </span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>            self.so_rust = true</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>            if not UBFPlaySwitch:isRustTestEnable() then </span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>                if not UBFPlaySwitch:isRustEnableInThisPlatform() then </span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>                    UError(&quot;当前平台不支持Rust回放&quot;)</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>                end</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>                UBFPlaySwitch.isRustTestSwitchEnable = function() return true end</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>                if not UBFRustManager then require &quot;ubf.UBFPlay.rust.UBFRustManager&quot; end</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>			    UBFRustManager:tryInit()</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>            end</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>        else self.so_rust = nil end</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>    elseif _G._UBF_GAME_UI_VISUAL_REPLAY_ACTIVE then</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>        local ok, helper = pcall(require, &quot;ubf.debug.wc.dev.GameUiVisualTuningHelper&quot;)</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>        if ok and helper and helper.clearReplayData then pcall(helper.clearReplayData) end</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>    end</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>    </span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>    --section</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>    self.resumeData = createData.sectionData</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a></span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>    if self.resumeData then </span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>        local sectionData = self.resumeData</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>        local levelInfo = sectionData.levelInfo</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>        self.playId = sectionData.playId</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>        self.startTime = levelInfo.startTime</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a>        self.startLevelType = levelInfo.startLevelType or UBFStartLevelType.kCommon</span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>    else</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>        --playId</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>        self.playId = self.playId or createData.playId</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>        if not self.playId then </span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>            if self.editorMode or self._isInAIEnv then self.playId = &quot;develop&quot;</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a>            else UBFThrow &quot;找不到playId&quot; end</span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>        end</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a></span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>        --start time</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>        self.startTime = createData.startTime or Localhost:timeInSec()</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a></span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>        --other </span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>        self.startLevelType = createData.startLevelType or UBFStartLevelType.kCommon</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>    end</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a></span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>    -- TODO @gang.niu 从小游戏端迁过来的，只迁了这个字段，相关逻辑有待确认和迁移</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>    --连闯模式</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>    self.continuePlayMode = createData.continuePlayMode</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a></span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>    self.retryData = createData.retryData</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>    self.lastElRuntime = createData.lastElRuntime</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>    self.ai_actDataMap = createData.ai_actDataMap</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>    self.featureManager = nil --外部赋值</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a></span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>    self:_postInit()</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a></span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>    self:initLevelFarmingType(createData)</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a></span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>    self.enteringLevel = false</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a></span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>    self.UBFuuuAdjustLogic = UBFuuuSLRuntimeAdjustLogic.new()</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>end</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a></span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>function UBFSLRuntime:getLevelId()</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>    return self.levelId</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>end</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a></span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a>function UBFSLRuntime:getLevelScene()</span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>    return self.levelScene</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>end</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a></span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>function UBFSLRuntime:getLevelGroupInfo()</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>    return self.levelGroupInfo</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>end</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a></span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>function UBFSLRuntime:isInRust()</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>    return self.so_rust and true or false</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>end</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a></span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>function UBFSLRuntime:inContinuePlayMode()</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>    return self.continuePlayMode</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>end</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a></span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a>function UBFSLRuntime:_buildCreateDataBySectionData(createData, sectionData)</span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>    local levelInfo = sectionData.levelInfo</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>    createData.levelId = levelInfo.levelId</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>    createData.levelScene = levelInfo.levelScene</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>    createData.levelGroupInfo = levelInfo.levelGroupInfo</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>    -- dev 断面恢复：Editor 关卡不在关卡配置表里，用归档中保存的关卡配置兜底（见 UBFDebugSectionResume）</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>    if sectionData.devSectionResume == true and type(sectionData.devEditorLevelCfg) == &quot;table&quot; then</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>        createData.levelCfg = sectionData.devEditorLevelCfg</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>        createData.editorMode = true</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>    else</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>        createData.levelCfg = UBFLevelConfigManager:getLevelConfigByUUID(levelInfo.uuid)</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a>    end</span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>end</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a></span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>function UBFSLRuntime:_postInit()</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>    --migrator</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a>    self.migrator = require &#x27;ubf.UBFGamePlayScene.logics.processFlow.module.UBFSLMigrator&#x27;</span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>    self:registerListenerByMap(self.migrator.gListener)</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a></span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>    --init other</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>    if self.resumeData then</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>        -- 闪退恢复</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>        self:_initOtherByResumeData(self.resumeData)</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>    elseif self.replayLog then</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>        -- 回放</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>        self:_initOtherByReplayData(self.replayLog)</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>    elseif self.editorMode then</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>        -- 编辑器 </span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>        self:_initOtherOnEditor()</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>    elseif self:isAIMode() then</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>        -- AI</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>        self:_initOtherOnEditor()</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>    else</span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>        -- 正常进关</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>        self:_initOtherByEnv()</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>    end</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>end</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a></span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>function UBFSLRuntime:_initOtherByReplayData(replayLog)</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>    local gEnv = replayLog.gEnv</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>    self.oldScore = gEnv.score</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>    self.oldStar = gEnv.oldStar</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>    self.uid = gEnv.uid</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>	self.udid = gEnv.uuid</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>	self.topLevelId = gEnv.topLevelId</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>    self.topPassedLevelId = gEnv.topPassedLevelId or 0</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>    self.curMd5 = gEnv.curMd5</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>end</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a></span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>function UBFSLRuntime:_initOtherByResumeData(resumeData)</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>    local levelInfo = resumeData.levelInfo</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>    self.so_rust = levelInfo.so_rust or nil</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>    self._resumeMode = true</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>    self.replayLog = resumeData.replayLog</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>	self.topLevelFailCount = levelInfo.topLevelFailCount</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>    self.oldScore = levelInfo.score or 0</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>    self.oldStar = levelInfo.star or 0</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>    self.scoreRefIsNil = levelInfo.scoreRefIsNil</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>    self.uid = levelInfo.uid</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>	self.udid = levelInfo.udid or &quot;hasNoUdid&quot;</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>	self.topLevelId = levelInfo.topLevelId</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>    self.topPassedLevelId = levelInfo.topPassedLevelId</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>    self.ubfGroupStr = levelInfo.ubfGroupStr</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>    self.curMd5 = levelInfo.curMd5</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>    self.jumpLevelCount = levelInfo.jumpLevelCount</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>    self.aiIHelpLevel = false</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>    self.passedLevel = levelInfo.passedLevel</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>    self.askerUid = levelInfo.askerUid</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>    self.userStars = levelInfo.userStars</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>    self.levelScene = levelInfo.levelScene or self.levelScene</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>    self.levelType = levelInfo.levelType or self.levelType</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>    self.outLevelAttachData = levelInfo.outLevelAttachData</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>    self.serverTopLevel = levelInfo.serverTopLevel or 0</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>    self.playLevelModeType = levelInfo.playLevelModeType</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>end</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a></span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>function UBFSLRuntime:_initOtherByEnv()</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>    -- todo 这种获取是外部设置还是使用UBFGameEnv?，直接获取不是个好方法！</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>    -- todo 另外考虑弄一些二级数据集合，都放到一级太多了可能会重</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>    self.topLevelFailCount = _G.amfBean(&quot;LevelAreaManager&quot;):getTopLevelFailCount()</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>    self.topLevelWinCount = _G.amfBean(&quot;LevelAreaManager&quot;):getTopLevelWinCount()</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>    self.isFullStarRecommendLevel = _G.amfBean(&quot;FarmLevelManager&quot;):isLevelAvaliable(self.levelId, self.levelScene)</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>    self.fsllInfo = _G.amfBean(&quot;FullStarLevelLibManager&quot;):getInLevelActData(self.levelId)</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>    self.serverTopLevel = _G.amfBean(&quot;LevelUnLockManager&quot;):getUserMaxLevelId()</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>    self.playLevelModeType = UBFActHelper:getPlayLevelModeType2(self.levelId, self.levelScene)</span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a></span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>    local scoreRef = UserManager:getInstance():getUserScore(self.levelId, self.levelScene)</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>    if scoreRef then </span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>    	self.oldScore = scoreRef.score or 0</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>	    self.oldStar = scoreRef.star or 0</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>        self.scoreRefIsNil = false</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>    else</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>        self.oldScore = 0</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>        self.oldStar = 0</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>        self.scoreRefIsNil = true</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>    end</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>    self.uid = UserManager:getInstance():getUID()</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>	self.udid = MetaInfo:getInstance():getUdid() or &quot;hasNoUdid&quot;</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>	self.topLevelId = UserManager:getInstance().user:getTopLevelId()</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>    self.topPassedLevelId = _G.amfBean(&quot;LevelAreaManager&quot;):getTopPassedLevel()</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>    self.ubfGroupStr = UserManager:getInstance():getUBFGroupStr()</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>    self.curMd5 = ResourceLoader.getCurVersion()</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>    self.jumpLevelCount = _G.amfBean(&quot;JumpLevelManager&quot;):getLevelPawnNum(self.levelId) or 0</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>    self.aiIHelpLevel = UserManager:getInstance():getIsAIHelpLevel(self.levelId)</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>    self.passedLevel = UserManager:getInstance():hasPassedLevel(self.levelId, self.levelScene)</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>    self.passedLevelEx = UserManager:getInstance():hasPassedLevelEx(self.levelId, self.levelScene)</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>    self.askerUid = _G.amfBean(&quot;AskForHelpManager&quot;):getDoneeUId()</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>   </span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>    local userMgr = _G.amfBean(&quot;UserManager&quot;)</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>    self.userStars = {</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>        totalTrunkStar = userMgr:getStar(),</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>        totalHideStar = userMgr:getHiddenStar(),</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>        colorfulStar = userMgr:getColorfulStar(),</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>    }</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>end</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a></span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>function UBFSLRuntime:_initOtherOnEditor()</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>    self.topLevelFailCount = 0</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>    self.topLevelWinCount = 0</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>    self.oldScore = 0</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>    self.oldStar = 0</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>    self.scoreRefIsNil = true</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>    self.uid = getSafeUid()</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>	self.udid = MetaInfo:getInstance():getUdid() or &quot;hasNoUdid&quot;</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>	self.topLevelId = 0</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>    self.topPassedLevelId = 0</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>    self.ubfGroupStr = &quot;&quot;</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>    self.curMd5 = ResourceLoader.getCurVersion()</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>    self.jumpLevelCount = 0</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>    self.aiIHelpLevel = false</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>    self.passedLevel = false</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>    self.passedLevelEx = false</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>    self.isFullStarRecommendLevel = false</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>    self.serverTopLevel = 0</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>    self.playLevelModeType = UBFActPlayLevelMode.TOP</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>end</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a></span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a>function UBFSLRuntime:onLoadResourceFail()</span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>    UBFProcessManager:showResourceLoadFailMessage()</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>end</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a></span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>function UBFSLRuntime:initLevelFarmingType(data)</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>    local levelId = self.levelId</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>    local levelType = self.levelType</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>    local topLevelId = self.topLevelId</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>    local oldStar = self.oldStar or 0</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a></span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>    if levelType == GameLevelType.kMainLevel then</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>        if oldStar &gt;= 4 then</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>            self.levelFarmingType = UBFLevelFarmingType.FARM_SCORE</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>        elseif oldStar &gt; 0 then</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>            self.levelFarmingType = UBFLevelFarmingType.FARM_STAR</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>        else</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>            if levelId == topLevelId then</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>                self.levelFarmingType = UBFLevelFarmingType.NORMAL</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>            else</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>                self.levelFarmingType = UBFLevelFarmingType.FARM_STAR</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>            end</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>        end</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>    elseif levelType == GameLevelType.kHiddenLevel then</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>        if oldStar &gt;= 3 then</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>            self.levelFarmingType = UBFLevelFarmingType.FARM_SCORE</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>        elseif oldStar &gt; 0 then</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>            self.levelFarmingType = UBFLevelFarmingType.FARM_STAR</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>        else</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>            self.levelFarmingType = UBFLevelFarmingType.NORMAL</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>        end</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>    else</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a>        self.levelFarmingType = UBFLevelFarmingType.NORMAL</span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>    end</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a></span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>end</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a></span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>--------------------****** *↓* ******--------------------</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>--					 外部逻辑 修改业务共享数据</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>--------------------****** *↑* ******--------------------</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a></span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a></span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>--[[</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a>-- 更新连胜信息。</span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>-- 如果你是一个连胜类的功能，调用此接口，声明你的连胜状态；后续mod可能基于你状态执行不同的逻辑分支</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>-- sourceName，来源名称，标识谁在调用此接口，打点用。活动的话默认传actId</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>-- winningStreakInfo 格式如下：</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>-- {</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>        modSourceId = 0,                                                    --[必需]</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>        winningStreakCount = 0,                                             --[必需]</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>        logicTypeMap = {                                                    --[必需]</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>            [UBFWinningStreakLogicType.kAddScore] = true,</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>            [UBFWinningStreakLogicType.kAddEffectOnBoard] = true,</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>        },              </span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>        datas = nil,                                                        --[可选]</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>    }</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>--]]</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>function UBFSLRuntime:updateWinningStreakInfo(sourceName, winningStreakInfo)</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>    if not self.enabledWinningStreak then</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>        self.enabledWinningStreak = {}</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>    end</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a></span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>    if winningStreakInfo then</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>        winningStreakInfo.sourceName = sourceName</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>        table.insert( self.enabledWinningStreak, winningStreakInfo )</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>    end</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>end</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a></span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>-- 获取本次进关流程中的连胜信息。注意：返回调用时的连胜状态，调用时机不同，结果可能不同</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>function UBFSLRuntime:getWinningStreakInfo()</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>    return self.enabledWinningStreak</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>end</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a></span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>--------------------****** *↓* ******--------------------</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>--					 状态模式判断</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>--------------------****** *↑* ******--------------------</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a></span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>--专门指代精彩回放(回放)</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>function UBFSLRuntime:isReplayMode()</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>    return self.replayLog ~= nil</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>end</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a></span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>--是否为恢复模式</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>function UBFSLRuntime:isResumeMode() </span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>    return  self._resumeMode and self.resumeData</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>end</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a></span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>--是否为断面恢复</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>function UBFSLRuntime:isSectionResume() </span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>    return self:isResumeMode() and self.replayLog == nil</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>end</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a></span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a>--是否为回放恢复</span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>function UBFSLRuntime:isReplayResume() </span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>    return self:isResumeMode() and self.replayLog ~= nil</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>end</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a></span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>function UBFSLRuntime:isAskForHelp()</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>    return self:getStartLevelType() == UBFStartLevelType.kAskForHelp</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>end</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a></span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>function UBFSLRuntime:isJumpedLevel()</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>    return self.jumpLevelCount &gt; 0</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>end</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a></span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a>function UBFSLRuntime:isAIHelpedLevel()</span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>    return self.aiIHelpLevel</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>end</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a></span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>function UBFSLRuntime:isPassedLevel()</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>    return self.passedLevel</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>end</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a></span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>-- 是否已过关（跳关代打也算）</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>function UBFSLRuntime:isPassedLevelEx()</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>    return self.passedLevelEx</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>end</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a></span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>-- 重玩状态，包含打关失败后的重玩，和未失败前玩家主动唤起的重玩</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>function UBFSLRuntime:isRetry()</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>    return self.retryData ~= nil</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>end</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a></span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>-- 玩家主动唤起的重玩（点击唤起重玩面板），此时打关还没有失败</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a>function UBFSLRuntime:isRetryBeforeFail()</span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>    if self.retryData then</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>        if self.retryData.failReason == UBFGameFailReason.kRetry then</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>            return true</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a>        end</span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>    end</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>    return false</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>end</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a></span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>-- 打关失败后的重玩</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>function UBFSLRuntime:isRetryAfterFail()</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>    if self.retryData then</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>        if self.retryData.failReason ~= UBFGameFailReason.kRetry then</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>            return true</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>        end</span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>    end</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>    return false</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>end</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a></span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>function UBFSLRuntime:getLevelFarmingType()</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>    return self.levelFarmingType</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>end</span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a></span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>function UBFSLRuntime:isEnteringLevel()</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>    return self.enteringLevel</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>end</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a></span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>function UBFSLRuntime:isFirstPlay()</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>    local isFirstPlay = UBFActHelper:ubfCheckIsFirstPlay(self.levelId, self.topLevelFailCount, self.levelScene)</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>    return isFirstPlay</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>end</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>--------------------****** *↓* ******--------------------</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>--					   信息获取</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>--------------------****** *↑* ******--------------------</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a></span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a></span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>function UBFSLRuntime:getPlayId() return self.playId end</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a></span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>function UBFSLRuntime:getProcessType() return UBFProcessTypeEnum.START_LEVEL end</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>function UBFSLRuntime:getStartLevelType() return self.startLevelType end</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a>function UBFSLRuntime:getOldScore() return self.oldScore end</span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>function UBFSLRuntime:getOldStar() return self.oldStar end</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>function UBFSLRuntime:getAdjustData() return self.adjustData end</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>function UBFSLRuntime:getDCData() return self.dcData end</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>function UBFSLRuntime:getEnableFuuuGraph() return self.adjustData ~= nil or self.useFuuuGraph or self:isAIMode() end</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>function UBFSLRuntime:getFuuuGraph()</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>    if self.fuuuGraphV3 then return  self.fuuuGraphV3 end</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a>    return self.fuuuGraph</span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>end</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>function UBFSLRuntime:getStartTime() return self.startTime end</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a>function UBFSLRuntime:getUserTopLevel() return self.topLevelId end</span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>function UBFSLRuntime:getUserTopPassedLevel() return self.topPassedLevelId end</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>function UBFSLRuntime:getScoreRefIsNil() return self.scoreRefIsNil end </span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>function UBFSLRuntime:getAskerUid() return self.askerUid end</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>function UBFSLRuntime:getFakeMetalLevelId()</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>    local group = UBFPlaySwitch:getLevelGroup(self.levelId, self.levelScene)</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>    if group == &quot;default&quot; then return 2000050 + self.levelId * 100 end</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>    return 2000051 + self.levelId * 100</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>end</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>function UBFSLRuntime:getResumeData() return self.resumeData end</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a></span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>function UBFSLRuntime:getEnterSourceHelper() </span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>    return self.enterSourceHelper </span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>end</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a></span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>-- NOTE 这两纯粹为了兼容旧代码，新的代码别用了</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>function UBFSLRuntime:getStartSource() return self.startSource end</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a>function UBFSLRuntime:getDetailPanelParams() return self.detailPanelParams end</span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a></span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>function UBFSLRuntime:getRetryData() return self.retryData end</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>function UBFSLRuntime:getLastElRuntime() return self.lastElRuntime end</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>function UBFSLRuntime:getStageState()</span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>    if self.levelType == GameLevelType.kMainLevel then</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>        if self.passedLevel then return 2 end</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>        if self.scoreRefIsNil then return 0 end</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>        return 1</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>    end</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>    return nil</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>end</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a></span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>function UBFSLRuntime:getTopLevelWinCount()</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>    return self.topLevelWinCount    </span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>end</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>function UBFSLRuntime:getTopLevelFailCount()</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>    return self.topLevelFailCount    </span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>end</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a></span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>function UBFSLRuntime:getServerTopLevel()</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>    return self.serverTopLevel    </span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>end</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>-- 此处是细分打关模式，见UBFActHelper:getPlayLevelModeType2(levelId, levelScene)</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>function UBFSLRuntime:getPlayLevelMode()</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>    return self.playLevelModeType    </span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>end</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a></span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>--是否为刷分推荐关,关卡外在收到startLevel时就把刷分次数会+1了，导致后面LOAD_MOD会再次调用checkModIsEnabled，这时候通用的刷分判断就通不过了</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>function UBFSLRuntime:isFullStarLevelRecommended()</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>    return self.isFullStarRecommendLevel</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>end</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>--------------------****** *↓* ******--------------------</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>--					   设置获取</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>--------------------****** *↑* ******--------------------</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a></span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>function UBFSLRuntime:setFuuuGraph(fuuuGraph) self.fuuuGraph = fuuuGraph end</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>function UBFSLRuntime:setFuuuGraphV3(fuuuGraph) self.fuuuGraphV3 = fuuuGraph end</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>function UBFSLRuntime:setOutLevelAttachData(key, val) </span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>    if not self.outLevelAttachData then self.outLevelAttachData = {} end</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a>    self.outLevelAttachData[key] = val</span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>end</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>function UBFSLRuntime:setOldStar(oldStar) self.oldStar = oldStar end</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>function UBFSLRuntime:setProphet(key) self.rustProphetKey = key end</span></code></pre></main></body></html>

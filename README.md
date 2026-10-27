@@ -31,3 +31,7 @@ anipop-activity-report/
 ## 本地浏览方式
 
 直接在浏览器中打开 `index.html` 即可完整浏览全部章节、架构图表与源码链接（无需依赖任何服务端环境）。
+
+## 专题报告
+
+- 动态难度专题报告：<https://kentxu0911.github.io/anipop-activity-report/dynamic-difficulty/>；包含客户端执行链、付费/活跃/回流分层、配置复算、补棋影响和服务端边界。

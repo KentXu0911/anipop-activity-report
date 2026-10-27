@@ -1,0 +1,774 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LevelProgressLogic.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>LevelProgressLogic.lua</h1><p class="src-meta">ubf/UBFPlay/logics/progress/LevelProgressLogic.lua<br>SHA-256 8bec3b1bd96dbe67d79c76baffcdf843fdd9e1c1d9f66547997c7e72600fb9f7 · 774 行 · 恢复原文，未经改写</p><a href="LevelProgressLogic-868e5afa.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>-- 计算关卡进度</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>LevelProgressLogic = {}</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>local LEVEL_GAP = 500</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a>local GROUP_NAMES = {&quot;mean&quot;,&quot;median&quot;}</span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a></span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>-- linspace 函数，用于生成等间隔的数值</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>local function linspace(start, stop, num)</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    local t = {}</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    if num &lt;= 0 then</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>        return t</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>    end</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>    local step = (stop - start) / (num - 1)</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>    t[0] = 0</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>    t[1] = 0</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>    for i = 1, num - 1 do</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>        -- table.insert(t, start + i * step)</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a>        t[i+1] = start + i * step</span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>    end</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>    return t</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a>end</span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a></span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>-- 根据配置，输入收集物数量，计算权重，返回当前进度百分比</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>local function make_predict_v1(meta)</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>    -- print(&quot;make_predict meta:&quot;,tts(meta))</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>    local model, weights = meta.model, meta.weights</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>    if not meta.weights then</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>        return function() return end</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>    end</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>    if not meta._initV1 then</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a>        meta._initV1 = true</span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a>        -- print(&quot;model&quot;,tts(model),&quot;weights&quot;,tts(weights))</span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>        local total_weight = 0</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>        for _, w in pairs(weights) do</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>            total_weight = total_weight + w</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>        end</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>        -- print(&quot;meta&quot;,table.serialize(meta))</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a>        local maxStep = 0</span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>        for k,v in pairs(model) do</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>            local keys = {}</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>            local map = {}</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a>            for kk, vv in pairs(v) do</span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>                map[tonumber(kk)] = vv</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>                table.insert(keys,tonumber(kk))</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a>            end</span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>            table.sort(keys)</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>            maxStep = math.max(maxStep,keys[#keys])</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>            map._keys = keys</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>            model[k] = map</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>        end</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a>        meta.maxStep = maxStep</span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>        meta.linspace = linspace(0, 1, meta.maxStep + 1)</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>    end</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>    -- 创建一个预测函数，基于给定的模型和权重。</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a></span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>    -- 获取模型的行数（假设所有列的长度相同）</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a>    local index_normalized =  meta.linspace</span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>    -- print(&#x27;meta.maxStep&#x27;,meta.maxStep,&quot;index_normalized&quot;,tts(index_normalized))</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>    local scaler = meta[&#x27;scaler&#x27;] or 1</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a></span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>    return function(x, step , static_step)</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a>        -- 根据输入值和步长计算进度值。</span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>        local progress = 0</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>        local tMap = {}</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>        for target_id, value in pairs(x) do</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>            -- 按照步数增加 target_value 值, step 是 [0, 1] 之间的值</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a>            value = math.max(value + 1 + step / static_step, 0) * scaler</span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>            -- print(&quot;value&quot;,value)</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a></span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>            -- 获取对应目标 ID 的列名</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>            local column_name = tostring(target_id)</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a></span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>            if not model[column_name] then</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a>                error(&quot;Target ID &quot; .. target_id .. &quot; not in model&quot;)</span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>            end</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a></span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>            -- 获取目标列的值</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a>            local column_values = model[column_name]</span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>            -- print(&quot;column_values&quot;,target_id,tts(column_values))</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>            local keys = column_values._keys</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>            -- print(&quot;keys&quot;,tts(keys))</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a>            -- 找到给定值所在的区间，并计算归一化后的索引值</span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>            for i = 1,  #keys-1 do</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a>                if column_values[keys[i]] &lt;= value and value &lt;= column_values[keys[i + 1]] then</span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>                    -- 线性插值计算归一化索引值</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>                    local t = (value - column_values[keys[i]]) / (column_values[keys[i + 1]] - column_values[keys[i]])</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a>                    -- print(&quot;t&quot;,t,i,&quot;keys?:&quot;,keys[i],keys[i+1],&quot;in:&quot;,index_normalized[keys[i]],index_normalized[keys[i+1]])</span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>                    local target_progress = index_normalized[keys[i]] + t * (index_normalized[keys[i+1]] - index_normalized[keys[i]])</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>                    progress = progress + target_progress * weights[column_name]</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>                    tMap[target_id] = &quot;v:&quot; .. value .. &quot; in:(&quot; .. column_values[keys[i]] .. &quot;/&quot; .. column_values[keys[i+1]] .. &quot;) t:&quot; .. target_progress .. &quot; w:&quot; .. weights[column_name] .. &quot; p:&quot; .. progress </span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a>                    break</span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>                end</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a>            end</span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>            -- 如果值超出范围，使用最近的端点</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>            -- print(&quot;value &lt; column_values[1]&quot;,value , column_values[1],column_name,tts(column_values))</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>            if value &lt; column_values[keys[1]] then</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>                progress = progress + index_normalized[1] * weights[column_name]</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>            elseif value &gt; column_values[keys[#keys]] then</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a>                progress = progress + index_normalized[#index_normalized] * weights[column_name]</span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>            end</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>        end</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a></span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>        -- print(&quot;make_predict_v1 tMap&quot;,progress,tts(tMap))</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>        return progress</span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>    end</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>end</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a></span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a>--根据配置，输入收集物数量，返回每个收集物折算的步数</span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>local function make_predict_v2(config,errorlog)</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>    local model = config[&#x27;model&#x27;]</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a>    local level_id = config[&#x27;level_id&#x27;] or 0</span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>    local scaler = config[&#x27;scaler&#x27;] or 1</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a></span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>    local function predict(x, current_step, static_step)</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>        if current_step &gt; static_step then</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>            if errorlog then</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a>                errorlog(string.format(&quot;Level %d Current step %d is greater than static step %d&quot;, level_id, current_step, static_step))</span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>            end</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>            current_step = static_step</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>        end</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>        if current_step &lt; 0 then</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a>            if errorlog then</span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a>                errorlog(string.format(&quot;Level %d Current step %d is less than 0&quot;, level_id, current_step))</span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>            end</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>            current_step = 0</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>        end</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a>        if static_step &lt; 0 then</span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>            if errorlog then</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>                errorlog(string.format(&quot;Level %d Static step %d is less than 0&quot;, level_id, static_step))</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a>            end</span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>            static_step = math.min(current_step, 20)</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>        end</span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>        if static_step == 0 then</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>            if errorlog then</span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>                errorlog(string.format(&quot;Level %d Static step %d is 0 and cannot be used as divisor&quot;, level_id, static_step))</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a>            end</span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>            static_step = 20</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a>        end</span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>        if config[&#x27;steps&#x27;] and config[&#x27;steps&#x27;] ~= static_step then</span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>            if errorlog then</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>                errorlog(string.format(&quot;Level %d Static step %d is not equal to config step %d&quot;, level_id, static_step, config[&#x27;steps&#x27;]))</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>            end</span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>            static_step = config[&#x27;steps&#x27;]</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>        end</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a></span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>        local step_adjust = current_step / static_step</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>        local result = {}</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>        -- local tMap = {}</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a></span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>        for target_id, target_values in pairs(model) do</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>            local sorted_items = {}</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>            for k, v in pairs(target_values) do</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>                if tonumber(k) then</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>                table.insert(sorted_items, {tonumber(k), math.max(v, 0)})</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>                end</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>            end</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>            table.sort(sorted_items, function(a, b) return a[1] &lt; b[1] end)</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a></span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a>            local indices = {}</span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>            local values = {}</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a></span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>            for _, item in ipairs(sorted_items) do</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>                table.insert(indices, item[1])</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>                table.insert(values, item[2])</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>            end</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a></span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>            -- 将 target value 已经达到最大值的情况, 直接返回最大值的索引</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>            -- print(&quot;x[tonumber(target_id)?&quot;,tts(x),target_id,scaler,tts(values))</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>            if (x[tonumber(target_id)] + 1) * scaler &gt;= values[#values] then</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>                result[target_id] = indices[#indices]</span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>            else</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a></span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>                if indices[1] ~= 0 then</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>                    table.insert(indices, 1, 0)</span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>                    table.insert(values, 1, 0)</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>                end</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a></span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>                local value = math.max(x[tonumber(target_id)] + step_adjust, 0) * scaler</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a></span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>                for i = 1, #values - 1 do</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a>                    if values[i] &lt;= value and value &lt;= values[i + 1] then</span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>                        if values[i] == values[i + 1] then</span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>                            result[target_id] = indices[i]</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>                            break</span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>                        end</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>                        local t = (value - values[i]) / (values[i + 1] - values[i])</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>                        local target_progress = indices[i] + t * (indices[i + 1] - indices[i])</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>                        result[target_id] = target_progress</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>                        -- tMap[target_id] = &quot;v:&quot; .. value .. &quot; in:(&quot; .. values[i] .. &quot;/&quot; .. values[i+1] .. &quot;) t:&quot; .. target_progress </span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>                        break</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>                    end</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>                end</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a></span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a>                if not result[target_id] then</span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>                    if value &lt; values[1] then</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a>                        result[target_id] = indices[1]</span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>                    elseif value &gt; values[#values] then</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>                        result[target_id] = indices[#indices]</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>                    end</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a>                end</span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>            end</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>        end</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>        -- print(&quot;tMap&quot;,tts(tMap))</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a></span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>        return result</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>    end</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a></span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a>    return predict</span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>end</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a></span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a></span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>-- 返回num，当前进度百分比</span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>function LevelProgressLogic:getProgressV1(levelId,curTargetMap,step,staticMove,meta)</span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>    if not levelId and self._lastInfo then</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>        levelId = self._lastInfo.levelId</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>        curTargetMap = self._lastInfo.curTargetMap</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>        step = self._lastInfo.step</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>        staticMove = self._lastInfo.staticMove</span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>        meta = self._lastInfo.meta</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a>    end</span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>    local fn = make_predict_v1(meta)</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>    local progress = fn(curTargetMap,step,staticMove)</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>    return progress</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>end</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a></span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>function LevelProgressLogic:getProgressByProgressData(levelId,progressData,step,staticMove,meta)</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>    local progress = {}</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>    local errLogs = {}</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>    local targetIds = {}</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a>    local targetValues = {}</span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a>    local curTargetMap = {}</span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a></span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>    if meta.autoData then</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>        for k,v in pairs( meta.progressData ) do</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>            if v.tv and v.tv &gt; 0 then</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>                progress[tostring(v.id)] = step * v.cv / v.tv</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>            end</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>        end</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>    else</span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>        -- do return 0 end</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>        -- local meta = self:getMetaData(levelId)</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>        -- if not meta then</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>        --     return</span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>        -- end</span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>    </span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>        -- print(&quot;progressData&quot;,tts(progressData))</span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>        </span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>        </span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>        for i, id in ipairs(meta.targets) do</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>            id = tonumber(id)</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>            for _ , vv in ipairs( progressData ) do</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>                if vv.id == id then</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>                    curTargetMap[id] = vv.cv</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a>                end</span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>            end</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>            table.insert(targetIds,id)</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>            table.insert(targetValues,curTargetMap[id] or 0)</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a></span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>            -- print(&quot;i-&quot;,i, id,curTargetMap[id],curTargetMap[1])</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a></span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a>            if not curTargetMap[id] then</span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>                local curIds = {}</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>                for _ , vv in pairs( progressData ) do</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>                    table.insert(curIds,vv.id)</span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>                end</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>                curTargetMap[id] = 0</span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>                local str = &quot;progressPredict not find target id &quot;..id .. &quot; in &quot;..table.serialize(curIds)</span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>                print(str)</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>                -- he_log_error(curTargetMap[i],str)</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>            end</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>            -- print(&quot;i+&quot;,i, id,curTargetMap[id],curTargetMap[1])</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>        end</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>        -- print(&quot;curTargetMap&quot;,tts(curTargetMap),tts(meta.targets),step)</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a>        local function errorLogHandler(msg)</span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>            local fullMsg = msg .. &quot;.level:&quot;..levelId .. &quot; step:&quot;..step .. &quot;/&quot;..staticMove </span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>            table.insert(errLogs,fullMsg)</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>        end</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>        local fn = make_predict_v2(meta,errorLogHandler)</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>        -- local stepPercent = math.min(step/staticMove,1)</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>        progress = fn(curTargetMap,step,staticMove)</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>        -- print(&quot;getProgressByProgressData&quot;,progress,levelId)</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>    end</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>    </span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>    local result = {}</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>    result.progress = progress</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>    result.errLogs = errLogs</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>    result.debugData = {targetIds = targetIds, targetValues = targetValues}</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>    self._lastInfo = {</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>        levelId = levelId,</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>        progressData = progressData,</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a>        curTargetMap = curTargetMap,</span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>        step = step,</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>        staticMove = staticMove,</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>        meta = meta</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>    }</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a>    return result</span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>end</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a></span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>function LevelProgressLogic:getPackPath(key)</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>    if _G.UBF_NO_REQUIRE_LUA_GAME_CORE then </span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a>        local function read(path)</span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>            return UBFLVResourceManager:loadJsonResource(path)</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>        end</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>        if not self._infoData then</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>            self._infoData = read(&quot;ubf/rust/level_pack/level_fuuu_info.json&quot;)</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>            local updateData = read(&quot;ubf/rust/level_pack/level_fuuu_info_update.json&quot;)</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>            for key, config in pairs(updateData) do self._infoData[key] = config end</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>        end</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>        local metaInfo = self._infoData[key]</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>        if not metaInfo then</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a>            return nil</span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>        end</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>        local path = string.format(&quot;ubf/fuuuChart/%s.fuuuV3Pack&quot;, metaInfo[1])</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>        return path</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>    end</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a></span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>    if not self._infoData then</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a>        self._infoData = require(&quot;ubf.UBFPlay.logics.progress.offset.UBFuuuV3Info&quot;)</span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>        local updateData = require(&quot;ubf.UBFPlay.logics.progress.offset.UBFuuuV3Info_update&quot;)</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>        for key, config in pairs(updateData) do self._infoData[key] = config end</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>    end</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>    local metaInfo = self._infoData[key]</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>    if not metaInfo then</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>        return nil</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>    end</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>    local path = string.format(&quot;ubf/fuuuChart/%s.fuuuV3Pack&quot;, metaInfo[1])</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>    return path</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>end</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a></span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>function LevelProgressLogic:getPackPathByLevelId(levelId, levelScene)</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>    local levelKeyData = UBFLevelIdUtil:createLevelKeyDataWithAutoLevelGroup(levelId, levelScene)</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>    local ret, meetGroup, uuid = levelKeyData:fallback()</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>    local rule = UBFLevelConfigManager:getLevelGroupRuleByGroupName(meetGroup, levelScene)</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>    local tag = rule and rule.fuuuGraphV3</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>    local key = string.format(&quot;%s,%s&quot;, uuid, tag)</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a>    local result = LevelProgressLogic:getPackPath(key)</span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>    -- UWarning(&quot;LevelProgressLogic:getPackPathByLevelId&quot;,result,levelId,levelGroup,uuid,meetGroup,tts(rule))</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>    return result</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>end</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a></span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>function LevelProgressLogic:_getMetaDataFromPackByKey(uuid,tag)</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>    self._metaMap = self._metaMap or {}</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>    local key = string.format(&quot;%s,%s&quot;, uuid, tag)</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>    -- print(&quot;LevelProgressLogic:getMetaDataFromPack&quot;,key,self._metaMap[key])</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>    if self._metaMap[key] then</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>        return self._metaMap[key]</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>    end</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a>    local path = LevelProgressLogic:getPackPath(key)</span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>    if not path then</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>        return nil</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>    end</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>    local metaInfo = self._infoData[key]</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>    local rawData = UBFLuaHelper:loadConfigFromLevelpack(path, metaInfo[2])</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>    local metaData = table.deserialize(rawData)</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>    self:_formatMetaData(metaData)</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>    self._metaMap[key] = metaData</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>    return metaData</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a>end</span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a></span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>function LevelProgressLogic:_getMetaInfoFromPackByKey(uuid,tag)</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>    local key = string.format(&quot;%s,%s&quot;, uuid, tag)</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>    if not self._infoData then self:getPackPath(key) end</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>    return self._infoData[key]</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>end</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a></span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>function LevelProgressLogic:ui_getMetaDataFromPackTest(levelId,levelExp,levelGroup, levelScene)</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>    levelGroup = levelGroup or  UBFPlaySwitch:getLevelGroup(levelId, levelScene)</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>    local levelKeyData = UBFLevelIdUtil:createLevelKeyData(levelId, levelScene, levelExp, levelGroup)</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a>    local ret, meetGroup, uuid = levelKeyData:fallback()</span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>    </span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>    local rule = UBFLevelConfigManager:getLevelGroupRuleByGroupName(meetGroup, levelScene)</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>    local tag = rule and rule.fuuuGraphV3</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>    -- UWarning(&quot;LevelProgressLogic:ui_getMetaDataFromPackTest&quot;,levelId,levelExp,levelGroup,uuid,meetGroup,tts(rule))</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>    return LevelProgressLogic:_getMetaDataFromPackByKey(uuid,tag)</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>end</span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a></span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a>function LevelProgressLogic:getMetaDataFromPack(gEnv)</span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>    local uuid,tag = gEnv.levelUUID,gEnv.fuuuGraphV3</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>    if _G.AutoPlayEnv and _G.AutoPlayEnv.mode == &quot;AIAdjust&quot; then</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>        tag = &quot;fl3_weight&quot;</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>    end</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>    return LevelProgressLogic:_getMetaDataFromPackByKey(uuid,tag)</span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>end</span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a></span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>-- local d = LevelProgressLogic:getMetaDataFromPack(501)</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>-- print(&quot;LevelProgressLogic:getMetaDataFromPack&quot;,d,type(d))</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>-- local d = LevelProgressLogic:getMetaDataFromPack(504)</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>-- print(&quot;LevelProgressLogic:getMetaDataFromPack&quot;,d,tts(table.keys(d)))</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a></span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>function LevelProgressLogic:getMetaData(groupIndex, gEnv, fuuuGraphCtx)</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>    if fuuuGraphCtx then</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a>        if fuuuGraphCtx.autoData then</span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>            return fuuuGraphCtx</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>        end</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>        local meta = fuuuGraphCtx.fuuuChartV3</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>        if meta then</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>            -- print(&quot;LevelProgressLogic:getMetaData found mock data:&quot;,tts(meta))</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>            self:_formatMetaData(meta)</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>            return meta</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a>        end</span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>    end</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a>    local first = self:getMetaDataFromPack(gEnv)</span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a>    if first then</span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>        return first</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a>    end</span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>end</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>function LevelProgressLogic:_formatMetaData(meta)</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a>    if meta.targets then return end</span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>    local targets = {}</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>    for k, v in pairs(meta.model) do</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>        table.insert(targets,k)</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a>    end</span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>    -- print(&quot;targets&quot;,tts(targets))</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a>    meta.targets = targets</span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>end</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>-- print(3499,LevelProgressLogic:getMetaData(3499,1))</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>-- print(6499,LevelProgressLogic:getMetaData(6499,1))</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>-- print(8925,LevelProgressLogic:getMetaData(8925,1))</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>-- print(8925,LevelProgressLogic:getMetaData(8925,2))</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>-- do return end</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a></span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>local targetCHName = {</span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>    [101] = &#x27;嘟嘟河马&#x27;,</span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>    [102] = &#x27;爱豆蛙&#x27;,</span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a>    [103] = &#x27;栗熊&#x27;,</span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a>    [104] = &#x27;紫咪&#x27;,</span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>    [105] = &#x27;么么狐&#x27;,</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>    [106] = &#x27;莱蒙鸡&#x27;,</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a>    [601] = &#x27;横线&#x27;,</span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>    [602] = &#x27;竖线&#x27;,</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>    [603] = &#x27;魔力鸟&#x27;,</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>    [701] = &#x27;直线与直线交换&#x27;,</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>    [702] = &#x27;爆炸与直线交换&#x27;,</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a>    [703] = &#x27;魔力鸟与直线交换&#x27;,</span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>    [704] = &#x27;爆炸与爆炸交换&#x27;,</span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>    [705] = &#x27;魔力鸟与爆炸交换&#x27;,</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>    [706] = &#x27;魔力鸟与魔力鸟交换&#x27;,</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>    [200] = &#x27;雪块&#x27;,</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a>    [300] = &#x27;银币&#x27;,</span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>    [500] = &#x27;毒液&#x27;,</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a>    [800] = &#x27;蜗牛&#x27;,</span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>    [1100] = &#x27;灰毛球&#x27;,</span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>    [1200] = &#x27;棕毛球&#x27;,</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>    [1600] = &#x27;精灵萌豆&#x27;,</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>    [1500] = &#x27;气球&#x27;,</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a>    [400] = &#x27;黑毛球&#x27;,</span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>    [900] = &#x27;蜂蜜&#x27;,</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>    [1000] = &#x27;流沙&#x27;,</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>    [1400] = &#x27;魔法石&#x27;,</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a>    [1700] = &#x27;气鼓鱼&#x27;,</span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>    [1900] = &#x27;小木桩&#x27;,</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>    [1800] = &#x27;小叶堆&#x27;,</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>    [2000] = &#x27;星星瓶子&#x27;,</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a>    [2100] = &#x27;变色龙&#x27;,</span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>    [2200] = &#x27;吃豆人&#x27;,</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>    [2300] = &#x27;幽灵&#x27;,</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>    [2600] = &#x27;果酱&#x27;,</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a>    [2400] = &#x27;鱿鱼&#x27;,</span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>    [2500] = &#x27;夹心饼干的奶油&#x27;,</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>    [2501] = &#x27;夹心饼干&#x27;,</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a>    [2700] = &#x27;陀螺&#x27;,</span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>    [2800] = &#x27;水滴，给水桶冲能用的&#x27;,</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>    [2900] = &#x27;水桶&#x27;,</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a>    [3000] = &#x27;飞机&#x27;,</span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>    [3100] = &#x27;小鱼干&#x27;,</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a>    [3700] = &#x27;引水挖地目标&#x27;,</span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>    [3200] = &#x27;爆米花&#x27;,</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a>    [3300] = &#x27;扫地机器人&#x27;,</span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>    [3400] = &#x27;吃豆人联动的大幽灵&#x27;,</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>    [3500] = &#x27;魔法雕像&#x27;,</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a>    [3600] = &#x27;蝴蝶&#x27;,</span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>    [4000] = &#x27;蝴蝶罩子&#x27;,</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>    [3800] = &#x27;牛奶瓶&#x27;,</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a>    [3900] = &#x27;牛奶&#x27;,</span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>    [4100] = &#x27;鳐鱼&#x27;,</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>    [4200] = &#x27;巧克力&#x27;,</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>    [4300] = &#x27;雷云&#x27;,</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>    [4400] = &#x27;草垛&#x27;,</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>    [4500] = &#x27;棉花糖&#x27;,</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>    [4600] = &#x27;魔术兔&#x27;,</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>    [4700] = &#x27;雪糕盒子&#x27;,</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>    [4800] = &#x27;雪糕&#x27;,</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>    [4900] = &#x27;特效盒&#x27;,</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>    [5000] = &#x27;八音盒&#x27;,</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>    [5100] = &#x27;橱柜&#x27;,</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>    [5200] = &#x27;太阳罐&#x27;,</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>    [5300] = &#x27;冰封导弹&#x27;,</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a>    [5400] = &#x27;牢笼&#x27;,</span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>    [5500] = &#x27;百变牌&#x27;,</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>    [5700] = &#x27;萝卜&#x27;,</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>    [5800] = &#x27;花圃&#x27;,</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a>    [5900] = &#x27;爱情鸟&#x27;,</span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a>    [6000] = &#x27;神灯&#x27;,</span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>    [6100] = &#x27;糖果罐&#x27;,</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>    [6101] = &#x27;攻城小木桩&#x27;,</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a>    [6102] = &#x27;攻城蜜蜂&#x27;,</span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>    [6200] = &#x27;荧光花&#x27;,</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>    [6300] = &#x27;糖果炮的小车&#x27;,</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>    [6400] = &#x27;边缘魔法云&#x27;,</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>    [6301] = &#x27;24消除节糖果小车&#x27;,</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>    [1301] = &#x27;企鹅&#x27;,</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>    [1302] = &#x27;海豹&#x27;,</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>    [1303] = &#x27;熊&#x27;,</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>    [1304] = &#x27;活动海洋生物 1 * 1&#x27;,</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>    [1305] = &#x27;废弃&#x27;,</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>    [1306] = &#x27;活动海洋生物 2 * 2&#x27;,</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>    [1307] = &#x27;活动海洋生物 3 * 3&#x27;,</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>    [1308] = &#x27;活动海洋生物 1 * 2&#x27;,</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>    [1309] = &#x27;活动海洋生物 1 * 2&#x27;,</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>    [1310] = &#x27;废弃&#x27;,</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>    [1311] = &#x27;废弃&#x27;,</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>    [1312] = &#x27;李白&#x27;,</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>    [30000] = &#x27;测试（荷塘）&#x27;,</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>    [30001] = &#x27;蝴蝶罐子&#x27;,</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a>    [30002] = &#x27;引水种花泥土&#x27;,</span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>    [30003] = &#x27;染色宝宝&#x27;,</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>    [30004] = &#x27;冰&#x27;,</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>    [30005] = &#x27;饼干盒&#x27;,</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a>    [30006] = &#x27;百变牌&#x27;,</span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>    [30007] = &#x27;花圃&#x27;,</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>    [30008] = &#x27;草垛猪&#x27;,</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a>    [30009] = &#x27;蜂蜜&#x27;,</span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>    [30010] = &#x27;雪糕&#x27;,</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>    [30011] = &#x27;雪糕盒子&#x27;,</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>    [30012] = &#x27;小叶堆&#x27;,</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a>    [30014] = &#x27;爱情鸟&#x27;,</span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>    [30015] = &#x27;魔法雕像&#x27;,</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a>    [30016] = &#x27;棉花糖&#x27;,</span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>    [30017] = &#x27;小鱼干&#x27;,</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a>    [30018] = &#x27;汽水&#x27;,</span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>    [30019] = &#x27;冰封导弹&#x27;,</span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>    [30020] = &#x27;音乐盒/八音盒&#x27;,</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>    [30021] = &#x27;配对钥匙&#x27;,</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a>    [30022] = &#x27;萝卜&#x27;,</span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>    [30023] = &#x27;海洋生物的上的冰&#x27;,</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>    [30024] = &#x27;绵羊&#x27;,</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a>    [30025] = &#x27;蜗牛路径&#x27;,</span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>    [30026] = &#x27;雪的层数&#x27;,</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>    [30027] = &#x27;特效盒层级&#x27;,</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a>    [30028] = &#x27;鱿鱼充能&#x27;,</span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>    [30029] = &#x27;星星瓶充能&#x27;,</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a>    [30030] = &#x27;阳光罐&#x27;,</span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>    [30031] = &#x27;魔法兔&#x27;,</span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a>    [30032] = &#x27;魔法罐的水&#x27;,</span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>    [30033] = &#x27;闪电鸟&#x27;,</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a>    [30034] = &#x27;挖云&#x27;,</span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>    [30035] = &#x27;万生（荷花包）&#x27;,</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>    [30036] = &#x27;雪怪&#x27;,</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>    [30037] = &#x27;大眼仔&#x27;,</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>    [30040] = &#x27;蜂蜜罐子&#x27;,</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a>    [30041] = &#x27;水晶球&#x27;,</span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a>    [30042] = &#x27;水母宝宝&#x27;,</span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>    [30043] = &#x27;染色蛋（迷之蛋）&#x27;,</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>    [30044] = &#x27;花藤&#x27;,</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>    [30045] = &#x27;风洞开关&#x27;,</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>    [30046] = &#x27;猫窝&#x27;,</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>    [30047] = &#x27;鞭炮（樱桃炸弹）&#x27;,</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a>    [30048] = &#x27;蓄电器&#x27;,</span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>    [30049] = &#x27;小恐龙&#x27;,</span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>    [30050] = &#x27;松鼠&#x27;,</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a>    [30051] = &#x27;飞毯&#x27;,</span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a>    [30052] = &#x27;鼹鼠（紫鼠）&#x27;,</span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>    [30053] = &#x27;小木桩&#x27;,</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a>    [30054] = &#x27;过滤器&#x27;,</span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a>    [30055] = &#x27;布谷鸟&#x27;,</span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a>    [30056] = &#x27;魔法石&#x27;,</span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a>    [30057] = &#x27;萌豆&#x27;,</span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a>    [30058] = &#x27;陀螺&#x27;,</span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>    [30059] = &#x27;蝴蝶&#x27;,</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a>    [30060] = &#x27;云/宝石云&#x27;,</span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a>    [30061] = &#x27;沙子/流沙&#x27;,</span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a>    [30062] = &#x27;牛仔裤&#x27;,</span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>    [30063] = &#x27;巧克力块&#x27;,</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>    [30064] = &#x27;毒液&#x27;,</span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>    [30065] = &#x27;气鼓鱼&#x27;,</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a>    [30066] = &#x27;银币&#x27;,</span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>    [30067] = &#x27;鳐鱼&#x27;,</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>    [30068] = &#x27;雷云&#x27;,</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a>    [30069] = &#x27;夹心饼干&#x27;,</span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>    [30070] = &#x27;牢笼&#x27;,</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a>    [30071] = &#x27;黑毛球&#x27;,</span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a>    [30072] = &#x27;棕毛球&#x27;,</span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>    [30073] = &#x27;灰毛球&#x27;,</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>    [30074] = &#x27;小幽灵&#x27;,</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>    [30075] = &#x27;气球&#x27;,</span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a>    [30076] = &#x27;飞机&#x27;,</span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>    [30077] = &#x27;吃豆人&#x27;,</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>    [30078] = &#x27;扫地机器人&#x27;,</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a>    [30079] = &#x27;水桶&#x27;,</span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>    [30080] = &#x27;神灯&#x27;,</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>    [30081] = &#x27;冰柱&#x27;,</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>    [30082] = &#x27;礼盒&#x27;,</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a>    [30083] = &#x27;荷塘&#x27;,</span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>    [30084] = &#x27;汽水罐&#x27;,</span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>    [30085] = &#x27;攻城&#x27;,</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a>    [30086] = &#x27;糖果车&#x27;,</span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a>    [30087] = &#x27;24消除节小车&#x27;,</span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a>    [30088] = &#x27;边缘魔法云&#x27;,</span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>}</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a></span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a>function LevelProgressLogic:getDebugTitle(titles,_predictInfo)</span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>    </span>
+<span class="source-line" id="L602"><a class="line-num" href="#L602">602</a>    for i, v in ipairs(_predictInfo.targetIds) do</span>
+<span class="source-line" id="L603"><a class="line-num" href="#L603">603</a>        table.insert(titles,&quot;t-&quot; .. v .. tostring(targetCHName[v]))</span>
+<span class="source-line" id="L604"><a class="line-num" href="#L604">604</a>    end</span>
+<span class="source-line" id="L605"><a class="line-num" href="#L605">605</a>    return titles</span>
+<span class="source-line" id="L606"><a class="line-num" href="#L606">606</a>end</span>
+<span class="source-line" id="L607"><a class="line-num" href="#L607">607</a></span>
+<span class="source-line" id="L608"><a class="line-num" href="#L608">608</a>function LevelProgressLogic:getTargetNameById(targetId)</span>
+<span class="source-line" id="L609"><a class="line-num" href="#L609">609</a>    if targetCHName[tonumber(targetId)] then</span>
+<span class="source-line" id="L610"><a class="line-num" href="#L610">610</a>        return tostring( targetCHName[tonumber(targetId)] )</span>
+<span class="source-line" id="L611"><a class="line-num" href="#L611">611</a>    else</span>
+<span class="source-line" id="L612"><a class="line-num" href="#L612">612</a>        return tostring( targetId )</span>
+<span class="source-line" id="L613"><a class="line-num" href="#L613">613</a>    end</span>
+<span class="source-line" id="L614"><a class="line-num" href="#L614">614</a>end</span>
+<span class="source-line" id="L615"><a class="line-num" href="#L615">615</a></span>
+<span class="source-line" id="L616"><a class="line-num" href="#L616">616</a></span>
+<span class="source-line" id="L617"><a class="line-num" href="#L617">617</a>--</span>
+<span class="source-line" id="L618"><a class="line-num" href="#L618">618</a>--</span>
+<span class="source-line" id="L619"><a class="line-num" href="#L619">619</a>--</span>
+<span class="source-line" id="L620"><a class="line-num" href="#L620">620</a>--</span>
+<span class="source-line" id="L621"><a class="line-num" href="#L621">621</a>--</span>
+<span class="source-line" id="L622"><a class="line-num" href="#L622">622</a>--</span>
+<span class="source-line" id="L623"><a class="line-num" href="#L623">623</a>--</span>
+<span class="source-line" id="L624"><a class="line-num" href="#L624">624</a>--</span>
+<span class="source-line" id="L625"><a class="line-num" href="#L625">625</a>--</span>
+<span class="source-line" id="L626"><a class="line-num" href="#L626">626</a>--</span>
+<span class="source-line" id="L627"><a class="line-num" href="#L627">627</a>--</span>
+<span class="source-line" id="L628"><a class="line-num" href="#L628">628</a>--</span>
+<span class="source-line" id="L629"><a class="line-num" href="#L629">629</a>--</span>
+<span class="source-line" id="L630"><a class="line-num" href="#L630">630</a>--</span>
+<span class="source-line" id="L631"><a class="line-num" href="#L631">631</a>--</span>
+<span class="source-line" id="L632"><a class="line-num" href="#L632">632</a>--</span>
+<span class="source-line" id="L633"><a class="line-num" href="#L633">633</a>--</span>
+<span class="source-line" id="L634"><a class="line-num" href="#L634">634</a>--</span>
+<span class="source-line" id="L635"><a class="line-num" href="#L635">635</a>--</span>
+<span class="source-line" id="L636"><a class="line-num" href="#L636">636</a>--</span>
+<span class="source-line" id="L637"><a class="line-num" href="#L637">637</a>--</span>
+<span class="source-line" id="L638"><a class="line-num" href="#L638">638</a>--</span>
+<span class="source-line" id="L639"><a class="line-num" href="#L639">639</a>--</span>
+<span class="source-line" id="L640"><a class="line-num" href="#L640">640</a>--</span>
+<span class="source-line" id="L641"><a class="line-num" href="#L641">641</a>--</span>
+<span class="source-line" id="L642"><a class="line-num" href="#L642">642</a>--</span>
+<span class="source-line" id="L643"><a class="line-num" href="#L643">643</a>--</span>
+<span class="source-line" id="L644"><a class="line-num" href="#L644">644</a>--</span>
+<span class="source-line" id="L645"><a class="line-num" href="#L645">645</a>--</span>
+<span class="source-line" id="L646"><a class="line-num" href="#L646">646</a>--</span>
+<span class="source-line" id="L647"><a class="line-num" href="#L647">647</a>--</span>
+<span class="source-line" id="L648"><a class="line-num" href="#L648">648</a>--</span>
+<span class="source-line" id="L649"><a class="line-num" href="#L649">649</a>--</span>
+<span class="source-line" id="L650"><a class="line-num" href="#L650">650</a>--</span>
+<span class="source-line" id="L651"><a class="line-num" href="#L651">651</a>--</span>
+<span class="source-line" id="L652"><a class="line-num" href="#L652">652</a>--</span>
+<span class="source-line" id="L653"><a class="line-num" href="#L653">653</a>--</span>
+<span class="source-line" id="L654"><a class="line-num" href="#L654">654</a>--</span>
+<span class="source-line" id="L655"><a class="line-num" href="#L655">655</a>--</span>
+<span class="source-line" id="L656"><a class="line-num" href="#L656">656</a>--</span>
+<span class="source-line" id="L657"><a class="line-num" href="#L657">657</a>--</span>
+<span class="source-line" id="L658"><a class="line-num" href="#L658">658</a>--</span>
+<span class="source-line" id="L659"><a class="line-num" href="#L659">659</a>--</span>
+<span class="source-line" id="L660"><a class="line-num" href="#L660">660</a>--</span>
+<span class="source-line" id="L661"><a class="line-num" href="#L661">661</a>--</span>
+<span class="source-line" id="L662"><a class="line-num" href="#L662">662</a>--</span>
+<span class="source-line" id="L663"><a class="line-num" href="#L663">663</a>--</span>
+<span class="source-line" id="L664"><a class="line-num" href="#L664">664</a>--</span>
+<span class="source-line" id="L665"><a class="line-num" href="#L665">665</a>--</span>
+<span class="source-line" id="L666"><a class="line-num" href="#L666">666</a>--</span>
+<span class="source-line" id="L667"><a class="line-num" href="#L667">667</a>--</span>
+<span class="source-line" id="L668"><a class="line-num" href="#L668">668</a>--</span>
+<span class="source-line" id="L669"><a class="line-num" href="#L669">669</a>--</span>
+<span class="source-line" id="L670"><a class="line-num" href="#L670">670</a>--</span>
+<span class="source-line" id="L671"><a class="line-num" href="#L671">671</a>--</span>
+<span class="source-line" id="L672"><a class="line-num" href="#L672">672</a>--</span>
+<span class="source-line" id="L673"><a class="line-num" href="#L673">673</a>--</span>
+<span class="source-line" id="L674"><a class="line-num" href="#L674">674</a>--</span>
+<span class="source-line" id="L675"><a class="line-num" href="#L675">675</a>--</span>
+<span class="source-line" id="L676"><a class="line-num" href="#L676">676</a>--</span>
+<span class="source-line" id="L677"><a class="line-num" href="#L677">677</a>--</span>
+<span class="source-line" id="L678"><a class="line-num" href="#L678">678</a>--</span>
+<span class="source-line" id="L679"><a class="line-num" href="#L679">679</a>--</span>
+<span class="source-line" id="L680"><a class="line-num" href="#L680">680</a>--</span>
+<span class="source-line" id="L681"><a class="line-num" href="#L681">681</a>--</span>
+<span class="source-line" id="L682"><a class="line-num" href="#L682">682</a>--</span>
+<span class="source-line" id="L683"><a class="line-num" href="#L683">683</a>--</span>
+<span class="source-line" id="L684"><a class="line-num" href="#L684">684</a>--</span>
+<span class="source-line" id="L685"><a class="line-num" href="#L685">685</a>--</span>
+<span class="source-line" id="L686"><a class="line-num" href="#L686">686</a>--</span>
+<span class="source-line" id="L687"><a class="line-num" href="#L687">687</a>--</span>
+<span class="source-line" id="L688"><a class="line-num" href="#L688">688</a>--</span>
+<span class="source-line" id="L689"><a class="line-num" href="#L689">689</a>--</span>
+<span class="source-line" id="L690"><a class="line-num" href="#L690">690</a>--</span>
+<span class="source-line" id="L691"><a class="line-num" href="#L691">691</a>--</span>
+<span class="source-line" id="L692"><a class="line-num" href="#L692">692</a>--</span>
+<span class="source-line" id="L693"><a class="line-num" href="#L693">693</a>--</span>
+<span class="source-line" id="L694"><a class="line-num" href="#L694">694</a>--</span>
+<span class="source-line" id="L695"><a class="line-num" href="#L695">695</a>--</span>
+<span class="source-line" id="L696"><a class="line-num" href="#L696">696</a>--</span>
+<span class="source-line" id="L697"><a class="line-num" href="#L697">697</a>--</span>
+<span class="source-line" id="L698"><a class="line-num" href="#L698">698</a>--</span>
+<span class="source-line" id="L699"><a class="line-num" href="#L699">699</a>--</span>
+<span class="source-line" id="L700"><a class="line-num" href="#L700">700</a>--</span>
+<span class="source-line" id="L701"><a class="line-num" href="#L701">701</a>--</span>
+<span class="source-line" id="L702"><a class="line-num" href="#L702">702</a>--</span>
+<span class="source-line" id="L703"><a class="line-num" href="#L703">703</a>--</span>
+<span class="source-line" id="L704"><a class="line-num" href="#L704">704</a>--</span>
+<span class="source-line" id="L705"><a class="line-num" href="#L705">705</a>--</span>
+<span class="source-line" id="L706"><a class="line-num" href="#L706">706</a>--</span>
+<span class="source-line" id="L707"><a class="line-num" href="#L707">707</a>--</span>
+<span class="source-line" id="L708"><a class="line-num" href="#L708">708</a>--</span>
+<span class="source-line" id="L709"><a class="line-num" href="#L709">709</a>--</span>
+<span class="source-line" id="L710"><a class="line-num" href="#L710">710</a>--</span>
+<span class="source-line" id="L711"><a class="line-num" href="#L711">711</a>--</span>
+<span class="source-line" id="L712"><a class="line-num" href="#L712">712</a>--</span>
+<span class="source-line" id="L713"><a class="line-num" href="#L713">713</a>--</span>
+<span class="source-line" id="L714"><a class="line-num" href="#L714">714</a>--</span>
+<span class="source-line" id="L715"><a class="line-num" href="#L715">715</a>--</span>
+<span class="source-line" id="L716"><a class="line-num" href="#L716">716</a>--</span>
+<span class="source-line" id="L717"><a class="line-num" href="#L717">717</a>--</span>
+<span class="source-line" id="L718"><a class="line-num" href="#L718">718</a>--</span>
+<span class="source-line" id="L719"><a class="line-num" href="#L719">719</a>--</span>
+<span class="source-line" id="L720"><a class="line-num" href="#L720">720</a>--</span>
+<span class="source-line" id="L721"><a class="line-num" href="#L721">721</a>--</span>
+<span class="source-line" id="L722"><a class="line-num" href="#L722">722</a>--</span>
+<span class="source-line" id="L723"><a class="line-num" href="#L723">723</a>--</span>
+<span class="source-line" id="L724"><a class="line-num" href="#L724">724</a>--</span>
+<span class="source-line" id="L725"><a class="line-num" href="#L725">725</a>--</span>
+<span class="source-line" id="L726"><a class="line-num" href="#L726">726</a>--</span>
+<span class="source-line" id="L727"><a class="line-num" href="#L727">727</a>--</span>
+<span class="source-line" id="L728"><a class="line-num" href="#L728">728</a>--</span>
+<span class="source-line" id="L729"><a class="line-num" href="#L729">729</a>--</span>
+<span class="source-line" id="L730"><a class="line-num" href="#L730">730</a>--</span>
+<span class="source-line" id="L731"><a class="line-num" href="#L731">731</a>--</span>
+<span class="source-line" id="L732"><a class="line-num" href="#L732">732</a>--</span>
+<span class="source-line" id="L733"><a class="line-num" href="#L733">733</a>--</span>
+<span class="source-line" id="L734"><a class="line-num" href="#L734">734</a>--</span>
+<span class="source-line" id="L735"><a class="line-num" href="#L735">735</a>--</span>
+<span class="source-line" id="L736"><a class="line-num" href="#L736">736</a>--</span>
+<span class="source-line" id="L737"><a class="line-num" href="#L737">737</a>--</span>
+<span class="source-line" id="L738"><a class="line-num" href="#L738">738</a>--</span>
+<span class="source-line" id="L739"><a class="line-num" href="#L739">739</a>--</span>
+<span class="source-line" id="L740"><a class="line-num" href="#L740">740</a>--</span>
+<span class="source-line" id="L741"><a class="line-num" href="#L741">741</a>--</span>
+<span class="source-line" id="L742"><a class="line-num" href="#L742">742</a>--</span>
+<span class="source-line" id="L743"><a class="line-num" href="#L743">743</a>--</span>
+<span class="source-line" id="L744"><a class="line-num" href="#L744">744</a>--</span>
+<span class="source-line" id="L745"><a class="line-num" href="#L745">745</a>--</span>
+<span class="source-line" id="L746"><a class="line-num" href="#L746">746</a>--</span>
+<span class="source-line" id="L747"><a class="line-num" href="#L747">747</a>--</span>
+<span class="source-line" id="L748"><a class="line-num" href="#L748">748</a>--</span>
+<span class="source-line" id="L749"><a class="line-num" href="#L749">749</a>--</span>
+<span class="source-line" id="L750"><a class="line-num" href="#L750">750</a>--</span>
+<span class="source-line" id="L751"><a class="line-num" href="#L751">751</a>--</span>
+<span class="source-line" id="L752"><a class="line-num" href="#L752">752</a>--</span>
+<span class="source-line" id="L753"><a class="line-num" href="#L753">753</a>--</span>
+<span class="source-line" id="L754"><a class="line-num" href="#L754">754</a>--</span>
+<span class="source-line" id="L755"><a class="line-num" href="#L755">755</a>--</span>
+<span class="source-line" id="L756"><a class="line-num" href="#L756">756</a>--</span>
+<span class="source-line" id="L757"><a class="line-num" href="#L757">757</a>--</span>
+<span class="source-line" id="L758"><a class="line-num" href="#L758">758</a>--</span>
+<span class="source-line" id="L759"><a class="line-num" href="#L759">759</a>--</span>
+<span class="source-line" id="L760"><a class="line-num" href="#L760">760</a>--</span>
+<span class="source-line" id="L761"><a class="line-num" href="#L761">761</a>--</span>
+<span class="source-line" id="L762"><a class="line-num" href="#L762">762</a>--</span>
+<span class="source-line" id="L763"><a class="line-num" href="#L763">763</a>--</span>
+<span class="source-line" id="L764"><a class="line-num" href="#L764">764</a>--</span>
+<span class="source-line" id="L765"><a class="line-num" href="#L765">765</a>--</span>
+<span class="source-line" id="L766"><a class="line-num" href="#L766">766</a>--</span>
+<span class="source-line" id="L767"><a class="line-num" href="#L767">767</a>--</span>
+<span class="source-line" id="L768"><a class="line-num" href="#L768">768</a>--</span>
+<span class="source-line" id="L769"><a class="line-num" href="#L769">769</a>--</span>
+<span class="source-line" id="L770"><a class="line-num" href="#L770">770</a>--</span>
+<span class="source-line" id="L771"><a class="line-num" href="#L771">771</a>--</span>
+<span class="source-line" id="L772"><a class="line-num" href="#L772">772</a>--</span>
+<span class="source-line" id="L773"><a class="line-num" href="#L773">773</a></span>
+<span class="source-line" id="L774"><a class="line-num" href="#L774">774</a></span></code></pre></main></body></html>

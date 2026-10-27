@@ -1,0 +1,601 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DiffAdjustModMgr.lua · 源码证据</title><link rel="stylesheet" href="../report.css"><body><main class="source-page"><a href="../index.html#code">← 返回研究报告</a><h1>DiffAdjustModMgr.lua</h1><p class="src-meta">ubf/UBFGamePlayScene/logics/sceneModules/gameMod/modFolder/diffAdjust/DiffAdjustModMgr.lua<br>SHA-256 27e16340c09d356417578725bdfc28b80e71b2b39040fa5808a3364dfd0470eb · 601 行 · 恢复原文，未经改写</p><a href="DiffAdjustModMgr-bb0d46f4.lua" download>下载Lua原文</a><pre><code><span class="source-line" id="L1"><a class="line-num" href="#L1">1</a>local DiffAdjustModMgr = class2(&quot;DiffAdjustModMgr&quot;, UBFGameModManager)</span>
+<span class="source-line" id="L2"><a class="line-num" href="#L2">2</a>DiffAdjustModMgr.ACT_KEY = UBFModSourceIdEnum.kDiffAdjustModMgr</span>
+<span class="source-line" id="L3"><a class="line-num" href="#L3">3</a>UBFGameModManagerOrganizer:register(DiffAdjustModMgr.ACT_KEY , DiffAdjustModMgr)</span>
+<span class="source-line" id="L4"><a class="line-num" href="#L4">4</a></span>
+<span class="source-line" id="L5"><a class="line-num" href="#L5">5</a>_G.UbfuuuDisableReason = {</span>
+<span class="source-line" id="L6"><a class="line-num" href="#L6">6</a>    kCheckResultInvalid = 1,</span>
+<span class="source-line" id="L7"><a class="line-num" href="#L7">7</a>    kDesiredDiffAvgInvalid = 2,</span>
+<span class="source-line" id="L8"><a class="line-num" href="#L8">8</a>    kDiffFixIsNil = 3,</span>
+<span class="source-line" id="L9"><a class="line-num" href="#L9">9</a>    kCheckResultIsNil = 4,</span>
+<span class="source-line" id="L10"><a class="line-num" href="#L10">10</a>    kAdjustContextIsNil = 5,</span>
+<span class="source-line" id="L11"><a class="line-num" href="#L11">11</a>    kUbfuuuStatisticInfoIsNil = 6,</span>
+<span class="source-line" id="L12"><a class="line-num" href="#L12">12</a>    kDesiredDiffAvgInvalid2 = 7,</span>
+<span class="source-line" id="L13"><a class="line-num" href="#L13">13</a>    kFeedback_NoDiffDsMap = 8,</span>
+<span class="source-line" id="L14"><a class="line-num" href="#L14">14</a>    kFeedback_NoDesiredDiff = 9,</span>
+<span class="source-line" id="L15"><a class="line-num" href="#L15">15</a>    kModEnableFailed = 10,</span>
+<span class="source-line" id="L16"><a class="line-num" href="#L16">16</a>}</span>
+<span class="source-line" id="L17"><a class="line-num" href="#L17">17</a></span>
+<span class="source-line" id="L18"><a class="line-num" href="#L18">18</a>local levelFlag3 = 10861</span>
+<span class="source-line" id="L19"><a class="line-num" href="#L19">19</a>local POST_ADD_STEP_AVAILABLE_STEPS = 1000000</span>
+<span class="source-line" id="L20"><a class="line-num" href="#L20">20</a></span>
+<span class="source-line" id="L21"><a class="line-num" href="#L21">21</a>local _debug = false</span>
+<span class="source-line" id="L22"><a class="line-num" href="#L22">22</a>--</span>
+<span class="source-line" id="L23"><a class="line-num" href="#L23">23</a>--</span>
+<span class="source-line" id="L24"><a class="line-num" href="#L24">24</a>--</span>
+<span class="source-line" id="L25"><a class="line-num" href="#L25">25</a>--</span>
+<span class="source-line" id="L26"><a class="line-num" href="#L26">26</a>--</span>
+<span class="source-line" id="L27"><a class="line-num" href="#L27">27</a>--</span>
+<span class="source-line" id="L28"><a class="line-num" href="#L28">28</a>--</span>
+<span class="source-line" id="L29"><a class="line-num" href="#L29">29</a>--</span>
+<span class="source-line" id="L30"><a class="line-num" href="#L30">30</a></span>
+<span class="source-line" id="L31"><a class="line-num" href="#L31">31</a></span>
+<span class="source-line" id="L32"><a class="line-num" href="#L32">32</a>function DiffAdjustModMgr:isWillingEnabled(runtime, sourceId)</span>
+<span class="source-line" id="L33"><a class="line-num" href="#L33">33</a>    if not UBFLevelSceneFunc:isMainLevel(runtime:getLevelScene()) then return end</span>
+<span class="source-line" id="L34"><a class="line-num" href="#L34">34</a>    local processType = runtime:getProcessType()</span>
+<span class="source-line" id="L35"><a class="line-num" href="#L35">35</a>    return processType == UBFProcessTypeEnum.START_LEVEL</span>
+<span class="source-line" id="L36"><a class="line-num" href="#L36">36</a>end</span>
+<span class="source-line" id="L37"><a class="line-num" href="#L37">37</a></span>
+<span class="source-line" id="L38"><a class="line-num" href="#L38">38</a>function DiffAdjustModMgr:isEnabled(event)</span>
+<span class="source-line" id="L39"><a class="line-num" href="#L39">39</a>    return true</span>
+<span class="source-line" id="L40"><a class="line-num" href="#L40">40</a>end</span>
+<span class="source-line" id="L41"><a class="line-num" href="#L41">41</a></span>
+<span class="source-line" id="L42"><a class="line-num" href="#L42">42</a>function DiffAdjustModMgr:notifyEventStatic(event)</span>
+<span class="source-line" id="L43"><a class="line-num" href="#L43">43</a>    UBFGameModManager.notifyEventStatic(DiffAdjustModMgr,event)</span>
+<span class="source-line" id="L44"><a class="line-num" href="#L44">44</a></span>
+<span class="source-line" id="L45"><a class="line-num" href="#L45">45</a>    local eventName = event:getEventName()</span>
+<span class="source-line" id="L46"><a class="line-num" href="#L46">46</a>    local runtime = event:getRuntime()</span>
+<span class="source-line" id="L47"><a class="line-num" href="#L47">47</a>    local eventData = event:getOrigin()</span>
+<span class="source-line" id="L48"><a class="line-num" href="#L48">48</a>    local modMgr = runtime:getModMgr()</span>
+<span class="source-line" id="L49"><a class="line-num" href="#L49">49</a>    local UBFuuuAdjustManager = require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuAdjustManager&quot;</span>
+<span class="source-line" id="L50"><a class="line-num" href="#L50">50</a></span>
+<span class="source-line" id="L51"><a class="line-num" href="#L51">51</a>    lua_switch(eventName) {</span>
+<span class="source-line" id="L52"><a class="line-num" href="#L52">52</a>        -- [UBFGameModEventEnum.LOAD_MOD] = function()</span>
+<span class="source-line" id="L53"><a class="line-num" href="#L53">53</a>        --     modMgr:setModEnabled(UBFModSourceIdEnum.kDiffAdjustModMgr, true)</span>
+<span class="source-line" id="L54"><a class="line-num" href="#L54">54</a>        --     if _debug then printx(1 , &quot;DiffAdjustModMgr:notifyEventStatic  LOAD_MOD !!!!!!!!!!&quot; ) end</span>
+<span class="source-line" id="L55"><a class="line-num" href="#L55">55</a>        -- end,</span>
+<span class="source-line" id="L56"><a class="line-num" href="#L56">56</a></span>
+<span class="source-line" id="L57"><a class="line-num" href="#L57">57</a>        [UBFGameModEventEnum.BEFORE_PASS_LEVEL] = function()</span>
+<span class="source-line" id="L58"><a class="line-num" href="#L58">58</a>            if _debug then printx(1 , &quot;DiffAdjustModMgr:notifyEventStatic  BEFORE_PASS_LEVEL !!!!!!!!!!&quot; ) end</span>
+<span class="source-line" id="L59"><a class="line-num" href="#L59">59</a>            UBFuuuAdjustManager:onEndLevel( runtime )</span>
+<span class="source-line" id="L60"><a class="line-num" href="#L60">60</a>        end,</span>
+<span class="source-line" id="L61"><a class="line-num" href="#L61">61</a></span>
+<span class="source-line" id="L62"><a class="line-num" href="#L62">62</a>        [UBFGameModEventEnum.BEFORE_FAIL_LEVEL] = function()</span>
+<span class="source-line" id="L63"><a class="line-num" href="#L63">63</a>            if _debug then printx(1 , &quot;DiffAdjustModMgr:notifyEventStatic  BEFORE_FAIL_LEVEL !!!!!!!!!!&quot; ) end</span>
+<span class="source-line" id="L64"><a class="line-num" href="#L64">64</a>            UBFuuuAdjustManager:onEndLevel( runtime )</span>
+<span class="source-line" id="L65"><a class="line-num" href="#L65">65</a>        end,</span>
+<span class="source-line" id="L66"><a class="line-num" href="#L66">66</a></span>
+<span class="source-line" id="L67"><a class="line-num" href="#L67">67</a>        [UBFGameModEventEnum.BEFORE_QUIT_LEVEL] = function(evt)</span>
+<span class="source-line" id="L68"><a class="line-num" href="#L68">68</a>            if _debug then printx(1 , &quot;DiffAdjustModMgr:notifyEventStatic  BEFORE_QUIT_LEVEL !!!!!!!!!! &quot; ) end</span>
+<span class="source-line" id="L69"><a class="line-num" href="#L69">69</a>            UBFuuuAdjustManager:onEndLevel( runtime )</span>
+<span class="source-line" id="L70"><a class="line-num" href="#L70">70</a>        end,</span>
+<span class="source-line" id="L71"><a class="line-num" href="#L71">71</a>    }</span>
+<span class="source-line" id="L72"><a class="line-num" href="#L72">72</a>end</span>
+<span class="source-line" id="L73"><a class="line-num" href="#L73">73</a></span>
+<span class="source-line" id="L74"><a class="line-num" href="#L74">74</a>function DiffAdjustModMgr:checkModIsEnabled(runtime)</span>
+<span class="source-line" id="L75"><a class="line-num" href="#L75">75</a>    return true</span>
+<span class="source-line" id="L76"><a class="line-num" href="#L76">76</a>end</span>
+<span class="source-line" id="L77"><a class="line-num" href="#L77">77</a></span>
+<span class="source-line" id="L78"><a class="line-num" href="#L78">78</a>function DiffAdjustModMgr:dummyCheck(levelId)</span>
+<span class="source-line" id="L79"><a class="line-num" href="#L79">79</a>    local UBFuuuSelectAdjust = require(&quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuSelectAdjust&quot;)</span>
+<span class="source-line" id="L80"><a class="line-num" href="#L80">80</a>    local _ubfuuuAdjustContext = UBFuuuSelectAdjust:rebuildContext(levelId, { levelScene = UBFLevelSceneType.kMain, playId = &quot;DiffAdjustModMgr:dummyCheck&quot; })</span>
+<span class="source-line" id="L81"><a class="line-num" href="#L81">81</a></span>
+<span class="source-line" id="L82"><a class="line-num" href="#L82">82</a>    local _resultDatas = UBFuuuSelectAdjust:checkAdjustStrategy( _ubfuuuAdjustContext )</span>
+<span class="source-line" id="L83"><a class="line-num" href="#L83">83</a></span>
+<span class="source-line" id="L84"><a class="line-num" href="#L84">84</a>    return _resultDatas</span>
+<span class="source-line" id="L85"><a class="line-num" href="#L85">85</a>end</span>
+<span class="source-line" id="L86"><a class="line-num" href="#L86">86</a></span>
+<span class="source-line" id="L87"><a class="line-num" href="#L87">87</a>function DiffAdjustModMgr:getUBFuuuInfoByCheckResultData(resultData)</span>
+<span class="source-line" id="L88"><a class="line-num" href="#L88">88</a>    local _ubfuuCheckResult = resultData.checkResult</span>
+<span class="source-line" id="L89"><a class="line-num" href="#L89">89</a>    local _calculateDiffIndexResult = _ubfuuCheckResult and _ubfuuCheckResult.calculateDiffIndexResult</span>
+<span class="source-line" id="L90"><a class="line-num" href="#L90">90</a></span>
+<span class="source-line" id="L91"><a class="line-num" href="#L91">91</a>    local _info = {}</span>
+<span class="source-line" id="L92"><a class="line-num" href="#L92">92</a></span>
+<span class="source-line" id="L93"><a class="line-num" href="#L93">93</a>    if _calculateDiffIndexResult then</span>
+<span class="source-line" id="L94"><a class="line-num" href="#L94">94</a>        _info.activityIndex = _calculateDiffIndexResult.activityIndex</span>
+<span class="source-line" id="L95"><a class="line-num" href="#L95">95</a>        _info.paymentIndex = _calculateDiffIndexResult.paymentIndex</span>
+<span class="source-line" id="L96"><a class="line-num" href="#L96">96</a>        _info.playerAbility = _calculateDiffIndexResult.playerAbility</span>
+<span class="source-line" id="L97"><a class="line-num" href="#L97">97</a>        _info.diffIndex = _calculateDiffIndexResult.diffIndex</span>
+<span class="source-line" id="L98"><a class="line-num" href="#L98">98</a></span>
+<span class="source-line" id="L99"><a class="line-num" href="#L99">99</a>        _info.desiredDiffAvg = _ubfuuCheckResult.desiredDiffAvg</span>
+<span class="source-line" id="L100"><a class="line-num" href="#L100">100</a>        _info.fixedDesiredDiffAvg = _ubfuuCheckResult.fixedDesiredDiffAvg</span>
+<span class="source-line" id="L101"><a class="line-num" href="#L101">101</a>        _info.diffFix = resultData.diffFix</span>
+<span class="source-line" id="L102"><a class="line-num" href="#L102">102</a>    end</span>
+<span class="source-line" id="L103"><a class="line-num" href="#L103">103</a>    </span>
+<span class="source-line" id="L104"><a class="line-num" href="#L104">104</a>    return _info</span>
+<span class="source-line" id="L105"><a class="line-num" href="#L105">105</a>end</span>
+<span class="source-line" id="L106"><a class="line-num" href="#L106">106</a></span>
+<span class="source-line" id="L107"><a class="line-num" href="#L107">107</a></span>
+<span class="source-line" id="L108"><a class="line-num" href="#L108">108</a>--正常打关模式</span>
+<span class="source-line" id="L109"><a class="line-num" href="#L109">109</a>function DiffAdjustModMgr:createModSourceENVDataFromPlay(ubfSLRuntime)</span>
+<span class="source-line" id="L110"><a class="line-num" href="#L110">110</a></span>
+<span class="source-line" id="L111"><a class="line-num" href="#L111">111</a>    _G.CurrStageUbfuuuDisableReason = -1</span>
+<span class="source-line" id="L112"><a class="line-num" href="#L112">112</a></span>
+<span class="source-line" id="L113"><a class="line-num" href="#L113">113</a>    -- 初始化其他功能</span>
+<span class="source-line" id="L114"><a class="line-num" href="#L114">114</a>    local UBFuuuAdjustManager = require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuAdjustManager&quot;</span>
+<span class="source-line" id="L115"><a class="line-num" href="#L115">115</a>    UBFuuuAdjustManager:onStartLevel( ubfSLRuntime )</span>
+<span class="source-line" id="L116"><a class="line-num" href="#L116">116</a></span>
+<span class="source-line" id="L117"><a class="line-num" href="#L117">117</a>    --</span>
+<span class="source-line" id="L118"><a class="line-num" href="#L118">118</a>--</span>
+<span class="source-line" id="L119"><a class="line-num" href="#L119">119</a>--</span>
+<span class="source-line" id="L120"><a class="line-num" href="#L120">120</a>--</span>
+<span class="source-line" id="L121"><a class="line-num" href="#L121">121</a></span>
+<span class="source-line" id="L122"><a class="line-num" href="#L122">122</a></span>
+<span class="source-line" id="L123"><a class="line-num" href="#L123">123</a>    local modMgr = ubfSLRuntime:getModMgr()</span>
+<span class="source-line" id="L124"><a class="line-num" href="#L124">124</a>    local levelId = ubfSLRuntime:getLevelId()</span>
+<span class="source-line" id="L125"><a class="line-num" href="#L125">125</a>    local playId = ubfSLRuntime:getPlayId()</span>
+<span class="source-line" id="L126"><a class="line-num" href="#L126">126</a></span>
+<span class="source-line" id="L127"><a class="line-num" href="#L127">127</a>    local UBFuuuSelectAdjust = require(&quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuSelectAdjust&quot;)</span>
+<span class="source-line" id="L128"><a class="line-num" href="#L128">128</a>    local _ubfuuu_enable = UBFuuuSelectAdjust:checkEnable(levelId, ubfSLRuntime.levelScene)</span>
+<span class="source-line" id="L129"><a class="line-num" href="#L129">129</a></span>
+<span class="source-line" id="L130"><a class="line-num" href="#L130">130</a>    if _debug then printx( 1 , &quot;DiffAdjustModMgr:createModData  _ubfuuu_enable =&quot;, _ubfuuu_enable) end</span>
+<span class="source-line" id="L131"><a class="line-num" href="#L131">131</a>    if not _ubfuuu_enable then </span>
+<span class="source-line" id="L132"><a class="line-num" href="#L132">132</a>        _G.CurrStageUbfuuuDisableReason = UbfuuuDisableReason.kModEnableFailed</span>
+<span class="source-line" id="L133"><a class="line-num" href="#L133">133</a>        return nil </span>
+<span class="source-line" id="L134"><a class="line-num" href="#L134">134</a>    end</span>
+<span class="source-line" id="L135"><a class="line-num" href="#L135">135</a></span>
+<span class="source-line" id="L136"><a class="line-num" href="#L136">136</a>    -- _ubfuuu_enable = true --todo test</span>
+<span class="source-line" id="L137"><a class="line-num" href="#L137">137</a></span>
+<span class="source-line" id="L138"><a class="line-num" href="#L138">138</a>    -- builder:addMod( sourceId , { </span>
+<span class="source-line" id="L139"><a class="line-num" href="#L139">139</a>    --     itemType = UBFGameItemType.kModExample,</span>
+<span class="source-line" id="L140"><a class="line-num" href="#L140">140</a>    --     collectionColor = UBFAnimalColorType.kRed,</span>
+<span class="source-line" id="L141"><a class="line-num" href="#L141">141</a>    -- } ) </span>
+<span class="source-line" id="L142"><a class="line-num" href="#L142">142</a>    -- printx(16,debug.traceback())</span>
+<span class="source-line" id="L143"><a class="line-num" href="#L143">143</a>    local modEnvData = {}</span>
+<span class="source-line" id="L144"><a class="line-num" href="#L144">144</a></span>
+<span class="source-line" id="L145"><a class="line-num" href="#L145">145</a>    local _isInRust = ubfSLRuntime.isInRust and ubfSLRuntime:isInRust()</span>
+<span class="source-line" id="L146"><a class="line-num" href="#L146">146</a>    local _ubfuuuAdjustContext = UBFuuuSelectAdjust:rebuildContext(levelId, { levelScene = ubfSLRuntime:getLevelScene(), playId = playId, isInRust = _isInRust })</span>
+<span class="source-line" id="L147"><a class="line-num" href="#L147">147</a>    local okAdjustContextTestHelper, UBFuuuAdjustContextTestHelper = pcall(require, &quot;ubf.debug.UBFuuuAdjustContextTestHelper&quot;)</span>
+<span class="source-line" id="L148"><a class="line-num" href="#L148">148</a>    if okAdjustContextTestHelper and UBFuuuAdjustContextTestHelper and UBFuuuAdjustContextTestHelper.applyPendingPatch then</span>
+<span class="source-line" id="L149"><a class="line-num" href="#L149">149</a>        _ubfuuuAdjustContext = UBFuuuAdjustContextTestHelper:applyPendingPatch(_ubfuuuAdjustContext, {</span>
+<span class="source-line" id="L150"><a class="line-num" href="#L150">150</a>            levelId = levelId,</span>
+<span class="source-line" id="L151"><a class="line-num" href="#L151">151</a>            levelScene = ubfSLRuntime:getLevelScene(),</span>
+<span class="source-line" id="L152"><a class="line-num" href="#L152">152</a>            playId = playId,</span>
+<span class="source-line" id="L153"><a class="line-num" href="#L153">153</a>            source = &quot;DiffAdjustModMgr:createModSourceENVDataFromPlay&quot;,</span>
+<span class="source-line" id="L154"><a class="line-num" href="#L154">154</a>        })</span>
+<span class="source-line" id="L155"><a class="line-num" href="#L155">155</a>    end</span>
+<span class="source-line" id="L156"><a class="line-num" href="#L156">156</a>    local UBFuuuA9ReturnActivityAdapter = require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuA9ReturnActivityAdapter&quot;</span>
+<span class="source-line" id="L157"><a class="line-num" href="#L157">157</a>    UBFuuuA9ReturnActivityAdapter:normalizeContext(_ubfuuuAdjustContext)</span>
+<span class="source-line" id="L158"><a class="line-num" href="#L158">158</a></span>
+<span class="source-line" id="L159"><a class="line-num" href="#L159">159</a>    -- if _debug then printx( 1 , &quot;DiffAdjustModMgr:createModData  rebuildContext   _ubfuuuAdjustContext =&quot;, tts(_ubfuuuAdjustContext) ) end</span>
+<span class="source-line" id="L160"><a class="line-num" href="#L160">160</a></span>
+<span class="source-line" id="L161"><a class="line-num" href="#L161">161</a>    modEnvData.ubfuuu = true</span>
+<span class="source-line" id="L162"><a class="line-num" href="#L162">162</a>    modEnvData.selfFeedbackCollect = _ubfuuuAdjustContext.selfFeedbackCollect --开启自反馈采集逻辑</span>
+<span class="source-line" id="L163"><a class="line-num" href="#L163">163</a>    modEnvData.S1 = _ubfuuuAdjustContext.S1</span>
+<span class="source-line" id="L164"><a class="line-num" href="#L164">164</a>    modEnvData.ubfuuuG4Idx = _ubfuuuAdjustContext.ubfuuuG4Idx</span>
+<span class="source-line" id="L165"><a class="line-num" href="#L165">165</a>    modEnvData.cfgGroup = _ubfuuuAdjustContext.cfgGroup</span>
+<span class="source-line" id="L166"><a class="line-num" href="#L166">166</a>    modEnvData.modGroup = _ubfuuuAdjustContext.modGroup</span>
+<span class="source-line" id="L167"><a class="line-num" href="#L167">167</a>    modEnvData.usedPreAddStep = 0</span>
+<span class="source-line" id="L168"><a class="line-num" href="#L168">168</a>    modEnvData.useOtherPreProp = false</span>
+<span class="source-line" id="L169"><a class="line-num" href="#L169">169</a>    </span>
+<span class="source-line" id="L170"><a class="line-num" href="#L170">170</a>    local propIdMap = _G.AMFPropId</span>
+<span class="source-line" id="L171"><a class="line-num" href="#L171">171</a></span>
+<span class="source-line" id="L172"><a class="line-num" href="#L172">172</a>    local prePropModContextData = modMgr:getModContextData(UBFModSourceIdEnum.kPreProp)</span>
+<span class="source-line" id="L173"><a class="line-num" href="#L173">173</a>    local prePropInfoData = prePropModContextData.prePropInfoData </span>
+<span class="source-line" id="L174"><a class="line-num" href="#L174">174</a>    for i, v in pairs(prePropInfoData or {}) do</span>
+<span class="source-line" id="L175"><a class="line-num" href="#L175">175</a>        if v.isSelected then</span>
+<span class="source-line" id="L176"><a class="line-num" href="#L176">176</a></span>
+<span class="source-line" id="L177"><a class="line-num" href="#L177">177</a>            -- local propMgr = UBFGlobal:getLogic(&quot;PropManager&quot;)</span>
+<span class="source-line" id="L178"><a class="line-num" href="#L178">178</a>            -- local addStepCount = propMgr:getAddStepCount(v.propId)</span>
+<span class="source-line" id="L179"><a class="line-num" href="#L179">179</a>            -- todo reast</span>
+<span class="source-line" id="L180"><a class="line-num" href="#L180">180</a></span>
+<span class="source-line" id="L181"><a class="line-num" href="#L181">181</a>            if v.propId == propIdMap.ADD_THREE_STEP </span>
+<span class="source-line" id="L182"><a class="line-num" href="#L182">182</a>                or v.propId == propIdMap.TIMELIMIT_ADD_THREE_STEP</span>
+<span class="source-line" id="L183"><a class="line-num" href="#L183">183</a>                or v.propId == propIdMap.INFINITE_PRE_ADD_3_STEP_ONE_MINUTE </span>
+<span class="source-line" id="L184"><a class="line-num" href="#L184">184</a>                then</span>
+<span class="source-line" id="L185"><a class="line-num" href="#L185">185</a>                    modEnvData.usedPreAddStep = 1</span>
+<span class="source-line" id="L186"><a class="line-num" href="#L186">186</a>            else</span>
+<span class="source-line" id="L187"><a class="line-num" href="#L187">187</a>                modEnvData.useOtherPreProp = true</span>
+<span class="source-line" id="L188"><a class="line-num" href="#L188">188</a>                modEnvData.selfFeedbackCollect = 0</span>
+<span class="source-line" id="L189"><a class="line-num" href="#L189">189</a>            end</span>
+<span class="source-line" id="L190"><a class="line-num" href="#L190">190</a>        end</span>
+<span class="source-line" id="L191"><a class="line-num" href="#L191">191</a>    end</span>
+<span class="source-line" id="L192"><a class="line-num" href="#L192">192</a>    </span>
+<span class="source-line" id="L193"><a class="line-num" href="#L193">193</a></span>
+<span class="source-line" id="L194"><a class="line-num" href="#L194">194</a>    -- setTimeOut( function () CommonTip:showTip(&quot;usedPreAddStep:&quot; .. tostring(modEnvData.usedPreAddStep) .. &quot;  useOtherPreProp:&quot; .. tostring(modEnvData.useOtherPreProp), nil, nil, 999) end, 5 )</span>
+<span class="source-line" id="L195"><a class="line-num" href="#L195">195</a></span>
+<span class="source-line" id="L196"><a class="line-num" href="#L196">196</a>    if _ubfuuuAdjustContext.luckyBagPartyEnabledAndHasEffect then</span>
+<span class="source-line" id="L197"><a class="line-num" href="#L197">197</a>        modEnvData.selfFeedbackCollect = 0</span>
+<span class="source-line" id="L198"><a class="line-num" href="#L198">198</a>    end</span>
+<span class="source-line" id="L199"><a class="line-num" href="#L199">199</a></span>
+<span class="source-line" id="L200"><a class="line-num" href="#L200">200</a>    local enabledWinningStreak = ubfSLRuntime:getWinningStreakInfo()</span>
+<span class="source-line" id="L201"><a class="line-num" href="#L201">201</a>    if enabledWinningStreak then</span>
+<span class="source-line" id="L202"><a class="line-num" href="#L202">202</a>        --[[</span>
+<span class="source-line" id="L203"><a class="line-num" href="#L203">203</a>            enabledWinningStreak = {</span>
+<span class="source-line" id="L204"><a class="line-num" href="#L204">204</a>                [1] = {</span>
+<span class="source-line" id="L205"><a class="line-num" href="#L205">205</a>                    modSourceId = 0,                                                    --[必需]</span>
+<span class="source-line" id="L206"><a class="line-num" href="#L206">206</a>                    winningStreakCount = 0,                                             --[必需]</span>
+<span class="source-line" id="L207"><a class="line-num" href="#L207">207</a></span>
+<span class="source-line" id="L208"><a class="line-num" href="#L208">208</a>                    logicTypeMap = {                                                    --[必需]</span>
+<span class="source-line" id="L209"><a class="line-num" href="#L209">209</a>                        [UBFWinningStreakLogicType.kAddScore] = true,</span>
+<span class="source-line" id="L210"><a class="line-num" href="#L210">210</a>                        [UBFWinningStreakLogicType.kAddEffectOnBoard] = true,</span>
+<span class="source-line" id="L211"><a class="line-num" href="#L211">211</a>                    },              </span>
+<span class="source-line" id="L212"><a class="line-num" href="#L212">212</a>                    sourceName = &quot;&quot;,                                                    </span>
+<span class="source-line" id="L213"><a class="line-num" href="#L213">213</a>                    datas = nil,                                                        --[可选]</span>
+<span class="source-line" id="L214"><a class="line-num" href="#L214">214</a>                }</span>
+<span class="source-line" id="L215"><a class="line-num" href="#L215">215</a>            }</span>
+<span class="source-line" id="L216"><a class="line-num" href="#L216">216</a>        ]]</span>
+<span class="source-line" id="L217"><a class="line-num" href="#L217">217</a>        </span>
+<span class="source-line" id="L218"><a class="line-num" href="#L218">218</a>        if _debug then printx( 1 , &quot;DiffAdjustModMgr:createModData  enabledWinningStreak =&quot;, tts(enabledWinningStreak) ) end</span>
+<span class="source-line" id="L219"><a class="line-num" href="#L219">219</a></span>
+<span class="source-line" id="L220"><a class="line-num" href="#L220">220</a>        for k,v in ipairs(enabledWinningStreak) do</span>
+<span class="source-line" id="L221"><a class="line-num" href="#L221">221</a>            if v.logicTypeMap and v.logicTypeMap[UBFWinningStreakLogicType.kAddEffectOnBoard] then</span>
+<span class="source-line" id="L222"><a class="line-num" href="#L222">222</a>                if v.winningStreakCount and v.winningStreakCount &gt; 1 then --上线试试，如果不行就全部关掉（改为大于0都不采集）</span>
+<span class="source-line" id="L223"><a class="line-num" href="#L223">223</a>                    if log then printx( 1 , &quot;DiffAdjustModMgr:createModData  winningStreakCount:&quot;, v.winningStreakCount ) end</span>
+<span class="source-line" id="L224"><a class="line-num" href="#L224">224</a>                    modEnvData.selfFeedbackCollect = 0</span>
+<span class="source-line" id="L225"><a class="line-num" href="#L225">225</a>                end</span>
+<span class="source-line" id="L226"><a class="line-num" href="#L226">226</a>            end</span>
+<span class="source-line" id="L227"><a class="line-num" href="#L227">227</a>        end</span>
+<span class="source-line" id="L228"><a class="line-num" href="#L228">228</a>    end</span>
+<span class="source-line" id="L229"><a class="line-num" href="#L229">229</a></span>
+<span class="source-line" id="L230"><a class="line-num" href="#L230">230</a></span>
+<span class="source-line" id="L231"><a class="line-num" href="#L231">231</a>    if modEnvData.modGroup then</span>
+<span class="source-line" id="L232"><a class="line-num" href="#L232">232</a>        if modEnvData.modGroup.T1 then</span>
+<span class="source-line" id="L233"><a class="line-num" href="#L233">233</a>            if levelId &gt;= 301 then</span>
+<span class="source-line" id="L234"><a class="line-num" href="#L234">234</a>                ubfSLRuntime.UBFuuuAdjustLogic:updateUbfuuuAdjustFixInfoByActivityIndex(DiffAdjustModMgr.ACT_KEY, 2, UBFuuuFixMode.kaddVaule)</span>
+<span class="source-line" id="L235"><a class="line-num" href="#L235">235</a>                ubfSLRuntime.UBFuuuAdjustLogic:updateUbfuuuAdjustFixInfoByPaymentIndex(DiffAdjustModMgr.ACT_KEY, 2, UBFuuuFixMode.kaddVaule)</span>
+<span class="source-line" id="L236"><a class="line-num" href="#L236">236</a>            end</span>
+<span class="source-line" id="L237"><a class="line-num" href="#L237">237</a>        end</span>
+<span class="source-line" id="L238"><a class="line-num" href="#L238">238</a>        </span>
+<span class="source-line" id="L239"><a class="line-num" href="#L239">239</a>        if modEnvData.modGroup.T2 then</span>
+<span class="source-line" id="L240"><a class="line-num" href="#L240">240</a>            if _ubfuuuAdjustContext.todayFirstStartLevelId == 0 or _ubfuuuAdjustContext.todayFirstStartLevelId == levelId then</span>
+<span class="source-line" id="L241"><a class="line-num" href="#L241">241</a>                ubfSLRuntime.UBFuuuAdjustLogic:updateUbfuuuAdjustFixInfoByDesiredDiffAvgBeforeBaodi(</span>
+<span class="source-line" id="L242"><a class="line-num" href="#L242">242</a>                    tostring(DiffAdjustModMgr.ACT_KEY) .. &quot;_T2_&quot; .. tostring(_ubfuuuAdjustContext.todayFirstStartLevelId) , </span>
+<span class="source-line" id="L243"><a class="line-num" href="#L243">243</a>                    0.5, </span>
+<span class="source-line" id="L244"><a class="line-num" href="#L244">244</a>                    UBFuuuFixMode.kMultiplyVaule, </span>
+<span class="source-line" id="L245"><a class="line-num" href="#L245">245</a>                    { </span>
+<span class="source-line" id="L246"><a class="line-num" href="#L246">246</a>                        rangeMin = 2,</span>
+<span class="source-line" id="L247"><a class="line-num" href="#L247">247</a>                        minValue = 2,</span>
+<span class="source-line" id="L248"><a class="line-num" href="#L248">248</a>                        maxValue = 5,</span>
+<span class="source-line" id="L249"><a class="line-num" href="#L249">249</a>                    }</span>
+<span class="source-line" id="L250"><a class="line-num" href="#L250">250</a>                )</span>
+<span class="source-line" id="L251"><a class="line-num" href="#L251">251</a>            end</span>
+<span class="source-line" id="L252"><a class="line-num" href="#L252">252</a>        end</span>
+<span class="source-line" id="L253"><a class="line-num" href="#L253">253</a></span>
+<span class="source-line" id="L254"><a class="line-num" href="#L254">254</a>        if modEnvData.modGroup.T3 and _ubfuuuAdjustContext.topLevel &lt;= 1000 and _ubfuuuAdjustContext.returnState then</span>
+<span class="source-line" id="L255"><a class="line-num" href="#L255">255</a>            local currWinComboNum = nil</span>
+<span class="source-line" id="L256"><a class="line-num" href="#L256">256</a>            local WinningStreakMgr = _G.amfBean(&quot;WinningStreakManager&quot;)</span>
+<span class="source-line" id="L257"><a class="line-num" href="#L257">257</a>            if WinningStreakMgr then</span>
+<span class="source-line" id="L258"><a class="line-num" href="#L258">258</a>                currWinComboNum = WinningStreakMgr:getGlobalWinningCount()</span>
+<span class="source-line" id="L259"><a class="line-num" href="#L259">259</a>            end</span>
+<span class="source-line" id="L260"><a class="line-num" href="#L260">260</a></span>
+<span class="source-line" id="L261"><a class="line-num" href="#L261">261</a>            if currWinComboNum and currWinComboNum &gt;= 2 and (_ubfuuuAdjustContext.todayPassLevelCount and _ubfuuuAdjustContext.todayPassLevelCount &lt; 10) then</span>
+<span class="source-line" id="L262"><a class="line-num" href="#L262">262</a>                ubfSLRuntime.UBFuuuAdjustLogic:updateUbfuuuAdjustFixInfoByDesiredDiffAvgBeforeBaodi(</span>
+<span class="source-line" id="L263"><a class="line-num" href="#L263">263</a>                    tostring(DiffAdjustModMgr.ACT_KEY) .. &quot;_T3_&quot; .. tostring(currWinComboNum) , </span>
+<span class="source-line" id="L264"><a class="line-num" href="#L264">264</a>                    1.5,</span>
+<span class="source-line" id="L265"><a class="line-num" href="#L265">265</a>                    UBFuuuFixMode.kMultiplyVaule, </span>
+<span class="source-line" id="L266"><a class="line-num" href="#L266">266</a>                    { </span>
+<span class="source-line" id="L267"><a class="line-num" href="#L267">267</a>                        rangeMax = 3,</span>
+<span class="source-line" id="L268"><a class="line-num" href="#L268">268</a>                        maxValue = 3,</span>
+<span class="source-line" id="L269"><a class="line-num" href="#L269">269</a>                    }</span>
+<span class="source-line" id="L270"><a class="line-num" href="#L270">270</a>                )</span>
+<span class="source-line" id="L271"><a class="line-num" href="#L271">271</a>            end</span>
+<span class="source-line" id="L272"><a class="line-num" href="#L272">272</a>        end</span>
+<span class="source-line" id="L273"><a class="line-num" href="#L273">273</a></span>
+<span class="source-line" id="L274"><a class="line-num" href="#L274">274</a>        local _todayStreakWinCount = _ubfuuuAdjustContext.todayStreakWinCount or 0</span>
+<span class="source-line" id="L275"><a class="line-num" href="#L275">275</a>        local _todayStreakWinBreakCount = _ubfuuuAdjustContext.todayStreakWinBreakCount or 0</span>
+<span class="source-line" id="L276"><a class="line-num" href="#L276">276</a>        local _todayPassLevelCount = _ubfuuuAdjustContext.todayPassLevelCount or 0</span>
+<span class="source-line" id="L277"><a class="line-num" href="#L277">277</a>        -- printx(1, &quot;DiffAdjustModMgr:createModSourceENVDataFromPlay  _todayStreakWinCount:&quot;, _todayStreakWinCount, &quot; _todayStreakWinBreakCount:&quot;, _todayStreakWinBreakCount, &quot; _todayPassLevelCount:&quot;, _todayPassLevelCount)</span>
+<span class="source-line" id="L278"><a class="line-num" href="#L278">278</a>        if modEnvData.modGroup.T31 and _ubfuuuAdjustContext.returnState and _ubfuuuAdjustContext.topLevel &lt;= 1000</span>
+<span class="source-line" id="L279"><a class="line-num" href="#L279">279</a>            and _todayStreakWinCount &gt;= 2 and _todayStreakWinBreakCount == 0 and _todayPassLevelCount &lt;= 10 then</span>
+<span class="source-line" id="L280"><a class="line-num" href="#L280">280</a>            ubfSLRuntime.UBFuuuAdjustLogic:updateUbfuuuAdjustFixInfoByDesiredDiffAvgBeforeBaodi(</span>
+<span class="source-line" id="L281"><a class="line-num" href="#L281">281</a>                tostring(DiffAdjustModMgr.ACT_KEY) .. &quot;_T31_&quot; .. tostring(_todayStreakWinCount),</span>
+<span class="source-line" id="L282"><a class="line-num" href="#L282">282</a>                1.5,</span>
+<span class="source-line" id="L283"><a class="line-num" href="#L283">283</a>                UBFuuuFixMode.kMultiplyVaule,</span>
+<span class="source-line" id="L284"><a class="line-num" href="#L284">284</a>                {</span>
+<span class="source-line" id="L285"><a class="line-num" href="#L285">285</a>                    rangeMax = 2,</span>
+<span class="source-line" id="L286"><a class="line-num" href="#L286">286</a>                    maxValue = 2,</span>
+<span class="source-line" id="L287"><a class="line-num" href="#L287">287</a>                }</span>
+<span class="source-line" id="L288"><a class="line-num" href="#L288">288</a>            )</span>
+<span class="source-line" id="L289"><a class="line-num" href="#L289">289</a>        end</span>
+<span class="source-line" id="L290"><a class="line-num" href="#L290">290</a></span>
+<span class="source-line" id="L291"><a class="line-num" href="#L291">291</a>        -- D2 模块：非难关标记关卡通过 adjustFixInfo 替换 diff_index_map 配置表</span>
+<span class="source-line" id="L292"><a class="line-num" href="#L292">292</a>        if modEnvData.modGroup.D2 then</span>
+<span class="source-line" id="L293"><a class="line-num" href="#L293">293</a>            local _d2_levelStar = _ubfuuuAdjustContext.levelStar or 0</span>
+<span class="source-line" id="L294"><a class="line-num" href="#L294">294</a>            local _d2_isTopLevelRange = levelId &gt; _ubfuuuAdjustContext.maxLevelId - _ubfuuuAdjustContext.topRangeLength</span>
+<span class="source-line" id="L295"><a class="line-num" href="#L295">295</a></span>
+<span class="source-line" id="L296"><a class="line-num" href="#L296">296</a>            if _d2_levelStar == 0 and not _d2_isTopLevelRange then</span>
+<span class="source-line" id="L297"><a class="line-num" href="#L297">297</a></span>
+<span class="source-line" id="L298"><a class="line-num" href="#L298">298</a>                local _d2_levelDifficultFlag = _G.amfBean(&quot;MetaManager&quot;):getLevelDifficultFlag(levelId, UBFLevelSceneType.kMain)</span>
+<span class="source-line" id="L299"><a class="line-num" href="#L299">299</a>                -- local _d2_levelDifficultFlag = MetaManager:getInstance():getLevelDifficultFlag(levelId, ubfSLRuntime:getLevelScene())</span>
+<span class="source-line" id="L300"><a class="line-num" href="#L300">300</a></span>
+<span class="source-line" id="L301"><a class="line-num" href="#L301">301</a>                if _d2_levelDifficultFlag and _d2_levelDifficultFlag == LevelDiffcultFlag.kNormal then</span>
+<span class="source-line" id="L302"><a class="line-num" href="#L302">302</a>                    ubfSLRuntime.UBFuuuAdjustLogic:replaceUBFuuuConfigFile(</span>
+<span class="source-line" id="L303"><a class="line-num" href="#L303">303</a>                        &quot;D2_nohardmark&quot;,</span>
+<span class="source-line" id="L304"><a class="line-num" href="#L304">304</a>                        UBFuuuConfigNameId[&quot;ubfuuu_diff_index_map&quot;],</span>
+<span class="source-line" id="L305"><a class="line-num" href="#L305">305</a>                        &quot;ubfuuu_diff_index_map_nohardmark&quot;</span>
+<span class="source-line" id="L306"><a class="line-num" href="#L306">306</a>                    )</span>
+<span class="source-line" id="L307"><a class="line-num" href="#L307">307</a>                end</span>
+<span class="source-line" id="L308"><a class="line-num" href="#L308">308</a>            end</span>
+<span class="source-line" id="L309"><a class="line-num" href="#L309">309</a>        end</span>
+<span class="source-line" id="L310"><a class="line-num" href="#L310">310</a></span>
+<span class="source-line" id="L311"><a class="line-num" href="#L311">311</a>        -- 开关 1419：加步数道具调节迭代</span>
+<span class="source-line" id="L312"><a class="line-num" href="#L312">312</a>        do</span>
+<span class="source-line" id="L313"><a class="line-num" href="#L313">313</a>            local _fixInfo = ubfSLRuntime.UBFuuuAdjustLogic:getUbfuuuAdjustFixInfo()</span>
+<span class="source-line" id="L314"><a class="line-num" href="#L314">314</a>            local _existingAddStepFix = _fixInfo and _fixInfo[UBFuuuFixType.kAddStepFix]</span>
+<span class="source-line" id="L315"><a class="line-num" href="#L315">315</a>            local _existingPreAddStepIntervalFix = _fixInfo and _fixInfo[UBFuuuFixType.kPreAddStepIntervalFix]</span>
+<span class="source-line" id="L316"><a class="line-num" href="#L316">316</a>            local _existingPostAddStepIntervalFix = _fixInfo and _fixInfo[UBFuuuFixType.kPostAddStepIntervalFix]</span>
+<span class="source-line" id="L317"><a class="line-num" href="#L317">317</a></span>
+<span class="source-line" id="L318"><a class="line-num" href="#L318">318</a>            -- Rust 已经支持</span>
+<span class="source-line" id="L319"><a class="line-num" href="#L319">319</a>            if not _existingAddStepFix and not _existingPreAddStepIntervalFix and not _existingPostAddStepIntervalFix then</span>
+<span class="source-line" id="L320"><a class="line-num" href="#L320">320</a>                local _modGroup = modEnvData.modGroup or {}</span>
+<span class="source-line" id="L321"><a class="line-num" href="#L321">321</a>                local _isPreAddStepWeakGroup = _modGroup.add3_5 or _modGroup.add3_5_alluser or _modGroup.add3</span>
+<span class="source-line" id="L322"><a class="line-num" href="#L322">322</a>                local _isLimitedPostAddStepGroup = _modGroup.add3_5 or _modGroup.add5</span>
+<span class="source-line" id="L323"><a class="line-num" href="#L323">323</a>                local _isAllUserPostAddStepGroup = _modGroup.add5_alluser or _modGroup.add3_5_alluser</span>
+<span class="source-line" id="L324"><a class="line-num" href="#L324">324</a>                local _enablePreAddStepFix = false</span>
+<span class="source-line" id="L325"><a class="line-num" href="#L325">325</a>                local _enablePostAddStepFix = false</span>
+<span class="source-line" id="L326"><a class="line-num" href="#L326">326</a>                local _payTag = nil</span>
+<span class="source-line" id="L327"><a class="line-num" href="#L327">327</a>                local _levelDifficultFlag = nil</span>
+<span class="source-line" id="L328"><a class="line-num" href="#L328">328</a></span>
+<span class="source-line" id="L329"><a class="line-num" href="#L329">329</a>                if _isPreAddStepWeakGroup then</span>
+<span class="source-line" id="L330"><a class="line-num" href="#L330">330</a>                    _levelDifficultFlag = _G.amfBean(&quot;MetaManager&quot;):getLevelDifficultFlag(levelId, UBFLevelSceneType.kMain)</span>
+<span class="source-line" id="L331"><a class="line-num" href="#L331">331</a>                    if _levelDifficultFlag and _levelDifficultFlag ~= LevelDiffcultFlag.kNormal then</span>
+<span class="source-line" id="L332"><a class="line-num" href="#L332">332</a>                        _enablePreAddStepFix = true</span>
+<span class="source-line" id="L333"><a class="line-num" href="#L333">333</a>                    end</span>
+<span class="source-line" id="L334"><a class="line-num" href="#L334">334</a>                end</span>
+<span class="source-line" id="L335"><a class="line-num" href="#L335">335</a></span>
+<span class="source-line" id="L336"><a class="line-num" href="#L336">336</a>                if _isLimitedPostAddStepGroup or _isAllUserPostAddStepGroup then</span>
+<span class="source-line" id="L337"><a class="line-num" href="#L337">337</a>                    _payTag = UserTagManager:getUserPaymentTag2ServerVersion()</span>
+<span class="source-line" id="L338"><a class="line-num" href="#L338">338</a>                end</span>
+<span class="source-line" id="L339"><a class="line-num" href="#L339">339</a></span>
+<span class="source-line" id="L340"><a class="line-num" href="#L340">340</a>                if _isAllUserPostAddStepGroup then</span>
+<span class="source-line" id="L341"><a class="line-num" href="#L341">341</a>                    _enablePostAddStepFix = true</span>
+<span class="source-line" id="L342"><a class="line-num" href="#L342">342</a>                elseif _isLimitedPostAddStepGroup then</span>
+<span class="source-line" id="L343"><a class="line-num" href="#L343">343</a>                    if _payTag == UsetPaymentTagServer.kNone or _payTag == UsetPaymentTagServer.kLow then</span>
+<span class="source-line" id="L344"><a class="line-num" href="#L344">344</a>                        _enablePostAddStepFix = true</span>
+<span class="source-line" id="L345"><a class="line-num" href="#L345">345</a>                    end</span>
+<span class="source-line" id="L346"><a class="line-num" href="#L346">346</a>                end</span>
+<span class="source-line" id="L347"><a class="line-num" href="#L347">347</a></span>
+<span class="source-line" id="L348"><a class="line-num" href="#L348">348</a>                if _enablePreAddStepFix then</span>
+<span class="source-line" id="L349"><a class="line-num" href="#L349">349</a>                    ubfSLRuntime.UBFuuuAdjustLogic:updateUbfuuuAdjustFixInfoByPreAddStepInterval(</span>
+<span class="source-line" id="L350"><a class="line-num" href="#L350">350</a>                        DiffAdjustModMgr.ACT_KEY,</span>
+<span class="source-line" id="L351"><a class="line-num" href="#L351">351</a>                        {</span>
+<span class="source-line" id="L352"><a class="line-num" href="#L352">352</a>                            addStepAdjustMode = UBFuuuAddStepAdjustMode.kAddMaxDiffMoveByFixedValue,</span>
+<span class="source-line" id="L353"><a class="line-num" href="#L353">353</a>                            targetMaxdiffMove = 1,</span>
+<span class="source-line" id="L354"><a class="line-num" href="#L354">354</a>                        }</span>
+<span class="source-line" id="L355"><a class="line-num" href="#L355">355</a>                    )</span>
+<span class="source-line" id="L356"><a class="line-num" href="#L356">356</a>                end</span>
+<span class="source-line" id="L357"><a class="line-num" href="#L357">357</a></span>
+<span class="source-line" id="L358"><a class="line-num" href="#L358">358</a>                if _enablePostAddStepFix then</span>
+<span class="source-line" id="L359"><a class="line-num" href="#L359">359</a>                    ubfSLRuntime.UBFuuuAdjustLogic:updateUbfuuuAdjustFixInfoByPostAddStepInterval(</span>
+<span class="source-line" id="L360"><a class="line-num" href="#L360">360</a>                        DiffAdjustModMgr.ACT_KEY,</span>
+<span class="source-line" id="L361"><a class="line-num" href="#L361">361</a>                        {</span>
+<span class="source-line" id="L362"><a class="line-num" href="#L362">362</a>                            availableSteps = POST_ADD_STEP_AVAILABLE_STEPS,</span>
+<span class="source-line" id="L363"><a class="line-num" href="#L363">363</a>                            addStepAdjustMode = UBFuuuAddStepAdjustMode.kAddMaxDiffMoveByStep,</span>
+<span class="source-line" id="L364"><a class="line-num" href="#L364">364</a>                            stackingPreValue = true,</span>
+<span class="source-line" id="L365"><a class="line-num" href="#L365">365</a>                        }</span>
+<span class="source-line" id="L366"><a class="line-num" href="#L366">366</a>                    )</span>
+<span class="source-line" id="L367"><a class="line-num" href="#L367">367</a>                end</span>
+<span class="source-line" id="L368"><a class="line-num" href="#L368">368</a></span>
+<span class="source-line" id="L369"><a class="line-num" href="#L369">369</a>                if _debug then UBFLogD(&quot;DiffAdjustModMgr:step_item_adjust&quot;, &quot;pre:&quot;, tostring(_enablePreAddStepFix), &quot;post:&quot;, tostring(_enablePostAddStepFix), &quot;limitedPostGroup:&quot;, tostring(_isLimitedPostAddStepGroup), &quot;allUserPostGroup:&quot;, tostring(_isAllUserPostAddStepGroup), &quot;payTag:&quot;, tostring(_payTag), &quot;levelDifficultFlag:&quot;, tostring(_levelDifficultFlag)) end</span>
+<span class="source-line" id="L370"><a class="line-num" href="#L370">370</a>            else</span>
+<span class="source-line" id="L371"><a class="line-num" href="#L371">371</a>                if _debug then UBFLogD(&quot;DiffAdjustModMgr:step_item_adjust skip&quot;, &quot;isInRust:&quot;, tostring(_isInRust), &quot;existingAddStep:&quot;, tostring(_existingAddStepFix), &quot;existingPre:&quot;, tostring(_existingPreAddStepIntervalFix), &quot;existingPost:&quot;, tostring(_existingPostAddStepIntervalFix)) end</span>
+<span class="source-line" id="L372"><a class="line-num" href="#L372">372</a>            end</span>
+<span class="source-line" id="L373"><a class="line-num" href="#L373">373</a>        end</span>
+<span class="source-line" id="L374"><a class="line-num" href="#L374">374</a>        </span>
+<span class="source-line" id="L375"><a class="line-num" href="#L375">375</a>    end</span>
+<span class="source-line" id="L376"><a class="line-num" href="#L376">376</a></span>
+<span class="source-line" id="L377"><a class="line-num" href="#L377">377</a>    if _isInRust then</span>
+<span class="source-line" id="L378"><a class="line-num" href="#L378">378</a>        -- 出关反馈池：Rust + 超鸟 → RUST_bird，Rust + 无超鸟 → RUST</span>
+<span class="source-line" id="L379"><a class="line-num" href="#L379">379</a>        local _collectKey = _G.SelfFeedbackPoolkey.kRUST</span>
+<span class="source-line" id="L380"><a class="line-num" href="#L380">380</a>        local _existingInfo = ubfSLRuntime.UBFuuuAdjustLogic:getUbfuuuAdjustFixInfo()</span>
+<span class="source-line" id="L381"><a class="line-num" href="#L381">381</a>        if _existingInfo </span>
+<span class="source-line" id="L382"><a class="line-num" href="#L382">382</a>            and _existingInfo[UBFuuuFixType.kSelfFeedbackPoolkey] </span>
+<span class="source-line" id="L383"><a class="line-num" href="#L383">383</a>            and _existingInfo[UBFuuuFixType.kSelfFeedbackPoolkey].collectKey == _G.SelfFeedbackPoolkey.kSuperBird then</span>
+<span class="source-line" id="L384"><a class="line-num" href="#L384">384</a>            _collectKey = _G.SelfFeedbackPoolkey.kRUST_bird</span>
+<span class="source-line" id="L385"><a class="line-num" href="#L385">385</a>        end</span>
+<span class="source-line" id="L386"><a class="line-num" href="#L386">386</a>        ubfSLRuntime.UBFuuuAdjustLogic:setSelfFeedbackPoolkey(&quot;RUST&quot;, _G.SelfFeedbackPoolkey.kRUST, _collectKey)</span>
+<span class="source-line" id="L387"><a class="line-num" href="#L387">387</a>    end</span>
+<span class="source-line" id="L388"><a class="line-num" href="#L388">388</a></span>
+<span class="source-line" id="L389"><a class="line-num" href="#L389">389</a>    UBFuuuA9ReturnActivityAdapter:beforeCheck(ubfSLRuntime, _ubfuuuAdjustContext, modEnvData)</span>
+<span class="source-line" id="L390"><a class="line-num" href="#L390">390</a>    _ubfuuuAdjustContext.adjustFixInfo = ubfSLRuntime.UBFuuuAdjustLogic:getUbfuuuAdjustFixInfo()</span>
+<span class="source-line" id="L391"><a class="line-num" href="#L391">391</a></span>
+<span class="source-line" id="L392"><a class="line-num" href="#L392">392</a>    if _ubfuuuAdjustContext.adjustFixInfo and _ubfuuuAdjustContext.adjustFixInfo[UBFuuuFixType.kSelfFeedbackEnableFlag] then</span>
+<span class="source-line" id="L393"><a class="line-num" href="#L393">393</a>        if _ubfuuuAdjustContext.adjustFixInfo[UBFuuuFixType.kSelfFeedbackEnableFlag].enableFlag then</span>
+<span class="source-line" id="L394"><a class="line-num" href="#L394">394</a>            modEnvData.selfFeedbackCollect = 1</span>
+<span class="source-line" id="L395"><a class="line-num" href="#L395">395</a>        else</span>
+<span class="source-line" id="L396"><a class="line-num" href="#L396">396</a>            modEnvData.selfFeedbackCollect = 0</span>
+<span class="source-line" id="L397"><a class="line-num" href="#L397">397</a>        end</span>
+<span class="source-line" id="L398"><a class="line-num" href="#L398">398</a>    end</span>
+<span class="source-line" id="L399"><a class="line-num" href="#L399">399</a></span>
+<span class="source-line" id="L400"><a class="line-num" href="#L400">400</a>    -- 开始计算“生效的预期难度”</span>
+<span class="source-line" id="L401"><a class="line-num" href="#L401">401</a>    local _resultDatas = UBFuuuSelectAdjust:checkAdjustStrategy( _ubfuuuAdjustContext )</span>
+<span class="source-line" id="L402"><a class="line-num" href="#L402">402</a></span>
+<span class="source-line" id="L403"><a class="line-num" href="#L403">403</a>    _resultDatas.ubfuuuAdjustContext = _ubfuuuAdjustContext</span>
+<span class="source-line" id="L404"><a class="line-num" href="#L404">404</a>    if okAdjustContextTestHelper and UBFuuuAdjustContextTestHelper and UBFuuuAdjustContextTestHelper.recordCheckResult then</span>
+<span class="source-line" id="L405"><a class="line-num" href="#L405">405</a>        UBFuuuAdjustContextTestHelper:recordCheckResult(_resultDatas)</span>
+<span class="source-line" id="L406"><a class="line-num" href="#L406">406</a>    end</span>
+<span class="source-line" id="L407"><a class="line-num" href="#L407">407</a></span>
+<span class="source-line" id="L408"><a class="line-num" href="#L408">408</a>    local _ubfuuCheckResult = _resultDatas.checkResult</span>
+<span class="source-line" id="L409"><a class="line-num" href="#L409">409</a>    local _feedbackResult = _resultDatas.feedbackResult</span>
+<span class="source-line" id="L410"><a class="line-num" href="#L410">410</a>    local _diffFix = _resultDatas.diffFix</span>
+<span class="source-line" id="L411"><a class="line-num" href="#L411">411</a></span>
+<span class="source-line" id="L412"><a class="line-num" href="#L412">412</a>    if _debug then printx( 1 , &quot;DiffAdjustModMgr:createModData  checkAdjustStrategy   _resultDatas =&quot;, tts(_resultDatas) ) end</span>
+<span class="source-line" id="L413"><a class="line-num" href="#L413">413</a></span>
+<span class="source-line" id="L414"><a class="line-num" href="#L414">414</a>    if _feedbackResult and _feedbackResult.diffFix then</span>
+<span class="source-line" id="L415"><a class="line-num" href="#L415">415</a>        modEnvData.feedbackSelected = true</span>
+<span class="source-line" id="L416"><a class="line-num" href="#L416">416</a>        modEnvData.upK = _feedbackResult.upK</span>
+<span class="source-line" id="L417"><a class="line-num" href="#L417">417</a>        modEnvData.lowK = _feedbackResult.lowK</span>
+<span class="source-line" id="L418"><a class="line-num" href="#L418">418</a>        modEnvData.feedpath = _feedbackResult.feedpath</span>
+<span class="source-line" id="L419"><a class="line-num" href="#L419">419</a>    end</span>
+<span class="source-line" id="L420"><a class="line-num" href="#L420">420</a></span>
+<span class="source-line" id="L421"><a class="line-num" href="#L421">421</a>    if _ubfuuCheckResult </span>
+<span class="source-line" id="L422"><a class="line-num" href="#L422">422</a>        and _ubfuuCheckResult.desiredDiffAvg and _ubfuuCheckResult.desiredDiffAvg &gt;= 1 </span>
+<span class="source-line" id="L423"><a class="line-num" href="#L423">423</a>        and _ubfuuCheckResult.fixedDesiredDiffAvg and _ubfuuCheckResult.fixedDesiredDiffAvg &gt;= 1 </span>
+<span class="source-line" id="L424"><a class="line-num" href="#L424">424</a>        and _diffFix then</span>
+<span class="source-line" id="L425"><a class="line-num" href="#L425">425</a></span>
+<span class="source-line" id="L426"><a class="line-num" href="#L426">426</a>        _ubfuuCheckResult.adjustFixInfo = _ubfuuuAdjustContext.adjustFixInfo</span>
+<span class="source-line" id="L427"><a class="line-num" href="#L427">427</a>        _ubfuuCheckResult.realDiffAvgByDiffFix = _feedbackResult and _feedbackResult.realDiffAvgByDiffFix</span>
+<span class="source-line" id="L428"><a class="line-num" href="#L428">428</a></span>
+<span class="source-line" id="L429"><a class="line-num" href="#L429">429</a>        modEnvData.ubfuuCheckResult = _ubfuuCheckResult</span>
+<span class="source-line" id="L430"><a class="line-num" href="#L430">430</a>        modEnvData.ubfuuCheckResult.ubfuuuAdjustSelectEnable = true</span>
+<span class="source-line" id="L431"><a class="line-num" href="#L431">431</a>        modEnvData.enableUBFuuu = true</span>
+<span class="source-line" id="L432"><a class="line-num" href="#L432">432</a>        modEnvData.paymentIndex = _ubfuuCheckResult.paymentIndex</span>
+<span class="source-line" id="L433"><a class="line-num" href="#L433">433</a></span>
+<span class="source-line" id="L434"><a class="line-num" href="#L434">434</a>        ubfSLRuntime.adjustData = {</span>
+<span class="source-line" id="L435"><a class="line-num" href="#L435">435</a>            enableUBFuuu = modEnvData.enableUBFuuu,</span>
+<span class="source-line" id="L436"><a class="line-num" href="#L436">436</a>            mode = ProductItemDiffChangeMode.kAIAddColor,</span>
+<span class="source-line" id="L437"><a class="line-num" href="#L437">437</a>            ds = 5,</span>
+<span class="source-line" id="L438"><a class="line-num" href="#L438">438</a>            reason = &quot;UBFuuu2025&quot;,</span>
+<span class="source-line" id="L439"><a class="line-num" href="#L439">439</a>            lastReason = &quot;UBFuuu2025&quot;,</span>
+<span class="source-line" id="L440"><a class="line-num" href="#L440">440</a></span>
+<span class="source-line" id="L441"><a class="line-num" href="#L441">441</a>            activityIndex = _ubfuuCheckResult.activityIndex,</span>
+<span class="source-line" id="L442"><a class="line-num" href="#L442">442</a>            paymentIndex = _ubfuuCheckResult.paymentIndex,</span>
+<span class="source-line" id="L443"><a class="line-num" href="#L443">443</a>            playerAbility = _ubfuuCheckResult.playerAbility,</span>
+<span class="source-line" id="L444"><a class="line-num" href="#L444">444</a>            diffIndex = _ubfuuCheckResult.diffIndex,</span>
+<span class="source-line" id="L445"><a class="line-num" href="#L445">445</a></span>
+<span class="source-line" id="L446"><a class="line-num" href="#L446">446</a>            desiredDiffAvg = _ubfuuCheckResult.desiredDiffAvg,</span>
+<span class="source-line" id="L447"><a class="line-num" href="#L447">447</a>            fixedDesiredDiffAvg = _ubfuuCheckResult.fixedDesiredDiffAvg,</span>
+<span class="source-line" id="L448"><a class="line-num" href="#L448">448</a>            diffFix = _diffFix,</span>
+<span class="source-line" id="L449"><a class="line-num" href="#L449">449</a></span>
+<span class="source-line" id="L450"><a class="line-num" href="#L450">450</a>            toplevelBaoDiFlag = _ubfuuCheckResult.toplevelBaoDiFlag,</span>
+<span class="source-line" id="L451"><a class="line-num" href="#L451">451</a>            toplevelBaoDiLevel = _ubfuuCheckResult.toplevelBaoDiLevel,</span>
+<span class="source-line" id="L452"><a class="line-num" href="#L452">452</a>        }</span>
+<span class="source-line" id="L453"><a class="line-num" href="#L453">453</a></span>
+<span class="source-line" id="L454"><a class="line-num" href="#L454">454</a>        -- if _ubfuuCheckResult.stepFixEnable then</span>
+<span class="source-line" id="L455"><a class="line-num" href="#L455">455</a>        --     ubfSLRuntime.adjustData.diffFix = nil</span>
+<span class="source-line" id="L456"><a class="line-num" href="#L456">456</a>        -- end</span>
+<span class="source-line" id="L457"><a class="line-num" href="#L457">457</a></span>
+<span class="source-line" id="L458"><a class="line-num" href="#L458">458</a>        -- ubfSLRuntime.dcData = ubfSLRuntime.dcData or {}</span>
+<span class="source-line" id="L459"><a class="line-num" href="#L459">459</a>        -- ubfSLRuntime.dcData.adjustDCData = ubfSLRuntime.adjustData</span>
+<span class="source-line" id="L460"><a class="line-num" href="#L460">460</a></span>
+<span class="source-line" id="L461"><a class="line-num" href="#L461">461</a>        local ProphetLaunchStrategy = require &quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ProphetLaunchStrategy&quot;</span>
+<span class="source-line" id="L462"><a class="line-num" href="#L462">462</a>        ProphetLaunchStrategy:applySafely(ubfSLRuntime, _resultDatas)</span>
+<span class="source-line" id="L463"><a class="line-num" href="#L463">463</a></span>
+<span class="source-line" id="L464"><a class="line-num" href="#L464">464</a>        modEnvData.adjustData = ubfSLRuntime.adjustData</span>
+<span class="source-line" id="L465"><a class="line-num" href="#L465">465</a></span>
+<span class="source-line" id="L466"><a class="line-num" href="#L466">466</a>        UBFuuuSelectAdjust:updateBaoDi( _ubfuuCheckResult )</span>
+<span class="source-line" id="L467"><a class="line-num" href="#L467">467</a></span>
+<span class="source-line" id="L468"><a class="line-num" href="#L468">468</a>        local UBFuuuAdjustManager = require(&quot;ubf.UBFGamePlayScene.logics.sceneModules.gameMod.modFolder.diffAdjust.ubfuuu.UBFuuuAdjustManager&quot;)</span>
+<span class="source-line" id="L469"><a class="line-num" href="#L469">469</a>        UBFuuuAdjustManager:setLastAdjustResultData( modEnvData.ubfuuCheckResult )</span>
+<span class="source-line" id="L470"><a class="line-num" href="#L470">470</a></span>
+<span class="source-line" id="L471"><a class="line-num" href="#L471">471</a>        -- modEnvData.ubfuuuDisableReason = {code = -1} -- -1表示没有异常</span>
+<span class="source-line" id="L472"><a class="line-num" href="#L472">472</a>        _G.CurrStageUbfuuuDisableReason = 0</span>
+<span class="source-line" id="L473"><a class="line-num" href="#L473">473</a></span>
+<span class="source-line" id="L474"><a class="line-num" href="#L474">474</a>        return modEnvData</span>
+<span class="source-line" id="L475"><a class="line-num" href="#L475">475</a>    else</span>
+<span class="source-line" id="L476"><a class="line-num" href="#L476">476</a>        --</span>
+<span class="source-line" id="L477"><a class="line-num" href="#L477">477</a>--</span>
+<span class="source-line" id="L478"><a class="line-num" href="#L478">478</a>--</span>
+<span class="source-line" id="L479"><a class="line-num" href="#L479">479</a>--</span>
+<span class="source-line" id="L480"><a class="line-num" href="#L480">480</a>--</span>
+<span class="source-line" id="L481"><a class="line-num" href="#L481">481</a>--</span>
+<span class="source-line" id="L482"><a class="line-num" href="#L482">482</a>--</span>
+<span class="source-line" id="L483"><a class="line-num" href="#L483">483</a>--</span>
+<span class="source-line" id="L484"><a class="line-num" href="#L484">484</a>--</span>
+<span class="source-line" id="L485"><a class="line-num" href="#L485">485</a>--</span>
+<span class="source-line" id="L486"><a class="line-num" href="#L486">486</a>--</span>
+<span class="source-line" id="L487"><a class="line-num" href="#L487">487</a>--</span>
+<span class="source-line" id="L488"><a class="line-num" href="#L488">488</a>--</span>
+<span class="source-line" id="L489"><a class="line-num" href="#L489">489</a>--</span>
+<span class="source-line" id="L490"><a class="line-num" href="#L490">490</a>--</span>
+<span class="source-line" id="L491"><a class="line-num" href="#L491">491</a></span>
+<span class="source-line" id="L492"><a class="line-num" href="#L492">492</a></span>
+<span class="source-line" id="L493"><a class="line-num" href="#L493">493</a>        local _reason = {}</span>
+<span class="source-line" id="L494"><a class="line-num" href="#L494">494</a>        _reason.datas = {}</span>
+<span class="source-line" id="L495"><a class="line-num" href="#L495">495</a></span>
+<span class="source-line" id="L496"><a class="line-num" href="#L496">496</a>        if _resultDatas.reason then</span>
+<span class="source-line" id="L497"><a class="line-num" href="#L497">497</a>            _reason.code = _resultDatas.reason</span>
+<span class="source-line" id="L498"><a class="line-num" href="#L498">498</a>            _reason.datas = _resultDatas.datas</span>
+<span class="source-line" id="L499"><a class="line-num" href="#L499">499</a>        else</span>
+<span class="source-line" id="L500"><a class="line-num" href="#L500">500</a>            if _ubfuuCheckResult then</span>
+<span class="source-line" id="L501"><a class="line-num" href="#L501">501</a>                if not(_ubfuuCheckResult.desiredDiffAvg and _ubfuuCheckResult.desiredDiffAvg &gt;= 1) then</span>
+<span class="source-line" id="L502"><a class="line-num" href="#L502">502</a>                    _reason.code = UbfuuuDisableReason.kCheckResultInvalid</span>
+<span class="source-line" id="L503"><a class="line-num" href="#L503">503</a>                    _reason.datas = _ubfuuCheckResult.desiredDiffAvg</span>
+<span class="source-line" id="L504"><a class="line-num" href="#L504">504</a>                elseif not(_ubfuuCheckResult.fixedDesiredDiffAvg and _ubfuuCheckResult.fixedDesiredDiffAvg &gt;= 1) then</span>
+<span class="source-line" id="L505"><a class="line-num" href="#L505">505</a>                    _reason.code = UbfuuuDisableReason.kDesiredDiffAvgInvalid</span>
+<span class="source-line" id="L506"><a class="line-num" href="#L506">506</a>                    _reason.datas = _ubfuuCheckResult.fixedDesiredDiffAvg</span>
+<span class="source-line" id="L507"><a class="line-num" href="#L507">507</a>                elseif not _diffFix then</span>
+<span class="source-line" id="L508"><a class="line-num" href="#L508">508</a>                    _reason.code = UbfuuuDisableReason.kDiffFixIsNil</span>
+<span class="source-line" id="L509"><a class="line-num" href="#L509">509</a>                end</span>
+<span class="source-line" id="L510"><a class="line-num" href="#L510">510</a>            else</span>
+<span class="source-line" id="L511"><a class="line-num" href="#L511">511</a>                _reason.code = UbfuuuDisableReason.kCheckResultIsNil</span>
+<span class="source-line" id="L512"><a class="line-num" href="#L512">512</a>            end</span>
+<span class="source-line" id="L513"><a class="line-num" href="#L513">513</a>        end</span>
+<span class="source-line" id="L514"><a class="line-num" href="#L514">514</a></span>
+<span class="source-line" id="L515"><a class="line-num" href="#L515">515</a>        _G.CurrStageUbfuuuDisableReason = _reason.code</span>
+<span class="source-line" id="L516"><a class="line-num" href="#L516">516</a>        modEnvData.ubfuuuDisableReason = _reason</span>
+<span class="source-line" id="L517"><a class="line-num" href="#L517">517</a>    end</span>
+<span class="source-line" id="L518"><a class="line-num" href="#L518">518</a></span>
+<span class="source-line" id="L519"><a class="line-num" href="#L519">519</a>    return nil</span>
+<span class="source-line" id="L520"><a class="line-num" href="#L520">520</a>end</span>
+<span class="source-line" id="L521"><a class="line-num" href="#L521">521</a></span>
+<span class="source-line" id="L522"><a class="line-num" href="#L522">522</a>function DiffAdjustModMgr:createModSourceENVDataFromAIAutoPlay(ubfSLRuntime, actData)</span>
+<span class="source-line" id="L523"><a class="line-num" href="#L523">523</a>    local aiParamKey = actData and actData.actKey</span>
+<span class="source-line" id="L524"><a class="line-num" href="#L524">524</a>    if not aiParamKey or aiParamKey ~= DiffAdjustModMgr.ACT_KEY  then return end</span>
+<span class="source-line" id="L525"><a class="line-num" href="#L525">525</a></span>
+<span class="source-line" id="L526"><a class="line-num" href="#L526">526</a>    actData.enableUBFuuu = true</span>
+<span class="source-line" id="L527"><a class="line-num" href="#L527">527</a></span>
+<span class="source-line" id="L528"><a class="line-num" href="#L528">528</a>    local diffFix = tonumber(actData.adjustData.diffFix)</span>
+<span class="source-line" id="L529"><a class="line-num" href="#L529">529</a></span>
+<span class="source-line" id="L530"><a class="line-num" href="#L530">530</a>    local adjustData = {</span>
+<span class="source-line" id="L531"><a class="line-num" href="#L531">531</a>        enableUBFuuu = true,</span>
+<span class="source-line" id="L532"><a class="line-num" href="#L532">532</a>        mode = ProductItemDiffChangeMode.kAIAddColor,</span>
+<span class="source-line" id="L533"><a class="line-num" href="#L533">533</a>        ds = 5,</span>
+<span class="source-line" id="L534"><a class="line-num" href="#L534">534</a>        reason = &quot;UBFuuu2025ByAI&quot;,</span>
+<span class="source-line" id="L535"><a class="line-num" href="#L535">535</a>        lastReason = &quot;UBFuuu2025ByAI&quot;,</span>
+<span class="source-line" id="L536"><a class="line-num" href="#L536">536</a></span>
+<span class="source-line" id="L537"><a class="line-num" href="#L537">537</a>        diffFix = diffFix or 0,</span>
+<span class="source-line" id="L538"><a class="line-num" href="#L538">538</a>    }</span>
+<span class="source-line" id="L539"><a class="line-num" href="#L539">539</a></span>
+<span class="source-line" id="L540"><a class="line-num" href="#L540">540</a>    if tostring(diffFix) ~= tostring(actData.adjustData.diffFix) then</span>
+<span class="source-line" id="L541"><a class="line-num" href="#L541">541</a></span>
+<span class="source-line" id="L542"><a class="line-num" href="#L542">542</a>        local _arr = string.split(actData.adjustData.diffFix, &quot;_&quot;)</span>
+<span class="source-line" id="L543"><a class="line-num" href="#L543">543</a></span>
+<span class="source-line" id="L544"><a class="line-num" href="#L544">544</a>        actData.ubfuuCheckResult = {</span>
+<span class="source-line" id="L545"><a class="line-num" href="#L545">545</a>            stepFixEnable = true,</span>
+<span class="source-line" id="L546"><a class="line-num" href="#L546">546</a>            stepFix = tonumber(_arr[2]),</span>
+<span class="source-line" id="L547"><a class="line-num" href="#L547">547</a>            desiredStep = tonumber(_arr[2]),</span>
+<span class="source-line" id="L548"><a class="line-num" href="#L548">548</a>        }</span>
+<span class="source-line" id="L549"><a class="line-num" href="#L549">549</a>    end</span>
+<span class="source-line" id="L550"><a class="line-num" href="#L550">550</a></span>
+<span class="source-line" id="L551"><a class="line-num" href="#L551">551</a>    actData.adjustData = table.merge(actData.adjustData, adjustData)</span>
+<span class="source-line" id="L552"><a class="line-num" href="#L552">552</a>    ubfSLRuntime.adjustData = actData.adjustData</span>
+<span class="source-line" id="L553"><a class="line-num" href="#L553">553</a>    actData.ubfuuCheckResult = {</span>
+<span class="source-line" id="L554"><a class="line-num" href="#L554">554</a>        calculateDiffIndexResult = {</span>
+<span class="source-line" id="L555"><a class="line-num" href="#L555">555</a>            modGroup = {</span>
+<span class="source-line" id="L556"><a class="line-num" href="#L556">556</a>                enableFixScore = ubfSLRuntime.levelId &lt; levelFlag3,</span>
+<span class="source-line" id="L557"><a class="line-num" href="#L557">557</a>                enableFixIceCombo = ubfSLRuntime.levelId &gt;= levelFlag3</span>
+<span class="source-line" id="L558"><a class="line-num" href="#L558">558</a>            }</span>
+<span class="source-line" id="L559"><a class="line-num" href="#L559">559</a>        }</span>
+<span class="source-line" id="L560"><a class="line-num" href="#L560">560</a>    }</span>
+<span class="source-line" id="L561"><a class="line-num" href="#L561">561</a></span>
+<span class="source-line" id="L562"><a class="line-num" href="#L562">562</a>    if actData.scoreTest then</span>
+<span class="source-line" id="L563"><a class="line-num" href="#L563">563</a>        actData.ubfuuCheckResult.calculateDiffIndexResult.modGroup.enableFixScore = actData.scoreTest.fixA</span>
+<span class="source-line" id="L564"><a class="line-num" href="#L564">564</a>        actData.ubfuuCheckResult.calculateDiffIndexResult.modGroup.enableFixIceCombo = actData.scoreTest.fixC</span>
+<span class="source-line" id="L565"><a class="line-num" href="#L565">565</a>    end</span>
+<span class="source-line" id="L566"><a class="line-num" href="#L566">566</a></span>
+<span class="source-line" id="L567"><a class="line-num" href="#L567">567</a>    return actData</span>
+<span class="source-line" id="L568"><a class="line-num" href="#L568">568</a>end</span>
+<span class="source-line" id="L569"><a class="line-num" href="#L569">569</a></span>
+<span class="source-line" id="L570"><a class="line-num" href="#L570">570</a>function DiffAdjustModMgr:createModSourceENVDataFromEditorPlay(ubfSLRuntime)</span>
+<span class="source-line" id="L571"><a class="line-num" href="#L571">571</a>    local ubfuuuInfo = _G.lastEditorData and _G.lastEditorData.ubfuuu</span>
+<span class="source-line" id="L572"><a class="line-num" href="#L572">572</a>    if not ubfuuuInfo then</span>
+<span class="source-line" id="L573"><a class="line-num" href="#L573">573</a>        return</span>
+<span class="source-line" id="L574"><a class="line-num" href="#L574">574</a>    end</span>
+<span class="source-line" id="L575"><a class="line-num" href="#L575">575</a>    local actData = {}</span>
+<span class="source-line" id="L576"><a class="line-num" href="#L576">576</a>    actData.adjustData = {}</span>
+<span class="source-line" id="L577"><a class="line-num" href="#L577">577</a>    actData.enableUBFuuu = true</span>
+<span class="source-line" id="L578"><a class="line-num" href="#L578">578</a></span>
+<span class="source-line" id="L579"><a class="line-num" href="#L579">579</a>    local adjustData = {</span>
+<span class="source-line" id="L580"><a class="line-num" href="#L580">580</a>        enableUBFuuu = true,</span>
+<span class="source-line" id="L581"><a class="line-num" href="#L581">581</a>        mode = ProductItemDiffChangeMode.kAIAddColor,</span>
+<span class="source-line" id="L582"><a class="line-num" href="#L582">582</a>        ds = 5,</span>
+<span class="source-line" id="L583"><a class="line-num" href="#L583">583</a>        reason = &quot;UBFuuu2025Editor&quot;,</span>
+<span class="source-line" id="L584"><a class="line-num" href="#L584">584</a>        lastReason = &quot;UBFuuu2025Editor&quot;,</span>
+<span class="source-line" id="L585"><a class="line-num" href="#L585">585</a></span>
+<span class="source-line" id="L586"><a class="line-num" href="#L586">586</a>        diffFix = tonumber(ubfuuuInfo.diffFix) or 0,</span>
+<span class="source-line" id="L587"><a class="line-num" href="#L587">587</a>    }</span>
+<span class="source-line" id="L588"><a class="line-num" href="#L588">588</a>    actData.adjustData = table.merge(actData.adjustData, adjustData)</span>
+<span class="source-line" id="L589"><a class="line-num" href="#L589">589</a>    ubfSLRuntime.adjustData = actData.adjustData</span>
+<span class="source-line" id="L590"><a class="line-num" href="#L590">590</a>    return actData</span>
+<span class="source-line" id="L591"><a class="line-num" href="#L591">591</a>end</span>
+<span class="source-line" id="L592"><a class="line-num" href="#L592">592</a></span>
+<span class="source-line" id="L593"><a class="line-num" href="#L593">593</a>--加载mod资源</span>
+<span class="source-line" id="L594"><a class="line-num" href="#L594">594</a>function DiffAdjustModMgr:loadModRes(runtime)</span>
+<span class="source-line" id="L595"><a class="line-num" href="#L595">595</a>end</span>
+<span class="source-line" id="L596"><a class="line-num" href="#L596">596</a></span>
+<span class="source-line" id="L597"><a class="line-num" href="#L597">597</a>--卸载mod资源</span>
+<span class="source-line" id="L598"><a class="line-num" href="#L598">598</a>function DiffAdjustModMgr:unLoadModRes(runtime)</span>
+<span class="source-line" id="L599"><a class="line-num" href="#L599">599</a>end</span>
+<span class="source-line" id="L600"><a class="line-num" href="#L600">600</a></span>
+<span class="source-line" id="L601"><a class="line-num" href="#L601">601</a>return DiffAdjustModMgr:staticInit()</span></code></pre></main></body></html>
