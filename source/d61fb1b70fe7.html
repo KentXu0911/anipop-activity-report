@@ -1,0 +1,1059 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/waterfallgiftprogress/view/WaterfallProgressPanel.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="d61fb1b70fe7.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/waterfallgiftprogress/view/WaterfallProgressPanel.lua</h1><p>SHA256 205bc1605ac5d768d8cf1c36026ea220ac0fa05148341c303f24e3ddfa068c39</p><pre><span id="L1" class="line"><a href="#L1">1</a>local LuaQueue = require &quot;amf.script.datastruct.LuaQueue&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local UIButton = require &quot;amf.middleware.ui.kit.component.button.UIButton&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local ActionUtil = require &quot;amf.middleware.ui.util.ActionUtil&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local AsyncRunner = require &quot;amf.script.sugar.AsyncRunner&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local TimeUtil = require &quot;amf.middleware.ui.util.TimeUtil&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local Meta = require &quot;amf.feature.localactivity.waterfallgift.config.Meta&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local MultiLabel = require(&quot;amf.middleware.ui.kit.component.multilabel.MultiLabel&quot;)</span>
+<span id="L8" class="line"><a href="#L8">8</a>local WaterfallWeakFlyAnim = require_debug &quot;amf.feature.localactivity.waterfallgiftprogress.view.WaterfallWeakFlyAnim&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>---@class WaterfallPanel : AMFBasePanel</span>
+<span id="L10" class="line"><a href="#L10">10</a>local WaterfallPanel = class(&quot;WaterfallProgressPanel&quot;, AMFBasePanel)</span>
+<span id="L11" class="line"><a href="#L11">11</a></span>
+<span id="L12" class="line"><a href="#L12">12</a>local FRAMETIME = 1/30</span>
+<span id="L13" class="line"><a href="#L13">13</a></span>
+<span id="L14" class="line"><a href="#L14">14</a>local RewardPos = {</span>
+<span id="L15" class="line"><a href="#L15">15</a>	[1] = {</span>
+<span id="L16" class="line"><a href="#L16">16</a>		pos = {</span>
+<span id="L17" class="line"><a href="#L17">17</a>			{x = 0, y = -3},</span>
+<span id="L18" class="line"><a href="#L18">18</a>		},</span>
+<span id="L19" class="line"><a href="#L19">19</a>		scale = 0.8,</span>
+<span id="L20" class="line"><a href="#L20">20</a>	},</span>
+<span id="L21" class="line"><a href="#L21">21</a>	[2] = {</span>
+<span id="L22" class="line"><a href="#L22">22</a>		pos = {</span>
+<span id="L23" class="line"><a href="#L23">23</a>			{x = -45, y = -3},</span>
+<span id="L24" class="line"><a href="#L24">24</a>			{x = 45, y = -3},</span>
+<span id="L25" class="line"><a href="#L25">25</a>		},</span>
+<span id="L26" class="line"><a href="#L26">26</a>		scale = 0.8,</span>
+<span id="L27" class="line"><a href="#L27">27</a>	},</span>
+<span id="L28" class="line"><a href="#L28">28</a>	[3] = {</span>
+<span id="L29" class="line"><a href="#L29">29</a>		pos = {</span>
+<span id="L30" class="line"><a href="#L30">30</a>			{x = 0, y = 45},</span>
+<span id="L31" class="line"><a href="#L31">31</a>			{x = -60, y = -16},</span>
+<span id="L32" class="line"><a href="#L32">32</a>			{x = 60, y = -16},</span>
+<span id="L33" class="line"><a href="#L33">33</a>		},</span>
+<span id="L34" class="line"><a href="#L34">34</a>		scale = 0.6,</span>
+<span id="L35" class="line"><a href="#L35">35</a>	}</span>
+<span id="L36" class="line"><a href="#L36">36</a>}</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>local horizontalSpace = 348</span>
+<span id="L39" class="line"><a href="#L39">39</a>local verticalSpace = 340</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>local NodeMovePos = {</span>
+<span id="L42" class="line"><a href="#L42">42</a>	[1] = {x = 0, y = 0},</span>
+<span id="L43" class="line"><a href="#L43">43</a>	[2] = {x = -horizontalSpace, y = 0},</span>
+<span id="L44" class="line"><a href="#L44">44</a>	[3] = {x = 0, y = verticalSpace},</span>
+<span id="L45" class="line"><a href="#L45">45</a>	[4] = {x = horizontalSpace, y = 0},</span>
+<span id="L46" class="line"><a href="#L46">46</a>	[5] = {x = 0, y = verticalSpace},</span>
+<span id="L47" class="line"><a href="#L47">47</a>	[6] = {x = -horizontalSpace, y = 0},</span>
+<span id="L48" class="line"><a href="#L48">48</a>}</span>
+<span id="L49" class="line"><a href="#L49">49</a></span>
+<span id="L50" class="line"><a href="#L50">50</a>function WaterfallPanel:getUIInfo()</span>
+<span id="L51" class="line"><a href="#L51">51</a>    local path = &quot;amf.feature.localactivity.waterfallgiftprogress.view.uisource.WaterfallProgressPanel_UI&quot;</span>
+<span id="L52" class="line"><a href="#L52">52</a>    local skipList = {&quot;node&quot;, &quot;lock&quot;}</span>
+<span id="L53" class="line"><a href="#L53">53</a></span>
+<span id="L54" class="line"><a href="#L54">54</a>    return path, skipList</span>
+<span id="L55" class="line"><a href="#L55">55</a>end</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>function WaterfallPanel:getAssetsList()</span>
+<span id="L58" class="line"><a href="#L58">58</a>    local ret = {</span>
+<span id="L59" class="line"><a href="#L59">59</a>		-- &quot;amf/activity/newbiegiftoptimize/spine/changjiazhixiao.skel&quot;,</span>
+<span id="L60" class="line"><a href="#L60">60</a>		&quot;amf/store/layout/GiftGoldIcon.plist&quot;,</span>
+<span id="L61" class="line"><a href="#L61">61</a>		&#x27;amf/store/spine/light_down_new.skel&#x27;,</span>
+<span id="L62" class="line"><a href="#L62">62</a>		&quot;amf/activity/waterfallprogress/spine/lixiongbaozang.skel&quot;,</span>
+<span id="L63" class="line"><a href="#L63">63</a>		&quot;amf/activity/waterfallprogress/materials/specialIcon.png&quot;,</span>
+<span id="L64" class="line"><a href="#L64">64</a>		&quot;amf/activity/waterfallprogress/spine/reward_vfx.skel&quot;,</span>
+<span id="L65" class="line"><a href="#L65">65</a>		&quot;amf/activity/waterfallprogress/spine/icon_fx.skel&quot;,</span>
+<span id="L66" class="line"><a href="#L66">66</a>	}</span>
+<span id="L67" class="line"><a href="#L67">67</a>    return ret</span>
+<span id="L68" class="line"><a href="#L68">68</a>end</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>function WaterfallPanel:init(delegate)</span>
+<span id="L71" class="line"><a href="#L71">71</a>	self:initBelts()</span>
+<span id="L72" class="line"><a href="#L72">72</a>	self:initGiftNode()</span>
+<span id="L73" class="line"><a href="#L73">73</a>	self:initButtons()</span>
+<span id="L74" class="line"><a href="#L74">74</a>	self.finalText:setVisible(false)</span>
+<span id="L75" class="line"><a href="#L75">75</a>end</span>
+<span id="L76" class="line"><a href="#L76">76</a></span>
+<span id="L77" class="line"><a href="#L77">77</a>function WaterfallPanel:initBelts()</span>
+<span id="L78" class="line"><a href="#L78">78</a>	-- local belt = UICreateUtil:createSpine(&quot;amf/activity/newbiegiftoptimize/spine/changjiazhixiao.skel&quot;)</span>
+<span id="L79" class="line"><a href="#L79">79</a>	-- self.beltNode:addChild(belt)</span>
+<span id="L80" class="line"><a href="#L80">80</a>	-- belt:setPositionXY(315, -783)</span>
+<span id="L81" class="line"><a href="#L81">81</a>	-- self.beltAnim = belt</span>
+<span id="L82" class="line"><a href="#L82">82</a>	-- belt:playLoop(&quot;idle&quot;)</span>
+<span id="L83" class="line"><a href="#L83">83</a></span>
+<span id="L84" class="line"><a href="#L84">84</a>	local pos = {</span>
+<span id="L85" class="line"><a href="#L85">85</a>		{x = 360, y = -571, rot = 0},</span>
+<span id="L86" class="line"><a href="#L86">86</a>		{x = 535, y = -744, rot = 90},</span>
+<span id="L87" class="line"><a href="#L87">87</a>		{x = 355, y = -912, rot = 180},</span>
+<span id="L88" class="line"><a href="#L88">88</a>		{x = 188, y = -1085, rot = 90},</span>
+<span id="L89" class="line"><a href="#L89">89</a>		{x = 360, y = -1261, rot = 0},</span>
+<span id="L90" class="line"><a href="#L90">90</a>	}</span>
+<span id="L91" class="line"><a href="#L91">91</a>	for i = 2, 6 do</span>
+<span id="L92" class="line"><a href="#L92">92</a>		local arrow = UICreateUtil:createSpine(&quot;amf/activity/waterfallprogress/spine/lixiongbaozang.skel&quot;)</span>
+<span id="L93" class="line"><a href="#L93">93</a>		arrow:setName(&quot;arrow&quot;..i)</span>
+<span id="L94" class="line"><a href="#L94">94</a>		self.beltNode:addChild(arrow)</span>
+<span id="L95" class="line"><a href="#L95">95</a>		self[&quot;arrow&quot;..i] = arrow</span>
+<span id="L96" class="line"><a href="#L96">96</a>		arrow:setPositionXY(pos[i-1].x, pos[i-1].y)</span>
+<span id="L97" class="line"><a href="#L97">97</a>		arrow:setRotation(pos[i-1].rot)</span>
+<span id="L98" class="line"><a href="#L98">98</a>		-- arrow:setVisible(false)</span>
+<span id="L99" class="line"><a href="#L99">99</a>		arrow:setScale(0)</span>
+<span id="L100" class="line"><a href="#L100">100</a>	end</span>
+<span id="L101" class="line"><a href="#L101">101</a>	LayoutUtil:move(self.trackNode, 10, -40)</span>
+<span id="L102" class="line"><a href="#L102">102</a>end</span>
+<span id="L103" class="line"><a href="#L103">103</a></span>
+<span id="L104" class="line"><a href="#L104">104</a>function WaterfallPanel:setBeltState(num, refreshNow)</span>
+<span id="L105" class="line"><a href="#L105">105</a>	self.beltState = num</span>
+<span id="L106" class="line"><a href="#L106">106</a>	if refreshNow then</span>
+<span id="L107" class="line"><a href="#L107">107</a>		for i = 2, 6 do</span>
+<span id="L108" class="line"><a href="#L108">108</a>			-- self[&quot;arrow&quot;..i]:setVisible(i &lt;= self.beltState)</span>
+<span id="L109" class="line"><a href="#L109">109</a>			self[&quot;arrow&quot;..i]:setScale(i &lt;= self.beltState and 1 or 0)</span>
+<span id="L110" class="line"><a href="#L110">110</a>		end</span>
+<span id="L111" class="line"><a href="#L111">111</a>		setTimeOut(function()</span>
+<span id="L112" class="line"><a href="#L112">112</a>			if self.isDisposed then return end</span>
+<span id="L113" class="line"><a href="#L113">113</a>			for i = 2, 6 do</span>
+<span id="L114" class="line"><a href="#L114">114</a>				if i &gt; self.beltState then</span>
+<span id="L115" class="line"><a href="#L115">115</a>					if i == 2 then</span>
+<span id="L116" class="line"><a href="#L116">116</a>						self.start2:setVisible(false)</span>
+<span id="L117" class="line"><a href="#L117">117</a>						self.track2:setVisible(false)</span>
+<span id="L118" class="line"><a href="#L118">118</a>						self.end2:setVisible(false)</span>
+<span id="L119" class="line"><a href="#L119">119</a>					elseif i &lt;= 6 then</span>
+<span id="L120" class="line"><a href="#L120">120</a>						local track1 = self[&quot;track&quot;..i..&quot;_1&quot;]</span>
+<span id="L121" class="line"><a href="#L121">121</a>						if track1 then</span>
+<span id="L122" class="line"><a href="#L122">122</a>							track1:setVisible(false)</span>
+<span id="L123" class="line"><a href="#L123">123</a>						end</span>
+<span id="L124" class="line"><a href="#L124">124</a>						local track2 = self[&quot;track&quot;..i..&quot;_2&quot;]</span>
+<span id="L125" class="line"><a href="#L125">125</a>						if track2 then</span>
+<span id="L126" class="line"><a href="#L126">126</a>							track2:setVisible(false)</span>
+<span id="L127" class="line"><a href="#L127">127</a>						end</span>
+<span id="L128" class="line"><a href="#L128">128</a>						local end1 = self[&quot;end&quot;..i]</span>
+<span id="L129" class="line"><a href="#L129">129</a>						if end1 then</span>
+<span id="L130" class="line"><a href="#L130">130</a>							end1:setVisible(false)</span>
+<span id="L131" class="line"><a href="#L131">131</a>						end</span>
+<span id="L132" class="line"><a href="#L132">132</a>					end</span>
+<span id="L133" class="line"><a href="#L133">133</a>				end</span>
+<span id="L134" class="line"><a href="#L134">134</a>			end</span>
+<span id="L135" class="line"><a href="#L135">135</a>		end, 5*FRAMETIME)</span>
+<span id="L136" class="line"><a href="#L136">136</a>	end</span>
+<span id="L137" class="line"><a href="#L137">137</a>end</span>
+<span id="L138" class="line"><a href="#L138">138</a></span>
+<span id="L139" class="line"><a href="#L139">139</a>function WaterfallPanel:initGiftNode()</span>
+<span id="L140" class="line"><a href="#L140">140</a>	self.nodeQueue = LuaQueue:create()</span>
+<span id="L141" class="line"><a href="#L141">141</a>end</span>
+<span id="L142" class="line"><a href="#L142">142</a></span>
+<span id="L143" class="line"><a href="#L143">143</a>function WaterfallPanel:initButtons()</span>
+<span id="L144" class="line"><a href="#L144">144</a>	self.closeBtn:setTouchHandler(preventContinuousClick(function()</span>
+<span id="L145" class="line"><a href="#L145">145</a>		if self.isDisposed then return end</span>
+<span id="L146" class="line"><a href="#L146">146</a>		self:sendCommand(&quot;onCloseBtnTapped&quot;)</span>
+<span id="L147" class="line"><a href="#L147">147</a>	end))</span>
+<span id="L148" class="line"><a href="#L148">148</a>end</span>
+<span id="L149" class="line"><a href="#L149">149</a></span>
+<span id="L150" class="line"><a href="#L150">150</a>function WaterfallPanel:resetNodeNodePos()</span>
+<span id="L151" class="line"><a href="#L151">151</a>	LayoutUtil:move(self.nodeNode, 30, -10)</span>
+<span id="L152" class="line"><a href="#L152">152</a>	self.node1:setPositionXY(0, 0)</span>
+<span id="L153" class="line"><a href="#L153">153</a>	self.node2:setPositionXY(horizontalSpace, 0)</span>
+<span id="L154" class="line"><a href="#L154">154</a>	self.node3:setPositionXY(horizontalSpace, -verticalSpace)</span>
+<span id="L155" class="line"><a href="#L155">155</a>	self.node4:setPositionXY(0, -verticalSpace)</span>
+<span id="L156" class="line"><a href="#L156">156</a>	self.node5:setPositionXY(0, -verticalSpace*2)</span>
+<span id="L157" class="line"><a href="#L157">157</a>	self.node6:setPositionXY(horizontalSpace, -verticalSpace*2)</span>
+<span id="L158" class="line"><a href="#L158">158</a>end</span>
+<span id="L159" class="line"><a href="#L159">159</a></span>
+<span id="L160" class="line"><a href="#L160">160</a>function WaterfallPanel:updateAllGiftNode(giftCfgList, curIdx)</span>
+<span id="L161" class="line"><a href="#L161">161</a>	self.nodeQueue:clear()</span>
+<span id="L162" class="line"><a href="#L162">162</a>	giftCfgList = giftCfgList or {}</span>
+<span id="L163" class="line"><a href="#L163">163</a>	for i = 1, 6 do</span>
+<span id="L164" class="line"><a href="#L164">164</a>		self[&quot;node&quot;..i]:removeChildren(true)</span>
+<span id="L165" class="line"><a href="#L165">165</a>		local giftCfg = giftCfgList[i]</span>
+<span id="L166" class="line"><a href="#L166">166</a>		if giftCfg then</span>
+<span id="L167" class="line"><a href="#L167">167</a>			local node = self:createGiftNode(giftCfg, curIdx, curIdx + i)</span>
+<span id="L168" class="line"><a href="#L168">168</a>			self[&quot;node&quot;..i]:addChild(node)</span>
+<span id="L169" class="line"><a href="#L169">169</a>			self.nodeQueue:pushBack(node)</span>
+<span id="L170" class="line"><a href="#L170">170</a>			if node.tracer then</span>
+<span id="L171" class="line"><a href="#L171">171</a>				node.tracer:show()</span>
+<span id="L172" class="line"><a href="#L172">172</a>			end</span>
+<span id="L173" class="line"><a href="#L173">173</a>		end</span>
+<span id="L174" class="line"><a href="#L174">174</a>	end</span>
+<span id="L175" class="line"><a href="#L175">175</a></span>
+<span id="L176" class="line"><a href="#L176">176</a>	for i = 5, 1, -1 do</span>
+<span id="L177" class="line"><a href="#L177">177</a>		local node = self[&quot;node&quot;..i]</span>
+<span id="L178" class="line"><a href="#L178">178</a>		local parent = node:getParent()</span>
+<span id="L179" class="line"><a href="#L179">179</a>		node:removeFromParentAndCleanup(false)</span>
+<span id="L180" class="line"><a href="#L180">180</a>		parent:addChild(node)</span>
+<span id="L181" class="line"><a href="#L181">181</a>	end</span>
+<span id="L182" class="line"><a href="#L182">182</a>end</span>
+<span id="L183" class="line"><a href="#L183">183</a></span>
+<span id="L184" class="line"><a href="#L184">184</a>function WaterfallPanel:updateTitle(endTimeInSec)</span>
+<span id="L185" class="line"><a href="#L185">185</a>	local timeFormat = TimeUtil:timeFormatVer1({</span>
+<span id="L186" class="line"><a href="#L186">186</a>		endTimeInSec = endTimeInSec</span>
+<span id="L187" class="line"><a href="#L187">187</a>	})</span>
+<span id="L188" class="line"><a href="#L188">188</a></span>
+<span id="L189" class="line"><a href="#L189">189</a>	local timeStr</span>
+<span id="L190" class="line"><a href="#L190">190</a>	if timeFormat.retString == &quot;&quot; then</span>
+<span id="L191" class="line"><a href="#L191">191</a>		timeStr = &quot;00:00:00&quot;</span>
+<span id="L192" class="line"><a href="#L192">192</a>	else</span>
+<span id="L193" class="line"><a href="#L193">193</a>		timeStr = timeFormat.retString</span>
+<span id="L194" class="line"><a href="#L194">194</a>	end</span>
+<span id="L195" class="line"><a href="#L195">195</a>	self.timeLabel1:setString(YH_REF_MAP.noEarClock..timeStr, true)</span>
+<span id="L196" class="line"><a href="#L196">196</a>	self.timeLabel2:setString(YH_REF_MAP.noEarClock..timeStr, true)</span>
+<span id="L197" class="line"><a href="#L197">197</a>end</span>
+<span id="L198" class="line"><a href="#L198">198</a></span>
+<span id="L199" class="line"><a href="#L199">199</a>function WaterfallPanel:updateBtnBreath()</span>
+<span id="L200" class="line"><a href="#L200">200</a>	local node = self.nodeQueue:getFront()</span>
+<span id="L201" class="line"><a href="#L201">201</a>	if node and node.btn then</span>
+<span id="L202" class="line"><a href="#L202">202</a>		node.btn:runBreathAnimation()</span>
+<span id="L203" class="line"><a href="#L203">203</a>	end</span>
+<span id="L204" class="line"><a href="#L204">204</a>end</span>
+<span id="L205" class="line"><a href="#L205">205</a></span>
+<span id="L206" class="line"><a href="#L206">206</a>function WaterfallPanel:createGiftNode(cfg, curIdx, nodeIdx)</span>
+<span id="L207" class="line"><a href="#L207">207</a>	if not cfg then return end</span>
+<span id="L208" class="line"><a href="#L208">208</a></span>
+<span id="L209" class="line"><a href="#L209">209</a>	local node, cls = self.builder:createChild(&quot;node&quot;)</span>
+<span id="L210" class="line"><a href="#L210">210</a>	for i, v in pairs(cls) do</span>
+<span id="L211" class="line"><a href="#L211">211</a>		node[i] = v</span>
+<span id="L212" class="line"><a href="#L212">212</a>	end</span>
+<span id="L213" class="line"><a href="#L213">213</a>	node.normalBg:setVisible(cfg.freeNode)</span>
+<span id="L214" class="line"><a href="#L214">214</a>	node.yellowBg:setVisible(not cfg.freeNode)</span>
+<span id="L215" class="line"><a href="#L215">215</a>	local price = 0</span>
+<span id="L216" class="line"><a href="#L216">216</a>	if not cfg.freeNode then</span>
+<span id="L217" class="line"><a href="#L217">217</a>		price = GoodsManager:getGoods(cfg.goodsId):getPrice()</span>
+<span id="L218" class="line"><a href="#L218">218</a>	end</span>
+<span id="L219" class="line"><a href="#L219">219</a>	local btn = UIButton:createButton({</span>
+<span id="L220" class="line"><a href="#L220">220</a>		scaleMode = UIButtonConfig.BtnScales.k60,</span>
+<span id="L221" class="line"><a href="#L221">221</a>		colorMode = cfg.freeNode and UIButtonConfig.ColorMode.green or UIButtonConfig.ColorMode.blue,</span>
+<span id="L222" class="line"><a href="#L222">222</a>	})</span>
+<span id="L223" class="line"><a href="#L223">223</a>	btn:setCallBack(function()</span>
+<span id="L224" class="line"><a href="#L224">224</a>		self:sendCommand(&quot;onBuyBtnTapped&quot;, node, nodeIdx)</span>
+<span id="L225" class="line"><a href="#L225">225</a>	end)</span>
+<span id="L226" class="line"><a href="#L226">226</a></span>
+<span id="L227" class="line"><a href="#L227">227</a>	self:setButtonString(btn, cfg, cfg.freeNode and nodeIdx ~= curIdx + 1)</span>
+<span id="L228" class="line"><a href="#L228">228</a>	node.buttonNode:addChild(btn)</span>
+<span id="L229" class="line"><a href="#L229">229</a>	btn:setName(&quot;nodeBtn&quot;)</span>
+<span id="L230" class="line"><a href="#L230">230</a>	node.btn = btn</span>
+<span id="L231" class="line"><a href="#L231">231</a></span>
+<span id="L232" class="line"><a href="#L232">232</a>	local specialNum = cfg.specialValue2 and tonumber(cfg.specialValue2) or 0</span>
+<span id="L233" class="line"><a href="#L233">233</a>	if specialNum &gt; 0 then</span>
+<span id="L234" class="line"><a href="#L234">234</a>		node.collectionLabel:setString(string.format(&quot;%d&quot;, specialNum))</span>
+<span id="L235" class="line"><a href="#L235">235</a>		node.normalCollectionBg:setVisible(cfg.freeNode)</span>
+<span id="L236" class="line"><a href="#L236">236</a>		node.yellowCollectionBg:setVisible(not cfg.freeNode)</span>
+<span id="L237" class="line"><a href="#L237">237</a>		node.specialNum = specialNum</span>
+<span id="L238" class="line"><a href="#L238">238</a>	else</span>
+<span id="L239" class="line"><a href="#L239">239</a>		node.collectionNode:setVisible(false)</span>
+<span id="L240" class="line"><a href="#L240">240</a>	end</span>
+<span id="L241" class="line"><a href="#L241">241</a></span>
+<span id="L242" class="line"><a href="#L242">242</a>	local rewardList = {}</span>
+<span id="L243" class="line"><a href="#L243">243</a>	if cfg.freeNode then</span>
+<span id="L244" class="line"><a href="#L244">244</a>		rewardList = cfg.rewardList</span>
+<span id="L245" class="line"><a href="#L245">245</a>	else</span>
+<span id="L246" class="line"><a href="#L246">246</a>		local goodsObj = GoodsManager:getGoods(cfg.goodsId)</span>
+<span id="L247" class="line"><a href="#L247">247</a>		if goodsObj then</span>
+<span id="L248" class="line"><a href="#L248">248</a>			rewardList = goodsObj:getItems()</span>
+<span id="L249" class="line"><a href="#L249">249</a>		end</span>
+<span id="L250" class="line"><a href="#L250">250</a>	end</span>
+<span id="L251" class="line"><a href="#L251">251</a>	node.rewardList = rewardList</span>
+<span id="L252" class="line"><a href="#L252">252</a>	local rewardNum = #rewardList</span>
+<span id="L253" class="line"><a href="#L253">253</a>	if rewardNum == 1 and rewardList[1].itemId == UPropId.GOLD then</span>
+<span id="L254" class="line"><a href="#L254">254</a>		local GiftGoldIcon = require &quot;amf.feature.store.view.gift.layout.GiftGoldIcon&quot;</span>
+<span id="L255" class="line"><a href="#L255">255</a>		local icon = GiftGoldIcon:create(rewardList[1].num)</span>
+<span id="L256" class="line"><a href="#L256">256</a>		icon:setScale(0.8)</span>
+<span id="L257" class="line"><a href="#L257">257</a>		node:getChildByName(&quot;rewardNode&quot;):addChild(icon)</span>
+<span id="L258" class="line"><a href="#L258">258</a>		node.flyFunc = function(callback)</span>
+<span id="L259" class="line"><a href="#L259">259</a>			if self.isDisposed then return end</span>
+<span id="L260" class="line"><a href="#L260">260</a>			self:flyNodeReward(node, rewardList, callback)</span>
+<span id="L261" class="line"><a href="#L261">261</a>		end</span>
+<span id="L262" class="line"><a href="#L262">262</a>	elseif rewardNum &gt; 3 then</span>
+<span id="L263" class="line"><a href="#L263">263</a>		local icon = AMFCompHelper:createBoxHong(false, true)</span>
+<span id="L264" class="line"><a href="#L264">264</a>		node:getChildByName(&quot;rewardNode&quot;):addChild(icon)</span>
+<span id="L265" class="line"><a href="#L265">265</a>		icon:setTouchHandler(function()</span>
+<span id="L266" class="line"><a href="#L266">266</a>			if self.isDisposed then return end</span>
+<span id="L267" class="line"><a href="#L267">267</a>			-- if self:isLocked() then return end</span>
+<span id="L268" class="line"><a href="#L268">268</a>			printx(33, &quot;box hong touched&quot;)</span>
+<span id="L269" class="line"><a href="#L269">269</a>			UITip.Builder.new()</span>
+<span id="L270" class="line"><a href="#L270">270</a>				:setTitle(&quot;领取如下奖励：&quot;)</span>
+<span id="L271" class="line"><a href="#L271">271</a>				:setRewards(rewardList)</span>
+<span id="L272" class="line"><a href="#L272">272</a>				:setTarget(icon)</span>
+<span id="L273" class="line"><a href="#L273">273</a>				:setAutoCloseTime(3)</span>
+<span id="L274" class="line"><a href="#L274">274</a>				:build()</span>
+<span id="L275" class="line"><a href="#L275">275</a>		end)</span>
+<span id="L276" class="line"><a href="#L276">276</a>		node.flyFunc = function(callback)</span>
+<span id="L277" class="line"><a href="#L277">277</a>			if self.isDisposed then return end</span>
+<span id="L278" class="line"><a href="#L278">278</a>			setTimeOut(function()</span>
+<span id="L279" class="line"><a href="#L279">279</a>				if self.isDisposed then return end</span>
+<span id="L280" class="line"><a href="#L280">280</a>				icon:changeDisplayByFrameName(&quot;common/icon_256/icon_baoxiang_siji_256_02&quot;)</span>
+<span id="L281" class="line"><a href="#L281">281</a>				self:flyNodeReward(node, rewardList, callback)</span>
+<span id="L282" class="line"><a href="#L282">282</a>			end, 2*FRAMETIME)</span>
+<span id="L283" class="line"><a href="#L283">283</a>		end</span>
+<span id="L284" class="line"><a href="#L284">284</a>	else</span>
+<span id="L285" class="line"><a href="#L285">285</a>		local tmpIconList = {}</span>
+<span id="L286" class="line"><a href="#L286">286</a>		for i, v in ipairs(rewardList) do</span>
+<span id="L287" class="line"><a href="#L287">287</a>			local icon = GameItemCreator:getPropIcon({itemId = v.itemId, num = v.num, needNum = false})</span>
+<span id="L288" class="line"><a href="#L288">288</a>			if not _G.amfBean(&quot;PropManager&quot;):isInfiniteProp(v.itemId) then</span>
+<span id="L289" class="line"><a href="#L289">289</a>				local numLabel, diffx, diffy = AMFCompHelper:createPropNum({</span>
+<span id="L290" class="line"><a href="#L290">290</a>					itemId = v.itemId,</span>
+<span id="L291" class="line"><a href="#L291">291</a>					num = v.num,</span>
+<span id="L292" class="line"><a href="#L292">292</a>					outlineColor = cfg.freeNode and &quot;A5590EFF&quot; or &quot;A5590EFF&quot;,</span>
+<span id="L293" class="line"><a href="#L293">293</a>				})</span>
+<span id="L294" class="line"><a href="#L294">294</a>				local sz = icon:getContentSize()</span>
+<span id="L295" class="line"><a href="#L295">295</a>				numLabel:setPositionXY(sz.width + diffx, diffy)</span>
+<span id="L296" class="line"><a href="#L296">296</a>				icon:addChild(numLabel)</span>
+<span id="L297" class="line"><a href="#L297">297</a>				numLabel:setScale(0.9/RewardPos[rewardNum].scale)</span>
+<span id="L298" class="line"><a href="#L298">298</a>			end</span>
+<span id="L299" class="line"><a href="#L299">299</a>			node:getChildByName(&quot;rewardNode&quot;):addChild(icon)</span>
+<span id="L300" class="line"><a href="#L300">300</a>			local pos = RewardPos[rewardNum].pos[i]</span>
+<span id="L301" class="line"><a href="#L301">301</a>			icon:setPositionXY(pos.x, pos.y)</span>
+<span id="L302" class="line"><a href="#L302">302</a>			icon:setScale(RewardPos[rewardNum].scale)</span>
+<span id="L303" class="line"><a href="#L303">303</a>			table.insert(tmpIconList, icon)</span>
+<span id="L304" class="line"><a href="#L304">304</a>		end</span>
+<span id="L305" class="line"><a href="#L305">305</a>		node.flyFunc = function(callback, serverRewardList)</span>
+<span id="L306" class="line"><a href="#L306">306</a>			if self.isDisposed then return end</span>
+<span id="L307" class="line"><a href="#L307">307</a>			self:flyNodeReward(node, serverRewardList or rewardList, callback)</span>
+<span id="L308" class="line"><a href="#L308">308</a>		end</span>
+<span id="L309" class="line"><a href="#L309">309</a>	end</span>
+<span id="L310" class="line"><a href="#L310">310</a></span>
+<span id="L311" class="line"><a href="#L311">311</a>	node:setPositionXY(0, 0)</span>
+<span id="L312" class="line"><a href="#L312">312</a>	node.isFree = cfg.freeNode</span>
+<span id="L313" class="line"><a href="#L313">313</a>	node.rewardList = rewardList</span>
+<span id="L314" class="line"><a href="#L314">314</a>	node.goodsId = cfg.goodsId</span>
+<span id="L315" class="line"><a href="#L315">315</a>	node.tracer = cfg.tracer</span>
+<span id="L316" class="line"><a href="#L316">316</a>	node.nodeIdx = nodeIdx</span>
+<span id="L317" class="line"><a href="#L317">317</a>	return node</span>
+<span id="L318" class="line"><a href="#L318">318</a>end</span>
+<span id="L319" class="line"><a href="#L319">319</a></span>
+<span id="L320" class="line"><a href="#L320">320</a>function WaterfallPanel:initProgressBar(info)</span>
+<span id="L321" class="line"><a href="#L321">321</a>	local startValue = info.startValue</span>
+<span id="L322" class="line"><a href="#L322">322</a>	local endValue = info.endValue</span>
+<span id="L323" class="line"><a href="#L323">323</a>	local curValue = info.curValue</span>
+<span id="L324" class="line"><a href="#L324">324</a>	local rewardList = info.rewardList</span>
+<span id="L325" class="line"><a href="#L325">325</a></span>
+<span id="L326" class="line"><a href="#L326">326</a>	self.progressBar:setPercentage((curValue)/(endValue))</span>
+<span id="L327" class="line"><a href="#L327">327</a>	self.progressBar:setProgressText(tostring(curValue)..&quot;/&quot;..tostring(endValue))</span>
+<span id="L328" class="line"><a href="#L328">328</a></span>
+<span id="L329" class="line"><a href="#L329">329</a>	local boxNode = LayerColor:create()</span>
+<span id="L330" class="line"><a href="#L330">330</a>	boxNode:setContentSize(CCSizeMake(80,80))</span>
+<span id="L331" class="line"><a href="#L331">331</a>	boxNode:setColor(ccc3(255,0,0))</span>
+<span id="L332" class="line"><a href="#L332">332</a>	boxNode:setPositionXY(250, -39)</span>
+<span id="L333" class="line"><a href="#L333">333</a>	boxNode:setOpacity(0)</span>
+<span id="L334" class="line"><a href="#L334">334</a>	self.progressBar:addChild(boxNode)</span>
+<span id="L335" class="line"><a href="#L335">335</a>	self.progressRewardNode = boxNode</span>
+<span id="L336" class="line"><a href="#L336">336</a>	boxNode:setTouchHandler(function()</span>
+<span id="L337" class="line"><a href="#L337">337</a>		if self.isDisposed then return end</span>
+<span id="L338" class="line"><a href="#L338">338</a>		self:sendCommand(&quot;onProgressRewardTapped&quot;)</span>
+<span id="L339" class="line"><a href="#L339">339</a>	end)</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>	local itemNode = LayerColor:create()</span>
+<span id="L342" class="line"><a href="#L342">342</a>	itemNode:setContentSize(CCSizeMake(80,80))</span>
+<span id="L343" class="line"><a href="#L343">343</a>	itemNode:setColor(ccc3(0,0,255))</span>
+<span id="L344" class="line"><a href="#L344">344</a>	itemNode:setOpacity(0)</span>
+<span id="L345" class="line"><a href="#L345">345</a>	itemNode:setPositionXY(-320, -39)</span>
+<span id="L346" class="line"><a href="#L346">346</a>	self.progressBar:addChild(itemNode)</span>
+<span id="L347" class="line"><a href="#L347">347</a>	itemNode:setTouchHandler(function()</span>
+<span id="L348" class="line"><a href="#L348">348</a>		if self.isDisposed then return end</span>
+<span id="L349" class="line"><a href="#L349">349</a>		self:sendCommand(&quot;onProgressItemTapped&quot;)</span>
+<span id="L350" class="line"><a href="#L350">350</a>	end)</span>
+<span id="L351" class="line"><a href="#L351">351</a>	self.progressItemNode = itemNode</span>
+<span id="L352" class="line"><a href="#L352">352</a></span>
+<span id="L353" class="line"><a href="#L353">353</a>	local progressBarLayer = LayerColor:create()</span>
+<span id="L354" class="line"><a href="#L354">354</a>	progressBarLayer:setContentSize(CCSizeMake(490,55))</span>
+<span id="L355" class="line"><a href="#L355">355</a>	progressBarLayer:setColor(ccc3(0,255,0))</span>
+<span id="L356" class="line"><a href="#L356">356</a>	progressBarLayer:setOpacity(0)</span>
+<span id="L357" class="line"><a href="#L357">357</a>	progressBarLayer:setPositionXY(-250, -29)</span>
+<span id="L358" class="line"><a href="#L358">358</a>	self.progressBar:addChild(progressBarLayer)</span>
+<span id="L359" class="line"><a href="#L359">359</a>	self:setProgressBarRewardList(info)</span>
+<span id="L360" class="line"><a href="#L360">360</a>	progressBarLayer:setTouchHandler(function()</span>
+<span id="L361" class="line"><a href="#L361">361</a>		if self.isDisposed then return end</span>
+<span id="L362" class="line"><a href="#L362">362</a>		self:sendCommand(&quot;onProgressBarTapped&quot;)</span>
+<span id="L363" class="line"><a href="#L363">363</a>	end)</span>
+<span id="L364" class="line"><a href="#L364">364</a>end</span>
+<span id="L365" class="line"><a href="#L365">365</a></span>
+<span id="L366" class="line"><a href="#L366">366</a>function WaterfallPanel:doUIAdjust()</span>
+<span id="L367" class="line"><a href="#L367">367</a>	local UIDecorator = require &quot;amf.middleware.ui.util.adaptation.UIDecorator&quot;</span>
+<span id="L368" class="line"><a href="#L368">368</a>    local panelMargin = UIDecorator:panelMargin(self)</span>
+<span id="L369" class="line"><a href="#L369">369</a>	UIDecorator:adaptCloseBtn(self)</span>
+<span id="L370" class="line"><a href="#L370">370</a>    panelMargin:addCenterTop(self.titleNode, 0, 0, self.title1)</span>
+<span id="L371" class="line"><a href="#L371">371</a>	:addClose(self.closeBtn)</span>
+<span id="L372" class="line"><a href="#L372">372</a>	:layout()</span>
+<span id="L373" class="line"><a href="#L373">373</a>end</span>
+<span id="L374" class="line"><a href="#L374">374</a></span>
+<span id="L375" class="line"><a href="#L375">375</a>function WaterfallPanel:beforePopoutAnim()</span>
+<span id="L376" class="line"><a href="#L376">376</a>    if self._delayDispose then return end</span>
+<span id="L377" class="line"><a href="#L377">377</a></span>
+<span id="L378" class="line"><a href="#L378">378</a>	self:handleOnEnter()</span>
+<span id="L379" class="line"><a href="#L379">379</a>end</span>
+<span id="L380" class="line"><a href="#L380">380</a></span>
+<span id="L381" class="line"><a href="#L381">381</a>function WaterfallPanel:handleOnEnter()</span>
+<span id="L382" class="line"><a href="#L382">382</a>	self.nodeQueue:foreach(function(index, node)</span>
+<span id="L383" class="line"><a href="#L383">383</a>		if not node or node.isDisposed then return end</span>
+<span id="L384" class="line"><a href="#L384">384</a>		LayoutUtil:move(node, 0, -219.02)</span>
+<span id="L385" class="line"><a href="#L385">385</a></span>
+<span id="L386" class="line"><a href="#L386">386</a>		ActionUtil:setOpacityU3D(node:getChildByName(&quot;normalBg&quot;), 0)</span>
+<span id="L387" class="line"><a href="#L387">387</a>		ActionUtil:setOpacityU3D(node:getChildByName(&quot;yellowBg&quot;), 0)</span>
+<span id="L388" class="line"><a href="#L388">388</a>		ActionUtil:setOpacityU3D(node:getChildByName(&quot;buttonNode&quot;), 0)</span>
+<span id="L389" class="line"><a href="#L389">389</a>		ActionUtil:setOpacityU3D(node:getChildByName(&quot;rewardNode&quot;), 0)</span>
+<span id="L390" class="line"><a href="#L390">390</a>		ActionUtil:setOpacityU3D(node:getChildByName(&quot;collectionNode&quot;), 0)</span>
+<span id="L391" class="line"><a href="#L391">391</a>	end)</span>
+<span id="L392" class="line"><a href="#L392">392</a></span>
+<span id="L393" class="line"><a href="#L393">393</a>	ActionUtil:setOpacityU3D(self.bg, 0)</span>
+<span id="L394" class="line"><a href="#L394">394</a>	ActionUtil:setOpacityU3D(self.titleNode, 0)</span>
+<span id="L395" class="line"><a href="#L395">395</a>	ActionUtil:setOpacityU3D(self.closeBtn, 0)</span>
+<span id="L396" class="line"><a href="#L396">396</a>	-- self.beltAnim:playOnce(&quot;in&quot;, function()</span>
+<span id="L397" class="line"><a href="#L397">397</a>	-- 	if self.isDisposed then return end</span>
+<span id="L398" class="line"><a href="#L398">398</a>	-- 	self.beltAnim:playLoop(&quot;idle&quot;)</span>
+<span id="L399" class="line"><a href="#L399">399</a>	-- end)</span>
+<span id="L400" class="line"><a href="#L400">400</a>	-- self.beltAnim:pause()</span>
+<span id="L401" class="line"><a href="#L401">401</a>end</span>
+<span id="L402" class="line"><a href="#L402">402</a></span>
+<span id="L403" class="line"><a href="#L403">403</a>function WaterfallPanel:setButtonString(btn, cfg, hasLock)</span>
+<span id="L404" class="line"><a href="#L404">404</a>	local param = {}</span>
+<span id="L405" class="line"><a href="#L405">405</a>	if hasLock then</span>
+<span id="L406" class="line"><a href="#L406">406</a>		local layer = Layer:create()</span>
+<span id="L407" class="line"><a href="#L407">407</a>		layer:setContentSize(CCSizeMake(20, 20))</span>
+<span id="L408" class="line"><a href="#L408">408</a>		local lock = UICreateUtil:createSpine(&quot;amf/activity/waterfallprogress/spine/lixiongbaozang.skel&quot;)</span>
+<span id="L409" class="line"><a href="#L409">409</a>		lock:gotoAndStop(&quot;jiesuo&quot;, 0)</span>
+<span id="L410" class="line"><a href="#L410">410</a></span>
+<span id="L411" class="line"><a href="#L411">411</a>		btn.lockAnim = lock</span>
+<span id="L412" class="line"><a href="#L412">412</a>		lock:setScale(0.45)</span>
+<span id="L413" class="line"><a href="#L413">413</a>		lock:setPositionXY(10, 9)</span>
+<span id="L414" class="line"><a href="#L414">414</a>		layer:addChild(lock)</span>
+<span id="L415" class="line"><a href="#L415">415</a>		layer:ignoreAnchorPointForPosition(false)</span>
+<span id="L416" class="line"><a href="#L416">416</a>		layer:setAnchorPoint(ccp(0.5, 0.5))</span>
+<span id="L417" class="line"><a href="#L417">417</a>		table.insert(param, layer)</span>
+<span id="L418" class="line"><a href="#L418">418</a>	end</span>
+<span id="L419" class="line"><a href="#L419">419</a>	local price</span>
+<span id="L420" class="line"><a href="#L420">420</a>	if cfg.goodsId then</span>
+<span id="L421" class="line"><a href="#L421">421</a>		price = GoodsManager:getGoods(cfg.goodsId):getPrice()</span>
+<span id="L422" class="line"><a href="#L422">422</a>	end</span>
+<span id="L423" class="line"><a href="#L423">423</a>	local str = cfg.freeNode and &quot;免费&quot; or &quot;￥&quot;..price</span>
+<span id="L424" class="line"><a href="#L424">424</a>	table.insert(param, str)</span>
+<span id="L425" class="line"><a href="#L425">425</a>	btn:update(param)</span>
+<span id="L426" class="line"><a href="#L426">426</a>	if not cfg.freeNode then</span>
+<span id="L427" class="line"><a href="#L427">427</a>		btn:setRmbPrice(price)</span>
+<span id="L428" class="line"><a href="#L428">428</a>	end</span>
+<span id="L429" class="line"><a href="#L429">429</a>end</span>
+<span id="L430" class="line"><a href="#L430">430</a></span>
+<span id="L431" class="line"><a href="#L431">431</a>function WaterfallPanel:popBeforeRewardTip(target)</span>
+<span id="L432" class="line"><a href="#L432">432</a>	UITip.Builder.new()</span>
+<span id="L433" class="line"><a href="#L433">433</a>		:setTitle(&quot;领取之前的礼品可解锁&quot;)</span>
+<span id="L434" class="line"><a href="#L434">434</a>		:setTarget(target)</span>
+<span id="L435" class="line"><a href="#L435">435</a>		:setAutoCloseTime(3)</span>
+<span id="L436" class="line"><a href="#L436">436</a>		:build()</span>
+<span id="L437" class="line"><a href="#L437">437</a>end</span>
+<span id="L438" class="line"><a href="#L438">438</a></span>
+<span id="L439" class="line"><a href="#L439">439</a>function WaterfallPanel:setButtonBuySuccess(callback)</span>
+<span id="L440" class="line"><a href="#L440">440</a>	local node = self.nodeQueue:getFront()</span>
+<span id="L441" class="line"><a href="#L441">441</a>	-- local label = TTFLabel:createAnimalYH(&quot;已领取&quot;, 34)</span>
+<span id="L442" class="line"><a href="#L442">442</a>	-- label:setAnchorPoint(ccp(0.5, 0.5))</span>
+<span id="L443" class="line"><a href="#L443">443</a>	-- label:setTextColor(hex2ccc4(&quot;6471C4FF&quot;))</span>
+<span id="L444" class="line"><a href="#L444">444</a>	-- node:getChildByName(&quot;buttonNode&quot;):addChildAt(label, 0)</span>
+<span id="L445" class="line"><a href="#L445">445</a>	local btn = node:getChildByName(&quot;buttonNode&quot;):getChildByName(&quot;nodeBtn&quot;)</span>
+<span id="L446" class="line"><a href="#L446">446</a>	local rewardNode = node:getChildByName(&quot;rewardNode&quot;)</span>
+<span id="L447" class="line"><a href="#L447">447</a>	rewardNode:runAction(ActionUtil:fadeToU3D(rewardNode, 3*FRAMETIME, 46))</span>
+<span id="L448" class="line"><a href="#L448">448</a>	local checkIcon = Sprite:createWithSpriteFrameName(&quot;other/common/ui_com_big_gou&quot;)</span>
+<span id="L449" class="line"><a href="#L449">449</a>	checkIcon:setScale(0.5)</span>
+<span id="L450" class="line"><a href="#L450">450</a>	node:addChild(checkIcon)</span>
+<span id="L451" class="line"><a href="#L451">451</a>	checkIcon:setPositionXY(153, 77)</span>
+<span id="L452" class="line"><a href="#L452">452</a>	checkIcon:setOpacity(0)</span>
+<span id="L453" class="line"><a href="#L453">453</a>	checkIcon:runAction(CCFadeTo:create(3*FRAMETIME, 255))</span>
+<span id="L454" class="line"><a href="#L454">454</a>	btn:playClickDisappearAnim(callback)</span>
+<span id="L455" class="line"><a href="#L455">455</a></span>
+<span id="L456" class="line"><a href="#L456">456</a>	if node.dyMarkNode then</span>
+<span id="L457" class="line"><a href="#L457">457</a>		node.dyMarkNode:removeFromParentAndCleanup(true)</span>
+<span id="L458" class="line"><a href="#L458">458</a>		node.dyMarkNode = nil</span>
+<span id="L459" class="line"><a href="#L459">459</a>	end</span>
+<span id="L460" class="line"><a href="#L460">460</a>end</span>
+<span id="L461" class="line"><a href="#L461">461</a></span>
+<span id="L462" class="line"><a href="#L462">462</a>function WaterfallPanel:doNodeFlyFunc(serverRewards, callback)</span>
+<span id="L463" class="line"><a href="#L463">463</a>	if self.isDisposed then return end</span>
+<span id="L464" class="line"><a href="#L464">464</a>	local curNode = self.nodeQueue:getFront()</span>
+<span id="L465" class="line"><a href="#L465">465</a>	curNode.flyFunc(callback, serverRewards)</span>
+<span id="L466" class="line"><a href="#L466">466</a>end</span>
+<span id="L467" class="line"><a href="#L467">467</a></span>
+<span id="L468" class="line"><a href="#L468">468</a>function WaterfallPanel:testNodeFlyFunc(callback)</span>
+<span id="L469" class="line"><a href="#L469">469</a>	local curNode = self.nodeQueue:getFront()</span>
+<span id="L470" class="line"><a href="#L470">470</a>	local rewardList = curNode.rewardList</span>
+<span id="L471" class="line"><a href="#L471">471</a>	curNode.flyFunc(callback, rewardList)</span>
+<span id="L472" class="line"><a href="#L472">472</a>end</span>
+<span id="L473" class="line"><a href="#L473">473</a></span>
+<span id="L474" class="line"><a href="#L474">474</a>function WaterfallPanel:playButtonUnlockAnim(callback)</span>
+<span id="L475" class="line"><a href="#L475">475</a>	local node = self.nodeQueue.queue[self.nodeQueue.first+1]</span>
+<span id="L476" class="line"><a href="#L476">476</a>	if node and node.btn and node.btn.lockAnim then</span>
+<span id="L477" class="line"><a href="#L477">477</a>		local oriLock = node.btn.lockAnim</span>
+<span id="L478" class="line"><a href="#L478">478</a>		local pos = oriLock:getPositionInWorldSpace()</span>
+<span id="L479" class="line"><a href="#L479">479</a>		local lockAnim = UICreateUtil:createSpine(&quot;amf/activity/waterfallprogress/spine/lixiongbaozang.skel&quot;)</span>
+<span id="L480" class="line"><a href="#L480">480</a>		self:addChild(lockAnim)</span>
+<span id="L481" class="line"><a href="#L481">481</a>		lockAnim:setPositionInWorldSpace(ccp(pos.x, pos.y))</span>
+<span id="L482" class="line"><a href="#L482">482</a>		lockAnim:playOnceAndDispose(&quot;jiesuo&quot;, function()</span>
+<span id="L483" class="line"><a href="#L483">483</a>			if self.isDisposed then return end</span>
+<span id="L484" class="line"><a href="#L484">484</a>			callback()</span>
+<span id="L485" class="line"><a href="#L485">485</a>		end)</span>
+<span id="L486" class="line"><a href="#L486">486</a>		self:setButtonString(node.btn, {freeNode = true}, false)</span>
+<span id="L487" class="line"><a href="#L487">487</a>	else</span>
+<span id="L488" class="line"><a href="#L488">488</a>		callback()</span>
+<span id="L489" class="line"><a href="#L489">489</a>	end</span>
+<span id="L490" class="line"><a href="#L490">490</a>end</span>
+<span id="L491" class="line"><a href="#L491">491</a></span>
+<span id="L492" class="line"><a href="#L492">492</a>function WaterfallPanel:playNodeMove(giftCfg, curIdx, callback)</span>
+<span id="L493" class="line"><a href="#L493">493</a>	self.nodeQueue:foreach(function(index, node)</span>
+<span id="L494" class="line"><a href="#L494">494</a>		if not node or node.isDisposed then return end</span>
+<span id="L495" class="line"><a href="#L495">495</a>		if index == 1 then</span>
+<span id="L496" class="line"><a href="#L496">496</a>			node:runAction(ActionUtil:spawn{</span>
+<span id="L497" class="line"><a href="#L497">497</a>				CCEaseSineInOut:create(CCScaleTo:create(7*FRAMETIME, 0.9, 0.9)),</span>
+<span id="L498" class="line"><a href="#L498">498</a>				ActionUtil:sequence{</span>
+<span id="L499" class="line"><a href="#L499">499</a>					CCDelayTime:create(4*FRAMETIME),</span>
+<span id="L500" class="line"><a href="#L500">500</a>					ActionUtil:fadeOutU3D(node, 3*FRAMETIME),</span>
+<span id="L501" class="line"><a href="#L501">501</a>					CCCallFunc:create(function()</span>
+<span id="L502" class="line"><a href="#L502">502</a>						node:removeFromParentAndCleanup(true)</span>
+<span id="L503" class="line"><a href="#L503">503</a>						safeRunCall(callback)</span>
+<span id="L504" class="line"><a href="#L504">504</a>					end)</span>
+<span id="L505" class="line"><a href="#L505">505</a>				},</span>
+<span id="L506" class="line"><a href="#L506">506</a>			})</span>
+<span id="L507" class="line"><a href="#L507">507</a>		else</span>
+<span id="L508" class="line"><a href="#L508">508</a>			local targetPos = NodeMovePos[index]</span>
+<span id="L509" class="line"><a href="#L509">509</a>			node:runAction(ActionUtil:sequence{</span>
+<span id="L510" class="line"><a href="#L510">510</a>				CCDelayTime:create((index - 1)*2*FRAMETIME),</span>
+<span id="L511" class="line"><a href="#L511">511</a>				ActionUtil:spawn{</span>
+<span id="L512" class="line"><a href="#L512">512</a>					CCEaseSineInOut:create(CCMoveBy:create(10*FRAMETIME, ccp(targetPos.x, targetPos.y))),</span>
+<span id="L513" class="line"><a href="#L513">513</a>					ActionUtil:sequence{</span>
+<span id="L514" class="line"><a href="#L514">514</a>						CCEaseSineInOut:create(CCScaleTo:create(5*FRAMETIME, 0.9)),</span>
+<span id="L515" class="line"><a href="#L515">515</a>						CCEaseSineInOut:create(CCScaleTo:create(5*FRAMETIME, 1)),</span>
+<span id="L516" class="line"><a href="#L516">516</a>					}</span>
+<span id="L517" class="line"><a href="#L517">517</a>				}</span>
+<span id="L518" class="line"><a href="#L518">518</a>			})</span>
+<span id="L519" class="line"><a href="#L519">519</a>		end</span>
+<span id="L520" class="line"><a href="#L520">520</a>	end)</span>
+<span id="L521" class="line"><a href="#L521">521</a></span>
+<span id="L522" class="line"><a href="#L522">522</a>	self.nodeQueue:popFront()</span>
+<span id="L523" class="line"><a href="#L523">523</a></span>
+<span id="L524" class="line"><a href="#L524">524</a>	local nextNode = self:createGiftNode(giftCfg, curIdx, curIdx + 6)</span>
+<span id="L525" class="line"><a href="#L525">525</a>	if nextNode then</span>
+<span id="L526" class="line"><a href="#L526">526</a>		self.node6:addChild(nextNode)</span>
+<span id="L527" class="line"><a href="#L527">527</a>		self.nodeQueue:pushBack(nextNode)</span>
+<span id="L528" class="line"><a href="#L528">528</a></span>
+<span id="L529" class="line"><a href="#L529">529</a>		if nextNode.tracer then</span>
+<span id="L530" class="line"><a href="#L530">530</a>			nextNode.tracer:show()</span>
+<span id="L531" class="line"><a href="#L531">531</a>		end</span>
+<span id="L532" class="line"><a href="#L532">532</a></span>
+<span id="L533" class="line"><a href="#L533">533</a>		ActionUtil:setOpacityU3D(nextNode, 0)</span>
+<span id="L534" class="line"><a href="#L534">534</a>		nextNode:setPositionXY(0, -320)</span>
+<span id="L535" class="line"><a href="#L535">535</a>		nextNode:runAction(ActionUtil:sequence{</span>
+<span id="L536" class="line"><a href="#L536">536</a>			CCDelayTime:create(12*FRAMETIME),</span>
+<span id="L537" class="line"><a href="#L537">537</a>			ActionUtil:spawn{</span>
+<span id="L538" class="line"><a href="#L538">538</a>				CCMoveBy:create(10*FRAMETIME, ccp(0, 320)),</span>
+<span id="L539" class="line"><a href="#L539">539</a>				ActionUtil:fadeInU3D(nextNode, 3*FRAMETIME),</span>
+<span id="L540" class="line"><a href="#L540">540</a>				ActionUtil:sequence{</span>
+<span id="L541" class="line"><a href="#L541">541</a>					CCScaleTo:create(5*FRAMETIME, 0.9),</span>
+<span id="L542" class="line"><a href="#L542">542</a>					CCScaleTo:create(5*FRAMETIME, 1),</span>
+<span id="L543" class="line"><a href="#L543">543</a>					CCCallFunc:create(function()</span>
+<span id="L544" class="line"><a href="#L544">544</a>						self:dp(AMFEvent.new(&quot;GIFT_QUEUE_UPDATE_END&quot;))</span>
+<span id="L545" class="line"><a href="#L545">545</a>					end)</span>
+<span id="L546" class="line"><a href="#L546">546</a>				}</span>
+<span id="L547" class="line"><a href="#L547">547</a>			}</span>
+<span id="L548" class="line"><a href="#L548">548</a>		})</span>
+<span id="L549" class="line"><a href="#L549">549</a>	end</span>
+<span id="L550" class="line"><a href="#L550">550</a>end</span>
+<span id="L551" class="line"><a href="#L551">551</a></span>
+<span id="L552" class="line"><a href="#L552">552</a>function WaterfallPanel:checkNodeClear()</span>
+<span id="L553" class="line"><a href="#L553">553</a>	return self.nodeQueue:getSize() == 0</span>
+<span id="L554" class="line"><a href="#L554">554</a>end</span>
+<span id="L555" class="line"><a href="#L555">555</a></span>
+<span id="L556" class="line"><a href="#L556">556</a>function WaterfallPanel:showNodeClearUI()</span>
+<span id="L557" class="line"><a href="#L557">557</a>	self.finalText:setVisible(true)</span>
+<span id="L558" class="line"><a href="#L558">558</a>end</span>
+<span id="L559" class="line"><a href="#L559">559</a></span>
+<span id="L560" class="line"><a href="#L560">560</a>function WaterfallPanel:showRmbRewardPanel(rewardList, callback)</span>
+<span id="L561" class="line"><a href="#L561">561</a>	local ShowRewardsPanelVM = require &quot;amf.middleware.ui.kit.panel.reward.ShowRewardsPanelVM&quot;</span>
+<span id="L562" class="line"><a href="#L562">562</a>	local vm = ShowRewardsPanelVM.Builder.new()</span>
+<span id="L563" class="line"><a href="#L563">563</a>		:setRewards(rewardList)</span>
+<span id="L564" class="line"><a href="#L564">564</a>		:setCloseCallback(callback)</span>
+<span id="L565" class="line"><a href="#L565">565</a>		:setButtonText(&quot;收下&quot;)</span>
+<span id="L566" class="line"><a href="#L566">566</a>		:build()</span>
+<span id="L567" class="line"><a href="#L567">567</a>		:popout()</span>
+<span id="L568" class="line"><a href="#L568">568</a>end</span>
+<span id="L569" class="line"><a href="#L569">569</a></span>
+<span id="L570" class="line"><a href="#L570">570</a>function WaterfallPanel:beltShowAnim()</span>
+<span id="L571" class="line"><a href="#L571">571</a>	printx(33, &quot;WaterfallPanel:beltShowAnim&quot;, self.beltState)</span>
+<span id="L572" class="line"><a href="#L572">572</a>	for i = 2, 6 do</span>
+<span id="L573" class="line"><a href="#L573">573</a>		if i &lt;= self.beltState then</span>
+<span id="L574" class="line"><a href="#L574">574</a>			-- self[&quot;arrow&quot;..i]:setVisible(true)</span>
+<span id="L575" class="line"><a href="#L575">575</a>			self[&quot;arrow&quot;..i]:setScale(1)</span>
+<span id="L576" class="line"><a href="#L576">576</a>			self[&quot;arrow&quot;..i]:playOnce(&quot;in&quot;, function()</span>
+<span id="L577" class="line"><a href="#L577">577</a>				if self.isDisposed then return end</span>
+<span id="L578" class="line"><a href="#L578">578</a>				self[&quot;arrow&quot;..i]:playLoop(&quot;yuandi-idle&quot;)</span>
+<span id="L579" class="line"><a href="#L579">579</a>			end)</span>
+<span id="L580" class="line"><a href="#L580">580</a>			local animTime = 10*FRAMETIME</span>
+<span id="L581" class="line"><a href="#L581">581</a>			self.start2:setVisible(true)</span>
+<span id="L582" class="line"><a href="#L582">582</a>			self.track2:setVisible(true)</span>
+<span id="L583" class="line"><a href="#L583">583</a>			self.end2:setVisible(true)</span>
+<span id="L584" class="line"><a href="#L584">584</a>			self.start2:setOpacity(0)</span>
+<span id="L585" class="line"><a href="#L585">585</a>			self.track2:setOpacity(0)</span>
+<span id="L586" class="line"><a href="#L586">586</a>			self.end2:setOpacity(0)</span>
+<span id="L587" class="line"><a href="#L587">587</a>			self.start2:runAction(CCFadeIn:create(animTime))</span>
+<span id="L588" class="line"><a href="#L588">588</a>			self.track2:runAction(CCFadeIn:create(animTime))</span>
+<span id="L589" class="line"><a href="#L589">589</a>			self.end2:runAction(CCFadeIn:create(animTime))</span>
+<span id="L590" class="line"><a href="#L590">590</a>			if i &gt;= 3 and i &lt;= 6 then</span>
+<span id="L591" class="line"><a href="#L591">591</a>				local track1 = self[&quot;track&quot;..i..&quot;_1&quot;]</span>
+<span id="L592" class="line"><a href="#L592">592</a>				if track1 then</span>
+<span id="L593" class="line"><a href="#L593">593</a>					track1:setOpacity(0)</span>
+<span id="L594" class="line"><a href="#L594">594</a>					track1:setVisible(true)</span>
+<span id="L595" class="line"><a href="#L595">595</a>					track1:runAction(CCFadeIn:create(animTime))</span>
+<span id="L596" class="line"><a href="#L596">596</a>				end</span>
+<span id="L597" class="line"><a href="#L597">597</a>				local track2 = self[&quot;track&quot;..i..&quot;_2&quot;]</span>
+<span id="L598" class="line"><a href="#L598">598</a>				if track2 then</span>
+<span id="L599" class="line"><a href="#L599">599</a>					track2:setOpacity(0)</span>
+<span id="L600" class="line"><a href="#L600">600</a>					track2:setVisible(true)</span>
+<span id="L601" class="line"><a href="#L601">601</a>					track2:runAction(CCFadeIn:create(animTime))</span>
+<span id="L602" class="line"><a href="#L602">602</a>				end</span>
+<span id="L603" class="line"><a href="#L603">603</a>				local end1 = self[&quot;end&quot;..i]</span>
+<span id="L604" class="line"><a href="#L604">604</a>				if end1 then</span>
+<span id="L605" class="line"><a href="#L605">605</a>					end1:setOpacity(0)</span>
+<span id="L606" class="line"><a href="#L606">606</a>					end1:setVisible(true)</span>
+<span id="L607" class="line"><a href="#L607">607</a>					end1:runAction(CCFadeIn:create(animTime))</span>
+<span id="L608" class="line"><a href="#L608">608</a>				end</span>
+<span id="L609" class="line"><a href="#L609">609</a>			end</span>
+<span id="L610" class="line"><a href="#L610">610</a>		end</span>
+<span id="L611" class="line"><a href="#L611">611</a>	end</span>
+<span id="L612" class="line"><a href="#L612">612</a>end</span>
+<span id="L613" class="line"><a href="#L613">613</a></span>
+<span id="L614" class="line"><a href="#L614">614</a>function WaterfallPanel:playEnterAnim(callback)</span>
+<span id="L615" class="line"><a href="#L615">615</a>	self.bg:runAction(ActionUtil:fadeInU3D(self.bg, 3*FRAMETIME))</span>
+<span id="L616" class="line"><a href="#L616">616</a>	self.titleNode:runAction(ActionUtil:fadeInU3D(self.titleNode, 3*FRAMETIME))</span>
+<span id="L617" class="line"><a href="#L617">617</a>	self.closeBtn:runAction(ActionUtil:fadeInU3D(self.closeBtn, 3*FRAMETIME))</span>
+<span id="L618" class="line"><a href="#L618">618</a>	-- self.beltAnim:runAction(ActionUtil:sequence{</span>
+<span id="L619" class="line"><a href="#L619">619</a>	-- 	CCDelayTime:create(7*FRAMETIME),</span>
+<span id="L620" class="line"><a href="#L620">620</a>	-- 	CCCallFunc:create(function()</span>
+<span id="L621" class="line"><a href="#L621">621</a>	-- 		self.beltAnim:resume()</span>
+<span id="L622" class="line"><a href="#L622">622</a>	-- 	end)</span>
+<span id="L623" class="line"><a href="#L623">623</a>	-- })</span>
+<span id="L624" class="line"><a href="#L624">624</a>	if self:checkNodeClear() then</span>
+<span id="L625" class="line"><a href="#L625">625</a>		self:showNodeClearUI()</span>
+<span id="L626" class="line"><a href="#L626">626</a>		safeRunCall(callback)</span>
+<span id="L627" class="line"><a href="#L627">627</a>		return</span>
+<span id="L628" class="line"><a href="#L628">628</a>	end</span>
+<span id="L629" class="line"><a href="#L629">629</a>	setTimeOut(function()</span>
+<span id="L630" class="line"><a href="#L630">630</a>		if self.isDisposed then return end</span>
+<span id="L631" class="line"><a href="#L631">631</a>		self:beltShowAnim()</span>
+<span id="L632" class="line"><a href="#L632">632</a>	end, 15*FRAMETIME)</span>
+<span id="L633" class="line"><a href="#L633">633</a>	self.nodeQueue:foreach(function(index, node)</span>
+<span id="L634" class="line"><a href="#L634">634</a>		if not node or node.isDisposed then return end</span>
+<span id="L635" class="line"><a href="#L635">635</a>		node:runAction(ActionUtil:sequence{</span>
+<span id="L636" class="line"><a href="#L636">636</a>			CCDelayTime:create(index*2*FRAMETIME),</span>
+<span id="L637" class="line"><a href="#L637">637</a>			ActionUtil:spawn{</span>
+<span id="L638" class="line"><a href="#L638">638</a>				ActionUtil:sequence{</span>
+<span id="L639" class="line"><a href="#L639">639</a>					CCEaseSineOut:create(CCMoveBy:create(6*FRAMETIME, ccp(0, 233.56))),</span>
+<span id="L640" class="line"><a href="#L640">640</a>					CCEaseSineInOut:create(CCMoveBy:create(4*FRAMETIME, ccp(0, -14.54))),</span>
+<span id="L641" class="line"><a href="#L641">641</a>				},</span>
+<span id="L642" class="line"><a href="#L642">642</a>				CCCallFunc:create(function()</span>
+<span id="L643" class="line"><a href="#L643">643</a>					node:getChildByName(&quot;normalBg&quot;):runAction(ActionUtil:sequence{</span>
+<span id="L644" class="line"><a href="#L644">644</a>						ActionUtil:fadeInU3D(node:getChildByName(&quot;normalBg&quot;), 2*FRAMETIME)</span>
+<span id="L645" class="line"><a href="#L645">645</a>					})</span>
+<span id="L646" class="line"><a href="#L646">646</a>					node:getChildByName(&quot;yellowBg&quot;):runAction(ActionUtil:sequence{</span>
+<span id="L647" class="line"><a href="#L647">647</a>						ActionUtil:fadeInU3D(node:getChildByName(&quot;yellowBg&quot;), 2*FRAMETIME)</span>
+<span id="L648" class="line"><a href="#L648">648</a>					})</span>
+<span id="L649" class="line"><a href="#L649">649</a>					node:getChildByName(&quot;buttonNode&quot;):runAction(ActionUtil:sequence{</span>
+<span id="L650" class="line"><a href="#L650">650</a>						CCDelayTime:create(2*FRAMETIME),</span>
+<span id="L651" class="line"><a href="#L651">651</a>						ActionUtil:fadeInU3D(node:getChildByName(&quot;buttonNode&quot;), 2*FRAMETIME)</span>
+<span id="L652" class="line"><a href="#L652">652</a>					})</span>
+<span id="L653" class="line"><a href="#L653">653</a>					node:getChildByName(&quot;rewardNode&quot;):runAction(ActionUtil:sequence{</span>
+<span id="L654" class="line"><a href="#L654">654</a>						CCDelayTime:create(2*FRAMETIME),</span>
+<span id="L655" class="line"><a href="#L655">655</a>						ActionUtil:fadeInU3D(node:getChildByName(&quot;rewardNode&quot;), 2*FRAMETIME),</span>
+<span id="L656" class="line"><a href="#L656">656</a>						CCCallFunc:create(function()</span>
+<span id="L657" class="line"><a href="#L657">657</a>							if self.isDisposed then return end</span>
+<span id="L658" class="line"><a href="#L658">658</a>							self:updateBtnBreath()</span>
+<span id="L659" class="line"><a href="#L659">659</a>						end)</span>
+<span id="L660" class="line"><a href="#L660">660</a>					})</span>
+<span id="L661" class="line"><a href="#L661">661</a>					node:getChildByName(&quot;collectionNode&quot;):runAction(ActionUtil:sequence{</span>
+<span id="L662" class="line"><a href="#L662">662</a>						CCDelayTime:create(2*FRAMETIME),</span>
+<span id="L663" class="line"><a href="#L663">663</a>						ActionUtil:fadeInU3D(node:getChildByName(&quot;collectionNode&quot;), 2*FRAMETIME)</span>
+<span id="L664" class="line"><a href="#L664">664</a>					})</span>
+<span id="L665" class="line"><a href="#L665">665</a></span>
+<span id="L666" class="line"><a href="#L666">666</a>					safeRunCall(callback)</span>
+<span id="L667" class="line"><a href="#L667">667</a>					if index == self.nodeQueue:getSize() then</span>
+<span id="L668" class="line"><a href="#L668">668</a>						self:dp(AMFEvent.new(&quot;GIFT_QUEUE_UPDATE_END&quot;))</span>
+<span id="L669" class="line"><a href="#L669">669</a>					end</span>
+<span id="L670" class="line"><a href="#L670">670</a>				end),</span>
+<span id="L671" class="line"><a href="#L671">671</a>			},</span>
+<span id="L672" class="line"><a href="#L672">672</a>		})</span>
+<span id="L673" class="line"><a href="#L673">673</a>	end)</span>
+<span id="L674" class="line"><a href="#L674">674</a>end</span>
+<span id="L675" class="line"><a href="#L675">675</a></span>
+<span id="L676" class="line"><a href="#L676">676</a>function WaterfallPanel:flyNodeReward(node, rewardList, callback)</span>
+<span id="L677" class="line"><a href="#L677">677</a>	local flyNum = 1</span>
+<span id="L678" class="line"><a href="#L678">678</a>	local function afterFly()</span>
+<span id="L679" class="line"><a href="#L679">679</a>		if self.isDisposed then return end</span>
+<span id="L680" class="line"><a href="#L680">680</a>		if node.specialNum then</span>
+<span id="L681" class="line"><a href="#L681">681</a>			flyNum = flyNum + 1</span>
+<span id="L682" class="line"><a href="#L682">682</a>			local specialNumLabel = node.collectionLabel</span>
+<span id="L683" class="line"><a href="#L683">683</a>			local startPos = specialNumLabel:getPositionInWorldSpace()</span>
+<span id="L684" class="line"><a href="#L684">684</a>			local endPos = self.progressItemNode:getPositionInWorldSpace()</span>
+<span id="L685" class="line"><a href="#L685">685</a>			self:doFlyCollectionAction(ccp(startPos.x-50, startPos.y), ccp(endPos.x+30, endPos.y+40), function()</span>
+<span id="L686" class="line"><a href="#L686">686</a>				if self.isDisposed then return end</span>
+<span id="L687" class="line"><a href="#L687">687</a>				safeRunCall(callback)</span>
+<span id="L688" class="line"><a href="#L688">688</a>			end)</span>
+<span id="L689" class="line"><a href="#L689">689</a>			node.collectionIcon:setVisible(false)</span>
+<span id="L690" class="line"><a href="#L690">690</a>			node.collectionLabel:setVisible(false)</span>
+<span id="L691" class="line"><a href="#L691">691</a>			setTimeOut(function()</span>
+<span id="L692" class="line"><a href="#L692">692</a>				if self.isDisposed then return end</span>
+<span id="L693" class="line"><a href="#L693">693</a>				self:sendCommand(&quot;playProgressBarAddAnim&quot;)</span>
+<span id="L694" class="line"><a href="#L694">694</a>			end, 0.4)</span>
+<span id="L695" class="line"><a href="#L695">695</a>		else</span>
+<span id="L696" class="line"><a href="#L696">696</a>			safeRunCall(callback)</span>
+<span id="L697" class="line"><a href="#L697">697</a>		end</span>
+<span id="L698" class="line"><a href="#L698">698</a>	end</span>
+<span id="L699" class="line"><a href="#L699">699</a></span>
+<span id="L700" class="line"><a href="#L700">700</a>	-- local rewardList = {}</span>
+<span id="L701" class="line"><a href="#L701">701</a>	-- for i = 1, 7 do</span>
+<span id="L702" class="line"><a href="#L702">702</a>	-- 	table.insert(rewardList, {itemId = 2, num = 100})</span>
+<span id="L703" class="line"><a href="#L703">703</a>	-- end</span>
+<span id="L704" class="line"><a href="#L704">704</a></span>
+<span id="L705" class="line"><a href="#L705">705</a>	local flyAnim = WaterfallWeakFlyAnim.Builder.new()</span>
+<span id="L706" class="line"><a href="#L706">706</a>	:setTarget(node)</span>
+<span id="L707" class="line"><a href="#L707">707</a>	:setRewards(rewardList)</span>
+<span id="L708" class="line"><a href="#L708">708</a>	:setOffset(ccp(0, 40))</span>
+<span id="L709" class="line"><a href="#L709">709</a>	:setEndCallback(function()</span>
+<span id="L710" class="line"><a href="#L710">710</a>		printx(33, &quot;flyNodeReward end&quot;)</span>
+<span id="L711" class="line"><a href="#L711">711</a>		afterFly()</span>
+<span id="L712" class="line"><a href="#L712">712</a>	end)</span>
+<span id="L713" class="line"><a href="#L713">713</a>	:build()</span>
+<span id="L714" class="line"><a href="#L714">714</a>end</span>
+<span id="L715" class="line"><a href="#L715">715</a></span>
+<span id="L716" class="line"><a href="#L716">716</a>function WaterfallPanel:flySpecialReward()</span>
+<span id="L717" class="line"><a href="#L717">717</a>	</span>
+<span id="L718" class="line"><a href="#L718">718</a>end</span>
+<span id="L719" class="line"><a href="#L719">719</a></span>
+<span id="L720" class="line"><a href="#L720">720</a>function WaterfallPanel:flyProgressReward(rewards, isFinal, callback)</span>
+<span id="L721" class="line"><a href="#L721">721</a>	if #rewards &gt; 1 then</span>
+<span id="L722" class="line"><a href="#L722">722</a>		local image = self.progressBar:getRewardItemImage()</span>
+<span id="L723" class="line"><a href="#L723">723</a>		printx(33, &quot;flyProgressReward image&quot;, image and image.Frame)</span>
+<span id="L724" class="line"><a href="#L724">724</a>		if image and image.Frame == &quot;common/icon_256/icon_baoxiang_erji_256_01&quot; then</span>
+<span id="L725" class="line"><a href="#L725">725</a>			self.progressBar:setRewardItemImage({</span>
+<span id="L726" class="line"><a href="#L726">726</a>				Atlas = &quot;ui/common/common_icon_256.plist&quot;,</span>
+<span id="L727" class="line"><a href="#L727">727</a>				Frame = &quot;common/icon_256/icon_baoxiang_erji_256_02&quot;,</span>
+<span id="L728" class="line"><a href="#L728">728</a>			})			</span>
+<span id="L729" class="line"><a href="#L729">729</a>		else</span>
+<span id="L730" class="line"><a href="#L730">730</a>			self.progressBar:setRewardItemImage({</span>
+<span id="L731" class="line"><a href="#L731">731</a>				Atlas = &quot;ui/common/common_icon_256.plist&quot;,</span>
+<span id="L732" class="line"><a href="#L732">732</a>				Frame = &quot;common/icon_256/icon_baoxiang_wuji_256_02&quot;</span>
+<span id="L733" class="line"><a href="#L733">733</a>			})	</span>
+<span id="L734" class="line"><a href="#L734">734</a>		end</span>
+<span id="L735" class="line"><a href="#L735">735</a>	end</span>
+<span id="L736" class="line"><a href="#L736">736</a>	local flyAnim = WaterfallWeakFlyAnim.Builder.new()</span>
+<span id="L737" class="line"><a href="#L737">737</a>	:setTarget(self.progressRewardNode)</span>
+<span id="L738" class="line"><a href="#L738">738</a>	:setOffset(ccp(40, 20))</span>
+<span id="L739" class="line"><a href="#L739">739</a>	:setRewards(rewards)</span>
+<span id="L740" class="line"><a href="#L740">740</a>	:setEndCallback(callback)</span>
+<span id="L741" class="line"><a href="#L741">741</a>	:build()</span>
+<span id="L742" class="line"><a href="#L742">742</a>end</span>
+<span id="L743" class="line"><a href="#L743">743</a></span>
+<span id="L744" class="line"><a href="#L744">744</a>function WaterfallPanel:setProgressBarZero(progressInfo)</span>
+<span id="L745" class="line"><a href="#L745">745</a>	self.progressBar:setPercentage(0)</span>
+<span id="L746" class="line"><a href="#L746">746</a>	self.progressBar:setProgressText(&quot;0/&quot;..tostring(progressInfo.endValue))</span>
+<span id="L747" class="line"><a href="#L747">747</a>end</span>
+<span id="L748" class="line"><a href="#L748">748</a></span>
+<span id="L749" class="line"><a href="#L749">749</a>function WaterfallPanel:setProgressBarRewardList(info)</span>
+<span id="L750" class="line"><a href="#L750">750</a>	local rewardList = info.rewardList or {}</span>
+<span id="L751" class="line"><a href="#L751">751</a>	local isFinal = info.isFinal</span>
+<span id="L752" class="line"><a href="#L752">752</a>	if #rewardList == 1 then</span>
+<span id="L753" class="line"><a href="#L753">753</a>		local reward = rewardList[1]</span>
+<span id="L754" class="line"><a href="#L754">754</a>		self.progressBar:setRewardItemId(reward.itemId)</span>
+<span id="L755" class="line"><a href="#L755">755</a>		-- if not _G.amfBean(&quot;PropManager&quot;):isInfiniteProp(reward.itemId) then</span>
+<span id="L756" class="line"><a href="#L756">756</a>		-- 	self.progressBar:setRewardCountString(YH_REF_MAP.x .. tostring(reward.num))</span>
+<span id="L757" class="line"><a href="#L757">757</a>		-- else</span>
+<span id="L758" class="line"><a href="#L758">758</a>		-- 	self.progressBar:setRewardCountString(tostring(reward.num))</span>
+<span id="L759" class="line"><a href="#L759">759</a>		-- end</span>
+<span id="L760" class="line"><a href="#L760">760</a>		self.progressBar:setRewardCountString(YH_REF_MAP.x .. tostring(reward.num))</span>
+<span id="L761" class="line"><a href="#L761">761</a>	else</span>
+<span id="L762" class="line"><a href="#L762">762</a>		self.progressBar:setRewardItemImage({</span>
+<span id="L763" class="line"><a href="#L763">763</a>			Atlas = &quot;ui/common/common_icon_256.plist&quot;,</span>
+<span id="L764" class="line"><a href="#L764">764</a>			Frame = isFinal and &quot;common/icon_256/icon_baoxiang_wuji_256_01&quot; or &quot;common/icon_256/icon_baoxiang_erji_256_01&quot;,</span>
+<span id="L765" class="line"><a href="#L765">765</a>		})</span>
+<span id="L766" class="line"><a href="#L766">766</a>		self.progressBar:setRewardCountString(&quot;&quot;)</span>
+<span id="L767" class="line"><a href="#L767">767</a>	end</span>
+<span id="L768" class="line"><a href="#L768">768</a>end</span>
+<span id="L769" class="line"><a href="#L769">769</a></span>
+<span id="L770" class="line"><a href="#L770">770</a>function WaterfallPanel:playProgressBarAddAnim(progressInfo, callback)</span>
+<span id="L771" class="line"><a href="#L771">771</a>	local endValue = progressInfo.endValue</span>
+<span id="L772" class="line"><a href="#L772">772</a>	local curValue = math.clamp(progressInfo.curValue, 0, endValue)</span>
+<span id="L773" class="line"><a href="#L773">773</a>	self.progressBar:setPercentageWithAnim(curValue/endValue, 1, function(per)</span>
+<span id="L774" class="line"><a href="#L774">774</a>		if self.isDisposed then return end</span>
+<span id="L775" class="line"><a href="#L775">775</a>		local v = math.floor(per * endValue)</span>
+<span id="L776" class="line"><a href="#L776">776</a>		self.progressBar:setProgressText(tostring(v)..&quot;/&quot;..tostring(endValue))</span>
+<span id="L777" class="line"><a href="#L777">777</a>	end, function()</span>
+<span id="L778" class="line"><a href="#L778">778</a>		if self.isDisposed then return end</span>
+<span id="L779" class="line"><a href="#L779">779</a>		self.progressBar:setProgressText(tostring(curValue)..&quot;/&quot;..tostring(endValue))</span>
+<span id="L780" class="line"><a href="#L780">780</a>		safeRunCall(callback)</span>
+<span id="L781" class="line"><a href="#L781">781</a>	end)</span>
+<span id="L782" class="line"><a href="#L782">782</a>end</span>
+<span id="L783" class="line"><a href="#L783">783</a></span>
+<span id="L784" class="line"><a href="#L784">784</a>function WaterfallPanel:showProgressRewardTip(rewardList, needMoreNum, isFinal)</span>
+<span id="L785" class="line"><a href="#L785">785</a>	local labelWidth</span>
+<span id="L786" class="line"><a href="#L786">786</a>	if isFinal then</span>
+<span id="L787" class="line"><a href="#L787">787</a>        if needMoreNum &lt; 10 then</span>
+<span id="L788" class="line"><a href="#L788">788</a>            labelWidth = 420</span>
+<span id="L789" class="line"><a href="#L789">789</a>        elseif needMoreNum &lt; 100 then</span>
+<span id="L790" class="line"><a href="#L790">790</a>            labelWidth = 430</span>
+<span id="L791" class="line"><a href="#L791">791</a>        else</span>
+<span id="L792" class="line"><a href="#L792">792</a>            labelWidth = 450</span>
+<span id="L793" class="line"><a href="#L793">793</a>        end</span>
+<span id="L794" class="line"><a href="#L794">794</a>	else</span>
+<span id="L795" class="line"><a href="#L795">795</a>		if needMoreNum &lt; 10 then</span>
+<span id="L796" class="line"><a href="#L796">796</a>			labelWidth = 390</span>
+<span id="L797" class="line"><a href="#L797">797</a>		elseif needMoreNum &lt; 100 then</span>
+<span id="L798" class="line"><a href="#L798">798</a>			labelWidth = 410</span>
+<span id="L799" class="line"><a href="#L799">799</a>		else</span>
+<span id="L800" class="line"><a href="#L800">800</a>			labelWidth = 425</span>
+<span id="L801" class="line"><a href="#L801">801</a>		end		</span>
+<span id="L802" class="line"><a href="#L802">802</a>	end</span>
+<span id="L803" class="line"><a href="#L803">803</a></span>
+<span id="L804" class="line"><a href="#L804">804</a>	local label = MultiLabel:create(CCSizeMake(labelWidth, 0))</span>
+<span id="L805" class="line"><a href="#L805">805</a>	label:setLineVerticalAlignment(kCCVerticalTextAlignmentCenter)</span>
+<span id="L806" class="line"><a href="#L806">806</a>	label:setHorizontalAlignment(kCCTextAlignmentCenter)</span>
+<span id="L807" class="line"><a href="#L807">807</a>	label:setVerticalAlignment(kCCVerticalTextAlignmentCenter)</span>
+<span id="L808" class="line"><a href="#L808">808</a>	label:addTTFLabel({</span>
+<span id="L809" class="line"><a href="#L809">809</a>		text = &quot;还差&quot;..(tostring(needMoreNum)),</span>
+<span id="L810" class="line"><a href="#L810">810</a>		fontSize = 28,</span>
+<span id="L811" class="line"><a href="#L811">811</a>		color = hex2ccc4(&quot;B2714AFF&quot;)</span>
+<span id="L812" class="line"><a href="#L812">812</a>	})</span>
+<span id="L813" class="line"><a href="#L813">813</a>	local icon = UICreateUtil:createSpriteFile(&quot;amf/activity/waterfallprogress/materials/specialIcon.png&quot;)</span>
+<span id="L814" class="line"><a href="#L814">814</a>	icon:setScale(0.2)</span>
+<span id="L815" class="line"><a href="#L815">815</a>	label:addNode({</span>
+<span id="L816" class="line"><a href="#L816">816</a>		node = icon,</span>
+<span id="L817" class="line"><a href="#L817">817</a>	})</span>
+<span id="L818" class="line"><a href="#L818">818</a>	if isFinal then</span>
+<span id="L819" class="line"><a href="#L819">819</a>		label:addTTFLabel({</span>
+<span id="L820" class="line"><a href="#L820">820</a>			text = &quot;, 即可获得宝藏大奖～&quot;,</span>
+<span id="L821" class="line"><a href="#L821">821</a>			fontSize = 28,</span>
+<span id="L822" class="line"><a href="#L822">822</a>			color = hex2ccc4(&quot;B2714AFF&quot;)</span>
+<span id="L823" class="line"><a href="#L823">823</a>		})		</span>
+<span id="L824" class="line"><a href="#L824">824</a>	else</span>
+<span id="L825" class="line"><a href="#L825">825</a>		label:addTTFLabel({</span>
+<span id="L826" class="line"><a href="#L826">826</a>			text = &quot;, 即可获得本奖励～&quot;,</span>
+<span id="L827" class="line"><a href="#L827">827</a>			fontSize = 28,</span>
+<span id="L828" class="line"><a href="#L828">828</a>			color = hex2ccc4(&quot;B2714AFF&quot;)</span>
+<span id="L829" class="line"><a href="#L829">829</a>		})</span>
+<span id="L830" class="line"><a href="#L830">830</a>	end</span>
+<span id="L831" class="line"><a href="#L831">831</a></span>
+<span id="L832" class="line"><a href="#L832">832</a>	local layer = Layer:create()</span>
+<span id="L833" class="line"><a href="#L833">833</a>	layer:addChild(label)</span>
+<span id="L834" class="line"><a href="#L834">834</a>	layer:makeContentSizeContainChildren()</span>
+<span id="L835" class="line"><a href="#L835">835</a>	local size = layer:getContentSize()</span>
+<span id="L836" class="line"><a href="#L836">836</a>	layer:setContentSize(CCSizeMake(size.width-20, size.height-10))</span>
+<span id="L837" class="line"><a href="#L837">837</a>	LayoutUtil:move(label:getLine(1).labels[2], 0, 2)</span>
+<span id="L838" class="line"><a href="#L838">838</a>	local tip = UITip.Builder.new()</span>
+<span id="L839" class="line"><a href="#L839">839</a>	:setOrdered()</span>
+<span id="L840" class="line"><a href="#L840">840</a>	:setContent(layer, false)</span>
+<span id="L841" class="line"><a href="#L841">841</a>	:setRewards(rewardList)</span>
+<span id="L842" class="line"><a href="#L842">842</a>	:setTarget(self.progressRewardNode)</span>
+<span id="L843" class="line"><a href="#L843">843</a>	:setAutoCloseTime(3)</span>
+<span id="L844" class="line"><a href="#L844">844</a>	:build()</span>
+<span id="L845" class="line"><a href="#L845">845</a>end</span>
+<span id="L846" class="line"><a href="#L846">846</a></span>
+<span id="L847" class="line"><a href="#L847">847</a>function WaterfallPanel:showProgressItemTip(rewardList)</span>
+<span id="L848" class="line"><a href="#L848">848</a>	local label = MultiLabel:create(CCSizeMake(390, 0))</span>
+<span id="L849" class="line"><a href="#L849">849</a>	label:setLineVerticalAlignment(kCCVerticalTextAlignmentCenter)</span>
+<span id="L850" class="line"><a href="#L850">850</a>	label:setHorizontalAlignment(kCCTextAlignmentCenter)</span>
+<span id="L851" class="line"><a href="#L851">851</a>	label:setVerticalAlignment(kCCVerticalTextAlignmentCenter)</span>
+<span id="L852" class="line"><a href="#L852">852</a>	label:addTTFLabel({</span>
+<span id="L853" class="line"><a href="#L853">853</a>		text = &quot;积累&quot;,</span>
+<span id="L854" class="line"><a href="#L854">854</a>		fontSize = 28,</span>
+<span id="L855" class="line"><a href="#L855">855</a>		color = hex2ccc4(&quot;B2714AFF&quot;)</span>
+<span id="L856" class="line"><a href="#L856">856</a>	})</span>
+<span id="L857" class="line"><a href="#L857">857</a>	local icon = UICreateUtil:createSpriteFile(&quot;amf/activity/waterfallprogress/materials/specialIcon.png&quot;)</span>
+<span id="L858" class="line"><a href="#L858">858</a>	icon:setScale(0.2)</span>
+<span id="L859" class="line"><a href="#L859">859</a>	label:addNode({</span>
+<span id="L860" class="line"><a href="#L860">860</a>		node = icon,</span>
+<span id="L861" class="line"><a href="#L861">861</a>	})</span>
+<span id="L862" class="line"><a href="#L862">862</a>	label:addTTFLabel({</span>
+<span id="L863" class="line"><a href="#L863">863</a>		text = &quot;，获得超多宝藏奖励~&quot;,</span>
+<span id="L864" class="line"><a href="#L864">864</a>		fontSize = 28,</span>
+<span id="L865" class="line"><a href="#L865">865</a>		color = hex2ccc4(&quot;B2714AFF&quot;)</span>
+<span id="L866" class="line"><a href="#L866">866</a>	})</span>
+<span id="L867" class="line"><a href="#L867">867</a>	local layer = Layer:create()</span>
+<span id="L868" class="line"><a href="#L868">868</a>	layer:addChild(label)</span>
+<span id="L869" class="line"><a href="#L869">869</a>	layer:makeContentSizeContainChildren()</span>
+<span id="L870" class="line"><a href="#L870">870</a>	UITip.Builder.new()</span>
+<span id="L871" class="line"><a href="#L871">871</a>	:setContent(layer, false)</span>
+<span id="L872" class="line"><a href="#L872">872</a>	:setTarget(self.progressItemNode)</span>
+<span id="L873" class="line"><a href="#L873">873</a>	:setAutoCloseTime(3)</span>
+<span id="L874" class="line"><a href="#L874">874</a>	:build()</span>
+<span id="L875" class="line"><a href="#L875">875</a>end</span>
+<span id="L876" class="line"><a href="#L876">876</a></span>
+<span id="L877" class="line"><a href="#L877">877</a>function WaterfallPanel:showGuideHand()</span>
+<span id="L878" class="line"><a href="#L878">878</a>	if self.needHideGuideHand then return end</span>
+<span id="L879" class="line"><a href="#L879">879</a>    local GuideHand = require &quot;amf.middleware.ui.kit.animation.guide.GuideHand&quot;</span>
+<span id="L880" class="line"><a href="#L880">880</a>    local hand = GuideHand:createHandClick(0, 3, true)</span>
+<span id="L881" class="line"><a href="#L881">881</a>	local frontNode = self.nodeQueue:getFront()</span>
+<span id="L882" class="line"><a href="#L882">882</a>	if frontNode then</span>
+<span id="L883" class="line"><a href="#L883">883</a>		local btn = frontNode:getChildByName(&quot;buttonNode&quot;)</span>
+<span id="L884" class="line"><a href="#L884">884</a>		local pos = btn:getPositionInWorldSpace()</span>
+<span id="L885" class="line"><a href="#L885">885</a>		self.ui:addChild(hand)</span>
+<span id="L886" class="line"><a href="#L886">886</a>		hand:setPositionInWorldSpace(ccp(pos.x, pos.y))</span>
+<span id="L887" class="line"><a href="#L887">887</a>		local layer = Layer:create()</span>
+<span id="L888" class="line"><a href="#L888">888</a>		layer:setTouchHandler(function()</span>
+<span id="L889" class="line"><a href="#L889">889</a>			if self.isDisposed then return end</span>
+<span id="L890" class="line"><a href="#L890">890</a>			hand:removeFromParentAndCleanup(true)</span>
+<span id="L891" class="line"><a href="#L891">891</a>			layer:removeFromParentAndCleanup(true)</span>
+<span id="L892" class="line"><a href="#L892">892</a>		end, nil, function()</span>
+<span id="L893" class="line"><a href="#L893">893</a>			return true</span>
+<span id="L894" class="line"><a href="#L894">894</a>		end, false)</span>
+<span id="L895" class="line"><a href="#L895">895</a>		btn:addChild(layer)</span>
+<span id="L896" class="line"><a href="#L896">896</a>	end</span>
+<span id="L897" class="line"><a href="#L897">897</a>	self.guideHand = hand</span>
+<span id="L898" class="line"><a href="#L898">898</a>end</span>
+<span id="L899" class="line"><a href="#L899">899</a></span>
+<span id="L900" class="line"><a href="#L900">900</a>function WaterfallPanel:hideGuideHand()</span>
+<span id="L901" class="line"><a href="#L901">901</a>	self.needHideGuideHand = true</span>
+<span id="L902" class="line"><a href="#L902">902</a>	if self.guideHand then</span>
+<span id="L903" class="line"><a href="#L903">903</a>		self.guideHand:removeFromParentAndCleanup(true)</span>
+<span id="L904" class="line"><a href="#L904">904</a>		self.guideHand = nil</span>
+<span id="L905" class="line"><a href="#L905">905</a>	end</span>
+<span id="L906" class="line"><a href="#L906">906</a>end</span>
+<span id="L907" class="line"><a href="#L907">907</a></span>
+<span id="L908" class="line"><a href="#L908">908</a>--region 【app】抖音支付瀑布流礼包定制营销</span>
+<span id="L909" class="line"><a href="#L909">909</a></span>
+<span id="L910" class="line"><a href="#L910">910</a>function WaterfallPanel:setDyOfferUpdate(dyOfferInfo)</span>
+<span id="L911" class="line"><a href="#L911">911</a>	self.dyOfferInfo = dyOfferInfo</span>
+<span id="L912" class="line"><a href="#L912">912</a>	if self.isWaitingDyOffer then</span>
+<span id="L913" class="line"><a href="#L913">913</a>		self:updateByDyPayNode()</span>
+<span id="L914" class="line"><a href="#L914">914</a>	end</span>
+<span id="L915" class="line"><a href="#L915">915</a>end</span>
+<span id="L916" class="line"><a href="#L916">916</a></span>
+<span id="L917" class="line"><a href="#L917">917</a>function WaterfallPanel:initOtherUI(showDyPayTag)</span>
+<span id="L918" class="line"><a href="#L918">918</a>	if showDyPayTag then</span>
+<span id="L919" class="line"><a href="#L919">919</a>		local uiData = force_require(&quot;amf.feature.localactivity.waterfallgift.view.uisource.WaterfallDouyinPayNode_UI&quot;)</span>
+<span id="L920" class="line"><a href="#L920">920</a>		local faqBtn = UIBuilder:buildUI(uiData, self, &quot;faqBtn&quot;)</span>
+<span id="L921" class="line"><a href="#L921">921</a>		self.titleNode:addChild(faqBtn)</span>
+<span id="L922" class="line"><a href="#L922">922</a>		faqBtn:setPositionXY(110, 20)</span>
+<span id="L923" class="line"><a href="#L923">923</a>		self.helpBtn = faqBtn</span>
+<span id="L924" class="line"><a href="#L924">924</a>		self:ad(&quot;GIFT_QUEUE_UPDATE_END&quot;, function()</span>
+<span id="L925" class="line"><a href="#L925">925</a>			self:updateByDyPayNode()</span>
+<span id="L926" class="line"><a href="#L926">926</a>		end)</span>
+<span id="L927" class="line"><a href="#L927">927</a>		self.helpBtn:setTouchHandler(function ()</span>
+<span id="L928" class="line"><a href="#L928">928</a>			local url = &quot;https://ff.happyelements.com/mobile/page/topic.html?tid=6933117&amp;app=1001&amp;ct=1765872600&amp;gohome=1&quot;</span>
+<span id="L929" class="line"><a href="#L929">929</a>			FAQ:openSheQuUrl(url)</span>
+<span id="L930" class="line"><a href="#L930">930</a>		end)</span>
+<span id="L931" class="line"><a href="#L931">931</a>	end</span>
+<span id="L932" class="line"><a href="#L932">932</a>end</span>
+<span id="L933" class="line"><a href="#L933">933</a></span>
+<span id="L934" class="line"><a href="#L934">934</a>function WaterfallPanel:updateByDyPayNode()</span>
+<span id="L935" class="line"><a href="#L935">935</a>	if self.isDisposed then return end</span>
+<span id="L936" class="line"><a href="#L936">936</a>	if not self.dyOfferInfo then</span>
+<span id="L937" class="line"><a href="#L937">937</a>		self.isWaitingDyOffer = true</span>
+<span id="L938" class="line"><a href="#L938">938</a>		return</span>
+<span id="L939" class="line"><a href="#L939">939</a>	end</span>
+<span id="L940" class="line"><a href="#L940">940</a>	self.isWaitingDyOffer = false</span>
+<span id="L941" class="line"><a href="#L941">941</a>	self.nodeQueue:foreach(function(idx, node)</span>
+<span id="L942" class="line"><a href="#L942">942</a>		if not node.isFree and not node.dyMarkNode then</span>
+<span id="L943" class="line"><a href="#L943">943</a>			local price = GoodsManager:getGoods(node.goodsId):getPrice()</span>
+<span id="L944" class="line"><a href="#L944">944</a>			if self.dyOfferInfo.price == price then</span>
+<span id="L945" class="line"><a href="#L945">945</a>				local WaterfallDyPaymentView = force_require &quot;amf.feature.localactivity.waterfallgift.view.WaterfallDyPaymentView&quot;</span>
+<span id="L946" class="line"><a href="#L946">946</a>				local view = WaterfallDyPaymentView:create(node.goodsId, self.dyOfferInfo)</span>
+<span id="L947" class="line"><a href="#L947">947</a>				node:addChild(view)</span>
+<span id="L948" class="line"><a href="#L948">948</a>				view:setPositionXY(55, 0)</span>
+<span id="L949" class="line"><a href="#L949">949</a>				node.dyMarkNode = view</span>
+<span id="L950" class="line"><a href="#L950">950</a>				node.dyMarkNode.showIdx = idx</span>
+<span id="L951" class="line"><a href="#L951">951</a>				node.btn:setVisible(false)</span>
+<span id="L952" class="line"><a href="#L952">952</a></span>
+<span id="L953" class="line"><a href="#L953">953</a>				view:setBuyBtnCallback(function()</span>
+<span id="L954" class="line"><a href="#L954">954</a>					self:sendCommand(&quot;onBuyBtnTapped&quot;, node, node.nodeIdx)</span>
+<span id="L955" class="line"><a href="#L955">955</a>				end)</span>
+<span id="L956" class="line"><a href="#L956">956</a></span>
+<span id="L957" class="line"><a href="#L957">957</a>				local mgr = _G.amfBean(&quot;WaterfallGiftProgressManager&quot;)</span>
+<span id="L958" class="line"><a href="#L958">958</a>				local guideId = Meta.DyOfferGuideId[&quot;PRICE_ANI_&quot;..tostring(price)]</span>
+<span id="L959" class="line"><a href="#L959">959</a>				if mgr:hasGuideIndex(guideId) then</span>
+<span id="L960" class="line"><a href="#L960">960</a>					view:appearWithSimpleAni(idx == 1)</span>
+<span id="L961" class="line"><a href="#L961">961</a>				else</span>
+<span id="L962" class="line"><a href="#L962">962</a>					mgr:addGuideIndex(guideId)</span>
+<span id="L963" class="line"><a href="#L963">963</a>					view:runMarkNodeAppearAction(function()</span>
+<span id="L964" class="line"><a href="#L964">964</a>						view:runParentHitAction(node)</span>
+<span id="L965" class="line"><a href="#L965">965</a>					end)</span>
+<span id="L966" class="line"><a href="#L966">966</a>					view:runBtnAppearAction(idx == 1)</span>
+<span id="L967" class="line"><a href="#L967">967</a>				end</span>
+<span id="L968" class="line"><a href="#L968">968</a></span>
+<span id="L969" class="line"><a href="#L969">969</a>				mgr:dc(&quot;dy_pay&quot;, &quot;label&quot;, self.dyOfferInfo.dyType, nil, nil, nil, {</span>
+<span id="L970" class="line"><a href="#L970">970</a>					show_id = node.tracer and node.tracer:getShowId(),</span>
+<span id="L971" class="line"><a href="#L971">971</a>					goods_id = node.goodsId,</span>
+<span id="L972" class="line"><a href="#L972">972</a>					price = price,</span>
+<span id="L973" class="line"><a href="#L973">973</a>					discounts = self.dyOfferInfo.discount,</span>
+<span id="L974" class="line"><a href="#L974">974</a>					discounts_price = self.dyOfferInfo.finalPrice,</span>
+<span id="L975" class="line"><a href="#L975">975</a>				})</span>
+<span id="L976" class="line"><a href="#L976">976</a>			end</span>
+<span id="L977" class="line"><a href="#L977">977</a>		elseif node.dyMarkNode and idx == 1 then</span>
+<span id="L978" class="line"><a href="#L978">978</a>			if node.dyMarkNode.showIdx ~= 1 then</span>
+<span id="L979" class="line"><a href="#L979">979</a>				node.dyMarkNode.showIdx = idx</span>
+<span id="L980" class="line"><a href="#L980">980</a>				node.dyMarkNode:runBtnBreathAction()</span>
+<span id="L981" class="line"><a href="#L981">981</a>			end</span>
+<span id="L982" class="line"><a href="#L982">982</a>		end</span>
+<span id="L983" class="line"><a href="#L983">983</a>	end)</span>
+<span id="L984" class="line"><a href="#L984">984</a>end</span>
+<span id="L985" class="line"><a href="#L985">985</a></span>
+<span id="L986" class="line"><a href="#L986">986</a>function WaterfallPanel:doFlyCollectionAction(srcPos, targetPos, done)</span>
+<span id="L987" class="line"><a href="#L987">987</a>    local function playEndVfx(endPos)</span>
+<span id="L988" class="line"><a href="#L988">988</a>		if self.isDisposed then return end</span>
+<span id="L989" class="line"><a href="#L989">989</a>        local anim = UICreateUtil:createSpine(&quot;amf/activity/waterfallprogress/spine/reward_vfx.skel&quot;)</span>
+<span id="L990" class="line"><a href="#L990">990</a>        self.ui:addChild(anim)</span>
+<span id="L991" class="line"><a href="#L991">991</a>        anim:setPosition(endPos)</span>
+<span id="L992" class="line"><a href="#L992">992</a>        anim:setScale(0.6)</span>
+<span id="L993" class="line"><a href="#L993">993</a>        anim:playOnceAndDispose(&quot;end&quot;)</span>
+<span id="L994" class="line"><a href="#L994">994</a>    end</span>
+<span id="L995" class="line"><a href="#L995">995</a></span>
+<span id="L996" class="line"><a href="#L996">996</a>    local flyNum = 10</span>
+<span id="L997" class="line"><a href="#L997">997</a>    local flyDownCount = 0</span>
+<span id="L998" class="line"><a href="#L998">998</a>    local function callBack(endPos)</span>
+<span id="L999" class="line"><a href="#L999">999</a>        flyDownCount = flyDownCount + 1</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a></span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>        if flyDownCount == 1 or flyDownCount == 5 or flyDownCount == 9 then</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>            playEndVfx(endPos)</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>        end</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a></span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>        if flyDownCount &gt;= flyNum then</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>            safeRunCall(done)</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>        end</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>    end</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a></span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>    local function createBezierObject(startPos, endPos, time)</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>        local p1 = ccp((0.2+0.05*math.random(-2,2))*(endPos.x - startPos.x), (-0.2+0.05*math.random(-2,2))*(endPos.y - startPos.y))</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>        local p2 = ccp((0.8+0.05*math.random(-2,2))*(endPos.x - startPos.x), (-0.2+0.05*math.random(-2,2))*(endPos.y - startPos.y))</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a></span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>        local bezierConfig = ccBezierConfig:new()</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>        bezierConfig.controlPoint_1 = ccp(startPos.x +  p1.x, startPos.y +  p1.y)</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a>        bezierConfig.controlPoint_2 = ccp(startPos.x +  p2.x, startPos.y +  p2.y)</span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>        bezierConfig.endPosition = ccp(endPos.x,endPos.y)</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>        local object = CCEaseSineIn:create(CCBezierTo:create(time, bezierConfig))</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a>        return object</span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>    end</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a></span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>    local function flyCash(index)</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>        local cashIcon = UICreateUtil:createSpriteFile(&quot;amf/activity/waterfallprogress/materials/specialIcon.png&quot;)</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>        cashIcon:setScale(0)</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a></span>
+<span id="L1026" class="line"><a href="#L1026">1026</a></span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>        self.ui:addChild(cashIcon)</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>        local startPos = ccp(srcPos.x + 2 * math.random(-8, 8), srcPos.y + 2 * math.random(-8, 8))</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>        local startPos = self.ui:convertToNodeSpace(startPos)</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>        local endPos = self.ui:convertToNodeSpace(targetPos)</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>        cashIcon:setPosition(startPos)</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a></span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>        cashIcon:runAction(ActionUtil:sequence{</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a>            ActionUtil:spawn{</span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>                CCEaseBackOut:create(CCScaleTo:create(0.2, 0.3*0.7)),</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>                CCEaseSineIn:create(CCFadeIn:create(0.2)),</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>                CCEaseSineIn:create(CCMoveBy:create(0.3, ccp(0, 15))),</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>            },</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>            ActionUtil:spawn{</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>                createBezierObject(ccp(startPos.x, startPos.y + 15), endPos, 0.2 + index * 0.05),</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>                ActionUtil:sequence{</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>                    CCEaseSineOut:create(CCScaleTo:create(0.05 + index * 0.02, 0.4*0.7)),</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>                    CCEaseSineIn:create(CCScaleTo:create(0.15 + index * 0.03, 0.2*0.7)),</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>                },</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>            },</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>            CCCallFunc:create(function()</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>				if self.isDisposed then return end</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>                callBack(endPos)</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a>                cashIcon:removeFromParentAndCleanup(true)</span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>            end),</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>        })</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>    end</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a></span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>    for index = 1, flyNum do</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>        flyCash(index)</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>    end</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>end</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a></span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>return WaterfallPanel</span></pre></main></html>

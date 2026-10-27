@@ -1,0 +1,321 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/returngift/view/ReturnGift2StartPanelView.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="777f07961974.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/returngift/view/ReturnGift2StartPanelView.lua</h1><p>SHA256 55ea6bcb456f43c9862e672a7cede94a3c93d5360ac4703cba148c8780de2f0b</p><pre><span id="L1" class="line"><a href="#L1">1</a>local ReturnGiftStartPanelView = require &quot;amf.feature.localactivity.returngift.view.ReturnGiftStartPanelView&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local Extra = require &quot;amf.feature.localactivity.returngift.model.ReturnGiftExtra&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local Const = require &quot;amf.feature.localactivity.returngift.config.ReturnGiftConst&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local ReturnGiftGoodsUIOperator = require &quot;amf.feature.localactivity.returngift.view.ReturnGiftGoodsUIOperator&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local ReturnGiftActInfo = require &quot;amf.feature.localactivity.returngift.util.ReturnGiftActInfo&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local GiftEventCenter = require &quot;amf.feature.giftpackage.event.GiftEventCenter&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>---@class ReturnGift2StartPanelView : ReturnGiftStartPanelView</span>
+<span id="L9" class="line"><a href="#L9">9</a>local ReturnGift2StartPanelView = class(&quot;ReturnGift2StartPanelView&quot;, ReturnGiftStartPanelView)</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>function ReturnGift2StartPanelView:initSelfUI()</span>
+<span id="L12" class="line"><a href="#L12">12</a>    ReturnGiftStartPanelView.initSelfUI(self)</span>
+<span id="L13" class="line"><a href="#L13">13</a>    self:registerRewardingExtraUpdateEvent()</span>
+<span id="L14" class="line"><a href="#L14">14</a>    self:initRewardBlocks()</span>
+<span id="L15" class="line"><a href="#L15">15</a>    self:refreshRewardState()</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>end</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>function ReturnGift2StartPanelView:getModuleExtra()</span>
+<span id="L21" class="line"><a href="#L21">21</a>    return self.delegate and self.delegate.moduleExtra or {}</span>
+<span id="L22" class="line"><a href="#L22">22</a>end</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>function ReturnGift2StartPanelView:isRewarding()</span>
+<span id="L25" class="line"><a href="#L25">25</a>    return Extra.isRewarding(self:getModuleExtra())</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>function ReturnGift2StartPanelView:onBuySuccess()</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self:setBoughtRewardingState()</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self:initRewardingLeftTime()</span>
+<span id="L31" class="line"><a href="#L31">31</a>    ReturnGiftStartPanelView.onBuySuccess(self)</span>
+<span id="L32" class="line"><a href="#L32">32</a>end</span>
+<span id="L33" class="line"><a href="#L33">33</a></span>
+<span id="L34" class="line"><a href="#L34">34</a>function ReturnGift2StartPanelView:setBoughtRewardingState()</span>
+<span id="L35" class="line"><a href="#L35">35</a>    local moduleExtra = self:getModuleExtra()</span>
+<span id="L36" class="line"><a href="#L36">36</a>    moduleExtra.status = Const.Status.REWARDING</span>
+<span id="L37" class="line"><a href="#L37">37</a>    moduleExtra.state = Const.State.PACKAGE_2_REWARDING</span>
+<span id="L38" class="line"><a href="#L38">38</a>    moduleExtra.packageType = Const.PackageType.PACKAGE_2</span>
+<span id="L39" class="line"><a href="#L39">39</a></span>
+<span id="L40" class="line"><a href="#L40">40</a>    local giftExtra = self.giftData and self.giftData.getExtraValue and Extra.parse(self.giftData:getExtraValue(&quot;moduleExtra&quot;)) or nil</span>
+<span id="L41" class="line"><a href="#L41">41</a>    self:mergeRewardingExtra(moduleExtra, giftExtra)</span>
+<span id="L42" class="line"><a href="#L42">42</a>    self:mergeRewardingExtra(moduleExtra, ReturnGiftActInfo:getExtra())</span>
+<span id="L43" class="line"><a href="#L43">43</a>    self:refreshRewardState()</span>
+<span id="L44" class="line"><a href="#L44">44</a>end</span>
+<span id="L45" class="line"><a href="#L45">45</a></span>
+<span id="L46" class="line"><a href="#L46">46</a>function ReturnGift2StartPanelView:mergeRewardingExtra(target, source)</span>
+<span id="L47" class="line"><a href="#L47">47</a>    if not target or not source then return end</span>
+<span id="L48" class="line"><a href="#L48">48</a>    local packageType = tonumber(source.packageType) or Extra.getPackageType(source)</span>
+<span id="L49" class="line"><a href="#L49">49</a>    local status = tonumber(source.status) or 0</span>
+<span id="L50" class="line"><a href="#L50">50</a>    local state = tonumber(source.state) or 0</span>
+<span id="L51" class="line"><a href="#L51">51</a>    if packageType ~= Const.PackageType.PACKAGE_2</span>
+<span id="L52" class="line"><a href="#L52">52</a>        and status ~= Const.Status.REWARDING</span>
+<span id="L53" class="line"><a href="#L53">53</a>        and state ~= Const.State.PACKAGE_2_REWARDING then</span>
+<span id="L54" class="line"><a href="#L54">54</a>        return</span>
+<span id="L55" class="line"><a href="#L55">55</a>    end</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>    if source.rewardEndTs then target.rewardEndTs = source.rewardEndTs end</span>
+<span id="L58" class="line"><a href="#L58">58</a>    if source.rewardNodes then target.rewardNodes = source.rewardNodes end</span>
+<span id="L59" class="line"><a href="#L59">59</a>end</span>
+<span id="L60" class="line"><a href="#L60">60</a></span>
+<span id="L61" class="line"><a href="#L61">61</a>function ReturnGift2StartPanelView:initRewardingLeftTime()</span>
+<span id="L62" class="line"><a href="#L62">62</a>    local endTime = Extra.getRewardEndTime(self:getModuleExtra())</span>
+<span id="L63" class="line"><a href="#L63">63</a>    if endTime &lt;= 0 then return end</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>    if self._tickId then</span>
+<span id="L66" class="line"><a href="#L66">66</a>        TimerUtil.removeAlarm(self._tickId)</span>
+<span id="L67" class="line"><a href="#L67">67</a>        self._tickId = nil</span>
+<span id="L68" class="line"><a href="#L68">68</a>    end</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>    local remain = endTime - TimeKit:timeInSec()</span>
+<span id="L71" class="line"><a href="#L71">71</a>    if remain &gt; 0 then</span>
+<span id="L72" class="line"><a href="#L72">72</a>        self._tickId = TimerUtil.addAlarm(function()</span>
+<span id="L73" class="line"><a href="#L73">73</a>            if self.isDisposed then return end</span>
+<span id="L74" class="line"><a href="#L74">74</a>            remain = remain - 1</span>
+<span id="L75" class="line"><a href="#L75">75</a>            self:updateByTime(remain)</span>
+<span id="L76" class="line"><a href="#L76">76</a>            if remain &lt;= 0 then</span>
+<span id="L77" class="line"><a href="#L77">77</a>                TimerUtil.removeAlarm(self._tickId)</span>
+<span id="L78" class="line"><a href="#L78">78</a>                self._tickId = nil</span>
+<span id="L79" class="line"><a href="#L79">79</a>                self:onCountDownEnd()</span>
+<span id="L80" class="line"><a href="#L80">80</a>            end</span>
+<span id="L81" class="line"><a href="#L81">81</a>        end, 1, 0)</span>
+<span id="L82" class="line"><a href="#L82">82</a>        self:updateByTime(remain)</span>
+<span id="L83" class="line"><a href="#L83">83</a>    else</span>
+<span id="L84" class="line"><a href="#L84">84</a>        self:updateByTime(0)</span>
+<span id="L85" class="line"><a href="#L85">85</a>        self:onCountDownEnd()</span>
+<span id="L86" class="line"><a href="#L86">86</a>    end</span>
+<span id="L87" class="line"><a href="#L87">87</a>end</span>
+<span id="L88" class="line"><a href="#L88">88</a></span>
+<span id="L89" class="line"><a href="#L89">89</a>function ReturnGift2StartPanelView:registerRewardingExtraUpdateEvent()</span>
+<span id="L90" class="line"><a href="#L90">90</a>    if self._returnGiftRewardingExtraEvent then return end</span>
+<span id="L91" class="line"><a href="#L91">91</a>    self._returnGiftRewardingExtraEvent = function(event)</span>
+<span id="L92" class="line"><a href="#L92">92</a>        self:onRewardingExtraUpdate(event)</span>
+<span id="L93" class="line"><a href="#L93">93</a>    end</span>
+<span id="L94" class="line"><a href="#L94">94</a>    GiftEventCenter:register(GiftEvent.RETURN_GIFT_REWARDING_EXTRA_UPDATE, self._returnGiftRewardingExtraEvent)</span>
+<span id="L95" class="line"><a href="#L95">95</a>end</span>
+<span id="L96" class="line"><a href="#L96">96</a></span>
+<span id="L97" class="line"><a href="#L97">97</a>function ReturnGift2StartPanelView:unregisterRewardingExtraUpdateEvent()</span>
+<span id="L98" class="line"><a href="#L98">98</a>    if not self._returnGiftRewardingExtraEvent then return end</span>
+<span id="L99" class="line"><a href="#L99">99</a>    GiftEventCenter:unregister(GiftEvent.RETURN_GIFT_REWARDING_EXTRA_UPDATE, self._returnGiftRewardingExtraEvent)</span>
+<span id="L100" class="line"><a href="#L100">100</a>    self._returnGiftRewardingExtraEvent = nil</span>
+<span id="L101" class="line"><a href="#L101">101</a>end</span>
+<span id="L102" class="line"><a href="#L102">102</a></span>
+<span id="L103" class="line"><a href="#L103">103</a>function ReturnGift2StartPanelView:onRewardingExtraUpdate(event)</span>
+<span id="L104" class="line"><a href="#L104">104</a>    if self.isDisposed then return end</span>
+<span id="L105" class="line"><a href="#L105">105</a>    local data = event and event:getData() or {}</span>
+<span id="L106" class="line"><a href="#L106">106</a>    self:mergeRewardingExtra(self:getModuleExtra(), data.moduleExtra)</span>
+<span id="L107" class="line"><a href="#L107">107</a>    self:initRewardingLeftTime()</span>
+<span id="L108" class="line"><a href="#L108">108</a>    self:refreshRewardState()</span>
+<span id="L109" class="line"><a href="#L109">109</a>end</span>
+<span id="L110" class="line"><a href="#L110">110</a></span>
+<span id="L111" class="line"><a href="#L111">111</a>function ReturnGift2StartPanelView:dispose()</span>
+<span id="L112" class="line"><a href="#L112">112</a>    self:unregisterRewardingExtraUpdateEvent()</span>
+<span id="L113" class="line"><a href="#L113">113</a>    ReturnGiftStartPanelView.dispose(self)</span>
+<span id="L114" class="line"><a href="#L114">114</a>end</span>
+<span id="L115" class="line"><a href="#L115">115</a></span>
+<span id="L116" class="line"><a href="#L116">116</a>function ReturnGift2StartPanelView:refreshRewardState()</span>
+<span id="L117" class="line"><a href="#L117">117</a>    local rewarding = self:isRewarding()</span>
+<span id="L118" class="line"><a href="#L118">118</a>    if self.styleNode_1 then self.styleNode_1:setVisible(not rewarding) end</span>
+<span id="L119" class="line"><a href="#L119">119</a>    if self.styleNode_2 then self.styleNode_2:setVisible(rewarding) end</span>
+<span id="L120" class="line"><a href="#L120">120</a>    if rewarding then self:refreshRewardBlocks() end</span>
+<span id="L121" class="line"><a href="#L121">121</a>end</span>
+<span id="L122" class="line"><a href="#L122">122</a></span>
+<span id="L123" class="line"><a href="#L123">123</a>function ReturnGift2StartPanelView:initRewardBlocks()</span>
+<span id="L124" class="line"><a href="#L124">124</a>    if self.rewardBlocks then return end</span>
+<span id="L125" class="line"><a href="#L125">125</a>    self.rewardBlocks = {}</span>
+<span id="L126" class="line"><a href="#L126">126</a></span>
+<span id="L127" class="line"><a href="#L127">127</a>    for index = 1, 3 do</span>
+<span id="L128" class="line"><a href="#L128">128</a>        local block = self:findChildByName(self.styleNode_2, &quot;blockNode_&quot; .. tostring(index))</span>
+<span id="L129" class="line"><a href="#L129">129</a>        if block then</span>
+<span id="L130" class="line"><a href="#L130">130</a>            self.rewardBlocks[index] = {</span>
+<span id="L131" class="line"><a href="#L131">131</a>                node = block,</span>
+<span id="L132" class="line"><a href="#L132">132</a>                receivedNode = self[&quot;receivedNode_&quot;..index] or self:findChildByName(block, &quot;receivedNode&quot;) or self:findChildByName(block, &quot;receivedNode_&quot;..index),</span>
+<span id="L133" class="line"><a href="#L133">133</a>                unreceivedNode = self[&quot;unreceivedNode_&quot;..index] or self:findChildByName(block, &quot;unreceivedNode&quot;) or self:findChildByName(block, &quot;unreceivedNode_&quot;..index),</span>
+<span id="L134" class="line"><a href="#L134">134</a>                awardGroupIcon = self.awardGroupIcon or self:findChildByName(block, &quot;awardGroupIcon&quot;),</span>
+<span id="L135" class="line"><a href="#L135">135</a>                timelabelText = self[&quot;timelabelText_&quot;..index] or self:findChildByName(block, &quot;timelabelText&quot;) or self:findChildByName(block, &quot;timelabelText_&quot;..index),</span>
+<span id="L136" class="line"><a href="#L136">136</a>            }</span>
+<span id="L137" class="line"><a href="#L137">137</a>            if block.setTouchHandler then</span>
+<span id="L138" class="line"><a href="#L138">138</a>                block:setTouchHandler(function()</span>
+<span id="L139" class="line"><a href="#L139">139</a>                    self:onRewardBlockTapped(index)</span>
+<span id="L140" class="line"><a href="#L140">140</a>                end)</span>
+<span id="L141" class="line"><a href="#L141">141</a>            end</span>
+<span id="L142" class="line"><a href="#L142">142</a>        end</span>
+<span id="L143" class="line"><a href="#L143">143</a>    end</span>
+<span id="L144" class="line"><a href="#L144">144</a>end</span>
+<span id="L145" class="line"><a href="#L145">145</a></span>
+<span id="L146" class="line"><a href="#L146">146</a>function ReturnGift2StartPanelView:refreshRewardBlocks()</span>
+<span id="L147" class="line"><a href="#L147">147</a>    local rewardNodes = Extra.getRewardNodes(self:getModuleExtra())</span>
+<span id="L148" class="line"><a href="#L148">148</a>    self:updateRewardBlocksLayout(#rewardNodes)</span>
+<span id="L149" class="line"><a href="#L149">149</a>    for index, block in ipairs(self.rewardBlocks or {}) do</span>
+<span id="L150" class="line"><a href="#L150">150</a>        local rewardNode = rewardNodes[index]</span>
+<span id="L151" class="line"><a href="#L151">151</a>        if block.node then block.node:setVisible(rewardNode ~= nil) end</span>
+<span id="L152" class="line"><a href="#L152">152</a>        local alreadyGot = rewardNode and rewardNode.alreadyGot == true</span>
+<span id="L153" class="line"><a href="#L153">153</a>        if block.receivedNode then block.receivedNode:setVisible(alreadyGot) end</span>
+<span id="L154" class="line"><a href="#L154">154</a>        if block.unreceivedNode then block.unreceivedNode:setVisible(rewardNode ~= nil and not alreadyGot) end</span>
+<span id="L155" class="line"><a href="#L155">155</a>        local reward = rewardNode and rewardNode.rewards and rewardNode.rewards[1]</span>
+<span id="L156" class="line"><a href="#L156">156</a>        if block.awardGroupIcon then</span>
+<span id="L157" class="line"><a href="#L157">157</a>            block.awardGroupIcon:setVisible(reward ~= nil)</span>
+<span id="L158" class="line"><a href="#L158">158</a>            if reward then</span>
+<span id="L159" class="line"><a href="#L159">159</a>                self:getGoodsUIOperator():setIconItem(block.awardGroupIcon, reward)</span>
+<span id="L160" class="line"><a href="#L160">160</a>            end</span>
+<span id="L161" class="line"><a href="#L161">161</a>        end</span>
+<span id="L162" class="line"><a href="#L162">162</a>        if block.timelabelText and block.timelabelText.setString and reward then</span>
+<span id="L163" class="line"><a href="#L163">163</a>            block.timelabelText:setString(self:getRewardTimeText(reward))</span>
+<span id="L164" class="line"><a href="#L164">164</a>        elseif block.timelabelText and block.timelabelText.setString then</span>
+<span id="L165" class="line"><a href="#L165">165</a>            block.timelabelText:setString(&quot;&quot;)</span>
+<span id="L166" class="line"><a href="#L166">166</a>        end</span>
+<span id="L167" class="line"><a href="#L167">167</a>    end</span>
+<span id="L168" class="line"><a href="#L168">168</a>end</span>
+<span id="L169" class="line"><a href="#L169">169</a></span>
+<span id="L170" class="line"><a href="#L170">170</a>function ReturnGift2StartPanelView:updateRewardBlocksLayout(rewardCount)</span>
+<span id="L171" class="line"><a href="#L171">171</a>    self:cacheRewardBlockOriginPos()</span>
+<span id="L172" class="line"><a href="#L172">172</a>    if rewardCount == 2 then</span>
+<span id="L173" class="line"><a href="#L173">173</a>        local pos1 = self.rewardBlockOriginPos and self.rewardBlockOriginPos[1]</span>
+<span id="L174" class="line"><a href="#L174">174</a>        local pos2 = self.rewardBlockOriginPos and self.rewardBlockOriginPos[2]</span>
+<span id="L175" class="line"><a href="#L175">175</a>        local pos3 = self.rewardBlockOriginPos and self.rewardBlockOriginPos[3]</span>
+<span id="L176" class="line"><a href="#L176">176</a>        if pos1 and pos2 and pos3 then</span>
+<span id="L177" class="line"><a href="#L177">177</a>            local offset = (pos3.x - pos2.x) / 2</span>
+<span id="L178" class="line"><a href="#L178">178</a>            self:setRewardBlockPosition(1, pos1.x + offset, pos1.y)</span>
+<span id="L179" class="line"><a href="#L179">179</a>            self:setRewardBlockPosition(2, pos2.x + offset, pos2.y)</span>
+<span id="L180" class="line"><a href="#L180">180</a>        end</span>
+<span id="L181" class="line"><a href="#L181">181</a>        return</span>
+<span id="L182" class="line"><a href="#L182">182</a>    end</span>
+<span id="L183" class="line"><a href="#L183">183</a></span>
+<span id="L184" class="line"><a href="#L184">184</a>    self:restoreRewardBlockOriginPos()</span>
+<span id="L185" class="line"><a href="#L185">185</a>end</span>
+<span id="L186" class="line"><a href="#L186">186</a></span>
+<span id="L187" class="line"><a href="#L187">187</a>function ReturnGift2StartPanelView:cacheRewardBlockOriginPos()</span>
+<span id="L188" class="line"><a href="#L188">188</a>    if self.rewardBlockOriginPos then return end</span>
+<span id="L189" class="line"><a href="#L189">189</a>    self.rewardBlockOriginPos = {}</span>
+<span id="L190" class="line"><a href="#L190">190</a>    for index, block in ipairs(self.rewardBlocks or {}) do</span>
+<span id="L191" class="line"><a href="#L191">191</a>        local node = block and block.node</span>
+<span id="L192" class="line"><a href="#L192">192</a>        if node and node.getPositionX and node.getPositionY then</span>
+<span id="L193" class="line"><a href="#L193">193</a>            self.rewardBlockOriginPos[index] = { x = node:getPositionX(), y = node:getPositionY() }</span>
+<span id="L194" class="line"><a href="#L194">194</a>        end</span>
+<span id="L195" class="line"><a href="#L195">195</a>    end</span>
+<span id="L196" class="line"><a href="#L196">196</a>end</span>
+<span id="L197" class="line"><a href="#L197">197</a></span>
+<span id="L198" class="line"><a href="#L198">198</a>function ReturnGift2StartPanelView:restoreRewardBlockOriginPos()</span>
+<span id="L199" class="line"><a href="#L199">199</a>    for index, pos in pairs(self.rewardBlockOriginPos or {}) do</span>
+<span id="L200" class="line"><a href="#L200">200</a>        self:setRewardBlockPosition(index, pos.x, pos.y)</span>
+<span id="L201" class="line"><a href="#L201">201</a>    end</span>
+<span id="L202" class="line"><a href="#L202">202</a>end</span>
+<span id="L203" class="line"><a href="#L203">203</a></span>
+<span id="L204" class="line"><a href="#L204">204</a>function ReturnGift2StartPanelView:setRewardBlockPosition(index, x, y)</span>
+<span id="L205" class="line"><a href="#L205">205</a>    local block = self.rewardBlocks and self.rewardBlocks[index]</span>
+<span id="L206" class="line"><a href="#L206">206</a>    local node = block and block.node</span>
+<span id="L207" class="line"><a href="#L207">207</a>    if not node or not x or not y then return end</span>
+<span id="L208" class="line"><a href="#L208">208</a>    if node.setPositionXY then</span>
+<span id="L209" class="line"><a href="#L209">209</a>        node:setPositionXY(x, y)</span>
+<span id="L210" class="line"><a href="#L210">210</a>    else</span>
+<span id="L211" class="line"><a href="#L211">211</a>        node:setPosition(ccp(x, y))</span>
+<span id="L212" class="line"><a href="#L212">212</a>    end</span>
+<span id="L213" class="line"><a href="#L213">213</a>end</span>
+<span id="L214" class="line"><a href="#L214">214</a></span>
+<span id="L215" class="line"><a href="#L215">215</a>function ReturnGift2StartPanelView:getRewardTimeText(reward)</span>
+<span id="L216" class="line"><a href="#L216">216</a>    if not reward then return &quot;&quot; end</span>
+<span id="L217" class="line"><a href="#L217">217</a>    return ReturnGiftGoodsUIOperator:getTimeItemText(reward)</span>
+<span id="L218" class="line"><a href="#L218">218</a>end</span>
+<span id="L219" class="line"><a href="#L219">219</a></span>
+<span id="L220" class="line"><a href="#L220">220</a>function ReturnGift2StartPanelView:onRewardBlockTapped(index)</span>
+<span id="L221" class="line"><a href="#L221">221</a>    if not self:isRewarding() then return end</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>    local rewardNodes = Extra.getRewardNodes(self:getModuleExtra())</span>
+<span id="L224" class="line"><a href="#L224">224</a>    local rewardNode = rewardNodes[index]</span>
+<span id="L225" class="line"><a href="#L225">225</a>    if not rewardNode or rewardNode.alreadyGot then return end</span>
+<span id="L226" class="line"><a href="#L226">226</a>    if not rewardNode.rewards or #rewardNode.rewards == 0 then return end</span>
+<span id="L227" class="line"><a href="#L227">227</a></span>
+<span id="L228" class="line"><a href="#L228">228</a>    local rewardIndex = tonumber(rewardNode.index)</span>
+<span id="L229" class="line"><a href="#L229">229</a>    if rewardIndex == nil then rewardIndex = index - 1 end</span>
+<span id="L230" class="line"><a href="#L230">230</a>    if not self.delegate or not self.delegate.claimReward then return end</span>
+<span id="L231" class="line"><a href="#L231">231</a></span>
+<span id="L232" class="line"><a href="#L232">232</a>    self.delegate:claimReward(rewardIndex, function(rewards)</span>
+<span id="L233" class="line"><a href="#L233">233</a>        if self.isDisposed then return end</span>
+<span id="L234" class="line"><a href="#L234">234</a>        self:playClaimRewardFlyToBag(rewards, index, function()</span>
+<span id="L235" class="line"><a href="#L235">235</a>            if self.isDisposed then return end</span>
+<span id="L236" class="line"><a href="#L236">236</a>            self:refreshRewardState()</span>
+<span id="L237" class="line"><a href="#L237">237</a>            self:removeSelfIfAllClaimed()</span>
+<span id="L238" class="line"><a href="#L238">238</a>        end)</span>
+<span id="L239" class="line"><a href="#L239">239</a>    end)</span>
+<span id="L240" class="line"><a href="#L240">240</a>end</span>
+<span id="L241" class="line"><a href="#L241">241</a></span>
+<span id="L242" class="line"><a href="#L242">242</a>function ReturnGift2StartPanelView:playClaimRewardFlyToBag(rewards, blockIndex, finishCallback)</span>
+<span id="L243" class="line"><a href="#L243">243</a>    local flyItems = self:getClaimRewardFlyItems(rewards, blockIndex)</span>
+<span id="L244" class="line"><a href="#L244">244</a>    if not flyItems or #flyItems == 0 then</span>
+<span id="L245" class="line"><a href="#L245">245</a>        safeRunCall(finishCallback)</span>
+<span id="L246" class="line"><a href="#L246">246</a>        return</span>
+<span id="L247" class="line"><a href="#L247">247</a>    end</span>
+<span id="L248" class="line"><a href="#L248">248</a></span>
+<span id="L249" class="line"><a href="#L249">249</a>    --小游戏飞动画特殊处理</span>
+<span id="L250" class="line"><a href="#L250">250</a>    if EnvUtil:isMiniGame() then</span>
+<span id="L251" class="line"><a href="#L251">251</a>        local flyNum = #flyItems</span>
+<span id="L252" class="line"><a href="#L252">252</a>        for index, value in ipairs(flyItems) do</span>
+<span id="L253" class="line"><a href="#L253">253</a>            setTimeOut(function()</span>
+<span id="L254" class="line"><a href="#L254">254</a>                if self.isDisposed then return end</span>
+<span id="L255" class="line"><a href="#L255">255</a>                local flyItem = table.clone(value)</span>
+<span id="L256" class="line"><a href="#L256">256</a>                local flyContext = FlyItemContext.new(flyItem, ccp(360, 720))</span>
+<span id="L257" class="line"><a href="#L257">257</a>                if index == flyNum then</span>
+<span id="L258" class="line"><a href="#L258">258</a>                    flyContext:setFinishCallback(function()</span>
+<span id="L259" class="line"><a href="#L259">259</a>                        safeRunCall(finishCallback)</span>
+<span id="L260" class="line"><a href="#L260">260</a>                    end)</span>
+<span id="L261" class="line"><a href="#L261">261</a>                end</span>
+<span id="L262" class="line"><a href="#L262">262</a>                _G.amfTransaction(TransactionEvent.FLY_ITEMS, flyContext)</span>
+<span id="L263" class="line"><a href="#L263">263</a>            end, (index - 1) * Const.FlyItemDealy)</span>
+<span id="L264" class="line"><a href="#L264">264</a>        end</span>
+<span id="L265" class="line"><a href="#L265">265</a>        return</span>
+<span id="L266" class="line"><a href="#L266">266</a>    end</span>
+<span id="L267" class="line"><a href="#L267">267</a></span>
+<span id="L268" class="line"><a href="#L268">268</a>    local flyContext = FlyItemContext.new(flyItems, ccp(360, 720))</span>
+<span id="L269" class="line"><a href="#L269">269</a>    flyContext:setFinishCallback(function()</span>
+<span id="L270" class="line"><a href="#L270">270</a>        safeRunCall(finishCallback)</span>
+<span id="L271" class="line"><a href="#L271">271</a>    end)</span>
+<span id="L272" class="line"><a href="#L272">272</a>    _G.amfTransaction(TransactionEvent.FLY_ITEMS, flyContext)</span>
+<span id="L273" class="line"><a href="#L273">273</a>end</span>
+<span id="L274" class="line"><a href="#L274">274</a></span>
+<span id="L275" class="line"><a href="#L275">275</a>function ReturnGift2StartPanelView:getClaimRewardFlyItems(rewards, blockIndex)</span>
+<span id="L276" class="line"><a href="#L276">276</a>    local flyItems = {}</span>
+<span id="L277" class="line"><a href="#L277">277</a>    local block = self.rewardBlocks and self.rewardBlocks[blockIndex]</span>
+<span id="L278" class="line"><a href="#L278">278</a>    local sourceNode = block and (block.awardGroupIcon or block.node)</span>
+<span id="L279" class="line"><a href="#L279">279</a>    for index, item in ipairs(rewards or {}) do</span>
+<span id="L280" class="line"><a href="#L280">280</a>        local flyItem = table.clone(item)</span>
+<span id="L281" class="line"><a href="#L281">281</a>        flyItem.fromPos = self:getFlyNodeCenterWorldPos(sourceNode)</span>
+<span id="L282" class="line"><a href="#L282">282</a>        flyItem.shandowNum = Const.FlyItemShandowNum</span>
+<span id="L283" class="line"><a href="#L283">283</a>        -- if delay and delay &gt; 0 then flyItem.delay = delay end</span>
+<span id="L284" class="line"><a href="#L284">284</a>        table.insert(flyItems, flyItem)</span>
+<span id="L285" class="line"><a href="#L285">285</a>    end</span>
+<span id="L286" class="line"><a href="#L286">286</a>    return flyItems</span>
+<span id="L287" class="line"><a href="#L287">287</a>end</span>
+<span id="L288" class="line"><a href="#L288">288</a></span>
+<span id="L289" class="line"><a href="#L289">289</a>function ReturnGift2StartPanelView:getFlyNodeCenterWorldPos(node)</span>
+<span id="L290" class="line"><a href="#L290">290</a>    if not node or not node.getGroupBounds then return nil end</span>
+<span id="L291" class="line"><a href="#L291">291</a>    local bounds = node:getGroupBounds()</span>
+<span id="L292" class="line"><a href="#L292">292</a>    if not bounds then return nil end</span>
+<span id="L293" class="line"><a href="#L293">293</a>    return ccp(bounds.origin.x + bounds.size.width / 2, bounds.origin.y + bounds.size.height / 2)</span>
+<span id="L294" class="line"><a href="#L294">294</a>end</span>
+<span id="L295" class="line"><a href="#L295">295</a></span>
+<span id="L296" class="line"><a href="#L296">296</a>function ReturnGift2StartPanelView:removeSelfIfAllClaimed()</span>
+<span id="L297" class="line"><a href="#L297">297</a>    if Extra.hasUnclaimedReward(self:getModuleExtra()) then return end</span>
+<span id="L298" class="line"><a href="#L298">298</a>    if self.delegate and self.delegate.onAllRewardsClaimed then</span>
+<span id="L299" class="line"><a href="#L299">299</a>        self.delegate:onAllRewardsClaimed(self)</span>
+<span id="L300" class="line"><a href="#L300">300</a>        return</span>
+<span id="L301" class="line"><a href="#L301">301</a>    end</span>
+<span id="L302" class="line"><a href="#L302">302</a>    self:removeSelf()</span>
+<span id="L303" class="line"><a href="#L303">303</a>    if self.delegate and self.delegate.refreshStage then</span>
+<span id="L304" class="line"><a href="#L304">304</a>        self.delegate:refreshStage(self.giftData and self.giftData:getStageType())</span>
+<span id="L305" class="line"><a href="#L305">305</a>    end</span>
+<span id="L306" class="line"><a href="#L306">306</a>end</span>
+<span id="L307" class="line"><a href="#L307">307</a></span>
+<span id="L308" class="line"><a href="#L308">308</a>function ReturnGift2StartPanelView:findChildByName(root, name)</span>
+<span id="L309" class="line"><a href="#L309">309</a>    if not root or not name then return nil end</span>
+<span id="L310" class="line"><a href="#L310">310</a>    if root.getName and root:getName() == name then return root end</span>
+<span id="L311" class="line"><a href="#L311">311</a></span>
+<span id="L312" class="line"><a href="#L312">312</a>    local children = root.getChildrenList and root:getChildrenList() or nil</span>
+<span id="L313" class="line"><a href="#L313">313</a>    if children then</span>
+<span id="L314" class="line"><a href="#L314">314</a>        for _, child in ipairs(children) do</span>
+<span id="L315" class="line"><a href="#L315">315</a>            local target = self:findChildByName(child, name)</span>
+<span id="L316" class="line"><a href="#L316">316</a>            if target then return target end</span>
+<span id="L317" class="line"><a href="#L317">317</a>        end</span>
+<span id="L318" class="line"><a href="#L318">318</a>    end</span>
+<span id="L319" class="line"><a href="#L319">319</a>end</span>
+<span id="L320" class="line"><a href="#L320">320</a></span>
+<span id="L321" class="line"><a href="#L321">321</a>return ReturnGift2StartPanelView</span></pre></main></html>

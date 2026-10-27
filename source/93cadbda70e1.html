@@ -1,0 +1,481 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/promotelow/PromoteLowMgr.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="93cadbda70e1.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/promotelow/PromoteLowMgr.lua</h1><p>SHA256 c9a82a10bcbedf30953b1037cb8cc956f6f80f380f6c6a8f4a8621e8c47ad174</p><pre><span id="L1" class="line"><a href="#L1">1</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>require &quot;amf.feature.localactivity.promotelow.config.PromoteLowConst&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local PromoteLowEventCenter = require &quot;amf.feature.localactivity.promotelow.event.PromoteLowEventCenter&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local PropEventCenter = require &quot;amf.middleware.prop.event.PropEventCenter&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local TimeUtil = require &quot;amf.middleware.ui.util.TimeUtil&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local PromoteLowMgr = class(&quot;PromoteLowMgr&quot;)</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>function PromoteLowMgr:ctor()</span>
+<span id="L10" class="line"><a href="#L10">10</a>    self._activityMgr = nil</span>
+<span id="L11" class="line"><a href="#L11">11</a>    self._networkStatusManager = nil</span>
+<span id="L12" class="line"><a href="#L12">12</a>    self._propManager = nil</span>
+<span id="L13" class="line"><a href="#L13">13</a>    self._iconManager = nil</span>
+<span id="L14" class="line"><a href="#L14">14</a>    self._vmMap = {}</span>
+<span id="L15" class="line"><a href="#L15">15</a>end</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a>function PromoteLowMgr:setIconManager(mgr)</span>
+<span id="L18" class="line"><a href="#L18">18</a>    self._iconManager = mgr</span>
+<span id="L19" class="line"><a href="#L19">19</a>end</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>function PromoteLowMgr:setPropManager(mgr)</span>
+<span id="L22" class="line"><a href="#L22">22</a>    self._propManager = mgr</span>
+<span id="L23" class="line"><a href="#L23">23</a>end</span>
+<span id="L24" class="line"><a href="#L24">24</a></span>
+<span id="L25" class="line"><a href="#L25">25</a>function PromoteLowMgr:setNetworkStatusManager(nsm)</span>
+<span id="L26" class="line"><a href="#L26">26</a>    self._networkStatusManager = nsm</span>
+<span id="L27" class="line"><a href="#L27">27</a>end</span>
+<span id="L28" class="line"><a href="#L28">28</a></span>
+<span id="L29" class="line"><a href="#L29">29</a>function PromoteLowMgr:setActivityMgr(mgr)</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self._activityMgr = mgr</span>
+<span id="L31" class="line"><a href="#L31">31</a>end</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>function PromoteLowMgr:initialize()</span>
+<span id="L34" class="line"><a href="#L34">34</a>    self.model = require(&quot;amf.feature.localactivity.promotelow.model.Model&quot;):create()</span>
+<span id="L35" class="line"><a href="#L35">35</a>    self:updateModelDataByActInfo()</span>
+<span id="L36" class="line"><a href="#L36">36</a>    _G.amfEC:registerFeature(self)</span>
+<span id="L37" class="line"><a href="#L37">37</a>    _G.amfEC:registerSystem(self)</span>
+<span id="L38" class="line"><a href="#L38">38</a>    self:registerStarBuff()</span>
+<span id="L39" class="line"><a href="#L39">39</a>    self:tryRequestBuff()</span>
+<span id="L40" class="line"><a href="#L40">40</a>    self:registerEvent()</span>
+<span id="L41" class="line"><a href="#L41">41</a>end</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>function PromoteLowMgr:registerEvent()</span>
+<span id="L44" class="line"><a href="#L44">44</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onInfoUpdate, self)</span>
+<span id="L45" class="line"><a href="#L45">45</a>    PropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)</span>
+<span id="L46" class="line"><a href="#L46">46</a>end</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>-- 注册buff道具</span>
+<span id="L49" class="line"><a href="#L49">49</a>function PromoteLowMgr:registerStarBuff()</span>
+<span id="L50" class="line"><a href="#L50">50</a>    if not self._hasRegStarBuff then</span>
+<span id="L51" class="line"><a href="#L51">51</a>        require &quot;amf.feature.localactivity.promotelow.prop.StarBuff&quot;</span>
+<span id="L52" class="line"><a href="#L52">52</a>        self._hasRegStarBuff = true</span>
+<span id="L53" class="line"><a href="#L53">53</a>    end</span>
+<span id="L54" class="line"><a href="#L54">54</a>end</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>-- 当活动不可用时，buff还是能用的。。。。。</span>
+<span id="L57" class="line"><a href="#L57">57</a>function PromoteLowMgr:syncTimeCfg(timeCfg)</span>
+<span id="L58" class="line"><a href="#L58">58</a>    if not self.model then return end</span>
+<span id="L59" class="line"><a href="#L59">59</a>    if self._syncedTime then return end</span>
+<span id="L60" class="line"><a href="#L60">60</a>    self:setValue(&quot;beginTime&quot;, timeCfg.beginTime)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    self:setValue(&quot;endTime&quot;, timeCfg.endTime)</span>
+<span id="L62" class="line"><a href="#L62">62</a>    if not self._hasRequestBuff then</span>
+<span id="L63" class="line"><a href="#L63">63</a>        self:log(&quot;frome syncTimeCfg ----&quot;, timeCfg.beginTime, timeCfg.endTime)</span>
+<span id="L64" class="line"><a href="#L64">64</a>        self:tryRequestBuff()</span>
+<span id="L65" class="line"><a href="#L65">65</a>    end</span>
+<span id="L66" class="line"><a href="#L66">66</a>    self._syncedTime = true</span>
+<span id="L67" class="line"><a href="#L67">67</a>end</span>
+<span id="L68" class="line"><a href="#L68">68</a></span>
+<span id="L69" class="line"><a href="#L69">69</a>function PromoteLowMgr:getActExtTb()</span>
+<span id="L70" class="line"><a href="#L70">70</a>    local actInfo = self._activityMgr:getActInfo(PromoteLowConst.ACT_ID)</span>
+<span id="L71" class="line"><a href="#L71">71</a>    local extTb = nil</span>
+<span id="L72" class="line"><a href="#L72">72</a>    if actInfo and actInfo.extra and actInfo.extra ~= &quot;&quot; then</span>
+<span id="L73" class="line"><a href="#L73">73</a>        extTb = table.deserialize(actInfo.extra)</span>
+<span id="L74" class="line"><a href="#L74">74</a>    end</span>
+<span id="L75" class="line"><a href="#L75">75</a>    return extTb</span>
+<span id="L76" class="line"><a href="#L76">76</a>end</span>
+<span id="L77" class="line"><a href="#L77">77</a></span>
+<span id="L78" class="line"><a href="#L78">78</a>function PromoteLowMgr:updateModelDataByActInfo(extTb)</span>
+<span id="L79" class="line"><a href="#L79">79</a>    if not self.model then return end</span>
+<span id="L80" class="line"><a href="#L80">80</a>    local extTb = extTb or self:getActExtTb()</span>
+<span id="L81" class="line"><a href="#L81">81</a>    -- TODO TEST </span>
+<span id="L82" class="line"><a href="#L82">82</a>    -- extTb = {</span>
+<span id="L83" class="line"><a href="#L83">83</a>    --     activityRound = 1,</span>
+<span id="L84" class="line"><a href="#L84">84</a>    --     round = 1,</span>
+<span id="L85" class="line"><a href="#L85">85</a>    --     rewarded = false,</span>
+<span id="L86" class="line"><a href="#L86">86</a>    --     dayList = {1,2,3,4,5,6},</span>
+<span id="L87" class="line"><a href="#L87">87</a>    --     rewardGroupId = &quot;ggg&quot;,</span>
+<span id="L88" class="line"><a href="#L88">88</a>    --     currentRoundEndTime = TimeKit:timeInMillis() + 3600,</span>
+<span id="L89" class="line"><a href="#L89">89</a>    --     rewardList = {</span>
+<span id="L90" class="line"><a href="#L90">90</a>    --         {itemId = 14, num = 2},</span>
+<span id="L91" class="line"><a href="#L91">91</a>    --         {itemId = 14, num = 3},</span>
+<span id="L92" class="line"><a href="#L92">92</a>    --         {itemId = 14, num = 4},</span>
+<span id="L93" class="line"><a href="#L93">93</a>    --         {itemId = 14, num = 5},</span>
+<span id="L94" class="line"><a href="#L94">94</a>    --         {itemId = 14, num = 6},</span>
+<span id="L95" class="line"><a href="#L95">95</a>    --         {itemId = PromoteLowConst.StarBuff_ID, num = 10},</span>
+<span id="L96" class="line"><a href="#L96">96</a>    --     }</span>
+<span id="L97" class="line"><a href="#L97">97</a>    -- }</span>
+<span id="L98" class="line"><a href="#L98">98</a>    self.model:updateActInfo(extTb)</span>
+<span id="L99" class="line"><a href="#L99">99</a>end</span>
+<span id="L100" class="line"><a href="#L100">100</a></span>
+<span id="L101" class="line"><a href="#L101">101</a>function PromoteLowMgr:isGroupEnabled()</span>
+<span id="L102" class="line"><a href="#L102">102</a>    local Group = require &quot;amf.feature.localactivity.promotelow.Group&quot;</span>
+<span id="L103" class="line"><a href="#L103">103</a>    if Group:isOff() then</span>
+<span id="L104" class="line"><a href="#L104">104</a>        self:log(&quot;isActEnabled --- Group:Off&quot;)</span>
+<span id="L105" class="line"><a href="#L105">105</a>        return false</span>
+<span id="L106" class="line"><a href="#L106">106</a>    end</span>
+<span id="L107" class="line"><a href="#L107">107</a>    return true</span>
+<span id="L108" class="line"><a href="#L108">108</a>end</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>function PromoteLowMgr:isActEnabled()</span>
+<span id="L111" class="line"><a href="#L111">111</a>    if not self:isGroupEnabled() then</span>
+<span id="L112" class="line"><a href="#L112">112</a>        return false</span>
+<span id="L113" class="line"><a href="#L113">113</a>    end</span>
+<span id="L114" class="line"><a href="#L114">114</a>    local actStartTime = tonumber(self:getValue(&quot;beginTime&quot;)) or 0</span>
+<span id="L115" class="line"><a href="#L115">115</a>    local actEndTime = tonumber(self:getValue(&quot;endTime&quot;)) or 0</span>
+<span id="L116" class="line"><a href="#L116">116</a>    local curTime = TimeKit:timeInSec()</span>
+<span id="L117" class="line"><a href="#L117">117</a>    if curTime &lt;= actStartTime or curTime &gt;= actEndTime then</span>
+<span id="L118" class="line"><a href="#L118">118</a>        self:log(&quot;isActEnabled --- time:error &quot;, curTime, actStartTime, actEndTime)</span>
+<span id="L119" class="line"><a href="#L119">119</a>        return false</span>
+<span id="L120" class="line"><a href="#L120">120</a>    end</span>
+<span id="L121" class="line"><a href="#L121">121</a>    return true</span>
+<span id="L122" class="line"><a href="#L122">122</a>end</span>
+<span id="L123" class="line"><a href="#L123">123</a></span>
+<span id="L124" class="line"><a href="#L124">124</a>function PromoteLowMgr:isModelEnabled()</span>
+<span id="L125" class="line"><a href="#L125">125</a>    local isEnable = self.model and self.model:getTempData(&quot;isEnable&quot;)</span>
+<span id="L126" class="line"><a href="#L126">126</a>    if not isEnable then </span>
+<span id="L127" class="line"><a href="#L127">127</a>        return false </span>
+<span id="L128" class="line"><a href="#L128">128</a>    end</span>
+<span id="L129" class="line"><a href="#L129">129</a>    local forceDisable = self.model:getTempData(&quot;forceDisable&quot;)</span>
+<span id="L130" class="line"><a href="#L130">130</a>    if forceDisable then </span>
+<span id="L131" class="line"><a href="#L131">131</a>        return false </span>
+<span id="L132" class="line"><a href="#L132">132</a>    end</span>
+<span id="L133" class="line"><a href="#L133">133</a>    local rewarded = self:getValue(&quot;rewarded&quot;)</span>
+<span id="L134" class="line"><a href="#L134">134</a>    if rewarded then</span>
+<span id="L135" class="line"><a href="#L135">135</a>        return false</span>
+<span id="L136" class="line"><a href="#L136">136</a>    end</span>
+<span id="L137" class="line"><a href="#L137">137</a></span>
+<span id="L138" class="line"><a href="#L138">138</a>    if EnvUtil:isApp() then</span>
+<span id="L139" class="line"><a href="#L139">139</a>        -- 如果过了每轮持续时间上限也不可用</span>
+<span id="L140" class="line"><a href="#L140">140</a>        local currentRoundEndTime = self:getValue(&quot;currentRoundEndTime&quot;) or 0</span>
+<span id="L141" class="line"><a href="#L141">141</a>        if TimeKit:timeInSec() &gt;= currentRoundEndTime then</span>
+<span id="L142" class="line"><a href="#L142">142</a>            return false</span>
+<span id="L143" class="line"><a href="#L143">143</a>        end</span>
+<span id="L144" class="line"><a href="#L144">144</a>    end</span>
+<span id="L145" class="line"><a href="#L145">145</a>    return true</span>
+<span id="L146" class="line"><a href="#L146">146</a>end</span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>function PromoteLowMgr:isEnabled()</span>
+<span id="L149" class="line"><a href="#L149">149</a>    if not self:isActEnabled() then</span>
+<span id="L150" class="line"><a href="#L150">150</a>        self:log(&quot;act not enabled ===&quot;)</span>
+<span id="L151" class="line"><a href="#L151">151</a>        return false</span>
+<span id="L152" class="line"><a href="#L152">152</a>    end</span>
+<span id="L153" class="line"><a href="#L153">153</a>    if not self:isModelEnabled() then </span>
+<span id="L154" class="line"><a href="#L154">154</a>        self:log(&quot;model not enabled ===&quot;)</span>
+<span id="L155" class="line"><a href="#L155">155</a>        return false </span>
+<span id="L156" class="line"><a href="#L156">156</a>    end</span>
+<span id="L157" class="line"><a href="#L157">157</a>    </span>
+<span id="L158" class="line"><a href="#L158">158</a>    return true</span>
+<span id="L159" class="line"><a href="#L159">159</a>end</span>
+<span id="L160" class="line"><a href="#L160">160</a></span>
+<span id="L161" class="line"><a href="#L161">161</a>function PromoteLowMgr:showErrorTip(evt)</span>
+<span id="L162" class="line"><a href="#L162">162</a>    local errcode</span>
+<span id="L163" class="line"><a href="#L163">163</a>    if type(evt) == &#x27;number&#x27; then</span>
+<span id="L164" class="line"><a href="#L164">164</a>        errcode = evt</span>
+<span id="L165" class="line"><a href="#L165">165</a>    elseif type(evt) == &#x27;table&#x27; then</span>
+<span id="L166" class="line"><a href="#L166">166</a>        errcode = evt.data or nil</span>
+<span id="L167" class="line"><a href="#L167">167</a>    end</span>
+<span id="L168" class="line"><a href="#L168">168</a>    -- 错误码</span>
+<span id="L169" class="line"><a href="#L169">169</a>    local tipStr = PromoteLowConst.Error[tostring(errcode)]</span>
+<span id="L170" class="line"><a href="#L170">170</a>    if tipStr then</span>
+<span id="L171" class="line"><a href="#L171">171</a>        CommonTip:showTip(tipStr)</span>
+<span id="L172" class="line"><a href="#L172">172</a>    else</span>
+<span id="L173" class="line"><a href="#L173">173</a>        CommonTip:showErrorTip(evt)</span>
+<span id="L174" class="line"><a href="#L174">174</a>    end</span>
+<span id="L175" class="line"><a href="#L175">175</a>end</span>
+<span id="L176" class="line"><a href="#L176">176</a></span>
+<span id="L177" class="line"><a href="#L177">177</a>-- 请求buff</span>
+<span id="L178" class="line"><a href="#L178">178</a>function PromoteLowMgr:tryRequestBuff()</span>
+<span id="L179" class="line"><a href="#L179">179</a>    if not self:isActEnabled() then return end</span>
+<span id="L180" class="line"><a href="#L180">180</a>    self.model:requestBuff():next(function(response)</span>
+<span id="L181" class="line"><a href="#L181">181</a>        local data = response:getData()</span>
+<span id="L182" class="line"><a href="#L182">182</a>        local buffEndTime = data.scoreBuffExpireTime or 0</span>
+<span id="L183" class="line"><a href="#L183">183</a>        self:setValue(&quot;scoreBuffExpireTime&quot;, buffEndTime)</span>
+<span id="L184" class="line"><a href="#L184">184</a>    end)</span>
+<span id="L185" class="line"><a href="#L185">185</a>    self._hasRequestBuff = true</span>
+<span id="L186" class="line"><a href="#L186">186</a>end</span>
+<span id="L187" class="line"><a href="#L187">187</a></span>
+<span id="L188" class="line"><a href="#L188">188</a>-- 领取奖励</span>
+<span id="L189" class="line"><a href="#L189">189</a>function PromoteLowMgr:requestReward(param)</span>
+<span id="L190" class="line"><a href="#L190">190</a>    local d = deferred.new()</span>
+<span id="L191" class="line"><a href="#L191">191</a>    self.model:requestReward(param):next(function(response)</span>
+<span id="L192" class="line"><a href="#L192">192</a>        local rewards = self:getValue(&quot;rewardList&quot;) or {}</span>
+<span id="L193" class="line"><a href="#L193">193</a>        if not table.isEmpty(rewards) then</span>
+<span id="L194" class="line"><a href="#L194">194</a>            GainPropData:create()</span>
+<span id="L195" class="line"><a href="#L195">195</a>                :setFeature(PromoteLowConst.DC_FEATURE)</span>
+<span id="L196" class="line"><a href="#L196">196</a>                :setSource(PromoteLowConst.DC_SOURCE)</span>
+<span id="L197" class="line"><a href="#L197">197</a>                :setProps(rewards)</span>
+<span id="L198" class="line"><a href="#L198">198</a>                :execute()</span>
+<span id="L199" class="line"><a href="#L199">199</a>        end </span>
+<span id="L200" class="line"><a href="#L200">200</a>        self:setValue(&quot;rewarded&quot;, true) </span>
+<span id="L201" class="line"><a href="#L201">201</a>        -- 刷新icon</span>
+<span id="L202" class="line"><a href="#L202">202</a>        self:removeActButton()</span>
+<span id="L203" class="line"><a href="#L203">203</a>        d:resolve(rewards)</span>
+<span id="L204" class="line"><a href="#L204">204</a>    end, function(response)</span>
+<span id="L205" class="line"><a href="#L205">205</a>        if not response:isCancel() then</span>
+<span id="L206" class="line"><a href="#L206">206</a>            self:showErrorTip(response)</span>
+<span id="L207" class="line"><a href="#L207">207</a>        end</span>
+<span id="L208" class="line"><a href="#L208">208</a>        local errCode = response:getErrorCode()</span>
+<span id="L209" class="line"><a href="#L209">209</a>        if tonumber(errCode) == 737139 then</span>
+<span id="L210" class="line"><a href="#L210">210</a>            self.model:setTempData(&quot;forceDisable&quot;, true)</span>
+<span id="L211" class="line"><a href="#L211">211</a>            self:removeActButton()</span>
+<span id="L212" class="line"><a href="#L212">212</a>        end</span>
+<span id="L213" class="line"><a href="#L213">213</a>        d:reject()</span>
+<span id="L214" class="line"><a href="#L214">214</a>    end)</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>    return d</span>
+<span id="L217" class="line"><a href="#L217">217</a>end</span>
+<span id="L218" class="line"><a href="#L218">218</a></span>
+<span id="L219" class="line"><a href="#L219">219</a>-- 是否可以领奖</span>
+<span id="L220" class="line"><a href="#L220">220</a>function PromoteLowMgr:isCanReward()</span>
+<span id="L221" class="line"><a href="#L221">221</a>    if not self:isEnabled() then return false end</span>
+<span id="L222" class="line"><a href="#L222">222</a>    local rewarded = self:getValue(&quot;rewarded&quot;)</span>
+<span id="L223" class="line"><a href="#L223">223</a>    if rewarded then return false end</span>
+<span id="L224" class="line"><a href="#L224">224</a>    local forceDisable = self.model:getTempData(&quot;forceDisable&quot;)</span>
+<span id="L225" class="line"><a href="#L225">225</a>    if forceDisable then return false end</span>
+<span id="L226" class="line"><a href="#L226">226</a>    local dayList = self:getValue(&quot;dayList&quot;) or {}</span>
+<span id="L227" class="line"><a href="#L227">227</a>    local signCount = table.count(dayList)</span>
+<span id="L228" class="line"><a href="#L228">228</a>    return signCount &gt;= self:getValue(&quot;totalDays&quot;)</span>
+<span id="L229" class="line"><a href="#L229">229</a>end</span>
+<span id="L230" class="line"><a href="#L230">230</a></span>
+<span id="L231" class="line"><a href="#L231">231</a>function PromoteLowMgr:addVmToMgr(vm)</span>
+<span id="L232" class="line"><a href="#L232">232</a>    self._vmMap[vm] = true</span>
+<span id="L233" class="line"><a href="#L233">233</a>end</span>
+<span id="L234" class="line"><a href="#L234">234</a></span>
+<span id="L235" class="line"><a href="#L235">235</a>function PromoteLowMgr:hasPanel()</span>
+<span id="L236" class="line"><a href="#L236">236</a>    for vm,_ in pairs(self._vmMap) do</span>
+<span id="L237" class="line"><a href="#L237">237</a>        if vm and not vm.isDisposed then</span>
+<span id="L238" class="line"><a href="#L238">238</a>            return true</span>
+<span id="L239" class="line"><a href="#L239">239</a>        end</span>
+<span id="L240" class="line"><a href="#L240">240</a>    end</span>
+<span id="L241" class="line"><a href="#L241">241</a>    return false</span>
+<span id="L242" class="line"><a href="#L242">242</a>end</span>
+<span id="L243" class="line"><a href="#L243">243</a></span>
+<span id="L244" class="line"><a href="#L244">244</a>function PromoteLowMgr:closeAll()</span>
+<span id="L245" class="line"><a href="#L245">245</a>    for vm,_ in pairs(self._vmMap) do</span>
+<span id="L246" class="line"><a href="#L246">246</a>        if vm and not vm.isDisposed then</span>
+<span id="L247" class="line"><a href="#L247">247</a>            vm:close()</span>
+<span id="L248" class="line"><a href="#L248">248</a>        end</span>
+<span id="L249" class="line"><a href="#L249">249</a>    end</span>
+<span id="L250" class="line"><a href="#L250">250</a>    self._vmMap = {}</span>
+<span id="L251" class="line"><a href="#L251">251</a>end</span>
+<span id="L252" class="line"><a href="#L252">252</a></span>
+<span id="L253" class="line"><a href="#L253">253</a>function PromoteLowMgr:getValue(key)</span>
+<span id="L254" class="line"><a href="#L254">254</a>    return self.model and self.model:getValue(key)</span>
+<span id="L255" class="line"><a href="#L255">255</a>end</span>
+<span id="L256" class="line"><a href="#L256">256</a></span>
+<span id="L257" class="line"><a href="#L257">257</a>function PromoteLowMgr:setValue(key, value)</span>
+<span id="L258" class="line"><a href="#L258">258</a>    if self.model then</span>
+<span id="L259" class="line"><a href="#L259">259</a>        self.model:setValue(key, value)</span>
+<span id="L260" class="line"><a href="#L260">260</a>    end</span>
+<span id="L261" class="line"><a href="#L261">261</a>end</span>
+<span id="L262" class="line"><a href="#L262">262</a></span>
+<span id="L263" class="line"><a href="#L263">263</a>function PromoteLowMgr:getLocalValue(key)</span>
+<span id="L264" class="line"><a href="#L264">264</a>    local localValueTb = self.model and self.model:getValue(&quot;localValueTb&quot;) or {}</span>
+<span id="L265" class="line"><a href="#L265">265</a>    return localValueTb[key]</span>
+<span id="L266" class="line"><a href="#L266">266</a>end</span>
+<span id="L267" class="line"><a href="#L267">267</a></span>
+<span id="L268" class="line"><a href="#L268">268</a>function PromoteLowMgr:setLocalValue(key, value)</span>
+<span id="L269" class="line"><a href="#L269">269</a>    local localValueTb = self.model and self.model:getValue(&quot;localValueTb&quot;) or {}</span>
+<span id="L270" class="line"><a href="#L270">270</a>    localValueTb[key] = value</span>
+<span id="L271" class="line"><a href="#L271">271</a>    local _ = self.model and self.model:setValue(&quot;localValueTb&quot;, localValueTb)</span>
+<span id="L272" class="line"><a href="#L272">272</a>end</span>
+<span id="L273" class="line"><a href="#L273">273</a></span>
+<span id="L274" class="line"><a href="#L274">274</a>-- actInfoupdate 事件</span>
+<span id="L275" class="line"><a href="#L275">275</a>function PromoteLowMgr:onInfoUpdate(event)</span>
+<span id="L276" class="line"><a href="#L276">276</a>    -- UError(&quot;onActActInfoUpdate  ---&quot;)</span>
+<span id="L277" class="line"><a href="#L277">277</a>    self:updateModelDataByActInfo()</span>
+<span id="L278" class="line"><a href="#L278">278</a>end</span>
+<span id="L279" class="line"><a href="#L279">279</a></span>
+<span id="L280" class="line"><a href="#L280">280</a>-- 回到前台</span>
+<span id="L281" class="line"><a href="#L281">281</a>function PromoteLowMgr:onSystemEnterForeground()</span>
+<span id="L282" class="line"><a href="#L282">282</a>    self:tryRequestBuff()</span>
+<span id="L283" class="line"><a href="#L283">283</a>end</span>
+<span id="L284" class="line"><a href="#L284">284</a></span>
+<span id="L285" class="line"><a href="#L285">285</a>-- 过关事件</span>
+<span id="L286" class="line"><a href="#L286">286</a>function PromoteLowMgr:onActPlayLevelEnd(evt)</span>
+<span id="L287" class="line"><a href="#L287">287</a>    local param = evt:getData()</span>
+<span id="L288" class="line"><a href="#L288">288</a>    if not UBFLevelSceneFunc:isMainOrHiddenLevel(param.levelScene) then return end</span>
+<span id="L289" class="line"><a href="#L289">289</a>    if not param.isWin then return end</span>
+<span id="L290" class="line"><a href="#L290">290</a>    local oldStar = param.oldStar or 0</span>
+<span id="L291" class="line"><a href="#L291">291</a>    local star = param.star or 0</span>
+<span id="L292" class="line"><a href="#L292">292</a>    -- 过关&amp;&amp;刷新星级</span>
+<span id="L293" class="line"><a href="#L293">293</a>    if star &gt; oldStar or (LevelSceneFunc and LevelSceneFunc:isFullLevelLib(param.levelScene)) then</span>
+<span id="L294" class="line"><a href="#L294">294</a>        self:addDayList()</span>
+<span id="L295" class="line"><a href="#L295">295</a>    end</span>
+<span id="L296" class="line"><a href="#L296">296</a>end</span>
+<span id="L297" class="line"><a href="#L297">297</a></span>
+<span id="L298" class="line"><a href="#L298">298</a>function PromoteLowMgr:addDayList(dayNum)</span>
+<span id="L299" class="line"><a href="#L299">299</a>    dayNum = dayNum or TimeUtil:getDayIdxSince1970()</span>
+<span id="L300" class="line"><a href="#L300">300</a>    local dayList = self:getValue(&quot;dayList&quot;) or {}</span>
+<span id="L301" class="line"><a href="#L301">301</a>    if table.exist(dayList, dayNum) then</span>
+<span id="L302" class="line"><a href="#L302">302</a>        return </span>
+<span id="L303" class="line"><a href="#L303">303</a>    end</span>
+<span id="L304" class="line"><a href="#L304">304</a>    if table.count(dayList) &lt; self:getValue(&quot;totalDays&quot;) then</span>
+<span id="L305" class="line"><a href="#L305">305</a>        table.insert(dayList, dayNum)</span>
+<span id="L306" class="line"><a href="#L306">306</a>        self:setValue(&quot;dayList&quot;, dayList)</span>
+<span id="L307" class="line"><a href="#L307">307</a>    end</span>
+<span id="L308" class="line"><a href="#L308">308</a>end</span>
+<span id="L309" class="line"><a href="#L309">309</a></span>
+<span id="L310" class="line"><a href="#L310">310</a>-- 跨天</span>
+<span id="L311" class="line"><a href="#L311">311</a>function PromoteLowMgr:onActPassDay()</span>
+<span id="L312" class="line"><a href="#L312">312</a>    if self:isEnabled() then</span>
+<span id="L313" class="line"><a href="#L313">313</a>        PromoteLowEventCenter:dispatch(PromoteLowEvent.PASS_DAY)</span>
+<span id="L314" class="line"><a href="#L314">314</a>    else</span>
+<span id="L315" class="line"><a href="#L315">315</a>        if self:hasPanel() then</span>
+<span id="L316" class="line"><a href="#L316">316</a>            CommonTip:showTip(PromoteLowConst.Desc.TIP_ACT_END)</span>
+<span id="L317" class="line"><a href="#L317">317</a>            self:closeAll()</span>
+<span id="L318" class="line"><a href="#L318">318</a>        end</span>
+<span id="L319" class="line"><a href="#L319">319</a>        -- 刷新icon</span>
+<span id="L320" class="line"><a href="#L320">320</a>        self:removeActButton()</span>
+<span id="L321" class="line"><a href="#L321">321</a>    end</span>
+<span id="L322" class="line"><a href="#L322">322</a>end</span>
+<span id="L323" class="line"><a href="#L323">323</a></span>
+<span id="L324" class="line"><a href="#L324">324</a>function PromoteLowMgr:removeActButton()</span>
+<span id="L325" class="line"><a href="#L325">325</a>    ActivityEventCenter:dispatch(ActivityEvent.REMOVE_ACTIVITY,{actId = PromoteLowConst.ACT_ID})</span>
+<span id="L326" class="line"><a href="#L326">326</a>end</span>
+<span id="L327" class="line"><a href="#L327">327</a></span>
+<span id="L328" class="line"><a href="#L328">328</a>-- 打开主界面</span>
+<span id="L329" class="line"><a href="#L329">329</a>function PromoteLowMgr:showMainView(delegate)</span>
+<span id="L330" class="line"><a href="#L330">330</a>    delegate = delegate or {}</span>
+<span id="L331" class="line"><a href="#L331">331</a>    local function showMainPanel()</span>
+<span id="L332" class="line"><a href="#L332">332</a>        local MainPanelVM = require &quot;amf.feature.localactivity.promotelow.view.MainPanelVM&quot;</span>
+<span id="L333" class="line"><a href="#L333">333</a>        local vm = MainPanelVM:create(delegate)</span>
+<span id="L334" class="line"><a href="#L334">334</a>        vm:popout()</span>
+<span id="L335" class="line"><a href="#L335">335</a>        self:addVmToMgr(vm)</span>
+<span id="L336" class="line"><a href="#L336">336</a>    end</span>
+<span id="L337" class="line"><a href="#L337">337</a>    showMainPanel()</span>
+<span id="L338" class="line"><a href="#L338">338</a>    self:cancelNewActState()</span>
+<span id="L339" class="line"><a href="#L339">339</a>end</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>function PromoteLowMgr:getVersionStr()</span>
+<span id="L342" class="line"><a href="#L342">342</a>    return self:getValue(&quot;activityRound&quot;)..&quot;_&quot;..self:getValue(&quot;round&quot;)</span>
+<span id="L343" class="line"><a href="#L343">343</a>end</span>
+<span id="L344" class="line"><a href="#L344">344</a></span>
+<span id="L345" class="line"><a href="#L345">345</a>function PromoteLowMgr:cancelNewActState()</span>
+<span id="L346" class="line"><a href="#L346">346</a>    local icon = self._iconManager:getIconByIconKey(tostring(PromoteLowConst.ACT_ID))</span>
+<span id="L347" class="line"><a href="#L347">347</a>    if icon then</span>
+<span id="L348" class="line"><a href="#L348">348</a>        icon:cancelNewActState()</span>
+<span id="L349" class="line"><a href="#L349">349</a>    end</span>
+<span id="L350" class="line"><a href="#L350">350</a>end</span>
+<span id="L351" class="line"><a href="#L351">351</a></span>
+<span id="L352" class="line"><a href="#L352">352</a>-- 是否可以强弹场景3/4</span>
+<span id="L353" class="line"><a href="#L353">353</a>function PromoteLowMgr:canAutoPopSignPanel()</span>
+<span id="L354" class="line"><a href="#L354">354</a>    local enable = self:isEnabled()</span>
+<span id="L355" class="line"><a href="#L355">355</a>    self:log(&quot;PromoteLowMgr: 开始检查强弹&quot;, enable, self:isModelEnabled())</span>
+<span id="L356" class="line"><a href="#L356">356</a>    if not enable then return false end</span>
+<span id="L357" class="line"><a href="#L357">357</a>    if not self:isModelEnabled() then return false end</span>
+<span id="L358" class="line"><a href="#L358">358</a>    local rewarded = self:getValue(&quot;rewarded&quot;)</span>
+<span id="L359" class="line"><a href="#L359">359</a>    -- 判断是否已经领奖了</span>
+<span id="L360" class="line"><a href="#L360">360</a>    if rewarded then</span>
+<span id="L361" class="line"><a href="#L361">361</a>        self:log(&quot;PromoteLowMgr: 已经领奖了 不弹&quot;)</span>
+<span id="L362" class="line"><a href="#L362">362</a>        return false</span>
+<span id="L363" class="line"><a href="#L363">363</a>    end</span>
+<span id="L364" class="line"><a href="#L364">364</a>    local curDayNum = TimeUtil:getDayIdxSince1970()</span>
+<span id="L365" class="line"><a href="#L365">365</a>    -- 配置成了一天弹一次，就不用自己存了， config那边突然不会计数了</span>
+<span id="L366" class="line"><a href="#L366">366</a>    if self:getLocalValue(&quot;autoPopPanel_&quot;..curDayNum) then</span>
+<span id="L367" class="line"><a href="#L367">367</a>        self:log(&quot;PromoteLowMgr: 已经弹过了 不弹&quot;)</span>
+<span id="L368" class="line"><a href="#L368">368</a>        return false</span>
+<span id="L369" class="line"><a href="#L369">369</a>    end</span>
+<span id="L370" class="line"><a href="#L370">370</a>    -- 如果可以领奖，但是没网就不弹了</span>
+<span id="L371" class="line"><a href="#L371">371</a>    if self:isCanReward() then</span>
+<span id="L372" class="line"><a href="#L372">372</a>        if not self._networkStatusManager:isNetworkEnabled() then</span>
+<span id="L373" class="line"><a href="#L373">373</a>            self:log(&quot;PromoteLowMgr: 可以领奖没网 不弹&quot;)</span>
+<span id="L374" class="line"><a href="#L374">374</a>            return false</span>
+<span id="L375" class="line"><a href="#L375">375</a>        end</span>
+<span id="L376" class="line"><a href="#L376">376</a>    elseif not self:isTodaySigned() then</span>
+<span id="L377" class="line"><a href="#L377">377</a>        self:log(&quot;PromoteLowMgr: 没盖章 不弹&quot;)</span>
+<span id="L378" class="line"><a href="#L378">378</a>        return false</span>
+<span id="L379" class="line"><a href="#L379">379</a>    end</span>
+<span id="L380" class="line"><a href="#L380">380</a>    return true</span>
+<span id="L381" class="line"><a href="#L381">381</a>end</span>
+<span id="L382" class="line"><a href="#L382">382</a></span>
+<span id="L383" class="line"><a href="#L383">383</a>-- 记录今天弹过了</span>
+<span id="L384" class="line"><a href="#L384">384</a>function PromoteLowMgr:setAutoPopSignPanel()</span>
+<span id="L385" class="line"><a href="#L385">385</a>    local curDayNum = TimeUtil:getDayIdxSince1970()</span>
+<span id="L386" class="line"><a href="#L386">386</a>    self:setLocalValue(&quot;autoPopPanel_&quot;..curDayNum, true)</span>
+<span id="L387" class="line"><a href="#L387">387</a>end</span>
+<span id="L388" class="line"><a href="#L388">388</a></span>
+<span id="L389" class="line"><a href="#L389">389</a>-- 今天是否盖章了</span>
+<span id="L390" class="line"><a href="#L390">390</a>function PromoteLowMgr:isTodaySigned()</span>
+<span id="L391" class="line"><a href="#L391">391</a>    local todayNum = TimeUtil:getDayIdxSince1970()</span>
+<span id="L392" class="line"><a href="#L392">392</a>    local dayList = self:getValue(&quot;dayList&quot;) or {}</span>
+<span id="L393" class="line"><a href="#L393">393</a>    return table.exist(dayList, todayNum)</span>
+<span id="L394" class="line"><a href="#L394">394</a>end</span>
+<span id="L395" class="line"><a href="#L395">395</a></span>
+<span id="L396" class="line"><a href="#L396">396</a>-- 是否有奖励可领</span>
+<span id="L397" class="line"><a href="#L397">397</a>function PromoteLowMgr:hasRewards()</span>
+<span id="L398" class="line"><a href="#L398">398</a>    if not self:isEnabled() then return false end</span>
+<span id="L399" class="line"><a href="#L399">399</a>    return self:isCanReward()</span>
+<span id="L400" class="line"><a href="#L400">400</a>end</span>
+<span id="L401" class="line"><a href="#L401">401</a></span>
+<span id="L402" class="line"><a href="#L402">402</a>function PromoteLowMgr:dc(category, subCategory, extraData)</span>
+<span id="L403" class="line"><a href="#L403">403</a>    local params = {</span>
+<span id="L404" class="line"><a href="#L404">404</a>        category = category,</span>
+<span id="L405" class="line"><a href="#L405">405</a>        sub_category = subCategory,</span>
+<span id="L406" class="line"><a href="#L406">406</a>    }</span>
+<span id="L407" class="line"><a href="#L407">407</a></span>
+<span id="L408" class="line"><a href="#L408">408</a>    for i, v in pairs(extraData or {}) do</span>
+<span id="L409" class="line"><a href="#L409">409</a>        params[i] = v</span>
+<span id="L410" class="line"><a href="#L410">410</a>    end</span>
+<span id="L411" class="line"><a href="#L411">411</a>    -- self:log(&quot;dc ----&quot;, tts(params))</span>
+<span id="L412" class="line"><a href="#L412">412</a>    DcUtil:UserTrack(params)</span>
+<span id="L413" class="line"><a href="#L413">413</a>end</span>
+<span id="L414" class="line"><a href="#L414">414</a></span>
+<span id="L415" class="line"><a href="#L415">415</a>function PromoteLowMgr:log(...)</span>
+<span id="L416" class="line"><a href="#L416">416</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L417" class="line"><a href="#L417">417</a>        printx(27, &quot;PromoteLowMgrLog:&quot; , ...)</span>
+<span id="L418" class="line"><a href="#L418">418</a>    end</span>
+<span id="L419" class="line"><a href="#L419">419</a>end</span>
+<span id="L420" class="line"><a href="#L420">420</a></span>
+<span id="L421" class="line"><a href="#L421">421</a>function PromoteLowMgr:addBuffEndTime(timeInMillis)</span>
+<span id="L422" class="line"><a href="#L422">422</a>    local buffEndTime = tonumber(self:getValue(&quot;scoreBuffExpireTime&quot;)) or 0</span>
+<span id="L423" class="line"><a href="#L423">423</a>    local curTime = TimeKit:timeInMillis()</span>
+<span id="L424" class="line"><a href="#L424">424</a>    if buffEndTime &lt;= curTime then</span>
+<span id="L425" class="line"><a href="#L425">425</a>        buffEndTime = curTime</span>
+<span id="L426" class="line"><a href="#L426">426</a>    end</span>
+<span id="L427" class="line"><a href="#L427">427</a>    buffEndTime = buffEndTime + timeInMillis</span>
+<span id="L428" class="line"><a href="#L428">428</a>    self:setValue(&quot;scoreBuffExpireTime&quot;, buffEndTime)</span>
+<span id="L429" class="line"><a href="#L429">429</a>end</span>
+<span id="L430" class="line"><a href="#L430">430</a></span>
+<span id="L431" class="line"><a href="#L431">431</a>-- buff结束时间</span>
+<span id="L432" class="line"><a href="#L432">432</a>function PromoteLowMgr:getBuffEndTime()</span>
+<span id="L433" class="line"><a href="#L433">433</a>    if not self:isActEnabled() then return end</span>
+<span id="L434" class="line"><a href="#L434">434</a>    local buffEndTime = self:getValue(&quot;scoreBuffExpireTime&quot;) or 0</span>
+<span id="L435" class="line"><a href="#L435">435</a>    -- 要返回毫级时间戳</span>
+<span id="L436" class="line"><a href="#L436">436</a>    return tonumber(buffEndTime)</span>
+<span id="L437" class="line"><a href="#L437">437</a>end</span>
+<span id="L438" class="line"><a href="#L438">438</a></span>
+<span id="L439" class="line"><a href="#L439">439</a>--获取分数BUFF加成值跟buff结束时间,因为是限时buff，活动结束了依然会走</span>
+<span id="L440" class="line"><a href="#L440">440</a>function PromoteLowMgr:getCurAvailableBuffAndEndTime()</span>
+<span id="L441" class="line"><a href="#L441">441</a>    local scoreBuffRate = self._propManager:getScoreBuffRate(PromoteLowConst.StarBuff_ID)</span>
+<span id="L442" class="line"><a href="#L442">442</a>    local buffEndTime = self:getBuffEndTime() or 0</span>
+<span id="L443" class="line"><a href="#L443">443</a>    return scoreBuffRate, buffEndTime</span>
+<span id="L444" class="line"><a href="#L444">444</a>end</span>
+<span id="L445" class="line"><a href="#L445">445</a></span>
+<span id="L446" class="line"><a href="#L446">446</a>--分数buff</span>
+<span id="L447" class="line"><a href="#L447">447</a>function PromoteLowMgr:onActUBFAddScoreBuff(event)</span>
+<span id="L448" class="line"><a href="#L448">448</a>    local eventData = event:getData()</span>
+<span id="L449" class="line"><a href="#L449">449</a>    if eventData.isAskForHelp then return false end</span>
+<span id="L450" class="line"><a href="#L450">450</a>    local scoreBuffRate, buffEndTime = self:getCurAvailableBuffAndEndTime()</span>
+<span id="L451" class="line"><a href="#L451">451</a>    local hasScoreBuff = buffEndTime &gt; TimeKit:timeInMillis()</span>
+<span id="L452" class="line"><a href="#L452">452</a>    if hasScoreBuff then</span>
+<span id="L453" class="line"><a href="#L453">453</a>        local builder = UBFPlayImproveBuffBuilder:create()</span>
+<span id="L454" class="line"><a href="#L454">454</a>        builder:setModSourceId(PromoteLowConst.ACT_ID)</span>
+<span id="L455" class="line"><a href="#L455">455</a>        builder:addBuffWithOld(InitBuffType.CUSTOM_SCORE_BUFF, InitBuffCreateType.BUFF_ACTIVITY, scoreBuffRate - 1)</span>
+<span id="L456" class="line"><a href="#L456">456</a>        table.insert(eventData.buffList, builder:toBuffCreateData() )</span>
+<span id="L457" class="line"><a href="#L457">457</a>    end</span>
+<span id="L458" class="line"><a href="#L458">458</a>end</span>
+<span id="L459" class="line"><a href="#L459">459</a></span>
+<span id="L460" class="line"><a href="#L460">460</a>--开始面板挂牌分数buff显示</span>
+<span id="L461" class="line"><a href="#L461">461</a>function PromoteLowMgr:onActScoreBuffLevelStartPanel(event)</span>
+<span id="L462" class="line"><a href="#L462">462</a>    local eventData = event:getData()</span>
+<span id="L463" class="line"><a href="#L463">463</a>    if eventData.isAskForHelp then return false end</span>
+<span id="L464" class="line"><a href="#L464">464</a>    local scoreBuffRate, buffEndTime = self:getCurAvailableBuffAndEndTime()</span>
+<span id="L465" class="line"><a href="#L465">465</a>    local hasScoreBuff = buffEndTime &gt; TimeKit:timeInMillis()</span>
+<span id="L466" class="line"><a href="#L466">466</a>    if hasScoreBuff then</span>
+<span id="L467" class="line"><a href="#L467">467</a>        local buffData = {buffExtraRate = scoreBuffRate - 1, buffEndTime = buffEndTime, actId = PromoteLowConst.ACT_ID}</span>
+<span id="L468" class="line"><a href="#L468">468</a>        table.insert(eventData.scoreBuffDataList, buffData)</span>
+<span id="L469" class="line"><a href="#L469">469</a>    end</span>
+<span id="L470" class="line"><a href="#L470">470</a>end</span>
+<span id="L471" class="line"><a href="#L471">471</a></span>
+<span id="L472" class="line"><a href="#L472">472</a>---------------------------------- CUSTOM_GAIN ----------------------------------</span>
+<span id="L473" class="line"><a href="#L473">473</a></span>
+<span id="L474" class="line"><a href="#L474">474</a>function PromoteLowMgr:_onCustomGain(event)</span>
+<span id="L475" class="line"><a href="#L475">475</a>    local reward = event:getData()</span>
+<span id="L476" class="line"><a href="#L476">476</a>    if reward.itemId == PromoteLowConst.StarBuff_ID then</span>
+<span id="L477" class="line"><a href="#L477">477</a>        self:addBuffEndTime(60 * reward.num * 1000)</span>
+<span id="L478" class="line"><a href="#L478">478</a>    end</span>
+<span id="L479" class="line"><a href="#L479">479</a>end</span>
+<span id="L480" class="line"><a href="#L480">480</a></span>
+<span id="L481" class="line"><a href="#L481">481</a>return PromoteLowMgr</span></pre></main></html>

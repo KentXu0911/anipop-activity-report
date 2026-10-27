@@ -1,0 +1,304 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/shopreward/view/ShopRewardStoreHeaderView.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="deebe8b40888.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/shopreward/view/ShopRewardStoreHeaderView.lua</h1><p>SHA256 5440fe9f4ff05fb10511b5df45cbbae2fa86581a84776138d71db0f13af2e649</p><pre><span id="L1" class="line"><a href="#L1">1</a>---@class ShopRewardStoreHeaderView : Node</span>
+<span id="L2" class="line"><a href="#L2">2</a>local Res = require &quot;amf.feature.localactivity.shopreward.const.Res&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local TimeUtil = require &quot;amf.middleware.ui.util.TimeUtil&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local ShopRewardEventCenter = require &quot;amf.feature.localactivity.shopreward.event.ShopRewardEventCenter&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local StoreEventCenter = require &quot;amf.feature.store.event.StoreEventCenter&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>local ShopRewardStoreHeaderView = class(&quot;ShopRewardStoreHeaderView&quot;, Node)</span>
+<span id="L8" class="line"><a href="#L8">8</a>local bubbleCfg = {</span>
+<span id="L9" class="line"><a href="#L9">9</a>    key = {</span>
+<span id="L10" class="line"><a href="#L10">10</a>        init = {},</span>
+<span id="L11" class="line"><a href="#L11">11</a>        actions = {</span>
+<span id="L12" class="line"><a href="#L12">12</a>            {time = 20/30, scale = 0.94},</span>
+<span id="L13" class="line"><a href="#L13">13</a>            {time = 20/30, scale = 1},</span>
+<span id="L14" class="line"><a href="#L14">14</a>            {time = 20/30, scale = 0.94},</span>
+<span id="L15" class="line"><a href="#L15">15</a>            {time = 20/30, scale = 1},</span>
+<span id="L16" class="line"><a href="#L16">16</a>            {time = 10/30, scale = 1.1},</span>
+<span id="L17" class="line"><a href="#L17">17</a>            {time = 25/30, scale = 1},</span>
+<span id="L18" class="line"><a href="#L18">18</a>            {delay = 10/30, time = 25/30, scale = 1}</span>
+<span id="L19" class="line"><a href="#L19">19</a>        }</span>
+<span id="L20" class="line"><a href="#L20">20</a>    }</span>
+<span id="L21" class="line"><a href="#L21">21</a>}</span>
+<span id="L22" class="line"><a href="#L22">22</a></span>
+<span id="L23" class="line"><a href="#L23">23</a>function ShopRewardStoreHeaderView:create(params)</span>
+<span id="L24" class="line"><a href="#L24">24</a>    local view = self.new(CCNode:create())</span>
+<span id="L25" class="line"><a href="#L25">25</a>    view:init(params)</span>
+<span id="L26" class="line"><a href="#L26">26</a>    return view</span>
+<span id="L27" class="line"><a href="#L27">27</a>end</span>
+<span id="L28" class="line"><a href="#L28">28</a></span>
+<span id="L29" class="line"><a href="#L29">29</a>function ShopRewardStoreHeaderView:init(params)</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self.delayBuild = params and params.delayBuild == true</span>
+<span id="L31" class="line"><a href="#L31">31</a>    self:initData()</span>
+<span id="L32" class="line"><a href="#L32">32</a>    if not self.delayBuild then</span>
+<span id="L33" class="line"><a href="#L33">33</a>        self:ensureBuilt()</span>
+<span id="L34" class="line"><a href="#L34">34</a>    end</span>
+<span id="L35" class="line"><a href="#L35">35</a>end</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>function ShopRewardStoreHeaderView:ensureBuilt()</span>
+<span id="L38" class="line"><a href="#L38">38</a>    if self.isDisposed or self.isBuilt then return end</span>
+<span id="L39" class="line"><a href="#L39">39</a>    self.isBuilt = true</span>
+<span id="L40" class="line"><a href="#L40">40</a>    self:loadRes()</span>
+<span id="L41" class="line"><a href="#L41">41</a>end</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>function ShopRewardStoreHeaderView:onResLoaded()</span>
+<span id="L44" class="line"><a href="#L44">44</a>    if self.isDisposed then return end</span>
+<span id="L45" class="line"><a href="#L45">45</a>    self:buildUI()</span>
+<span id="L46" class="line"><a href="#L46">46</a>    self:setActionNodesVisible(false)</span>
+<span id="L47" class="line"><a href="#L47">47</a>    self:initCountDown()</span>
+<span id="L48" class="line"><a href="#L48">48</a>    self:initDesc()</span>
+<span id="L49" class="line"><a href="#L49">49</a>    self:bindClickHandler()</span>
+<span id="L50" class="line"><a href="#L50">50</a>    self:registerEvents()</span>
+<span id="L51" class="line"><a href="#L51">51</a>    self:playBtnAnim()</span>
+<span id="L52" class="line"><a href="#L52">52</a>    if self.pendingStoreGuideAnimCallback then</span>
+<span id="L53" class="line"><a href="#L53">53</a>        local callback = self.pendingStoreGuideAnimCallback</span>
+<span id="L54" class="line"><a href="#L54">54</a>        self.pendingStoreGuideAnimCallback = nil</span>
+<span id="L55" class="line"><a href="#L55">55</a>        self:playStoreGuideAnim(callback)</span>
+<span id="L56" class="line"><a href="#L56">56</a>    end</span>
+<span id="L57" class="line"><a href="#L57">57</a>end</span>
+<span id="L58" class="line"><a href="#L58">58</a></span>
+<span id="L59" class="line"><a href="#L59">59</a>function ShopRewardStoreHeaderView:loadRes()</span>
+<span id="L60" class="line"><a href="#L60">60</a>    if not EnvUtil:isMiniGame() then</span>
+<span id="L61" class="line"><a href="#L61">61</a>        self:onResLoaded()</span>
+<span id="L62" class="line"><a href="#L62">62</a>        return</span>
+<span id="L63" class="line"><a href="#L63">63</a>    end</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>    _G.amfBean(&quot;AssetsUtil&quot;):loadMiniFiles(Res:getStoreHeaderResList(), true):next(function()</span>
+<span id="L66" class="line"><a href="#L66">66</a>        self:onResLoaded()</span>
+<span id="L67" class="line"><a href="#L67">67</a>    end)</span>
+<span id="L68" class="line"><a href="#L68">68</a>end</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>function ShopRewardStoreHeaderView:playBtnAnim()</span>
+<span id="L71" class="line"><a href="#L71">71</a>    if not self.goBtn then return end</span>
+<span id="L72" class="line"><a href="#L72">72</a>    local ActionCreator = require &quot;amf.middleware.ui.util.ActionCreator&quot;</span>
+<span id="L73" class="line"><a href="#L73">73</a>    ActionCreator.new(bubbleCfg, function(key)</span>
+<span id="L74" class="line"><a href="#L74">74</a>        return self.goBtn</span>
+<span id="L75" class="line"><a href="#L75">75</a>    end):setRepeatForever(true):execute()</span>
+<span id="L76" class="line"><a href="#L76">76</a>end</span>
+<span id="L77" class="line"><a href="#L77">77</a></span>
+<span id="L78" class="line"><a href="#L78">78</a>function ShopRewardStoreHeaderView:playStoreGuideAnim(finishCallback)</span>
+<span id="L79" class="line"><a href="#L79">79</a>    self:ensureBuilt()</span>
+<span id="L80" class="line"><a href="#L80">80</a>    if not self.root or not self.ui then</span>
+<span id="L81" class="line"><a href="#L81">81</a>        self.pendingStoreGuideAnimCallback = finishCallback</span>
+<span id="L82" class="line"><a href="#L82">82</a>        return</span>
+<span id="L83" class="line"><a href="#L83">83</a>    end</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>    self:setStoreGuideActive(true)</span>
+<span id="L86" class="line"><a href="#L86">86</a></span>
+<span id="L87" class="line"><a href="#L87">87</a>    local cfg = {</span>
+<span id="L88" class="line"><a href="#L88">88</a>        key = {</span>
+<span id="L89" class="line"><a href="#L89">89</a>            init = {</span>
+<span id="L90" class="line"><a href="#L90">90</a>               scale = 1.95,</span>
+<span id="L91" class="line"><a href="#L91">91</a>            },</span>
+<span id="L92" class="line"><a href="#L92">92</a>            actions = {</span>
+<span id="L93" class="line"><a href="#L93">93</a>                {time = 4/30, scale = 2},</span>
+<span id="L94" class="line"><a href="#L94">94</a>                {time = 3/30, scale = 0.91},</span>
+<span id="L95" class="line"><a href="#L95">95</a>                {time = 3/30, scale = 1},</span>
+<span id="L96" class="line"><a href="#L96">96</a>            }</span>
+<span id="L97" class="line"><a href="#L97">97</a>        },</span>
+<span id="L98" class="line"><a href="#L98">98</a>        key2 = {</span>
+<span id="L99" class="line"><a href="#L99">99</a>            init = {</span>
+<span id="L100" class="line"><a href="#L100">100</a>                opacity = 0</span>
+<span id="L101" class="line"><a href="#L101">101</a>            },</span>
+<span id="L102" class="line"><a href="#L102">102</a>            actions = {</span>
+<span id="L103" class="line"><a href="#L103">103</a>                {time = 7/30, opacity = 255}</span>
+<span id="L104" class="line"><a href="#L104">104</a>            }</span>
+<span id="L105" class="line"><a href="#L105">105</a>        }</span>
+<span id="L106" class="line"><a href="#L106">106</a>    }</span>
+<span id="L107" class="line"><a href="#L107">107</a>    local ActionCreator = require &quot;amf.middleware.ui.util.ActionCreator&quot;</span>
+<span id="L108" class="line"><a href="#L108">108</a>    ActionCreator.new(cfg, function(key)</span>
+<span id="L109" class="line"><a href="#L109">109</a>        return self.root</span>
+<span id="L110" class="line"><a href="#L110">110</a>    end):execute()</span>
+<span id="L111" class="line"><a href="#L111">111</a>    setTimeOut(function()</span>
+<span id="L112" class="line"><a href="#L112">112</a>        if self.isDisposed then return end</span>
+<span id="L113" class="line"><a href="#L113">113</a>        local spine = UICreateUtil:createSpine(Res.Spine.HEADER_SAO)</span>
+<span id="L114" class="line"><a href="#L114">114</a>        self.ui:addChild(spine)</span>
+<span id="L115" class="line"><a href="#L115">115</a>        spine:setPositionXY(367, 84)</span>
+<span id="L116" class="line"><a href="#L116">116</a>        spine:playOnceAndDispose(&quot;appear&quot;)</span>
+<span id="L117" class="line"><a href="#L117">117</a>    end, 7/30)</span>
+<span id="L118" class="line"><a href="#L118">118</a>    setTimeOut(function()</span>
+<span id="L119" class="line"><a href="#L119">119</a>        if self.isDisposed then return end</span>
+<span id="L120" class="line"><a href="#L120">120</a>        safeRunCall(finishCallback)</span>
+<span id="L121" class="line"><a href="#L121">121</a>    end, 0.5)</span>
+<span id="L122" class="line"><a href="#L122">122</a>end</span>
+<span id="L123" class="line"><a href="#L123">123</a></span>
+<span id="L124" class="line"><a href="#L124">124</a>function ShopRewardStoreHeaderView:initData()</span>
+<span id="L125" class="line"><a href="#L125">125</a>    self.mgr = _G.amfBean(&quot;ShopRewardManager&quot;)</span>
+<span id="L126" class="line"><a href="#L126">126</a>end</span>
+<span id="L127" class="line"><a href="#L127">127</a></span>
+<span id="L128" class="line"><a href="#L128">128</a>function ShopRewardStoreHeaderView:buildUI()</span>
+<span id="L129" class="line"><a href="#L129">129</a>    UICreateUtil:loadPlist(Res.Plist.SHOPHEADER)</span>
+<span id="L130" class="line"><a href="#L130">130</a>    UICreateUtil:loadSpineRes(Res.Spine.HEADER_ANI)</span>
+<span id="L131" class="line"><a href="#L131">131</a>    UICreateUtil:loadSpineRes(Res.Spine.HEADER_SAO)</span>
+<span id="L132" class="line"><a href="#L132">132</a>    local uiData = require &quot;amf.feature.localactivity.shopreward.view.uisource.ShopRewardHeaderNode_UI&quot;</span>
+<span id="L133" class="line"><a href="#L133">133</a>    self.ui = UIBuilder:buildUI(uiData, self)</span>
+<span id="L134" class="line"><a href="#L134">134</a>    self:addChild(self.ui)</span>
+<span id="L135" class="line"><a href="#L135">135</a></span>
+<span id="L136" class="line"><a href="#L136">136</a>    local spine = UICreateUtil:createSpine(Res.Spine.HEADER_ANI)</span>
+<span id="L137" class="line"><a href="#L137">137</a>    LayoutUtil:centerReplaceBy(self.prizeImg, spine)</span>
+<span id="L138" class="line"><a href="#L138">138</a>    LayoutUtil:move(spine, 0, -10)</span>
+<span id="L139" class="line"><a href="#L139">139</a>    spine:playLoop(&quot;idle&quot;)</span>
+<span id="L140" class="line"><a href="#L140">140</a>end</span>
+<span id="L141" class="line"><a href="#L141">141</a></span>
+<span id="L142" class="line"><a href="#L142">142</a>function ShopRewardStoreHeaderView:initDesc()</span>
+<span id="L143" class="line"><a href="#L143">143</a>    if not self.richText then return end</span>
+<span id="L144" class="line"><a href="#L144">144</a>    local remainBuyCount = self.mgr and self.mgr:getRemainBuyCount() or 0</span>
+<span id="L145" class="line"><a href="#L145">145</a>    local text = string.format(&quot;&lt;outline color=#AA1117FF width=3&gt;优惠券礼包加赠风车币！\n共可买&lt;color=#FFF33BFF&gt; %s 款&lt;/color&gt;，每款限 1 次&quot;, remainBuyCount)</span>
+<span id="L146" class="line"><a href="#L146">146</a>    self.richText:setString(text)</span>
+<span id="L147" class="line"><a href="#L147">147</a>end</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>function ShopRewardStoreHeaderView:registerEvents()</span>
+<span id="L150" class="line"><a href="#L150">150</a>    ShopRewardEventCenter:register(ShopRewardEvent.BUY_COUNT_REFRESH, self.onBuyCountRefresh, self)</span>
+<span id="L151" class="line"><a href="#L151">151</a>    StoreEventCenter:register(_G.StoreEvent.STORE_SCROLL_SNAPSHOT, self.onStoreScrollSnapshot, self)</span>
+<span id="L152" class="line"><a href="#L152">152</a>end</span>
+<span id="L153" class="line"><a href="#L153">153</a></span>
+<span id="L154" class="line"><a href="#L154">154</a>function ShopRewardStoreHeaderView:onBuyCountRefresh()</span>
+<span id="L155" class="line"><a href="#L155">155</a>    if self.isDisposed then return end</span>
+<span id="L156" class="line"><a href="#L156">156</a>    self:initDesc()</span>
+<span id="L157" class="line"><a href="#L157">157</a>end</span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>function ShopRewardStoreHeaderView:unregisterEvents()</span>
+<span id="L160" class="line"><a href="#L160">160</a>    ShopRewardEventCenter:unregister(ShopRewardEvent.BUY_COUNT_REFRESH, self.onBuyCountRefresh, self)</span>
+<span id="L161" class="line"><a href="#L161">161</a>    StoreEventCenter:unregister(_G.StoreEvent.STORE_SCROLL_SNAPSHOT, self.onStoreScrollSnapshot, self)</span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>function ShopRewardStoreHeaderView:onStoreScrollSnapshot(event)</span>
+<span id="L165" class="line"><a href="#L165">165</a>    if self.isDisposed then return end</span>
+<span id="L166" class="line"><a href="#L166">166</a>    if self.isStoreGuideActive then return end</span>
+<span id="L167" class="line"><a href="#L167">167</a></span>
+<span id="L168" class="line"><a href="#L168">168</a>    local data = event and event:getData() or {}</span>
+<span id="L169" class="line"><a href="#L169">169</a>    local visible = self:shouldShowActionNodes(data)</span>
+<span id="L170" class="line"><a href="#L170">170</a>    self:setActionNodesVisible(visible)</span>
+<span id="L171" class="line"><a href="#L171">171</a>end</span>
+<span id="L172" class="line"><a href="#L172">172</a></span>
+<span id="L173" class="line"><a href="#L173">173</a>function ShopRewardStoreHeaderView:applyActionNodesVisible(visible)</span>
+<span id="L174" class="line"><a href="#L174">174</a>    if self.timeNode then</span>
+<span id="L175" class="line"><a href="#L175">175</a>        self.timeNode:setVisible(visible)</span>
+<span id="L176" class="line"><a href="#L176">176</a>    end</span>
+<span id="L177" class="line"><a href="#L177">177</a>    if self.goBtn then</span>
+<span id="L178" class="line"><a href="#L178">178</a>        self.goBtn:setVisible(visible)</span>
+<span id="L179" class="line"><a href="#L179">179</a>    end</span>
+<span id="L180" class="line"><a href="#L180">180</a>end</span>
+<span id="L181" class="line"><a href="#L181">181</a></span>
+<span id="L182" class="line"><a href="#L182">182</a>function ShopRewardStoreHeaderView:setActionNodesVisible(visible)</span>
+<span id="L183" class="line"><a href="#L183">183</a>    if self.actionNodesVisible == visible then return end</span>
+<span id="L184" class="line"><a href="#L184">184</a>    self.actionNodesVisible = visible</span>
+<span id="L185" class="line"><a href="#L185">185</a>    self:applyActionNodesVisible(self.isStoreGuideActive and false or visible)</span>
+<span id="L186" class="line"><a href="#L186">186</a>end</span>
+<span id="L187" class="line"><a href="#L187">187</a></span>
+<span id="L188" class="line"><a href="#L188">188</a>function ShopRewardStoreHeaderView:setStoreGuideActive(isActive)</span>
+<span id="L189" class="line"><a href="#L189">189</a>    self.isStoreGuideActive = isActive == true</span>
+<span id="L190" class="line"><a href="#L190">190</a></span>
+<span id="L191" class="line"><a href="#L191">191</a>    if self.isStoreGuideActive then</span>
+<span id="L192" class="line"><a href="#L192">192</a>        self:applyActionNodesVisible(false)</span>
+<span id="L193" class="line"><a href="#L193">193</a>    else</span>
+<span id="L194" class="line"><a href="#L194">194</a>        self.pendingStoreGuideAnimCallback = nil</span>
+<span id="L195" class="line"><a href="#L195">195</a>        StoreEventCenter:dispatch(_G.StoreEvent.STORE_SCROLL_SNAPSHOT_REQUEST)</span>
+<span id="L196" class="line"><a href="#L196">196</a>    end</span>
+<span id="L197" class="line"><a href="#L197">197</a>end</span>
+<span id="L198" class="line"><a href="#L198">198</a></span>
+<span id="L199" class="line"><a href="#L199">199</a>function ShopRewardStoreHeaderView:shouldShowActionNodes(data)</span>
+<span id="L200" class="line"><a href="#L200">200</a>    local viewportBounds = data and data.viewportBounds</span>
+<span id="L201" class="line"><a href="#L201">201</a>    local packageLayer = data and data.packageLayer</span>
+<span id="L202" class="line"><a href="#L202">202</a>    if not viewportBounds or not packageLayer or packageLayer.isDisposed then</span>
+<span id="L203" class="line"><a href="#L203">203</a>        return true</span>
+<span id="L204" class="line"><a href="#L204">204</a>    end</span>
+<span id="L205" class="line"><a href="#L205">205</a>    if not self:hasTargetStorePackage(packageLayer) then</span>
+<span id="L206" class="line"><a href="#L206">206</a>        return false</span>
+<span id="L207" class="line"><a href="#L207">207</a>    end</span>
+<span id="L208" class="line"><a href="#L208">208</a></span>
+<span id="L209" class="line"><a href="#L209">209</a>    return not self:hasShopRewardGiftInViewportRange(packageLayer, viewportBounds)</span>
+<span id="L210" class="line"><a href="#L210">210</a>end</span>
+<span id="L211" class="line"><a href="#L211">211</a></span>
+<span id="L212" class="line"><a href="#L212">212</a>function ShopRewardStoreHeaderView:hasTargetStorePackage(packageLayer)</span>
+<span id="L213" class="line"><a href="#L213">213</a>    local targetPackageId = self.mgr and self.mgr:getTargetStorePackageId()</span>
+<span id="L214" class="line"><a href="#L214">214</a>    if not targetPackageId then return false end</span>
+<span id="L215" class="line"><a href="#L215">215</a>    if packageLayer.findGiftViewByPackageId then</span>
+<span id="L216" class="line"><a href="#L216">216</a>        local giftView = packageLayer:findGiftViewByPackageId(targetPackageId)</span>
+<span id="L217" class="line"><a href="#L217">217</a>        return self:isVisibleShopRewardGiftView(giftView)</span>
+<span id="L218" class="line"><a href="#L218">218</a>    end</span>
+<span id="L219" class="line"><a href="#L219">219</a>    return true</span>
+<span id="L220" class="line"><a href="#L220">220</a>end</span>
+<span id="L221" class="line"><a href="#L221">221</a></span>
+<span id="L222" class="line"><a href="#L222">222</a>function ShopRewardStoreHeaderView:hasShopRewardGiftInViewportRange(packageLayer, viewportBounds)</span>
+<span id="L223" class="line"><a href="#L223">223</a>    local rangeMinY = viewportBounds:getMinY()</span>
+<span id="L224" class="line"><a href="#L224">224</a>    local rangeMaxY = viewportBounds:getMaxY()</span>
+<span id="L225" class="line"><a href="#L225">225</a></span>
+<span id="L226" class="line"><a href="#L226">226</a>    local giftViews = packageLayer.getGiftViews and packageLayer:getGiftViews() or {}</span>
+<span id="L227" class="line"><a href="#L227">227</a>    for _, giftView in ipairs(giftViews) do</span>
+<span id="L228" class="line"><a href="#L228">228</a>        if self:isVisibleShopRewardGiftView(giftView) then</span>
+<span id="L229" class="line"><a href="#L229">229</a>            local bounds = giftView:getGroupBounds()</span>
+<span id="L230" class="line"><a href="#L230">230</a>            if bounds:getMaxY() &lt; rangeMaxY and bounds:getMinY() &gt; rangeMinY then</span>
+<span id="L231" class="line"><a href="#L231">231</a>                return true</span>
+<span id="L232" class="line"><a href="#L232">232</a>            end</span>
+<span id="L233" class="line"><a href="#L233">233</a>        end</span>
+<span id="L234" class="line"><a href="#L234">234</a>    end</span>
+<span id="L235" class="line"><a href="#L235">235</a>    return false</span>
+<span id="L236" class="line"><a href="#L236">236</a>end</span>
+<span id="L237" class="line"><a href="#L237">237</a></span>
+<span id="L238" class="line"><a href="#L238">238</a>function ShopRewardStoreHeaderView:isVisibleShopRewardGiftView(giftView)</span>
+<span id="L239" class="line"><a href="#L239">239</a>    return giftView</span>
+<span id="L240" class="line"><a href="#L240">240</a>        and giftView.isShopRewardStoreView</span>
+<span id="L241" class="line"><a href="#L241">241</a>        and not giftView.isDisposed</span>
+<span id="L242" class="line"><a href="#L242">242</a>        and giftView:getParent()</span>
+<span id="L243" class="line"><a href="#L243">243</a>        and giftView:isVisible()</span>
+<span id="L244" class="line"><a href="#L244">244</a>end</span>
+<span id="L245" class="line"><a href="#L245">245</a></span>
+<span id="L246" class="line"><a href="#L246">246</a>function ShopRewardStoreHeaderView:initCountDown()</span>
+<span id="L247" class="line"><a href="#L247">247</a>    self:removeCountDownTimer()</span>
+<span id="L248" class="line"><a href="#L248">248</a></span>
+<span id="L249" class="line"><a href="#L249">249</a>    self.countDownTimer = TimerUtil.addAlarm(function()</span>
+<span id="L250" class="line"><a href="#L250">250</a>        if self.isDisposed then return end</span>
+<span id="L251" class="line"><a href="#L251">251</a>        self:updateCountDown()</span>
+<span id="L252" class="line"><a href="#L252">252</a>    end, 1, 0)</span>
+<span id="L253" class="line"><a href="#L253">253</a>    self:updateCountDown()</span>
+<span id="L254" class="line"><a href="#L254">254</a>end</span>
+<span id="L255" class="line"><a href="#L255">255</a></span>
+<span id="L256" class="line"><a href="#L256">256</a>function ShopRewardStoreHeaderView:updateCountDown()</span>
+<span id="L257" class="line"><a href="#L257">257</a>    local mainEndTime = self.mgr:getMainEndTime() or 0</span>
+<span id="L258" class="line"><a href="#L258">258</a>    local ret = TimeUtil:timeFormatVer1({</span>
+<span id="L259" class="line"><a href="#L259">259</a>        endTimeInSec = mainEndTime or 0,</span>
+<span id="L260" class="line"><a href="#L260">260</a>    })</span>
+<span id="L261" class="line"><a href="#L261">261</a>    if ret.retString == &quot;&quot; then</span>
+<span id="L262" class="line"><a href="#L262">262</a>        ret.retString = &quot;已结束&quot;</span>
+<span id="L263" class="line"><a href="#L263">263</a>    end</span>
+<span id="L264" class="line"><a href="#L264">264</a></span>
+<span id="L265" class="line"><a href="#L265">265</a>    if self.timeText then</span>
+<span id="L266" class="line"><a href="#L266">266</a>        self.timeText:setString(ret.retString)</span>
+<span id="L267" class="line"><a href="#L267">267</a>    end</span>
+<span id="L268" class="line"><a href="#L268">268</a></span>
+<span id="L269" class="line"><a href="#L269">269</a>    if ret.isReach then</span>
+<span id="L270" class="line"><a href="#L270">270</a>        self:removeCountDownTimer()</span>
+<span id="L271" class="line"><a href="#L271">271</a>        return</span>
+<span id="L272" class="line"><a href="#L272">272</a>    end</span>
+<span id="L273" class="line"><a href="#L273">273</a>end</span>
+<span id="L274" class="line"><a href="#L274">274</a></span>
+<span id="L275" class="line"><a href="#L275">275</a>function ShopRewardStoreHeaderView:removeCountDownTimer()</span>
+<span id="L276" class="line"><a href="#L276">276</a>    if self.countDownTimer then</span>
+<span id="L277" class="line"><a href="#L277">277</a>        TimerUtil.removeAlarm(self.countDownTimer)</span>
+<span id="L278" class="line"><a href="#L278">278</a>        self.countDownTimer = nil</span>
+<span id="L279" class="line"><a href="#L279">279</a>    end</span>
+<span id="L280" class="line"><a href="#L280">280</a>end</span>
+<span id="L281" class="line"><a href="#L281">281</a></span>
+<span id="L282" class="line"><a href="#L282">282</a>function ShopRewardStoreHeaderView:setClickHandler(handler)</span>
+<span id="L283" class="line"><a href="#L283">283</a>    self.clickHandler = handler</span>
+<span id="L284" class="line"><a href="#L284">284</a>    self:bindClickHandler()</span>
+<span id="L285" class="line"><a href="#L285">285</a>end</span>
+<span id="L286" class="line"><a href="#L286">286</a></span>
+<span id="L287" class="line"><a href="#L287">287</a>function ShopRewardStoreHeaderView:bindClickHandler()</span>
+<span id="L288" class="line"><a href="#L288">288</a>    if not self.ui or not self.goBtn or not self.clickHandler then return end</span>
+<span id="L289" class="line"><a href="#L289">289</a>    if not self.goBtn._hasSetTouch then</span>
+<span id="L290" class="line"><a href="#L290">290</a>        self.goBtn:setTouchHandler(preventContinuousClick(self.clickHandler))</span>
+<span id="L291" class="line"><a href="#L291">291</a>        self.goBtn._hasSetTouch = true</span>
+<span id="L292" class="line"><a href="#L292">292</a>    end</span>
+<span id="L293" class="line"><a href="#L293">293</a>end</span>
+<span id="L294" class="line"><a href="#L294">294</a></span>
+<span id="L295" class="line"><a href="#L295">295</a>function ShopRewardStoreHeaderView:dispose()</span>
+<span id="L296" class="line"><a href="#L296">296</a>    self:unregisterEvents()</span>
+<span id="L297" class="line"><a href="#L297">297</a>    UICreateUtil:unloadPlist(Res.Plist.SHOPHEADER)</span>
+<span id="L298" class="line"><a href="#L298">298</a>    UICreateUtil:unloadSpineRes(Res.Spine.HEADER_ANI)</span>
+<span id="L299" class="line"><a href="#L299">299</a>    UICreateUtil:unloadSpineRes(Res.Spine.HEADER_SAO)</span>
+<span id="L300" class="line"><a href="#L300">300</a>    self:removeCountDownTimer()</span>
+<span id="L301" class="line"><a href="#L301">301</a>    Node.dispose(self)</span>
+<span id="L302" class="line"><a href="#L302">302</a>end</span>
+<span id="L303" class="line"><a href="#L303">303</a></span>
+<span id="L304" class="line"><a href="#L304">304</a>return ShopRewardStoreHeaderView</span></pre></main></html>

@@ -1,0 +1,1448 @@
+{
+  "scope": "Non-localactivity lexical trigger consumers classified individually; 13 consumer families plus weekly icon entry hand-reviewed. Shared queue behavior belongs engine lane. Pure system windows not counted as activities.",
+  "counts": {
+    "account_system_or_policy": 15,
+    "rewarded_ad_guide": 1,
+    "activity_or_reward_or_offer": 13,
+    "feature_entry_or_social_guide": 14,
+    "platform_growth_or_subscription": 9,
+    "winningstreak_reviewed_by_other_lane": 3,
+    "shared_queue_or_navigation": 20,
+    "manual_activity_entry_no_autopopup_found": 1
+  },
+  "rows": [
+    {
+      "id": "TR001",
+      "source": "amf/feature/accountbind/minibind/MiniAccountBindingManager.lua",
+      "line": 165,
+      "sha256": "bb6c6bfb8a633e914fa9dfc05d0d8d50df510776b2a190913d03d17d844a00e8",
+      "function": "MiniAccountBindingManager:_registerStage2Popup()",
+      "checkpoint": "PopupCheckPoint.DY_PHONE_BIND_STAGE2",
+      "stages": [
+        "STAGE_TWO"
+      ],
+      "context": "function MiniAccountBindingManager:_registerStage2Popup()\n\tlocal popupFlag = EnvUtil:isHuaweiMiniGame() or EnvUtil:isALIPAYMiniGame() or EnvUtil:isUnionOppoMiniGame() or EnvUtil:isUnionMiMiniGame() or EnvUtil:isKuaiShouMiniGame() or EnvUtil:isJdMiniGame() or EnvUtil:isDYMiniGame()\n\tif not popupFlag then\n\t\treturn\n\tend\n\tif self._stage2PopupRegistered then return end\n\tif not self._autoPopupMgr or not self._snsBindLogic then return end\n\n\trequire \"amf.middleware.autopop.config.AutoPopupConst\"\n\tself._autoPopupMgr:registerPopup({\n\t\tcheckPoint = PopupCheckPoint.DY_PHONE_BIND_STAGE2,\n\t\tstages = {AutoPopupConst.PopStage.STAGE_TWO},\n\t\tcheck = function()\n\t\t\tif _G.getTopPassedLevelId() > 30 then return false end\n\t\t\tif not self._snsBindLogic:isDyPhoneBindExperimentEnabled() then return false end\n\t\t\treturn self._snsBindLogic:canShowPhoneBindButton()\n\t\tend,\n\t\tcreator = function(_, onPopOver)\n\t\t\treturn function()\n\t\t\t\tself._snsBindLogic:onPhoneBindButtonTapped(true, onPopOver)\n\t\t\tend\n\t\tend,\n\t})\n\tself._stage2PopupRegistered = true\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not popupFlag then",
+        "return",
+        "if self._stage2PopupRegistered then return end",
+        "if not self._autoPopupMgr or not self._snsBindLogic then return end",
+        "if _G.getTopPassedLevelId() > 30 then return false end",
+        "if not self._snsBindLogic:isDyPhoneBindExperimentEnabled() then return false end",
+        "return self._snsBindLogic:canShowPhoneBindButton()",
+        "return function()"
+      ]
+    },
+    {
+      "id": "TR002",
+      "source": "amf/feature/accountbind/minibind/MiniAccountBindingManager.lua",
+      "line": 565,
+      "sha256": "bb6c6bfb8a633e914fa9dfc05d0d8d50df510776b2a190913d03d17d844a00e8",
+      "function": "MiniAccountBindingManager:onActEnterStage4(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PHONE_BIND, creator)",
+      "stages": [],
+      "context": "function MiniAccountBindingManager:onActEnterStage4(evt)\n\n    local popupFlag = EnvUtil:isHuaweiMiniGame() or EnvUtil:isALIPAYMiniGame() or EnvUtil:isUnionOppoMiniGame() or EnvUtil:isUnionMiMiniGame()  or EnvUtil:isKuaiShouMiniGame() or EnvUtil:isJdMiniGame() or EnvUtil:isDYMiniGame()\n    if not popupFlag then\n        return\n    end\n\n\t-- 实验组的0～30关用户已改由场景2每日触发，场景4必须跳过，避免同一次登录出现两个手机号绑定强弹。\n\t-- 31～1998关仍沿用原场景4和 phone_bind_popup 终身一次标记；OFF组也保持原行为。\n\tif self._snsBindLogic:isDyPhoneBindExperimentEnabled() and _G.getTopPassedLevelId() <= 30 then\n\t\treturn\n\tend\n\n    if not self._snsBindLogic:canShowPhoneBindButton() then\n        return\n    end\n    local isAlreadyPop = UserManager:getInstance():getClientCustomData(\"phone_bind_popup\") ---永久弹一次，是否弹过的标识\n    if isAlreadyPop ~= nil then\n        return\n    end\n    local function onHandleOver()\n        --UWarning(\"MiniAccountBindingManager onActEnterStage4 onHandleOver\")\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PHONE_BIND)\n    end\n    local function creator()\n        --UWarning(\"MiniAccountBindingManager onActEnterStage4 creator\")\n        self._snsBindLogic:onPhoneBindButtonTapped(true,onHandleOver)\n        UserManager:getInstance():setClientCustomDataHttp(\"phone_bind_popup\",true)\n    end\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.PHONE_BIND, creator)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not popupFlag then",
+        "return",
+        "if self._snsBindLogic:isDyPhoneBindExperimentEnabled() and _G.getTopPassedLevelId() <= 30 then",
+        "return",
+        "if not self._snsBindLogic:canShowPhoneBindButton() then",
+        "return",
+        "if isAlreadyPop ~= nil then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR003",
+      "source": "amf/feature/accountbind/phonebind/module/phonebindact/PhoneBindActManager.lua",
+      "line": 444,
+      "sha256": "5937b87723750a8c957f5e86cb67165a52871d6923a793e4936892c45861af40",
+      "function": "PhoneBindActManager:onActEnterStage4(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.BIND_PHONE, creator)",
+      "stages": [],
+      "context": "function PhoneBindActManager:onActEnterStage4(evt)\n    if not self:popEnabledInStage4() then\n        return\n    end\n    local autoPopupMgr = _G.amfBean(\"AutoPopupMgr\")\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.BIND_PHONE)\n    end\n\n    local creator = function ()\n        if not self:popEnabledInStage4() then\n            safeRunCall(onHandleOver)\n            return\n        end\n        self:popBindPhonePanel({\n            source = _G.PhoneBindActConst.Source.STAGE_4_POP,\n            closeCallback = onHandleOver,\n        })\n        self._model:setStage4PopFlag()\n    end\n    autoPopupMgr:addPopupConfig(PopupCheckPoint.BIND_PHONE, creator)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:popEnabledInStage4() then",
+        "return",
+        "if not self:popEnabledInStage4() then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR004",
+      "source": "amf/feature/ad/incite/InciteManager.lua",
+      "line": 2345,
+      "sha256": "fd357ebb5a6cfa72fd7cc929929323fc9714934ce3d3301421b32cd18dbc7d0a",
+      "function": "InciteManager:onActEnterStage4(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.AD_GUIDE, creator)",
+      "stages": [],
+      "context": "function InciteManager:onActEnterStage4(evt)\n    local evtData = evt.data\n    --UWarning(\"adGuide onActEnterStage4\")\n    if not self:adGuideCheckCondition(evtData) then\n        return\n    end\n\n    self._alreadyPopLastLoginAd = true\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.AD_GUIDE)\n    end\n    local function creator()\n        --UWarning(\"ad_____OnActEnterStage4_08\")\n        self:showGuide(onHandleOver)\n    end\n    --UWarning(\"adOnActEnterStage4_07\")\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.AD_GUIDE, creator)\nend\n\n",
+      "classification": "rewarded_ad_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:adGuideCheckCondition(evtData) then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR005",
+      "source": "amf/feature/competition/CompetitionTransferManager.lua",
+      "line": 511,
+      "sha256": "0bc43fd441f7390a47b40ccc0f6a620acd5c4dce704bed05b0f921c784526886",
+      "function": "CompetitionTransferManager:addAuditionsEntryPopup(params)",
+      "checkpoint": ":addPopupConfig(popupCheckPoint, creator)",
+      "stages": [],
+      "context": "function CompetitionTransferManager:addAuditionsEntryPopup(params)\n    local autoPopupMgr = _G.amfBean(\"AutoPopupMgr\")\n    local popupCheckPoint = self:getAuditionsEntryPopupCheckPoint()\n    if not autoPopupMgr or not popupCheckPoint then\n        logAuditionsEntry(\"open_direct_no_autopop\", params, \"popupCheckPoint=\" .. tostring(popupCheckPoint))\n        self:openAuditionsEntry(params)\n        return\n    end\n\n    local function onHandleOver()\n        logAuditionsEntry(\"popup_over\", params)\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, popupCheckPoint)\n    end\n\n    local function creator()\n        logAuditionsEntry(\"popup_create\", params)\n        self:openAuditionsEntry(params, onHandleOver)\n    end\n\n    autoPopupMgr:addPopupConfig(popupCheckPoint, creator)\n    logAuditionsEntry(\"queue_popup\", params, \"popupCheckPoint=\" .. tostring(popupCheckPoint))\nend\n\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not autoPopupMgr or not popupCheckPoint then",
+        "return"
+      ],
+      "name": "比赛海选外部入口",
+      "conditions": "收到launch/open-share参数，经normalizeLaunchEntryParams成功且entryType=AUDITIONS才排队；非小游戏App可用，或明确允许的本地赛事包。已填海选资料则直接开关卡，否则弹资料面板。",
+      "state_writes_and_limits": "处理成功会清除launchQuery；markAuditionsInfoFilled保存会话标记，不是按天限次。没有队列/无checkpoint则直接打开。",
+      "evidence": "CompetitionTransferManager.lua:107,260,492,515,536",
+      "remaining_dependency": "外部链接参数完整校验与赛事服务器报名资格不在此范围；这属于用户外链唤起，不是主动营销推荐"
+    },
+    {
+      "id": "TR006",
+      "source": "amf/feature/dailyreward/mark/MarkManager.lua",
+      "line": 118,
+      "sha256": "b62a5284e5d5d5ff8e5dc48e93e2ffd26ba0dbccf729503ea74c49ae294c676d",
+      "function": "MarkManager:onActEnterStage2(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.MARK, creator)",
+      "stages": [],
+      "context": "function MarkManager:onActEnterStage2(evt)\n    if not self:isEnabled() then return end\n    local data = evt:getData()\n    if not data or not data.isFirstEnter then return end\n    if self:isTodayMarked() then return end\n    if FeedContext.isFeedEnterUser()\n        and FeedContext.getSceneStr() == FeedContext.SceneType.IMPORTANT_EVENT_DROP\n        and FeedRevisitConfig.isImportantEventSignIn(FeedContext.getTrialSourceIdFromJS()) then\n        return\n    end\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.MARK)\n    end\n    local function creator()\n        self:showMainPanel({\n            closeCallback = onHandleOver,\n            dcLocation = 1,\n            isClick = false\n        })\n    end\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.MARK, creator)\nend\n\n-- 到后台\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self:isEnabled() then return end",
+        "if not data or not data.isFirstEnter then return end",
+        "if self:isTodayMarked() then return end",
+        "if FeedContext.isFeedEnterUser()",
+        "return"
+      ],
+      "name": "签到",
+      "conditions": "首次进主界面场景2；topLevel>=201、Group非OFF、今天未签到；重要事件签到feed入口排除。App Group固定ON，小游戏维护开关minigame_sign_in决定。",
+      "state_writes_and_limits": "todayIsMark由optionalData/签到响应维护，领取成功写true；不是入队即已签到。",
+      "evidence": "MarkManager.lua:98,159,336,564; mark/Group.lua:6",
+      "remaining_dependency": "展示所需数据/窗口检查仍在showMainPanel中；未声称领取条件全部审完"
+    },
+    {
+      "id": "TR007",
+      "source": "amf/feature/dailyreward/promotedaily/logic/PromoteDailyAutoPopoutLogic.lua",
+      "line": 102,
+      "sha256": "ce42b11056169e72755e58b7cf1014ff55fcc43a71924d83522fa2fcde7ffa5e",
+      "function": "PromoteDailyAutoPopLogic:_addRepairStage2Popup(needTrigger)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PROMOTE_DAILY_REPAIR_STAGE2, creator)",
+      "stages": [],
+      "context": "function PromoteDailyAutoPopLogic:_addRepairStage2Popup(needTrigger)\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PROMOTE_DAILY_REPAIR_STAGE2)\n    end\n\n    local function creator()\n        -- 真正弹之前再判一次：排队期间活动可能已经结束 / 已达标\n        if not self:canPopRepairStage2() then\n            safeRunCall(onHandleOver)\n            return\n        end\n        self:markRepairStage2Poped()\n        -- strongPop：介绍文案「任过 n 关，救回…」，不按进度分段\n        self._promoteDailyMgr:showRepairPanel({\n            strongPop = true,\n        }, onHandleOver)\n    end\n\n    local autoPopupMgr = _G.amfBean(\"AutoPopupMgr\")\n    autoPopupMgr:addPopupConfig(PopupCheckPoint.PROMOTE_DAILY_REPAIR_STAGE2, creator)\n    if needTrigger and not autoPopupMgr:isRunnning() then\n        autoPopupMgr:triggerStage2AutoPopup()\n    end\nend\n\n-------------------------------- 连过重燃（活动期首次进主场景强弹） end -----------------------------------\n\n-- 是否可以强弹满签\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self:canPopRepairStage2() then",
+        "return",
+        "if needTrigger and not autoPopupMgr:isRunnning() then"
+      ],
+      "name": "每日一关：连过重燃介绍",
+      "conditions": "场景2或MAIN_INFO_LOAD_SUCCESS/PUB_RES_READAY补检查；功能/数据/资源就绪、groupType非0、修复活动在时间内且progress<target、progress==0、本期未弹。补触发须在主界面，通知链内不抢跑。",
+      "state_writes_and_limits": "repairStage2PopPeriod=repairPeriodId，缺失用endTime；creator再次check通过后、showRepairPanel前写入。",
+      "evidence": "PromoteDailyAutoPopoutLogic.lua:21,50,75,85; PromoteDailyMgr.lua:428,454,666",
+      "remaining_dependency": "重燃任务目标数与实际周期来自活动数据，不能固定为几关几天"
+    },
+    {
+      "id": "TR008",
+      "source": "amf/feature/dailyreward/promotedaily/logic/PromoteDailyAutoPopoutLogic.lua",
+      "line": 153,
+      "sha256": "ce42b11056169e72755e58b7cf1014ff55fcc43a71924d83522fa2fcde7ffa5e",
+      "function": "PromoteDailyAutoPopLogic:doActEnterStage4(data)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PROMOTE_DAILY, creator)",
+      "stages": [],
+      "context": "function PromoteDailyAutoPopLogic:doActEnterStage4(data)\n    if not self:canPopStage4() then return end\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PROMOTE_DAILY)\n    end\n    local function creator()\n        self._promoteDailyMgr:openMainPanel({\n            autoPopout = true,\n            closeCallback = onHandleOver\n        })\n    end\n\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.PROMOTE_DAILY, creator)\nend\n\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self:canPopStage4() then return end"
+      ],
+      "name": "每日一关：可领奖/满签",
+      "conditions": "场景4功能启用后四条件任一：月/纪念章可领奖，满签且本月没弹，7日奖励可领，目标任务当前进度>=target且reward未置位。",
+      "state_writes_and_limits": "满签popFullSignDate_year_month在MainPanelVM展示满签分支前写true；普通领奖是否再次弹取决于未领状态。",
+      "evidence": "PromoteDailyAutoPopoutLogic.lua:111,132; PromoteDailyModelLogic.lua:19,678,699,1098; MainPanelVM.lua:805",
+      "remaining_dependency": "全套任务/勋章合法性不是本次全部语义覆盖"
+    },
+    {
+      "id": "TR009",
+      "source": "amf/feature/desktopwidget/logic/DesktopWidgetManager.lua",
+      "line": 461,
+      "sha256": "2a3be6be2b1abff57a25956e13fb1afb7053016a21f2a15d8f49a1cd89dd89eb",
+      "function": "DesktopWidgetManager:checkPopAct(today)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.WIDGET_REWARD_ACT, creator)",
+      "stages": [],
+      "context": "function DesktopWidgetManager:checkPopAct(today)\n    if not self:isActEnabled() or self:checkMainPanelVM() then return end\n    today = today or time2day(TimeKit:timeInSec())\n    local model = self:getModel()\n\n    local guideKey = self:getConst().GuideKey\n    local guideId = self:getConst().GuideId\n\n    local canPop\n    if not self:hasGuideIndex(guideId.TRIGGER)then\n        local trigger = self:checkTrigger()\n        if trigger then\n            self:addGuideIndex(guideId.TRIGGER)\n        else\n            canPop = guideId.TRIGGER\n        end\n    end\n\n    -- 第二、三天未安装且未点击，强弹\n    if not canPop and not self:isWidgetInstall()\n        and not model:checkGuide(guideKey.DAILY_PANEL_OPEN, today) then\n        local triggerDay = time2day(model:getTriggerTime())\n        local delta = today - triggerDay\n        if delta == 1 or delta == 2 and not self:hasGuideIndex(delta + 1) then\n            canPop = delta + 1\n        end\n    end\n\n    -- 当日有奖\n    if not canPop and not model:checkGuide(guideKey.DAILY_PANEL_REWARD, today) then\n        local todayIndex = self:checkHaveEnterFromWidget()\n        if not todayIndex then\n            todayIndex = self._launchFromWidget and (model:getLoginTimeListFromWidgetLength() + 1)\n        end\n        if todayIndex and not table.indexOf(self:getModel():getHasGetRewardList(), todayIndex)\n            and not self:hasGuideIndex(todayIndex + 10) then\n            canPop = todayIndex + 10\n        end\n    end\n    if not canPop then return end\n\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.WIDGET_REWARD_ACT)\n\tend\n\n\tlocal function creator()\n        self:addGuideIndex(canPop)\n\n        self:callActFunc(\"openActivity\", {\n            failCallback = onHandleOver,\n            endCallback = onHandleOver,\n            extra = {\n                from = 3\n            },\n            userClick = true,\n        })\n\tend\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.WIDGET_REWARD_ACT, creator)\n    return true\nend\n\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self:isActEnabled() or self:checkMainPanelVM() then return end",
+        "if not self:hasGuideIndex(guideId.TRIGGER)then",
+        "if trigger then",
+        "if not canPop and not self:isWidgetInstall()",
+        "if delta == 1 or delta == 2 and not self:hasGuideIndex(delta + 1) then",
+        "if not canPop and not model:checkGuide(guideKey.DAILY_PANEL_REWARD, today) then",
+        "if not todayIndex then",
+        "if todayIndex and not table.indexOf(self:getModel():getHasGetRewardList(), todayIndex)",
+        "if not canPop then return end",
+        "return true"
+      ],
+      "name": "桌面挂件奖励",
+      "conditions": "场景4；平台支持、有actInfo、模型可用、活动期内且主面板未存在。首次未trigger可弹；未安装且今日未开面板时按天差1或2；或从挂件进入且当日有未领奖励。",
+      "state_writes_and_limits": "creator先addGuideIndex(canPop)再openActivity。注意代码 delta==1 or delta==2 and not hasGuideIndex(...)，Lua AND优先：delta1不受最后guide检查。",
+      "evidence": "DesktopWidgetManager.lua:217,229,404,469",
+      "remaining_dependency": "平台delegate内部支持清单未逐平台展开；不把注释的第二三天规则写成完全对称"
+    },
+    {
+      "id": "TR010",
+      "source": "amf/feature/friend/module/friendrecommend/FriendRecommendManager.lua",
+      "line": 151,
+      "sha256": "27fed34547afe134a4fcae251420289f9a724884b6101f6e9652a3ecbe08fe54",
+      "function": "FriendRecommendManager:onActEnterStage4(data)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.LUCKY_ENERGY_BOTTLE, creator)",
+      "stages": [],
+      "context": "function FriendRecommendManager:onActEnterStage4(data)\n\tif not self:shouldAskRecommendInfo() then\n\t\treturn \n\tend\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.LUCKY_ENERGY_BOTTLE)\n    end\n\n\tlocal asyncFriendInfo\n    local creator = function()\n\t\tself:tryOpenFriendRecommendPanel(2):next(onHandleOver, onHandleOver)\n    end\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.LUCKY_ENERGY_BOTTLE, creator)\nend\n\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:shouldAskRecommendInfo() then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR011",
+      "source": "amf/feature/fruittree/FruitTreeManager.lua",
+      "line": 182,
+      "sha256": "881842d8099f935526931787e5b7c943ed67cce97aef3a6362a51f1582f4fa93",
+      "function": "FruitTreeManager:onActEnterStage4(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.FEATURE_UNLOCK_GUIDE, creator)",
+      "stages": [],
+      "context": "function FruitTreeManager:onActEnterStage4(evt)\n    if not self._waitStage4Guide then return end\n    local serverCacheManager = _G.amfBean(\"ServerCacheManager\")\n    if serverCacheManager:hasGuideFlag(_G.GuideFlagConst.kFruitTreeIconUnlockGuide) then\n        local icon = self._iconManager:getIconByIconKey(IconKey.kFruitTree)\n        if icon then\n            icon:updateIconSprite() --刷新下解锁状态\n        end\n        return\n    end\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.FEATURE_UNLOCK_GUIDE)\n    end\n\n    local creator = function ()\n        local icon = self._iconManager:getIconByIconKey(IconKey.kFruitTree)\n        if icon then\n            icon:playUnlock(function()\n                icon:showFirstGuide(onHandleOver)\n            end) --刷新下解锁状态\n        else\n            safeRunCall(onHandleOver)\n        end\n    end\n     _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.FEATURE_UNLOCK_GUIDE, creator)\nend\n\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self._waitStage4Guide then return end",
+        "if serverCacheManager:hasGuideFlag(_G.GuideFlagConst.kFruitTreeIconUnlockGuide) then",
+        "if icon then",
+        "return",
+        "if icon then"
+      ]
+    },
+    {
+      "id": "TR012",
+      "source": "amf/feature/fruittree/act/collectword/CollectWordManager.lua",
+      "line": 558,
+      "sha256": "7b7ca4e2f6f1f26dcf5148eab2d71a820b43df6c2c20371252df00ebde79ca7e",
+      "function": "CollectWordManager:onActEnterStage4()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.COLLECT_WORD, creator)",
+      "stages": [],
+      "context": "function CollectWordManager:onActEnterStage4()\n    if not self:isEnabled() then return end\n\n    local function showGotoGet(hasReward, onPopout)\n        local function onHandleOver()\n            AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.COLLECT_WORD)\n        end\n\n        local function creator()\n            if not self:isEnabled() then\n                onHandleOver()\n                return\n            end\n            self:loadRes():next(function()\n                if not self:isEnabled() then\n                    onHandleOver()\n                    return\n                end\n                safeRunCall(onPopout)\n                self:showBackflowPanel({\n                    hasReward = hasReward,\n                    closeCallback = onHandleOver\n                })\n            end, function()\n                onHandleOver()\n            end)\n        end\n\n        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.COLLECT_WORD, creator)\n    end\n\n    local todayCount = SaveTool:getTodayPopPanelCount(\"todayPopPanelCount\") or 0\n    local function markTodayPopout()\n        SaveTool:setTodayPopPanelCount(\"todayPopPanelCount\", todayCount + 1)\n    end\n\n    if todayCount < 3 then\n        if self:hasRipenFruit() and self:hasGuideIndex(CollectWordConst.GuideIds.GUIDE1) then\n            showGotoGet(true, markTodayPopout)\n        elseif not SaveTool:getTodayPopFlowPanel(\"hasPopout_flowPanel\")\n            and not self:hasActived() then\n            showGotoGet(false, function()\n                SaveTool:setTodayPopFlowPanel(\"hasPopout_flowPanel\", true)\n                markTodayPopout()\n            end)\n        end\n    end\nend\n\n-- 引导界面\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self:isEnabled() then return end",
+        "if not self:isEnabled() then",
+        "return",
+        "if not self:isEnabled() then",
+        "return",
+        "if todayCount < 3 then",
+        "if self:hasRipenFruit() and self:hasGuideIndex(CollectWordConst.GuideIds.GUIDE1) then"
+      ],
+      "name": "果树集字活动",
+      "conditions": "场景4；功能开关/平台（OHOS排除）/果树可用、actInfo和model启用。todayCount<3；成熟且完成GUIDE1→领奖引流；否则今日未弹引流且尚未activate→普通引流。成熟=originRipeTime-helpSpeedTime<=now毫秒。",
+      "state_writes_and_limits": "资源load成功且再确认enabled后才todayPopPanelCount+1；普通引流另写hasPopout_flowPanel=true。框架仍可施加更小日额度。",
+      "evidence": "CollectWordManager.lua:154,215,233,530,561,1450,1503,1575",
+      "remaining_dependency": "actInfo:isEnabled、model:isEnabled内部仍是依赖，不称活动完整运营配置已得"
+    },
+    {
+      "id": "TR013",
+      "source": "amf/feature/fulllevel/fulllevelatmosphere/module/NewLevelAtmosphereModule.lua",
+      "line": 293,
+      "sha256": "241aba1c21345c6f0ace48989f7b5cbf632df0a4baf74c106586881f032c70f7",
+      "function": "NewLevelAtmosphereModule:doPopFullLevelOpenPanel()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.FULL_LEVEL_OPEN_PANEL, creator)",
+      "stages": [],
+      "context": "function NewLevelAtmosphereModule:doPopFullLevelOpenPanel()\n\n    local function onHandleOver()\n        printx(12,\"doFullLevelCloudPreview onHandleOver\")\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.FULL_LEVEL_OPEN_PANEL)\n    end\n\n    local function creator()\n        self:showFullLevelOpenPanel(onHandleOver)\n\n        --存储弹出记录\n        local curWeekEndTime = self._hostMgr:getFullLevelRankModule():getEndTime()\n        self._hostMgr:getData():saveFlagToLocalByKey( meta.fullLevelOpenPanelPopKey..'_'..curWeekEndTime, false, true)\n    end\n\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.FULL_LEVEL_OPEN_PANEL, creator)\nend\n\nreturn NewLevelAtmosphereModule",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "return NewLevelAtmosphereModule"
+      ]
+    },
+    {
+      "id": "TR014",
+      "source": "amf/feature/fulllevel/starwandbuff/StarWandBuffManager.lua",
+      "line": 961,
+      "sha256": "537e99dcb0c2990cdf4a01fd0b5f457e776d905fc06089c2e12fa35f7b4b10fb",
+      "function": "Manager:tryDoButtonCloudGuide()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.STARWANDBUFF_GUIDE, function()",
+      "stages": [],
+      "context": "function Manager:tryDoButtonCloudGuide()\n    printx(33, \"StarWandBuffManager:tryDoButtonCloudGuide\")\n    if self:getGuideFlag(Manager.GuideFlag.kButtonCloud) then\n        return\n    end\n    if _G.amfBean(\"MainSceneButtonManager\"):isFullLevelEnabled() then\n        return\n    end\n\tlocal curScene = Director:sharedDirector():getRunningScene()\n\tif not curScene or not curScene:isScene(\"MainScene\") then\n        return\n    end\n    if not self.mainSceneCloudBtn or self.mainSceneCloudBtn.isDisposed or not self.mainSceneCloudBtn:isVisible() then\n        return\n    end\n    if not self:checkNeedShowMainSceneCloudBtn() then\n        return\n    end\n    printx(33, \"StarWandBuffManager:tryDoButtonCloudGuide do guide\")\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.STARWANDBUFF_GUIDE)\n\tend\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.STARWANDBUFF_GUIDE, function()\n        self:playButtonGuide(false, onHandleOver)\n    end)\nend\n\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if self:getGuideFlag(Manager.GuideFlag.kButtonCloud) then",
+        "return",
+        "if _G.amfBean(\"MainSceneButtonManager\"):isFullLevelEnabled() then",
+        "return",
+        "if not curScene or not curScene:isScene(\"MainScene\") then",
+        "return",
+        "if not self.mainSceneCloudBtn or self.mainSceneCloudBtn.isDisposed or not self.mainSceneCloudBtn:isVisible() then",
+        "return",
+        "if not self:checkNeedShowMainSceneCloudBtn() then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR015",
+      "source": "amf/feature/fullstarlevellib/FullStarLevelLibManager.lua",
+      "line": 240,
+      "sha256": "241aa618a8690ef27551273ee5a6f87d9d820862f5bc9782e245014e27296503",
+      "function": "FullStarLevelLibManager:onActEnterStage4(data)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.FULL_STAR_LEVEL_LIB, creator)",
+      "stages": [],
+      "context": "function FullStarLevelLibManager:onActEnterStage4(data)\n\tif not self:checkStage4CanPop() then return end\n\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.FULL_STAR_LEVEL_LIB)\n\tend\n\n\tlocal function creator()\n        if not self:checkStage4CanPop() then\n            safeRunCall(onHandleOver)\n            return\n        end\n        local MainSceneEventCenter = require 'amf.feature.mainscene.core.event.MainSceneEventCenter'\n\t\tMainSceneEventCenter:dispatch(MainSceneEvent.Trunk.MOVE_TRUNK_TO, {\n            levelId = getTopLevelId(),\n            callback = function()\n                -- 检查 FullStarLevelLibCloudBtn 是否存在\n                local cloudDownLayoutLayer = _G.amfBean(\"CloudManager\"):getCloudDownLayoutLayer()\n                local hasCloudBtn = cloudDownLayoutLayer and\n                                   cloudDownLayoutLayer.nodeMap and\n                                   cloudDownLayoutLayer.nodeMap[\"FullStarLevelLibCloudBtn\"]\n\n                if hasCloudBtn then\n                    FullStarLevelLibEventCenter:dispatch(FullStarLevelLibEvent.FULL_STAR_LEVEL_LIB_UNLOCK, {\n                        callback = onHandleOver\n                    })\n                else\n                    -- 如果按钮不存在，直接调用 onHandleOver\n                    safeRunCall(onHandleOver)\n                end\n            end,\n            duration = 0.1,\n        })\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.FULL_STAR_LEVEL_LIB, creator)\nend\n\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:checkStage4CanPop() then return end",
+        "if not self:checkStage4CanPop() then",
+        "return",
+        "if hasCloudBtn then"
+      ]
+    },
+    {
+      "id": "TR016",
+      "source": "amf/feature/giftpackage/module/singleicon/dailyspecial/DailySpecialAIModule.lua",
+      "line": 186,
+      "sha256": "c53e2ee158f0644b143d3205ec9925af8d07c5b8c1b849b73578d30cbac3c6c6",
+      "function": "DailySpecialAIModule:onActEnterStage4()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.DAILY_SPECIAL_AI_GIFT_PACKAGE, creator)",
+      "stages": [],
+      "context": "function DailySpecialAIModule:onActEnterStage4()\n    if not self.packageData then return end\n    if self:canAutoPopup(self.packageData) then\n        local function onHandleOver()\n            AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.DAILY_SPECIAL_AI_GIFT_PACKAGE)\n        end\n\n        local creator = function()\n            -- 如果礼包已购买或者已失效，不弹\n            if not self.packageData then onHandleOver() return end\n\n            local vm = self:doCreateGiftView(true)\n            vm:setCloseCallback(onHandleOver)\n            vm:setLoadResFailCallback(onHandleOver)\n            vm:popout()\n\n            local endTime = self.packageData:getEndTime()\n            LocalDB:setString(\"last_popped_gift_endTime\", tostring(endTime))\n        end\n\n        _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.DAILY_SPECIAL_AI_GIFT_PACKAGE, creator)\n    end\nend\n\n\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self.packageData then return end",
+        "if self:canAutoPopup(self.packageData) then",
+        "if not self.packageData then onHandleOver() return end"
+      ],
+      "name": "每日特惠AI礼包",
+      "conditions": "场景4且packageData存在；非支付宝需last60Pay>0；代码实际拒绝endTime<now-60；endTime必须大于LocalDB最后弹礼包endTime。creator只重查packageData存在。",
+      "state_writes_and_limits": "vm:popout后写last_popped_gift_endTime=endTime，以结束时间去重，并非每日一次。",
+      "evidence": "DailySpecialAIModule.lua:155,169",
+      "remaining_dependency": "注意非“至少剩余60秒”；packageData上游失效管理可另挡过期，不推断实际必弹过期礼包。无客户端推荐模型证据"
+    },
+    {
+      "id": "TR017",
+      "source": "amf/feature/giftpackage/module/singleicon/icebreaking/IceBreakingGiftModule.lua",
+      "line": 325,
+      "sha256": "547a943c84949694d6f7a5b7a8e7fa257ce38182c75aec666fb50144a1379d38",
+      "function": "IceBreakingGiftModule:tryAutoPopup()",
+      "checkpoint": ":addPopupConfig(popupKey, creator)",
+      "stages": [],
+      "context": "function IceBreakingGiftModule:tryAutoPopup()\n    if not self.packageData then return end\n    if self.packageData.stageType == GiftPackageConst.StageType.STORE then\n        return\n    end\n\n    local popupKey = self:getGiftTriggerTimes() == 2 and PopupCheckPoint.ICE_BREAKING_GIFT_POP_T2 or PopupCheckPoint.ICE_BREAKING_GIFT_POP\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, popupKey)\n    end\n\n    local creator = function ()\n        if not self:_isUserNotOpened() then\n            safeRunCall(onHandleOver)\n            return\n        end\n        ---@type UeAMFBasePanelVM\n        local vm = self:doCreateGiftView(true)\n        if not vm then\n            safeRunCall(onHandleOver)\n            return\n        end\n        if vm.setCloseCallback then\n            vm:setCloseCallback(onHandleOver)\n        else\n            printx(48, \"[gk] IceBreakingGiftModule why logcenter vm.setCloseCallback is nil?\")\n            safeRunCall(onHandleOver)\n        end\n\n        if vm.setLoadResFailCallback then vm:setLoadResFailCallback(onHandleOver) end\n        vm:popout()\n    end\n\n    -- _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(popupKey, creator)\n    local autoPopupMgr = _G.amfBean(\"AutoPopupMgr\")\n    autoPopupMgr:addPopupConfig(popupKey, creator)\n    if not autoPopupMgr:isRunnning() then\n        autoPopupMgr:triggerStage2AutoPopup()\n    end\nend\n\n\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self.packageData then return end",
+        "if self.packageData.stageType == GiftPackageConst.StageType.STORE then",
+        "return",
+        "if not self:_isUserNotOpened() then",
+        "return",
+        "if not vm then",
+        "return",
+        "if vm.setCloseCallback then",
+        "if vm.setLoadResFailCallback then vm:setLoadResFailCallback(onHandleOver) end",
+        "if not autoPopupMgr:isRunnning() then"
+      ],
+      "name": "破冰礼包",
+      "conditions": "packageData存在，STORE场景排除；未打开过：场景2 userTopLevel>6，场景4>5；giftTriggerTimes==2走T2 checkpoint；creator再次检查未打开。",
+      "state_writes_and_limits": "IceBreakingOpened+periodId+giftTriggerTimes持久标记；ViewVM:onEnter初始化调用setUserOpened。tryAutoPopup在框架空闲时触发stage2队列。",
+      "evidence": "IceBreakingGiftModule.lua:246,251,264,278,291; view/IceBreakingGiftViewVM.lua:25",
+      "remaining_dependency": ">5是代码实际判断，不能照注释写仅第6关。礼包价格奖励来自packageData，不是此函数固定值"
+    },
+    {
+      "id": "TR018",
+      "source": "amf/feature/honorrank/HonorRankManager.lua",
+      "line": 152,
+      "sha256": "77615959b25d054819c9c04a26366087224ed6f7f0926815ee63911eeea7b2b9",
+      "function": "HonorRankManager:tryGetPeakRewardData()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PEAK_RANK_REWARD, function()",
+      "stages": [],
+      "context": "function HonorRankManager:tryGetPeakRewardData()\n    local asyncRunner = AsyncRunner:create()\n    asyncRunner:add(function (done)\n        HonorRankHttp:getPeakReward(function()\n            safeRunCall(done)\n        end, function()\n            asyncRunner:clean()\n            asyncRunner = nil\n        end)\n    end)\n\n    asyncRunner:add(function (done)\n        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.PEAK_RANK_REWARD, function()\n            self:showPeakRewardByData(function()\n                AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PEAK_RANK_REWARD)\n            end)\n        end)\n        safeRunCall(done)\n    end)\n\n    asyncRunner:run()\nend\n\n--等待展示的巅峰奖励\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [],
+      "name": "荣誉排行奖励",
+      "conditions": "取巅峰奖励接口成功后入队；展示时getWaitingRewardData必须有非空rewards，资源加载成功才展示。",
+      "state_writes_and_limits": "展示调用后clearWaitingRewardData；无奖回调结束，入队不代表必出现领奖窗口。",
+      "evidence": "HonorRankManager.lua:140,162,224",
+      "remaining_dependency": "接口奖励生成和上游榜单资格不在此审计闭合范围"
+    },
+    {
+      "id": "TR097",
+      "source": "amf/feature/mainscene/module/icon/view/iconbutton/ActivityCenterIcon.lua",
+      "line": 187,
+      "sha256": "5222254133e16622e62eebb27807a7fc1d04d1c681bcb863a38bcd50c989857e",
+      "function": "ActivityCenterIcon:tryAddMoveGuideAutoPop()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.ACTIVITY_CENTER_MOVE_GUIDE, creator)",
+      "stages": [],
+      "context": "function ActivityCenterIcon:tryAddMoveGuideAutoPop()\n    if not self:canShowMoveGuide() then return end\n\n    local function creator()\n        setTimeOut(function()\n            local icon = _G.amfBean(\"IconManager\"):getIconByIconKey(IconKey.kActCenter)\n            if icon and icon.showMoveGuide then\n                icon:showMoveGuide()\n            else\n                AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.ACTIVITY_CENTER_MOVE_GUIDE)\n            end\n        end, 2 / 30)\n    end\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.ACTIVITY_CENTER_MOVE_GUIDE, creator)\nend\n\n-- 播放资讯福利站入口迁移引导；使用 HeGuide 指向左下角菜单内的 icon。\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:canShowMoveGuide() then return end",
+        "if icon and icon.showMoveGuide then"
+      ]
+    },
+    {
+      "id": "TR098",
+      "source": "amf/feature/mainscene/module/icon/view/iconbutton/FriendIcon.lua",
+      "line": 134,
+      "sha256": "b610b1e98686f12ccf4d52fcd2b373b1601fa6ec90cfb8946ad3349b5f40c60e",
+      "function": "FriendIcon:onActEnterStage4()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.WECHAT_FRIEND_GUIDE, creator)",
+      "stages": [],
+      "context": "function FriendIcon:onActEnterStage4()\n    if not self.needShowGuide then\n        return\n    end\n\n    local function creator()\n        self.cancelAutoPopup = _G.convert2ThrowawayFunction(function()\n            AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.WECHAT_FRIEND_GUIDE)\n\n            self:removeGuideHand()\n            if self.heGuide and not self.heGuide.isDisposed then\n                self.heGuide:removeGuide()\n                self.heGuide = nil\n            end\n        end, 10)\n\n        self:showGuide()\n    end\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.WECHAT_FRIEND_GUIDE, creator)\nend\n\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self.needShowGuide then",
+        "return",
+        "if self.heGuide and not self.heGuide.isDisposed then"
+      ]
+    },
+    {
+      "id": "TR099",
+      "source": "amf/feature/mainscene/module/icon/view/iconbutton/FriendIcon.lua",
+      "line": 158,
+      "sha256": "b610b1e98686f12ccf4d52fcd2b373b1601fa6ec90cfb8946ad3349b5f40c60e",
+      "function": "FriendIcon:onActEnterStage2(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.MINI_FRIEND_MOVE, creator)",
+      "stages": [],
+      "context": "function FriendIcon:onActEnterStage2(evt)\n    if not _G.amfBean(\"IconManager\"):useUIBottomBarTest() then return end\n    if not EnvUtil:isMiniGame() then return end\n    local serverCacheManager = _G.amfBean(\"ServerCacheManager\")\n    if serverCacheManager:hasGuideFlag(_G.GuideFlagConst.kMiniGameFriendMoveGuide) then return end\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.MINI_FRIEND_MOVE)\n    end\n\n    local creator = function ()\n\n        setTimeOut(function()\n            local icon = _G.amfBean(\"IconManager\"):getIconByIconKey(IconKey.kFriend)\n            if icon then\n                icon:showMoveGuide(onHandleOver,false)\n            else\n                safeRunCall(onHandleOver)\n            end\n        end,2/30) --延2帧，这强弹比iconlayer创的还早。。\n    end\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.MINI_FRIEND_MOVE, creator)\nend\n\n\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not _G.amfBean(\"IconManager\"):useUIBottomBarTest() then return end",
+        "if not EnvUtil:isMiniGame() then return end",
+        "if serverCacheManager:hasGuideFlag(_G.GuideFlagConst.kMiniGameFriendMoveGuide) then return end",
+        "if icon then"
+      ]
+    },
+    {
+      "id": "TR100",
+      "source": "amf/feature/mainscene/module/icon/view/iconbutton/GameClubIcon.lua",
+      "line": 132,
+      "sha256": "92e6e73fb57d413cb5cd7be8adc29c3e004fef03b3d09f882f09ed5ffd3bfae5",
+      "function": "GameClubIcon:onActEnterStage2()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.GAME_CLUB_GUIDE, creator)",
+      "stages": [],
+      "context": "function GameClubIcon:onActEnterStage2()\n    if not self.needShowGuide then return end\n\n    local function creator()\n        self.cancelAutoPopup = _G.convert2ThrowawayFunction(function()\n            AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.GAME_CLUB_GUIDE)\n\n            if self.heGuide and not self.heGuide.isDisposed then\n                self.heGuide:removeGuide()\n                self.heGuide = nil\n            end\n\n        end, 5)\n\n        IconEventCenter:dispatch(IconEvent.OPEN_ICON_POOL, IconMeta.PoolType.kLeftCorner)\n    end\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.GAME_CLUB_GUIDE, creator)\nend\n\nreturn GameClubIcon\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self.needShowGuide then return end",
+        "if self.heGuide and not self.heGuide.isDisposed then",
+        "return GameClubIcon"
+      ]
+    },
+    {
+      "id": "TR101",
+      "source": "amf/feature/mainscene/module/icon/view/iconbutton/LuckyBagPartyIcon.lua",
+      "line": 325,
+      "sha256": "f5d9cda79a5fb5e69a5a8ab4e5e2070dd15750d3ed0beed139f8b117409f7d07",
+      "function": "LuckyBagPartyIcon:tryAddMoveGuideAutoPop()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.LUCKY_BAG_PARTY_MOVE_GUIDE, creator)",
+      "stages": [],
+      "context": "function LuckyBagPartyIcon:tryAddMoveGuideAutoPop()\n    if not self:canShowMoveGuide() then return end\n\n    local function creator()\n        setTimeOut(function()\n            local icon = _G.amfBean(\"IconManager\"):getIconByIconKey(IconKey.kLuckyBagParty)\n            if icon and icon.showMoveGuide then\n                icon:showMoveGuide()\n            else\n                AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.LUCKY_BAG_PARTY_MOVE_GUIDE)\n            end\n        end, 2 / 30)\n    end\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.LUCKY_BAG_PARTY_MOVE_GUIDE, creator)\nend\n\n-- 播放福袋换位引导；使用 HeGuide 指向右下角池内的福袋 icon。\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:canShowMoveGuide() then return end",
+        "if icon and icon.showMoveGuide then"
+      ]
+    },
+    {
+      "id": "TR102",
+      "source": "amf/feature/mainscenebutton/MainSceneButtonManager.lua",
+      "line": 275,
+      "sha256": "b903250fcd97ccfdb05e67dd31417334742b8a5c7b2dda424069b349b4b9522a",
+      "function": "MainSceneButtonManager:tryAddAutoPop()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.MAIN_SCENE_BUTTON, function()",
+      "stages": [],
+      "context": "function MainSceneButtonManager:tryAddAutoPop()\n    if not self.buttonVM then return end\n    if self:canPlayStarWandAutoPop() then\n        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.MAIN_SCENE_BUTTON, function()\n            self:playStarWandAutoPop()\n        end)\n    end\nend\n\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self.buttonVM then return end",
+        "if self:canPlayStarWandAutoPop() then"
+      ]
+    },
+    {
+      "id": "TR103",
+      "source": "amf/feature/minihub/adddesktopshortcut/DesktopShortcutManager.lua",
+      "line": 412,
+      "sha256": "829eeff856906150f692c698a709ae07b9df8702b8e9484aac37c4c1ade6caac",
+      "function": "DesktopShortcutManager:onActEnterStage4()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.KS_DESKTOP_SHORTCUT, creator)",
+      "stages": [],
+      "context": "function DesktopShortcutManager:onActEnterStage4()\n        printx(44,\"onActEnterStage4 desktop\")\n    if not self:checkStage4CanPop() then\n        return\n    end\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.KS_DESKTOP_SHORTCUT)\n    end\n\n    local function creator()\n        self:clickIcon(onHandleOver, 2)\n    end\n\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.KS_DESKTOP_SHORTCUT, creator)\nend\n\n\n\n",
+      "classification": "platform_growth_or_subscription",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:checkStage4CanPop() then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR104",
+      "source": "amf/feature/minihub/addmine/system/mini/AddMineManager.lua",
+      "line": 323,
+      "sha256": "a300db6a5e2a48ff0f74a067f9a20ab1e3752896b1483ea2aa7a0113b85650b8",
+      "function": "AddMineManager:handleEnterStage2(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.ADD_MINE, creator)",
+      "stages": [],
+      "context": "function AddMineManager:handleEnterStage2(evt)\n    if not self:checkStage2CanPop() then return end\n\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.ADD_MINE)\n\tend\n\n\tlocal function creator()\n        UWarning(\"AddMineManager:handleEnterStage2 creator\")\n        if self._model:canGetMainReward() then\n            self:popMainPanel(2):next(onHandleOver, onHandleOver)\n        else\n            UWarning(\"AddMineManager:handleEnterStage2 popRewardPanel\")\n            self:popRewardPanel():next(onHandleOver, onHandleOver)\n        end\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.ADD_MINE, creator)\nend\n\n-- 场景4强弹\n",
+      "classification": "platform_growth_or_subscription",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:checkStage2CanPop() then return end",
+        "if self._model:canGetMainReward() then"
+      ]
+    },
+    {
+      "id": "TR105",
+      "source": "amf/feature/minihub/addmine/system/mini/AddMineManager.lua",
+      "line": 336,
+      "sha256": "a300db6a5e2a48ff0f74a067f9a20ab1e3752896b1483ea2aa7a0113b85650b8",
+      "function": "AddMineManager:handleEnterStage4(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.ADD_MINE_STAGE4, creator)",
+      "stages": [],
+      "context": "function AddMineManager:handleEnterStage4(evt)\n    if not self:checkStage4CanPop() then return end\n\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.ADD_MINE_STAGE4)\n\tend\n\tlocal function creator()\n\t\tself:popMainPanel(2):next(onHandleOver, onHandleOver)\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.ADD_MINE_STAGE4, creator)\nend\n\n-- 过关检查是否要开启\n",
+      "classification": "platform_growth_or_subscription",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:checkStage4CanPop() then return end"
+      ]
+    },
+    {
+      "id": "TR106",
+      "source": "amf/feature/minihub/addsidebar/AddSidebarManager.lua",
+      "line": 116,
+      "sha256": "0ae92500807b5272c64230777bdbb3ab8c8407d21d52eb591750070c1f9c8656",
+      "function": "AddSidebarManager:onActEnterStage4()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.KS_GAMECENTER_REVISIT, creator)",
+      "stages": [],
+      "context": "function AddSidebarManager:onActEnterStage4()\n    if not self:checkStage4CanPop() then\n        return\n    end\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.KS_GAMECENTER_REVISIT)\n    end\n\n    local function creator()\n        self:showMainPanel(onHandleOver, 2)\n    end\n\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.KS_GAMECENTER_REVISIT, creator)\nend\n\n",
+      "classification": "platform_growth_or_subscription",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:checkStage4CanPop() then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR107",
+      "source": "amf/feature/minihub/alipaydesktopshortcut/AliPayDesktopShortcutManager.lua",
+      "line": 464,
+      "sha256": "a70fd4aad2e08bfaa188923208601c295891d490c479087f36648736891905a2",
+      "function": "AliPayDesktopShortcutManager:_registerFirstLoginAutoPopup(popStage)",
+      "checkpoint": "firstLoginCheckPoint",
+      "stages": [
+        "STAGE_TWO",
+        "STAGE_FOUR"
+      ],
+      "context": "function AliPayDesktopShortcutManager:_registerFirstLoginAutoPopup(popStage)\n    local firstLoginCheckPoint = PopupCheckPoint.ALIPAY_DESKTOP_SHORTCUT_FIRST_LOGIN\n    self._autoPopupMgr:registerPopup({\n        checkPoint = firstLoginCheckPoint,\n        stages = { popStage.STAGE_TWO, popStage.STAGE_FOUR },\n        check = function()\n            local canPopup = self:_getAutoPopupState(\n                AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY,\n                false\n            )\n            return canPopup\n        end,\n        creator = function(_, onPopOver)\n            return self:_createAutoPopupCreator(\n                onPopOver,\n                AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY,\n                firstLoginCheckPoint,\n                false\n            )\n        end,\n    })\n    return firstLoginCheckPoint\nend\n\n",
+      "classification": "platform_growth_or_subscription",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "return canPopup",
+        "return self:_createAutoPopupCreator(",
+        "return firstLoginCheckPoint"
+      ]
+    },
+    {
+      "id": "TR108",
+      "source": "amf/feature/minihub/alipaydesktopshortcut/AliPayDesktopShortcutManager.lua",
+      "line": 488,
+      "sha256": "a70fd4aad2e08bfaa188923208601c295891d490c479087f36648736891905a2",
+      "function": "AliPayDesktopShortcutManager:_registerStreakBreakAutoPopup(popStage)",
+      "checkpoint": "streakBreakCheckPoint",
+      "stages": [
+        "STAGE_TWO",
+        "STAGE_FOUR"
+      ],
+      "context": "function AliPayDesktopShortcutManager:_registerStreakBreakAutoPopup(popStage)\n    local streakBreakCheckPoint = PopupCheckPoint.ALIPAY_DESKTOP_SHORTCUT_STREAK_BREAK\n    self._autoPopupMgr:registerPopup({\n        checkPoint = streakBreakCheckPoint,\n        stages = { popStage.STAGE_TWO, popStage.STAGE_FOUR },\n        check = function()\n            local canPopup = self:_getAutoPopupState(\n                AliPayDesktopShortcutManager.STREAK_BREAK_AUTO_POP_CACHE_KEY,\n                true\n            )\n            local firstLoginCanPopup = self:_getAutoPopupState(\n                AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY,\n                false\n            )\n            local inCountdown = callIfExists(self._model, \"isDeskTopVisitStreakBreak\") == true\n            canPopup = canPopup and not firstLoginCanPopup and inCountdown\n            return canPopup\n        end,\n        creator = function(_, onPopOver)\n            return self:_createAutoPopupCreator(\n                onPopOver,\n                AliPayDesktopShortcutManager.STREAK_BREAK_AUTO_POP_CACHE_KEY,\n                streakBreakCheckPoint,\n                true\n            )\n        end,\n    })\n    return streakBreakCheckPoint\nend\n\n",
+      "classification": "platform_growth_or_subscription",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "return canPopup",
+        "return self:_createAutoPopupCreator(",
+        "return streakBreakCheckPoint"
+      ]
+    },
+    {
+      "id": "TR109",
+      "source": "amf/feature/minihub/alipaygamecenter/AliPayGameCenterManager.lua",
+      "line": 340,
+      "sha256": "9f531f7f995a1e078d34cd2dc941c966ba49e72a734989c62cc50c814a46a773",
+      "function": "Manager:onActEnterStage4()",
+      "checkpoint": ":addPopupConfig(popupCheckPoint, creator)",
+      "stages": [],
+      "context": "function Manager:onActEnterStage4()\n    if not self:isEnabled() then return end\n    if _G.getTopLevelId() < 20 then return end\n    if not MaintenanceManager:getInstance():isEnabledInGroup(\"ali_test\",\"ON\") then return end\n    local missionId, missionPhase = self:getMissionStatus()\n    if missionPhase == PhaseType.UNFINISH then\n        local popupCheckPoint = missionId == 0 and PopupCheckPoint.ALIPAY_GAMECENTER_FIRST or PopupCheckPoint.ALIPAY_GAMECENTER_REVISIT\n        local popNum = _G.amfBean(\"AutoPopupMgr\"):getPermanentShowNum(popupCheckPoint)\n        if popNum <= 0 then\n            local function onHandleOver()\n                AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, popupCheckPoint)\n            end\n            local creator = function ( ... )\n                self:openActivity(false, onHandleOver)\n                _G.amfBean(\"AutoPopupMgr\"):sendPermanentData(popupCheckPoint)\n            end\n            _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(popupCheckPoint, creator)\n        end\n    end\nend\n----------------------- 加道具 -----------------------------\n",
+      "classification": "platform_growth_or_subscription",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:isEnabled() then return end",
+        "if _G.getTopLevelId() < 20 then return end",
+        "if not MaintenanceManager:getInstance():isEnabledInGroup(\"ali_test\",\"ON\") then return end",
+        "if missionPhase == PhaseType.UNFINISH then",
+        "if popNum <= 0 then"
+      ]
+    },
+    {
+      "id": "TR110",
+      "source": "amf/feature/minihub/kspromotion/KSPromotionManager.lua",
+      "line": 119,
+      "sha256": "7dc8060bc43d9f191a1920b1b4d6cef731cccbc102a6c7c6a6ad698158467aac",
+      "function": "KSPromotionManager:onActEnterStage4()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.KS_PROMOTION, creator)",
+      "stages": [],
+      "context": "function KSPromotionManager:onActEnterStage4()\n    self:tryUpdateActIcon()\n    if not self:checkStage4CanPop() then return end\n    local function onHandleOver()\n        self.model:setIsMainPanelPopup()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.KS_PROMOTION)\n\tend\n\n\tlocal function creator()\n\n\t\tself:showMainPanel(onHandleOver, true)\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.KS_PROMOTION, creator)\nend\n\n",
+      "classification": "platform_growth_or_subscription",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:checkStage4CanPop() then return end"
+      ]
+    },
+    {
+      "id": "TR111",
+      "source": "amf/feature/minihub/recommendationfeed/RecommendationFeedManager.lua",
+      "line": 380,
+      "sha256": "01f0685707b7cd270756f8d907e87891cc58231cd4fe3190c17b6bc9fee5a77c",
+      "function": "RecommendationFeedManager:registerFeedSubscribePopup()",
+      "checkpoint": "PopupCheckPoint.DY_FEED_SUBSCRIBE_GUIDE",
+      "stages": [
+        "STAGE_FOUR"
+      ],
+      "context": "function RecommendationFeedManager:registerFeedSubscribePopup()\n    if self._feedSubscribePopupRegistered then return end\n    local autoPopupMgr = self._autoPopupMgr\n    if not autoPopupMgr then return end\n\n    require \"amf.middleware.autopop.config.AutoPopupConst\"\n    autoPopupMgr:registerPopup({\n        checkPoint = PopupCheckPoint.DY_FEED_SUBSCRIBE_GUIDE,\n        stages = {AutoPopupConst.PopStage.STAGE_FOUR},\n        check = function()\n            return self:isFeedSubscribeGuideEligible()\n                and self:getFeedSubscribeRequestParams() ~= nil\n                and self:getFeedSubscribeStatus() ~= true\n        end,\n        creator = function(_, onPopOver)\n            return function()\n                -- 计数由 AutoPopupMgr 在 creator 调用前统一消耗；强弹直接调用抖音订阅接口。\n                local params = self:getFeedSubscribeRequestParams()\n                if not params then\n                    safeRunCall(onPopOver)\n                    return\n                end\n\n                local t2 = FeedContext.isNewUser() and 3 or 4\n                self:requestFeedSubscribe(params, function()\n                    safeRunCall(onPopOver)\n                end, { t1 = 2, t2 = t2 })\n            end\n        end,\n    })\n    self._feedSubscribePopupRegistered = true\nend\n\n",
+      "classification": "platform_growth_or_subscription",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if self._feedSubscribePopupRegistered then return end",
+        "if not autoPopupMgr then return end",
+        "return self:isFeedSubscribeGuideEligible()",
+        "return function()",
+        "if not params then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR112",
+      "source": "amf/feature/personalhub/personalcenter/system/common/PersonalCenterManager.lua",
+      "line": 3070,
+      "sha256": "3acb316e943af3e44859ffb6aead6830c0aad0a8d5c513b7d2b708c7cbfe139f",
+      "function": "PersonalCenterManager:onActEnterStage3(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PERSONAL_CARD_GUIDE, creator)",
+      "stages": [],
+      "context": "function PersonalCenterManager:onActEnterStage3(evt)\n    self:updateIcon()\n\n    if not self:checkStage3CanPop() then return end\n\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PERSONAL_CARD_GUIDE)\n\tend\n\n\tlocal function creator()\n        self:openEditNicknamePanel():next(onHandleOver, onHandleOver)\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.PERSONAL_CARD_GUIDE, creator)\nend\n\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:checkStage3CanPop() then return end"
+      ]
+    },
+    {
+      "id": "TR113",
+      "source": "amf/feature/personalhub/personalcenter/system/common/PersonalCenterManager.lua",
+      "line": 3101,
+      "sha256": "3acb316e943af3e44859ffb6aead6830c0aad0a8d5c513b7d2b708c7cbfe139f",
+      "function": "PersonalCenterManager:onActEnterStage4(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PERSONAL_CARD_GUIDE, creator)",
+      "stages": [],
+      "context": "function PersonalCenterManager:onActEnterStage4(evt)\n    self:updateIcon()\n\n    if not self:checkStage4CanPop() then return end\n\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PERSONAL_CARD_GUIDE)\n\tend\n\n\tlocal function creator()\n        if EnvUtil:isMiniGame() then\n\t\t    self:showIconGuide():next(onHandleOver, onHandleOver)\n        else\n            self:openEditNicknamePanel():next(onHandleOver, onHandleOver)\n        end\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.PERSONAL_CARD_GUIDE, creator)\nend\n\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:checkStage4CanPop() then return end",
+        "if EnvUtil:isMiniGame() then"
+      ]
+    },
+    {
+      "id": "TR114",
+      "source": "amf/feature/promotionevent2025/system/PromotionEvent2025Manager.lua",
+      "line": 924,
+      "sha256": "c79b7e01074c0dd7c0204c463858081d202635d6bb0dff27606fc510dfcda91e",
+      "function": "PromotionEvent2025Manager:tryAutoPopPromotionCardPack()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PROMOTION_CARD_PACK_POP_STAGE4, creator)",
+      "stages": [],
+      "context": "function PromotionEvent2025Manager:tryAutoPopPromotionCardPack()\n    if not self:_hasPendingPromotionCardPacks() then return end\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PROMOTION_CARD_PACK_POP_STAGE4)\n    end\n\n\n    local creator = function()\n        _G.amfBean(\"CollectCardManager\"):skipThisRoundCardPackOpen()\n        _G.amfTransaction(TransactionEvent.COLLECT_CARD_FLOW, {\n            flowType = _G.COLLECT_CARD_FLOW_TYPE.OPEN_AND_SETTLE,\n            rewards = self._pendingPromotionCardPackList,\n            openAnimPanelConfig = {title = \"晋级赛奖励\"},\n            onComplete = function()\n                self._pendingPromotionCardPackList = {}\n                onHandleOver()\n            end,\n            onError = function()\n                self._pendingPromotionCardPackList = {}\n                onHandleOver()\n            end,\n        })\n    end\n\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.PROMOTION_CARD_PACK_POP_STAGE4, creator)\nend\n\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self:_hasPendingPromotionCardPacks() then return end"
+      ],
+      "name": "晋级赛奖励卡包",
+      "conditions": "待处理_pendingPromotionCardPackList非空才入队，属于既得奖励开包，不是活动招募。",
+      "state_writes_and_limits": "事务完成或失败均清空待处理列表；展示时跳过CollectCard本轮普通开包避免重复。",
+      "evidence": "PromotionEvent2025Manager.lua:888,899",
+      "remaining_dependency": "事务失败后服务端补偿不在本次审计范围"
+    },
+    {
+      "id": "TR115",
+      "source": "amf/feature/promotionevent2025/system/PromotionEvent2025Manager.lua",
+      "line": 2446,
+      "sha256": "c79b7e01074c0dd7c0204c463858081d202635d6bb0dff27606fc510dfcda91e",
+      "function": "PromotionEvent2025Manager:onActEnterStage4(data)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PROMOTION_2025, creator)",
+      "stages": [],
+      "context": "function PromotionEvent2025Manager:onActEnterStage4(data)\n\tif not self:isEnabled() then return end\n\n    self:tryAutoPopPromotionCardPack()\n\n    local levelId = _G.getTopLevelId()\n    if PromotionEvent2025Group:isPopup210Group() and levelId < 210 then return end\n    if PromotionEvent2025Group:isPopup300Group() and levelId < 300 then return end\n\n    if self:getCompleteTaskIndex() < 1 or self:getLastRankFlag() then return end\n    if not self:needHistoryRankReward() then return end\n\n    local levelUnLockManager = _G.amfBean(\"LevelUnLockManager\")\n    if levelUnLockManager:isInNewLevelTime() and levelUnLockManager:isTopNewMainLevel(levelId) then return end\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PROMOTION_2025)\n    end\n\n    local creator = function ()\n        self:openMainAct():next(onHandleOver, onHandleOver)\n    end\n\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.PROMOTION_2025, creator)\nend\n\n----------------------- 分享 ------------------------\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self:isEnabled() then return end",
+        "if PromotionEvent2025Group:isPopup210Group() and levelId < 210 then return end",
+        "if PromotionEvent2025Group:isPopup300Group() and levelId < 300 then return end",
+        "if self:getCompleteTaskIndex() < 1 or self:getLastRankFlag() then return end",
+        "if not self:needHistoryRankReward() then return end",
+        "if levelUnLockManager:isInNewLevelTime() and levelUnLockManager:isTopNewMainLevel(levelId) then return end"
+      ],
+      "name": "晋级赛历史排名奖励",
+      "conditions": "场景4 isEnabled；先处理奖励卡包，再按popup210/300实验挡低等级；taskIndex>=1、本期LastRankFlag未置、有needGetHistoryRankReward且lastPeriod>0；新关开放时若当前头部新关则不弹。",
+      "state_writes_and_limits": "LastPeriodRankPanelVM:161写本期showLastRankFlags[period]，对应已显示历史榜；并非入队就写。",
+      "evidence": "PromotionEvent2025Manager.lua:2423; PromotionEvent2025Model.lua:463,483,1237; LastPeriodRankPanelVM.lua:161",
+      "remaining_dependency": "isEnabled还含base/data/resource/open检查；对应在线实验值未知"
+    },
+    {
+      "id": "TR116",
+      "source": "amf/feature/recall/recall2025/Recall2025Manager.lua",
+      "line": 68,
+      "sha256": "522f6d0d56a5ddea15c74d6c2d9b6dce6792916a3d1d73ed3bbaac05768c64fc",
+      "function": "Manager:onActEnterStage4()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.RECALL_2025_STAGE4, creator)",
+      "stages": [],
+      "context": "function Manager:onActEnterStage4()\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.RECALL_2025_STAGE4)\n    end\n\n    if not self:isEnabled() then return end\n\n    if not self:getModel():checkTodayRightsGot() then return end\n\n    if self:checkCanUse20Buff() then return end\n\n    -- 关卡失败弹挽留\n    if not self:getLocalCache(\"stage4_fail_pop\") and self._lastFailed then\n        local function creator()\n            if not self:isIconEnabled() then\n                onHandleOver()\n                return\n            end\n            self:openMainPanel2(false, onHandleOver, {\n                stage = AutoPopupConst.PopStage.kEnterFromLevel2nd\n            })\n        end\n        _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.RECALL_2025_STAGE4, creator)\n        self:setLocalCache(\"stage4_fail_pop\", true, true)\n    end\n\n    self._lastFailed = false\nend\n\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if not self:isEnabled() then return end",
+        "if not self:getModel():checkTodayRightsGot() then return end",
+        "if self:checkCanUse20Buff() then return end",
+        "if not self:getLocalCache(\"stage4_fail_pop\") and self._lastFailed then",
+        "if not self:isIconEnabled() then",
+        "return"
+      ],
+      "name": "回流权益失败挽留",
+      "conditions": "场景4；非小游戏、数据可用且主活动期；今天bonusDays已含今日、+20步buff已过期；_lastFailed且stage4_fail_pop未置；creator另检查图标网络/今日免费解锁未用。",
+      "state_writes_and_limits": "入队后立即setLocalCache(stage4_fail_pop,true)，然后_lastFailed=false；Manager:setLocalCache只有2形参，传入第3个true被丢弃，不能据调用写“每天一次”。",
+      "evidence": "Recall2025Manager.lua:46,175,182,314; Recall2025Model.lua:92,134,168",
+      "remaining_dependency": "_localCache重置边界除初始化之外未闭合；不报告每日/每期精确频次"
+    },
+    {
+      "id": "TR117",
+      "source": "amf/feature/winningstreak/module/bottle/WinningStreakBottleManager.lua",
+      "line": 292,
+      "sha256": "ed870d01dfbc575bf57e9b8e93682245234c53372a321978fff3e9dd00fad06d",
+      "function": "WinningStreakBottleManager:onActEnterStage3()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.COMBO_BOTTLE, function ( ... )",
+      "stages": [],
+      "context": "function WinningStreakBottleManager:onActEnterStage3()\n    if not self:isEnabled() then return end\n    if not self:getAvailable() then return end\n    if self:checkIsFullShow() then return end \n\n    local levelId = _G.getTopLevelId()\n    if self._levelUnlockMgr:isInNewLevelTime() and self._levelUnlockMgr:isTopNewMainOrHideLevel(levelId) then\n        self:setIsFullShow(true)\n        self:updateIcon()\n        return\n    end\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.COMBO_BOTTLE)\n    end\n\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.COMBO_BOTTLE, function ( ... )\n        self:showFullBottlePanel():next(function()\n            self:popIconTipAfterActivate(onHandleOver)\n        end, function()\n            onHandleOver()\n        end)\n    end)\nend\n\n",
+      "classification": "winningstreak_reviewed_by_other_lane",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:isEnabled() then return end",
+        "if not self:getAvailable() then return end",
+        "if self:checkIsFullShow() then return end",
+        "if self._levelUnlockMgr:isInNewLevelTime() and self._levelUnlockMgr:isTopNewMainOrHideLevel(levelId) then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR118",
+      "source": "amf/feature/winningstreak/module/colorfulstar/ColorfulStarWinRepeatManager.lua",
+      "line": 310,
+      "sha256": "0b4cd888fa33ef19acecc7b3415aa927b42938aee0f3be61d2816eca61ed7146",
+      "function": "ColorfulStarWinRepeatManager:onActEnterStage4(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.COLORFUL_WIN_GUIDE, creator)",
+      "stages": [],
+      "context": "function ColorfulStarWinRepeatManager:onActEnterStage4(evt)\n    -- 新关不弹\n    if _G.amfBean(\"LevelUnLockManager\"):isInNewLevelTime() then\n\t\treturn false\n\tend\n\n    if _G.amfBean(\"ServerCacheManager\"):hasGuideFlag(GuideFlagConst.WIN_STREAK_FMJ_MJ) then\n\t\treturn \n\tend\n\n    if not self:isEnabled() then return end\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.COLORFUL_WIN_GUIDE)\n    end\n\n    local creator = function()\n        if _G.amfBean(\"ServerCacheManager\"):hasGuideFlag(GuideFlagConst.WIN_STREAK_FMJ_MJ) then\n            safeRunCall(onHandleOver)\n            return \n        end\n        \n\t\tself:showMainPanel(onHandleOver)\n    end\n\n\t_G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.COLORFUL_WIN_GUIDE, creator)\nend\nreturn ColorfulStarWinRepeatManager\n",
+      "classification": "winningstreak_reviewed_by_other_lane",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if _G.amfBean(\"LevelUnLockManager\"):isInNewLevelTime() then",
+        "return false",
+        "if _G.amfBean(\"ServerCacheManager\"):hasGuideFlag(GuideFlagConst.WIN_STREAK_FMJ_MJ) then",
+        "return",
+        "if not self:isEnabled() then return end",
+        "if _G.amfBean(\"ServerCacheManager\"):hasGuideFlag(GuideFlagConst.WIN_STREAK_FMJ_MJ) then",
+        "return",
+        "return ColorfulStarWinRepeatManager"
+      ]
+    },
+    {
+      "id": "TR119",
+      "source": "amf/feature/winningstreak/module/memefox/MeMeFoxManager.lua",
+      "line": 59,
+      "sha256": "df43d4c042cdd634aed8ff7ce5faf4aaf8a1dd7ddab8cd13728d459058e7d3ff",
+      "function": "MeMeFoxManager:_registerAutoPopup()",
+      "checkpoint": "PopupCheckPoint.CONTINUOUS_TARGET_CHECK",
+      "stages": [
+        "STAGE_THREE"
+      ],
+      "context": "function MeMeFoxManager:_registerAutoPopup()\n    local autoPopupMgr = _G.amfBean(\"AutoPopupMgr\", true)\n    if not autoPopupMgr then return end\n    self._autoPopCheckPoint = autoPopupMgr:registerPopup({\n        checkPoint = PopupCheckPoint.CONTINUOUS_TARGET_CHECK,\n        stages = {AutoPopupConst.PopStage.STAGE_THREE},\n        actId = 4042,\n        check = function()\n            return self:stage3OrInLevelCanPop() == true\n        end,\n        pop = function(stageParams, onPopOver)\n            -- check/pop 收到的是强弹场景事件对象，事件数据要经 getData 取。\n            local nextLevelModeData = (stageParams:getData() or {}).nextLevelModeData\n            self:cleanPopReason()\n            return self:_createStage3PopupCreator({\n                source = 3,\n                autoPlayNextLevel = nextLevelModeData and nextLevelModeData.autoPlayNextLevel or false,\n            }, onPopOver)\n        end,\n    })\nend\n\n",
+      "classification": "winningstreak_reviewed_by_other_lane",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not autoPopupMgr then return end",
+        "return self:stage3OrInLevelCanPop() == true",
+        "return self:_createStage3PopupCreator({"
+      ]
+    },
+    {
+      "id": "TR120",
+      "source": "amf/middleware/activity/activitycenter/module/ActivityCenterBannerModule.lua",
+      "line": 71,
+      "sha256": "6ec9b72996ff2a0e07371ef523a309ab0fd50650db9534511ebfd7c67f864878",
+      "function": "ActivityCenterBannerModule:tryAddAutoPop()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.ACTIVITY_CENTER_BANNER, creator)",
+      "stages": [],
+      "context": "function ActivityCenterBannerModule:tryAddAutoPop()\n    --检测强弹banner\n    if not self:canShowAutoPop() then return false end\n\n    local function creator()\n        self:showAutoPop(function()\n            AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.ACTIVITY_CENTER_BANNER)\n        end)\n    end\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(PopupCheckPoint.ACTIVITY_CENTER_BANNER, creator)\n    return true\nend\n\n-- 强弹执行入口：重新取 banner 数据，加载 UI 资源后交给左下角入口池展示。\n",
+      "classification": "feature_entry_or_social_guide",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:canShowAutoPop() then return false end",
+        "return true"
+      ]
+    },
+    {
+      "id": "TR121",
+      "source": "amf/middleware/activity/base/plug/AutoPopPlug.lua",
+      "line": 33,
+      "sha256": "25c35c9d2be0c4a0eace442076b75c347534f57cd8280b96f0065319aa77bf00",
+      "function": "AutoPopPlug:registerPopup(config)",
+      "checkpoint": ":registerPopup(config)",
+      "stages": [],
+      "context": "function AutoPopPlug:registerPopup(config)\n    if not self.autoPopupMgr or not config then return end\n    local checkPoint = self.autoPopupMgr:registerPopup(config)\n    table.insert(self.registeredCheckPoints, checkPoint)\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self.autoPopupMgr or not config then return end"
+      ]
+    },
+    {
+      "id": "TR122",
+      "source": "amf/middleware/activity/base/plug/AutoPopPlug.lua",
+      "line": 40,
+      "sha256": "25c35c9d2be0c4a0eace442076b75c347534f57cd8280b96f0065319aa77bf00",
+      "function": "AutoPopPlug:registerPopups(configs)",
+      "checkpoint": ":registerPopup(config)",
+      "stages": [],
+      "context": "function AutoPopPlug:registerPopups(configs)\n    if not configs then return end\n    for _, config in ipairs(configs) do\n        self:registerPopup(config)\n    end\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not configs then return end"
+      ]
+    },
+    {
+      "id": "TR123",
+      "source": "amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua",
+      "line": 403,
+      "sha256": "036ae5f95a1cfbac7e91dba615bed39c17c3019e716d4e330e857ec9957016a9",
+      "function": "Stage2EnterSceneHandler:checkDyOpenStartPanel()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)",
+      "stages": [],
+      "context": "function Stage2EnterSceneHandler:checkDyOpenStartPanel()\n    if self:checkDyOfflineRewardPanel() then return end\n    if not FeedContext.consumeOpenStartPanel() then return end\n\n    local function reportScene()\n        self:reportFeedRevisitScene()\n    end\n\n    local function openStartPanel()\n        _G.amfTransaction(TransactionEvent.PLAY_LEVEL, PlayLevelContext.new(nil, PlayLevelContext.PlayType.OPEN_SL_PANEL):setExtraData({\n            douyinFeedReturn = true,\n        }))\n    end\n\n    local feedScene = FeedContext.getSceneStr()\n    local contentId = FeedContext.getTrialSourceIdFromJS()\n\n    if feedScene == FeedContext.SceneType.IMPORTANT_EVENT_DROP\n        and FeedRevisitConfig.isImportantEventSignIn(contentId) then\n        local function creator()\n            local popupOver = false\n            local function finishPopup()\n                if popupOver then return end\n                popupOver = true\n                FeedContext.clearRevisitContext()\n                self._autoPopupMgr:resetPopup()\n                openStartPanel()\n                reportScene()\n            end\n\n            local markManager = _G.amfBean(\"MarkManager\")\n            if not markManager or not markManager:isEnabled() then\n                finishPopup()\n                return\n            end\n\n            markManager:showMainPanel({\n                closeCallback = finishPopup,\n                dcLocation = 1,\n                isClick = false,\n                forceRequest = true,\n                skipIfTodayMarked = true,\n                autoCloseAfterSignIn = true,\n                signInRequest = FeedRevisitRewardService.requestImportantEventSignIn,\n                panelShownCallback = reportScene,\n            })\n        end\n        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\n        return\n    end\n\n    local energyRewardConfig = feedScene == FeedContext.SceneType.ENERGY_RECOVER\n        and FeedRevisitConfig.getEnergyRewardConfig(contentId) or nil\n    local feedGameExtra = FeedContext.getFeedGameExtra()\n    local rewardKey = FeedRevisitConfig.getEnergyRewardKey(contentId, feedGameExtra)\n    --\n--\n--\n--\n--\n--\n--\n--\n--\n\n    if energyRewardConfig and rewardKey then\n        local function creator()\n            local popupOver = false\n            local function finishPopup()\n                if popupOver then return end\n                popupOver = true\n                FeedContext.clearRevisitContext()\n                self._autoPopupMgr:resetPopup()\n                openStartPanel()\n                reportScene()\n            end\n\n            local PanelVM = require \"amf.feature.minihub.recommendationfeed.FeedRevisitEnergyRewardPanelVM\"\n            local vm = PanelVM:create({\n                contentId = contentId,\n                visualPath = energyRewardConfig.visualPath,\n                rewardKey = rewardKey,\n                claimHandler = FeedRevisitRewardService.requestEnergyReward,\n                closeCallback = finishPopup,\n                panelShownCallback = reportScene,\n            })\n            vm:setLoadResFailCallback(finishPopup)\n            vm:popout()\n        end\n        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\n        return\n    end\n\n    local function showFeedTip()\n        local curScene = Director:sharedDirector():getRunningScene()\n        local safeArea = _G.fullScreenSizeManager:getSafeArea()\n        local visibleSize = safeArea.size\n        local originPos = safeArea.origin\n\n        local function showTipScene2()\n            local baseX = originPos.x + 220\n            local baseY = originPos.y + visibleSize.height - 70\n\n            local desc = \"亲爱的小村民，精力已恢复，\\n快来继续游戏吧！\"\n            local tip = UITip.Builder.new():setMessage(desc, \"B2714AFF\", nil, 26):setDirection(UITip.Direction.DOWN)\n                :setSkin(UITip.SkinType.FEED):setAutoCloseTime(0):buildSingleTip(true)\n            tip:moveArrow(-116, 0)\n            curScene:addChild(tip, SceneLayerShowKey.TOP_LAYER)\n            tip:setPositionXY(baseX, baseY)\n        end\n\n        if feedScene == FeedContext.SceneType.ENERGY_RECOVER then\n            showTipScene2()\n        end\n    end\n\n    local function creator()\n        self._autoPopupMgr:resetPopup()\n        openStartPanel()\n        --UBFProcessManager:launch(UBFGameProcessEnum.NORMAL_START, {\n        --\tlevelId = _G.getTopLevelId(),\n        --\tlevelScene = UBFLevelSceneType.kMain,\n        --})\n        local userStateManager = _G.amfBean(\"UserStateManager\")\n        if userStateManager:isFMJ() or userStateManager:isColorfulStarFull() then\n            showFeedTip()\n        end\n    end\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\nend\n\n-- 复访版离线收益场景：直玩进入后不进入战斗/大厅，直接展示金银果树面板，\n-- 并在面板上叠加通用引导（小浣熊提示），引导玩家摘取成熟果实。\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if self:checkDyOfflineRewardPanel() then return end",
+        "if not FeedContext.consumeOpenStartPanel() then return end",
+        "if feedScene == FeedContext.SceneType.IMPORTANT_EVENT_DROP",
+        "if popupOver then return end",
+        "if not markManager or not markManager:isEnabled() then",
+        "return",
+        "return",
+        "if energyRewardConfig and rewardKey then",
+        "if popupOver then return end",
+        "return",
+        "if feedScene == FeedContext.SceneType.ENERGY_RECOVER then",
+        "if userStateManager:isFMJ() or userStateManager:isColorfulStarFull() then"
+      ]
+    },
+    {
+      "id": "TR124",
+      "source": "amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua",
+      "line": 445,
+      "sha256": "036ae5f95a1cfbac7e91dba615bed39c17c3019e716d4e330e857ec9957016a9",
+      "function": "Stage2EnterSceneHandler:checkDyOpenStartPanel()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)",
+      "stages": [],
+      "context": "function Stage2EnterSceneHandler:checkDyOpenStartPanel()\n    if self:checkDyOfflineRewardPanel() then return end\n    if not FeedContext.consumeOpenStartPanel() then return end\n\n    local function reportScene()\n        self:reportFeedRevisitScene()\n    end\n\n    local function openStartPanel()\n        _G.amfTransaction(TransactionEvent.PLAY_LEVEL, PlayLevelContext.new(nil, PlayLevelContext.PlayType.OPEN_SL_PANEL):setExtraData({\n            douyinFeedReturn = true,\n        }))\n    end\n\n    local feedScene = FeedContext.getSceneStr()\n    local contentId = FeedContext.getTrialSourceIdFromJS()\n\n    if feedScene == FeedContext.SceneType.IMPORTANT_EVENT_DROP\n        and FeedRevisitConfig.isImportantEventSignIn(contentId) then\n        local function creator()\n            local popupOver = false\n            local function finishPopup()\n                if popupOver then return end\n                popupOver = true\n                FeedContext.clearRevisitContext()\n                self._autoPopupMgr:resetPopup()\n                openStartPanel()\n                reportScene()\n            end\n\n            local markManager = _G.amfBean(\"MarkManager\")\n            if not markManager or not markManager:isEnabled() then\n                finishPopup()\n                return\n            end\n\n            markManager:showMainPanel({\n                closeCallback = finishPopup,\n                dcLocation = 1,\n                isClick = false,\n                forceRequest = true,\n                skipIfTodayMarked = true,\n                autoCloseAfterSignIn = true,\n                signInRequest = FeedRevisitRewardService.requestImportantEventSignIn,\n                panelShownCallback = reportScene,\n            })\n        end\n        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\n        return\n    end\n\n    local energyRewardConfig = feedScene == FeedContext.SceneType.ENERGY_RECOVER\n        and FeedRevisitConfig.getEnergyRewardConfig(contentId) or nil\n    local feedGameExtra = FeedContext.getFeedGameExtra()\n    local rewardKey = FeedRevisitConfig.getEnergyRewardKey(contentId, feedGameExtra)\n    --\n--\n--\n--\n--\n--\n--\n--\n--\n\n    if energyRewardConfig and rewardKey then\n        local function creator()\n            local popupOver = false\n            local function finishPopup()\n                if popupOver then return end\n                popupOver = true\n                FeedContext.clearRevisitContext()\n                self._autoPopupMgr:resetPopup()\n                openStartPanel()\n                reportScene()\n            end\n\n            local PanelVM = require \"amf.feature.minihub.recommendationfeed.FeedRevisitEnergyRewardPanelVM\"\n            local vm = PanelVM:create({\n                contentId = contentId,\n                visualPath = energyRewardConfig.visualPath,\n                rewardKey = rewardKey,\n                claimHandler = FeedRevisitRewardService.requestEnergyReward,\n                closeCallback = finishPopup,\n                panelShownCallback = reportScene,\n            })\n            vm:setLoadResFailCallback(finishPopup)\n            vm:popout()\n        end\n        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\n        return\n    end\n\n    local function showFeedTip()\n        local curScene = Director:sharedDirector():getRunningScene()\n        local safeArea = _G.fullScreenSizeManager:getSafeArea()\n        local visibleSize = safeArea.size\n        local originPos = safeArea.origin\n\n        local function showTipScene2()\n            local baseX = originPos.x + 220\n            local baseY = originPos.y + visibleSize.height - 70\n\n            local desc = \"亲爱的小村民，精力已恢复，\\n快来继续游戏吧！\"\n            local tip = UITip.Builder.new():setMessage(desc, \"B2714AFF\", nil, 26):setDirection(UITip.Direction.DOWN)\n                :setSkin(UITip.SkinType.FEED):setAutoCloseTime(0):buildSingleTip(true)\n            tip:moveArrow(-116, 0)\n            curScene:addChild(tip, SceneLayerShowKey.TOP_LAYER)\n            tip:setPositionXY(baseX, baseY)\n        end\n\n        if feedScene == FeedContext.SceneType.ENERGY_RECOVER then\n            showTipScene2()\n        end\n    end\n\n    local function creator()\n        self._autoPopupMgr:resetPopup()\n        openStartPanel()\n        --UBFProcessManager:launch(UBFGameProcessEnum.NORMAL_START, {\n        --\tlevelId = _G.getTopLevelId(),\n        --\tlevelScene = UBFLevelSceneType.kMain,\n        --})\n        local userStateManager = _G.amfBean(\"UserStateManager\")\n        if userStateManager:isFMJ() or userStateManager:isColorfulStarFull() then\n            showFeedTip()\n        end\n    end\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\nend\n\n-- 复访版离线收益场景：直玩进入后不进入战斗/大厅，直接展示金银果树面板，\n-- 并在面板上叠加通用引导（小浣熊提示），引导玩家摘取成熟果实。\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if self:checkDyOfflineRewardPanel() then return end",
+        "if not FeedContext.consumeOpenStartPanel() then return end",
+        "if feedScene == FeedContext.SceneType.IMPORTANT_EVENT_DROP",
+        "if popupOver then return end",
+        "if not markManager or not markManager:isEnabled() then",
+        "return",
+        "return",
+        "if energyRewardConfig and rewardKey then",
+        "if popupOver then return end",
+        "return",
+        "if feedScene == FeedContext.SceneType.ENERGY_RECOVER then",
+        "if userStateManager:isFMJ() or userStateManager:isColorfulStarFull() then"
+      ]
+    },
+    {
+      "id": "TR125",
+      "source": "amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua",
+      "line": 484,
+      "sha256": "036ae5f95a1cfbac7e91dba615bed39c17c3019e716d4e330e857ec9957016a9",
+      "function": "Stage2EnterSceneHandler:checkDyOpenStartPanel()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)",
+      "stages": [],
+      "context": "function Stage2EnterSceneHandler:checkDyOpenStartPanel()\n    if self:checkDyOfflineRewardPanel() then return end\n    if not FeedContext.consumeOpenStartPanel() then return end\n\n    local function reportScene()\n        self:reportFeedRevisitScene()\n    end\n\n    local function openStartPanel()\n        _G.amfTransaction(TransactionEvent.PLAY_LEVEL, PlayLevelContext.new(nil, PlayLevelContext.PlayType.OPEN_SL_PANEL):setExtraData({\n            douyinFeedReturn = true,\n        }))\n    end\n\n    local feedScene = FeedContext.getSceneStr()\n    local contentId = FeedContext.getTrialSourceIdFromJS()\n\n    if feedScene == FeedContext.SceneType.IMPORTANT_EVENT_DROP\n        and FeedRevisitConfig.isImportantEventSignIn(contentId) then\n        local function creator()\n            local popupOver = false\n            local function finishPopup()\n                if popupOver then return end\n                popupOver = true\n                FeedContext.clearRevisitContext()\n                self._autoPopupMgr:resetPopup()\n                openStartPanel()\n                reportScene()\n            end\n\n            local markManager = _G.amfBean(\"MarkManager\")\n            if not markManager or not markManager:isEnabled() then\n                finishPopup()\n                return\n            end\n\n            markManager:showMainPanel({\n                closeCallback = finishPopup,\n                dcLocation = 1,\n                isClick = false,\n                forceRequest = true,\n                skipIfTodayMarked = true,\n                autoCloseAfterSignIn = true,\n                signInRequest = FeedRevisitRewardService.requestImportantEventSignIn,\n                panelShownCallback = reportScene,\n            })\n        end\n        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\n        return\n    end\n\n    local energyRewardConfig = feedScene == FeedContext.SceneType.ENERGY_RECOVER\n        and FeedRevisitConfig.getEnergyRewardConfig(contentId) or nil\n    local feedGameExtra = FeedContext.getFeedGameExtra()\n    local rewardKey = FeedRevisitConfig.getEnergyRewardKey(contentId, feedGameExtra)\n    --\n--\n--\n--\n--\n--\n--\n--\n--\n\n    if energyRewardConfig and rewardKey then\n        local function creator()\n            local popupOver = false\n            local function finishPopup()\n                if popupOver then return end\n                popupOver = true\n                FeedContext.clearRevisitContext()\n                self._autoPopupMgr:resetPopup()\n                openStartPanel()\n                reportScene()\n            end\n\n            local PanelVM = require \"amf.feature.minihub.recommendationfeed.FeedRevisitEnergyRewardPanelVM\"\n            local vm = PanelVM:create({\n                contentId = contentId,\n                visualPath = energyRewardConfig.visualPath,\n                rewardKey = rewardKey,\n                claimHandler = FeedRevisitRewardService.requestEnergyReward,\n                closeCallback = finishPopup,\n                panelShownCallback = reportScene,\n            })\n            vm:setLoadResFailCallback(finishPopup)\n            vm:popout()\n        end\n        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\n        return\n    end\n\n    local function showFeedTip()\n        local curScene = Director:sharedDirector():getRunningScene()\n        local safeArea = _G.fullScreenSizeManager:getSafeArea()\n        local visibleSize = safeArea.size\n        local originPos = safeArea.origin\n\n        local function showTipScene2()\n            local baseX = originPos.x + 220\n            local baseY = originPos.y + visibleSize.height - 70\n\n            local desc = \"亲爱的小村民，精力已恢复，\\n快来继续游戏吧！\"\n            local tip = UITip.Builder.new():setMessage(desc, \"B2714AFF\", nil, 26):setDirection(UITip.Direction.DOWN)\n                :setSkin(UITip.SkinType.FEED):setAutoCloseTime(0):buildSingleTip(true)\n            tip:moveArrow(-116, 0)\n            curScene:addChild(tip, SceneLayerShowKey.TOP_LAYER)\n            tip:setPositionXY(baseX, baseY)\n        end\n\n        if feedScene == FeedContext.SceneType.ENERGY_RECOVER then\n            showTipScene2()\n        end\n    end\n\n    local function creator()\n        self._autoPopupMgr:resetPopup()\n        openStartPanel()\n        --UBFProcessManager:launch(UBFGameProcessEnum.NORMAL_START, {\n        --\tlevelId = _G.getTopLevelId(),\n        --\tlevelScene = UBFLevelSceneType.kMain,\n        --})\n        local userStateManager = _G.amfBean(\"UserStateManager\")\n        if userStateManager:isFMJ() or userStateManager:isColorfulStarFull() then\n            showFeedTip()\n        end\n    end\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\nend\n\n-- 复访版离线收益场景：直玩进入后不进入战斗/大厅，直接展示金银果树面板，\n-- 并在面板上叠加通用引导（小浣熊提示），引导玩家摘取成熟果实。\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if self:checkDyOfflineRewardPanel() then return end",
+        "if not FeedContext.consumeOpenStartPanel() then return end",
+        "if feedScene == FeedContext.SceneType.IMPORTANT_EVENT_DROP",
+        "if popupOver then return end",
+        "if not markManager or not markManager:isEnabled() then",
+        "return",
+        "return",
+        "if energyRewardConfig and rewardKey then",
+        "if popupOver then return end",
+        "return",
+        "if feedScene == FeedContext.SceneType.ENERGY_RECOVER then",
+        "if userStateManager:isFMJ() or userStateManager:isColorfulStarFull() then"
+      ]
+    },
+    {
+      "id": "TR126",
+      "source": "amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua",
+      "line": 558,
+      "sha256": "036ae5f95a1cfbac7e91dba615bed39c17c3019e716d4e330e857ec9957016a9",
+      "function": "Stage2EnterSceneHandler:checkDyOfflineRewardPanel()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)",
+      "stages": [],
+      "context": "function Stage2EnterSceneHandler:checkDyOfflineRewardPanel()\n    if not FeedContext.consumeOpenOfflineRewardPanel() then return false end\n\n    local contentId = FeedContext.getTrialSourceIdFromJS()\n    --\n--\n--\n--\n--\n--\n\n\n    if not FeedRevisitConfig.isOfflineReward(contentId) then\n        -- 未命中本次投放方案，交回默认复访流程\n        return false\n    end\n\n    local fruitTreeManager = _G.amfBean(\"FruitTreeManager\")\n    if not fruitTreeManager or not fruitTreeManager:isEnabled() then\n        -- 果树未开放（未过 FruitTreeConst.OPAN_PASSLEVEL）等异常数据：不展示果树面板，\n        -- 补一次兜底上报（保持本轮场景上报不丢），再交回默认复访流程\n        self:reportFeedRevisitScene()\n        return false\n    end\n\n    local guide\n\n    local function hideGuide()\n        local guideNode = guide\n        guide = nil\n        if guideNode and not guideNode.isDisposed then\n            guideNode:removeGuide()\n        end\n    end\n\n    local function showGuide()\n        hideGuide()\n        local HeGuide = require \"amf.middleware.ui.kit.component.HeGuide\"\n        guide = HeGuide:create(nil, true, nil, nil, true)\n        guide:setEndCall(function()\n            hideGuide()\n        end)\n        guide:showNpc2({\n            { ttf = FeedRevisitConfig.OfflineRewardTipText },\n        }, FEED_REVISIT_OFFLINE_GUIDE_POS_Y)\n        guide:setMaskOpacity(0)\n    end\n\n    local function creator()\n        local popupOver = false\n        local function finishPopup()\n            if popupOver then return end\n            popupOver = true\n            hideGuide()\n            FeedContext.clearRevisitContext()\n            self._autoPopupMgr:resetPopup()\n            -- 关闭果树面板后的去向：当前保持主场景，不额外拉起开始面板（待产品确认）\n        end\n\n        fruitTreeManager:openFruitTreePanel({\n            t1 = \"feed_revisit_offline\",\n            onOpened = function()\n                showGuide()\n                self:reportFeedRevisitScene()\n            end,\n            onClosed = finishPopup,\n            onLoadFailed = finishPopup,\n        })\n    end\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)\n    return true\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not FeedContext.consumeOpenOfflineRewardPanel() then return false end",
+        "if not FeedRevisitConfig.isOfflineReward(contentId) then",
+        "return false",
+        "if not fruitTreeManager or not fruitTreeManager:isEnabled() then",
+        "return false",
+        "if guideNode and not guideNode.isDisposed then",
+        "if popupOver then return end",
+        "return true"
+      ]
+    },
+    {
+      "id": "TR127",
+      "source": "amf/middleware/autopop/module/poptype/ActivityHandler.lua",
+      "line": 50,
+      "sha256": "e2293a031e01f06237766acd71cdad7e180a0ceb28e7c9897f7c78c60d2a497e",
+      "function": "ActivityHandler:handleActivityNew(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.ACT_NEW, creator)",
+      "stages": [],
+      "context": "function ActivityHandler:handleActivityNew(params)\n    local needRetrigger = params and params.needRetrigger\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.ACT_NEW)\n    end\n\n    local function creator()\n        _G.amfBean(\"PopupNewActMgr\"):popNewActPanel(onHandleOver)\n    end\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.ACT_NEW, creator)\n\n    --新活动特殊处理，多触发一次强弹\n    if needRetrigger then\n        self:retriggerAutoPopup()\n    end\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if needRetrigger then"
+      ]
+    },
+    {
+      "id": "TR128",
+      "source": "amf/middleware/autopop/module/poptype/ActivityHandler.lua",
+      "line": 75,
+      "sha256": "e2293a031e01f06237766acd71cdad7e180a0ceb28e7c9897f7c78c60d2a497e",
+      "function": "ActivityHandler:handleActivitySH01(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.SH01_MAIN_POP, delayCreator)",
+      "stages": [],
+      "context": "function ActivityHandler:handleActivitySH01(params)\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.SH01_MAIN_POP)\n    end\n\n    local function creator()\n        if _G.amfBean(\"SH01Manager\") and _G.amfBean(\"SH01Manager\"):isEnabled() then\n            _G.amfBean(\"SH01Manager\"):handleSh01ActivityPop( onHandleOver )\n        else\n            onHandleOver()\n        end\n    end\n\n    local function delayCreator()\n        setTimeOut(creator,1)\n    end\n\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.SH01_MAIN_POP, delayCreator)\nend\n\nreturn ActivityHandler\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if _G.amfBean(\"SH01Manager\") and _G.amfBean(\"SH01Manager\"):isEnabled() then",
+        "return ActivityHandler"
+      ]
+    },
+    {
+      "id": "TR129",
+      "source": "amf/middleware/autopop/module/poptype/ConditionHandler.lua",
+      "line": 82,
+      "sha256": "ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240",
+      "function": "ConditionHandler:handlePlayLevelBack(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PLAY_LEVEL_BACK, creator)",
+      "stages": [],
+      "context": "function ConditionHandler:handlePlayLevelBack(params)\n\tlocal levelPlayInfo = params\n\tlocal function onHandleOver()\n\t\tself._autoPopupMgr:finishInterruptibleEntries()\n\t\tMainSceneEventCenter:dispatch(MainSceneEvent.Play.LEVEL_BACK_FINISHED, levelPlayInfo)\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PLAY_LEVEL_BACK)\n\tend\n\n\tlocal function creator()\n\t\tif levelPlayInfo.isWin then\n\t\t\tlocal PassLevelProcessor = require \"amf.feature.mainscene.world.logic.passlevel.PassLevelProcessor\"\n\t\t\tlocal processor = PassLevelProcessor:create(levelPlayInfo)\n\t\t\tprocessor:process():next(function()\n\t\t\t\tALog.log(\"ConditionHandler\", \"大藤蔓 处理过关事件结束\")\n\t\t\t\tonHandleOver()\n\t\t\tend)\n\t\telse\n\t\t\t-- 闯关失败\n\t\t\tonHandleOver()\n\t\tend\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.PLAY_LEVEL_BACK, creator)\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if levelPlayInfo.isWin then"
+      ]
+    },
+    {
+      "id": "TR130",
+      "source": "amf/middleware/autopop/module/poptype/ConditionHandler.lua",
+      "line": 100,
+      "sha256": "ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240",
+      "function": "ConditionHandler:handleOpenStartLevelPanel(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.EXIT_LEVEL_JUMP, creator)",
+      "stages": [],
+      "context": "function ConditionHandler:handleOpenStartLevelPanel(params)\n\tlocal function onHandleOver()\n\t\t--如果开始面板、补星推荐弹出 则停掉强弹\n\t\tself._autoPopupMgr:resetPopupForStartGamePanel()\n\tend\n\n\tlocal function creator()\n        if LevelSceneFunc:isFullLevelLib(params.levelScene) then\n            _G.amfBean(\"FullStarLevelLibManager\"):tryOpenStartPanel(false)\n        else\n            _G.amfBean(\"ExitLevelJumpManager\"):runJumpLogic(params)\n        end\n        \n\t\tonHandleOver()\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.EXIT_LEVEL_JUMP, creator)\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if LevelSceneFunc:isFullLevelLib(params.levelScene) then"
+      ]
+    },
+    {
+      "id": "TR131",
+      "source": "amf/middleware/autopop/module/poptype/ConditionHandler.lua",
+      "line": 139,
+      "sha256": "ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240",
+      "function": "ConditionHandler:handleActCustomizedPanelStage3(params)",
+      "checkpoint": ":addPopupConfig(_popupCheckPoint, creator, actId)",
+      "stages": [],
+      "context": "function ConditionHandler:handleActCustomizedPanelStage3(params)\n\tlocal index = params.index\n\tlocal metaId = params.metaId\n    local actId = params.actId\n    local levelData = params.levelData\n    local autoPopupConfig = params.autoPopupConfig\n    local _popupCheckPoint = PopupCheckPoint[\"ACT_CUSTOMIZED_PANEL_STAGE_3_\" .. index]\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, _popupCheckPoint)\n    end\n\n    local function creator()\n\t\tif self._autoPopupMgr._popoutManager:haveWindowOnScreenWithoutCommonTip() then\n\t\t\treturn onHandleOver()\n\t\tend\n    \tif not autoPopupConfig then\n    \t\tAutoPopupDebugLog:log(string.format(\"ConditionHandler:handleActCustomizedPanelStage3===invalid autoPopupConfig. actId:%s metaId:%s index:%d\", nil, nil, index)) \n            return onHandleOver()\n        end\n        local customizedCreator = autoPopupConfig:getCustomizedCreator()\n        if not customizedCreator then\n            AutoPopupDebugLog:log(string.format(\"ConditionHandler:handleActCustomizedPanelStage3===invalid customizedCreator. actId:%s metaId:%s index:%d\", nil, nil, index)) \n            return onHandleOver()\n        end\n\t\t\n      \tlocal status = pcall(customizedCreator, levelData, onHandleOver)\n\t\tif status then\n            ActivityEventCenter:dispatch(ActivityEvent.ACTIVITY_POPUP_OVER,{\n                metaId = metaId\n            })\n\t\telse\n\t\t\tonHandleOver()\n\t\tend  \n    end\n\tAutoPopupDC:setDcExtraParam1(_popupCheckPoint, actId)\n    self._autoPopupMgr:addPopupConfig(_popupCheckPoint, creator, actId)\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if self._autoPopupMgr._popoutManager:haveWindowOnScreenWithoutCommonTip() then",
+        "return onHandleOver()",
+        "if not autoPopupConfig then",
+        "return onHandleOver()",
+        "if not customizedCreator then",
+        "return onHandleOver()",
+        "if status then"
+      ]
+    },
+    {
+      "id": "TR132",
+      "source": "amf/middleware/autopop/module/poptype/ConditionHandler.lua",
+      "line": 179,
+      "sha256": "ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240",
+      "function": "ConditionHandler:handleActCustomizedPanelStage4(params)",
+      "checkpoint": ":addPopupConfig(_popupCheckPoint, creator, actId)",
+      "stages": [],
+      "context": "function ConditionHandler:handleActCustomizedPanelStage4(params)\n\tlocal index = params.index\n\tlocal metaId = params.metaId\n    local actId = params.actId\n    local autoPopupConfig = params.autoPopupConfig\n    local _popupCheckPoint = PopupCheckPoint[\"ACT_CUSTOMIZED_PANEL_STAGE_4_\" .. index]\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, _popupCheckPoint)\n    end\n\n    local function creator()\n\t\tif self._autoPopupMgr._popoutManager:haveWindowOnScreenWithoutCommonTip() then\n\t\t\treturn onHandleOver()\n\t\tend\n\n    \tif not autoPopupConfig then\n    \t\tAutoPopupDebugLog:log(string.format(\"ConditionHandler:handleActCustomizedPanelStage4===invalid autoPopupConfig. actId:%s metaId:%s index:%d\", actId, metaId, index)) \n            return onHandleOver()\n        end\n\t\t\n        local customizedCreator = autoPopupConfig:getCustomizedCreator()\n        if not customizedCreator then\n            AutoPopupDebugLog:log(string.format(\"ConditionHandler:handleActCustomizedPanelStage4===invalid customizedCreator. actId:%s metaId:%s index:%d\", actId, metaId, index)) \n            return onHandleOver()\n        end\n      \tlocal status = pcall(customizedCreator, {}, onHandleOver)\n\t\tif status then\n            ActivityEventCenter:dispatch(ActivityEvent.ACTIVITY_POPUP_OVER,{\n                metaId = metaId\n            })\n\t\telse\n\t\t\tonHandleOver()\n\t\tend  \n    end\n\n\tAutoPopupDC:setDcExtraParam1(_popupCheckPoint, actId)\n    self._autoPopupMgr:addPopupConfig(_popupCheckPoint, creator, actId)\nend\n\nreturn ConditionHandler\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if self._autoPopupMgr._popoutManager:haveWindowOnScreenWithoutCommonTip() then",
+        "return onHandleOver()",
+        "if not autoPopupConfig then",
+        "return onHandleOver()",
+        "if not customizedCreator then",
+        "return onHandleOver()",
+        "if status then",
+        "return ConditionHandler"
+      ]
+    },
+    {
+      "id": "TR133",
+      "source": "amf/middleware/autopop/module/poptype/CrashResumeHandler.lua",
+      "line": 120,
+      "sha256": "254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc",
+      "function": "CrashResumeHandler:handleMainAndHide(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.CRASH_RESUME_MAIN, creator)",
+      "stages": [],
+      "context": "function CrashResumeHandler:handleMainAndHide(params)\n\tlocal crashResumeLogic = params.logic\n\tif not crashResumeLogic then return end\n\n\tlocal bGetOtherContextSucess = params.bGetOtherContextSucess\n\tlocal otherDevicePlayingContextInfo = params.otherDevicePlayingContextInfo\n\n\tlocal function onHandleOver()\n\t\tself:clearOthers(PopupCheckPoint.CRASH_RESUME_MAIN)\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER , PopupCheckPoint.CRASH_RESUME_MAIN)\n    end\n\n    local function creator()\n    \tlocal AsyncRunner = require \"amf.script.sugar.AsyncRunner\"\n\n\t\tlocal function onResp(canResume, errCode)\n\t\t\tlocal cantResumeParams\n\t\t\tif not canResume then\n\t\t\t\tcantResumeParams = crashResumeLogic:getLastResumeFailData()\n\t\t\tend\n\n\t\t\tlocal asyncRunner = AsyncRunner:create()\n\n\t\t\tasyncRunner:add(function (done)\n\t\t\t\tif _G.amfBean(\"ActivityMgr\"):checkActInfoInited() then\n\t\t\t\t\tsafeRunCall(done)\n\t\t\t\telse\n\t\t\t\t\t--等1秒，活动信息回来\n\t\t\t\t\tsetTimeOut( done, 1 )\n\t\t\t\tend\n\t\t\tend)\n\n\t\t\tif bGetOtherContextSucess then\n\t\t\t\tasyncRunner:add(function (done)\n\t\t\t\t\t--处理别的设备打关弹板\n\t\t\t\t\tself:handleBeforeMainAndHide( otherDevicePlayingContextInfo, done )\n\t\t\t\tend)\n\t\t\tend\n\n\t\t\tif canResume then\n\t\t\t\tasyncRunner:add(function (done)\n\t\t\t\t\t--闪退恢复\n\t\t\t\t\tcrashResumeLogic:handleMiniGameResume():next(function (resumed)\n\t\t\t\t\t\tif resumed then\n\t\t\t\t\t\t\tself._autoPopupMgr:resetPopup()\n\t\t\t\t\t\telse\n\t\t\t\t\t\t\tsafeRunCall(done)\n\t\t\t\t\t\tend\n\t\t\t\t\tend)\n\t\t\t\tend)\n\t\t\telse\n\t\t\t\tasyncRunner:add(function (done)\n\t\t\t\t\t--闪退不能恢复\n\t\t\t\t\t--尝试弹出连胜不能恢复面板\n\t\t\t\t\tif cantResumeParams and errCode and errCode == UBFGameResumeFailReason.kCrashOver1Hour then\n\t\t\t\t\t\tself:handleMainAndHideFail({_data = cantResumeParams}, done)\n\t\t\t\t\telse\n\t\t\t\t\t\tsafeRunCall(done)\n\t\t\t\t\tend\n\t\t\t\tend)\n\t\t\tend\n\n\t\t\tasyncRunner:add(function (done)\n\t\t\t\tsafeRunCall(onHandleOver)\n\t\t\tend)\n\n\t\t\tasyncRunner:run()\n\t\tend\n\t\tcrashResumeLogic:checkCanResume(onResp)\n\n    end\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.CRASH_RESUME_MAIN, creator)\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not crashResumeLogic then return end",
+        "if not canResume then",
+        "if _G.amfBean(\"ActivityMgr\"):checkActInfoInited() then",
+        "if bGetOtherContextSucess then",
+        "if canResume then",
+        "if resumed then",
+        "if cantResumeParams and errCode and errCode == UBFGameResumeFailReason.kCrashOver1Hour then"
+      ]
+    },
+    {
+      "id": "TR134",
+      "source": "amf/middleware/autopop/module/poptype/CrashResumeHandler.lua",
+      "line": 533,
+      "sha256": "254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc",
+      "function": "CrashResumeHandler:handleAutoStartLevel(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.AUTO_START_LEVEL, creator)",
+      "stages": [],
+      "context": "function CrashResumeHandler:handleAutoStartLevel(params)\n\tlocal levelId = params.levelId\n\tlocal costType = params.costType\n\tlocal source = params.source\n\n\tlocal function onHandleOver()\n\t\tself:clearOthers(PopupCheckPoint.AUTO_START_LEVEL)\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER , PopupCheckPoint.AUTO_START_LEVEL)\n    end\n\n\tlocal function creator()\n\t\t-- AP 模式下跳过闪退恢复自动进关：闪退恢复路径没有注入 SuperPlayer，无法捕获逻辑线程上报的 snap，导致关卡内无法决策。\n\t\t-- TODO: 未来改为前端在 kWating 时直接从逻辑层取 snap，不再依赖逻辑层主动上报， 届时可去掉此 guard，闪退恢复与正常进关对 AP 透明。\n\t\tif _G.AutoPlayEnv then\n\t\t\tonHandleOver()\n\t\t\treturn\n\t\tend\n\t\trequire (\"ubf.UBF.utils.UBFCommonRequire\")(\"*\")\n\n\t\t-- local itemList, usePropList = {}, {}\n\t\t-- DcUtil:log(AcType.kExpire30Days, {\n\t\t-- \tcategory = \"start_level\",\n\t\t-- \tsub_category = \"auto_start_level\",\n\t\t-- \tlevelId = levelId,\n\t\t-- \titemList = ttsd(itemList),\n\t\t-- \tusePropList = ttsd(usePropList),\n\t\t-- \tcostType = costType,\n\t\t-- \tsource = source\n\t\t-- })\n\n\t\tlocal angry = UBFGameLoadingController:apply({\n\t\t\tsource = UBFGameLoadingSourceEnum.ORDINARY,\n\t\t\tlevelId = levelId,\n\t\t\ttoleratedTime = 0,\n\t\t}):retain()\n\n\t\tlocal process = UBFProcessManager:launch(UBFGameProcessEnum.MANUAL_START, {\n\t\t\tlevelId = levelId,\n\t\t})\n\t\tprocess:operate(UBFProcessNodeEnum.WAIT_MANUAL, {\n\t\t\tenergyCostType = costType,\n\t\t\tfinish = true,\n\t\t})\n\t\tprocess:afterEnd():next(function()\n\t\t\tangry:release()\n\t\t\tself._autoPopupMgr:resetPopup()\n\t\tend)\n\t\tprocess:afterAbort():next(function()\n\t\t\tangry:release()\n\t\t\tonHandleOver()\n\t\tend)\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.AUTO_START_LEVEL, creator)\nend\n\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if _G.AutoPlayEnv then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR135",
+      "source": "amf/middleware/autopop/module/poptype/CrashResumeHandler.lua",
+      "line": 595,
+      "sha256": "254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc",
+      "function": "CrashResumeHandler:handleBackUserAutoStartLevel(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.AUTO_START_LEVEL_BACK_USER, creator)",
+      "stages": [],
+      "context": "function CrashResumeHandler:handleBackUserAutoStartLevel(params)\n\tlocal levelId = params.levelId\n\tlocal costType = params.costType\n\tlocal logic = params.logic\n\n\tlocal function onHandleOver()\n\t\tself:clearOthers(PopupCheckPoint.AUTO_START_LEVEL_BACK_USER)\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER , PopupCheckPoint.AUTO_START_LEVEL_BACK_USER)\n    end\n\n\tlocal function creator()\n\n\t\tlocal function realPopFunc()\n\t\t\trequire (\"ubf.UBF.utils.UBFCommonRequire\")(\"*\")\n\n\t\t\tlocal angry = UBFGameLoadingController:apply({\n\t\t\t\tsource = UBFGameLoadingSourceEnum.ORDINARY,\n\t\t\t\tlevelId = levelId,\n\t\t\t\ttoleratedTime = 0,\n\t\t\t}):retain()\n\t\t\tlocal process = UBFProcessManager:launch(UBFGameProcessEnum.MANUAL_START, {\n\t\t\t\tlevelId = levelId,\n\t\t\t\tcontinuePlayMode = true,\n\t\t\t})\n\n\t\t\tprocess:operate(UBFProcessNodeEnum.WAIT_MANUAL, {\n\t\t\t\tenergyCostType = costType,\n\t\t\t\tfinish = true,\n\t\t\t})\n\t\t\tprocess:afterEnd():next(function()\n\t\t\t\tangry:release()\n\t\t\t\tself._autoPopupMgr:resetPopup()\n\t\t\tend)\n\n\t\t\tprocess:afterAbort():next(function()\n\t\t\t\tangry:release()\n\t\t\t\tonHandleOver()\n\t\t\tend)\n\t\t\tif logic then logic:setAutoEntered() end\n\t\tend\n\n\t\tlocal function notifyAutoStartLevelBackUser()\n\t\t\tlocal eventData = {\n\t\t\t\tcallback = realPopFunc,\n\t\t\t}\n\t\t\t_G.amfEC:notifyFeature(FeatureEvent.AUTO_START_LEVEL_BACK_USER, eventData)\n\t\t\tif not eventData.handled then\n\t\t\t\trealPopFunc()\n\t\t\tend\n\t\tend\n\n\t\tif _G.amfBean(\"ActivityMgr\"):checkActInfoInited() then\n\t\t\tnotifyAutoStartLevelBackUser()\n\t\telse\n\t\t\t--给1秒延迟，等actInfo返回。 超鸟回流进关修改\n\t\t\tsetTimeOut(notifyAutoStartLevelBackUser, 1)\n\t\tend\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.AUTO_START_LEVEL_BACK_USER, creator)\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if logic then logic:setAutoEntered() end",
+        "if not eventData.handled then",
+        "if _G.amfBean(\"ActivityMgr\"):checkActInfoInited() then"
+      ]
+    },
+    {
+      "id": "TR136",
+      "source": "amf/middleware/autopop/module/poptype/CrashResumeHandler.lua",
+      "line": 656,
+      "sha256": "254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc",
+      "function": "CrashResumeHandler:handleFeedTrialAutoStartLevel(params)",
+      "checkpoint": ":addPopupConfig(popupCheckPoint, creator)",
+      "stages": [],
+      "context": "function CrashResumeHandler:handleFeedTrialAutoStartLevel(params)\n\tparams = params or {}\n\tlocal popupCheckPoint = params.popupCheckPoint or PopupCheckPoint.AUTO_START_LEVEL_DY_FEED\n\n\tlocal function onHandleOver()\n\t\tself:clearOthers(popupCheckPoint)\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, popupCheckPoint)\n\tend\n\n\tlocal function creator()\n\t\tself:startFeedTrialLevel(params, onHandleOver)\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(popupCheckPoint, creator)\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": []
+    },
+    {
+      "id": "TR137",
+      "source": "amf/middleware/autopop/module/poptype/CrashResumeHandler.lua",
+      "line": 767,
+      "sha256": "254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc",
+      "function": "CrashResumeHandler:handleRecallOpenStartPanel(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.RECALL_OPEN_START_PANEL, creator)",
+      "stages": [],
+      "context": "function CrashResumeHandler:handleRecallOpenStartPanel(params)\n\tlocal levelId = params.levelId\n\n\tlocal function onHandleOver()\n\t\tself:clearOthers(PopupCheckPoint.RECALL_OPEN_START_PANEL)\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.RECALL_OPEN_START_PANEL)\n\tend\n\n\tlocal function creator()\n\t\trequire (\"ubf.UBF.utils.UBFCommonRequire\")(\"*\")\n\n\t\tlocal process = UBFProcessManager:launch(UBFGameProcessEnum.NORMAL_START, {\n\t\t\tlevelId = levelId,\n\t\t\textra = {\n\t\t\t\trecallGuideHand = true,\n\t\t\t},\n\t\t})\n\t\tprocess:afterEnd():next(function()\n\t\t\tself._autoPopupMgr:resetPopup()\n\t\tend)\n\t\tprocess:afterAbort():next(function()\n\t\t\tonHandleOver()\n\t\tend)\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.RECALL_OPEN_START_PANEL, creator)\nend\n\nreturn CrashResumeHandler\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "return CrashResumeHandler"
+      ]
+    },
+    {
+      "id": "TR138",
+      "source": "amf/middleware/autopop/module/poptype/FunctionHandler.lua",
+      "line": 105,
+      "sha256": "31660341bd096dd41ffa6d7122dd1437ef352d24d4beccd6a994c027becf64a0",
+      "function": "FunctionHandler:handleScrollToCurrentLevel(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.SCROLL_TO_CURRENT_LEVEL, creator)",
+      "stages": [],
+      "context": "function FunctionHandler:handleScrollToCurrentLevel(params)\n    if EnvUtil:isMiniGame() and EnvUtil:isDevelopMode() then\n        local datas = {\n            udid = MetaInfo:getInstance():getUdid(),\n            deviceModel = MetaInfo:getInstance():getDeviceModel(),\n            gameVersion = _G.bundleVersion,\n        }\n        CS.CallJS.CallS(\"globalThis.sendQADcData\", table.serialize(datas))\n    end\n\n\tlocal function isVibrateEnabled()\n\t\treturn true\n\tend\n\n\tlocal function vibrateShort(count, callback)\n\t\tif count > 0 then\n\t\t\tTimerUtil.addAlarm(function()\n\t\t\t\tlocal vibrateType = \"light\"\n\t\t\t\tif count == 1 then\n\t\t\t\t\tvibrateType = \"heavy\"\n\t\t\t\telseif count == 2 then\n\t\t\t\t\tvibrateType = \"medium\"\n\t\t\t\tend\n\t\t\t\tlocal config = {\n\t\t\t\t\tminiGame = {\n\t\t\t\t\t\tlevel = vibrateType\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\t_G.HapticsContext.new()\n\t\t\t\t\t:setConfig(config)\n\t\t\t\t\t:execute()\n\t\t\t\tvibrateShort(count - 1)\n\t\t\tend, 0.20)\n\t\telse\n\t\t\tif callback then callback() end\n\t\tend\n\tend\n\n\t--先只震动不滚动，刚进大藤蔓性能有问题\n\tdo\n\t\tif isVibrateEnabled() then\n\t\t\tsetTimeOut(function()\n\t\t\t\tvibrateShort(2)\n\t\t\tend, 0.3)\n\t\tend\n\t\treturn\n\tend\n\n\tlocal function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.SCROLL_TO_CURRENT_LEVEL)\n\tend\n\n\tlocal function creator()\n\t\t--UWarning(\"DEVICE_BENCHMARK_LEVEL\", DEVICE_BENCHMARK_LEVEL)\n\t\tsetTimeOut(function()\n\t\t\tlocal topLevelId = getTopLevelId(true)\n\t\t\tlocal dt = math.clamp(0.5 + topLevelId / 10000, 0.5, 1.0)\n\t\t\tif topLevelId < 10 then\n\t\t\t\tdt = 0.1\n\t\t\tend\n\t\t\tlocal MainSceneEventCenter = require 'amf.feature.mainscene.core.event.MainSceneEventCenter'\n\t\n            MainSceneEventCenter:dispatch(MainSceneEvent.Trunk.MOVE_TRUNK_TO, {\n\t\t\t\tlevelId = topLevelId,\n                levelScene = UBFLevelSceneType.kMain,\n\t\t\t\tduration = 0.5,\n\t\t\t\tcallback = onHandleOver\n\t\t\t})\n\t\t\tif isVibrateEnabled() then\n\t\t\t\tvibrateShort(math.ceil(dt / 0.25))\n\t\t\tend\n\t\tend, 0.8)\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.SCROLL_TO_CURRENT_LEVEL, creator)\nend\n\nreturn FunctionHandler",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if EnvUtil:isMiniGame() and EnvUtil:isDevelopMode() then",
+        "return true",
+        "if count > 0 then",
+        "if count == 1 then",
+        "if callback then callback() end",
+        "if isVibrateEnabled() then",
+        "return",
+        "if topLevelId < 10 then",
+        "if isVibrateEnabled() then",
+        "return FunctionHandler"
+      ]
+    },
+    {
+      "id": "TR139",
+      "source": "amf/middleware/autopop/module/poptype/OutsideHandler.lua",
+      "line": 63,
+      "sha256": "85036943aa9686801d423611db6269fc2af2eb43f597112c52f72412e2759655",
+      "function": "OutsideHandler:handleClickBindWechatPay(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.CLICK_LINK_BIND_WECHAT_PAY, creator)",
+      "stages": [],
+      "context": "function OutsideHandler:handleClickBindWechatPay(params)\n    local url = params.url\n\tlocal para = url.para\n    \n    local openId = para.openId\n    local app = para.app\n    local redirect = para.redirect\n\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.CLICK_LINK_BIND_WECHAT_PAY)\n\tend\n\n\tlocal function creator()\n\t\tlocal function showResult()\n\t\t\tlocal resultUrl = HeDisplayUtil:urlDecode(redirect);\n\t\t\tlocal TextUtil = require \"amf.middleware.ui.util.TextUtil\"\n\t\t\tresultUrl = TextUtil:buildURL(\"\", resultUrl, {\n\t\t\t\tapp = app,\n\t\t\t\topenId = openId,\n\t\t\t\tuserId = _G.amfBean(\"ProfileManager\"):getXxlId(),\n\t\t\t});\n\t\n\t\t\tlocal OpenUrlUtil = require \"amf.middleware.multiplatform.util.OpenUrlUtil\"\n\t\t\tOpenUrlUtil:openUrl(resultUrl)\n\t\tend\n        local request = require \"amf.middleware.autopop.module.openurl.http.RequestOfficialPayBindWx\"\n\t\trequest:post({openId = openId}):next(showResult, showResult)\n\n\t\tonHandleOver()\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.CLICK_LINK_BIND_WECHAT_PAY, creator)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": []
+    },
+    {
+      "id": "TR140",
+      "source": "amf/middleware/autopop/module/poptype/OutsideHandler.lua",
+      "line": 80,
+      "sha256": "85036943aa9686801d423611db6269fc2af2eb43f597112c52f72412e2759655",
+      "function": "OutsideHandler:handleClickLinkWechatFAQ(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.CLICK_LINK_WECHAT_FAQ, creator)",
+      "stages": [],
+      "context": "function OutsideHandler:handleClickLinkWechatFAQ(params)\n    local url = params.url\n\n\t--never use by now\n\tlocal function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.CLICK_LINK_WECHAT_FAQ)\n\tend\n\n\tlocal function creator()\n\t\tFAQ:openFAQClient(url, FAQTabTags.kSheQu, true)\n\n\t\t--这个绑定需打开社区，保险起见，停掉强弹\n\t\tself._autoPopupMgr:resetPopup()\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.CLICK_LINK_WECHAT_FAQ, creator)\nend\n\nreturn OutsideHandler",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "return OutsideHandler"
+      ]
+    },
+    {
+      "id": "TR141",
+      "source": "amf/middleware/autopop/module/poptype/PolicyHandler.lua",
+      "line": 49,
+      "sha256": "d2fd0f7e17c45de5615c76a8ab585a74b28cd84614ca5e7abf0b0083f3fa3a49",
+      "function": "PolicyHandler:handleForbidPlaying(popType)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.FORBID_PLAYING, creator)",
+      "stages": [],
+      "context": "function PolicyHandler:handleForbidPlaying(popType)\n\tlocal function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.FORBID_PLAYING)\n\tend\n\n\tlocal function creator()\n\t\tlocal ForbidLoginLogic = require \"amf.feature.login.stage.login.ForbidLoginLogic\"\n\t\tForbidLoginLogic:doAutoPopup(popType, onHandleOver)\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.FORBID_PLAYING, creator)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": []
+    },
+    {
+      "id": "TR142",
+      "source": "amf/middleware/autopop/module/poptype/PolicyHandler.lua",
+      "line": 72,
+      "sha256": "d2fd0f7e17c45de5615c76a8ab585a74b28cd84614ca5e7abf0b0083f3fa3a49",
+      "function": "PolicyHandler:handleAntiAddiction(alertType)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.ANTI_ADDICTION, creator)",
+      "stages": [],
+      "context": "function PolicyHandler:handleAntiAddiction(alertType)\n\tif not alertType then return end\n\tif alertType ~= ShiMingConst.AntiAddictionType.JUVENILE_CUMULATIVE and\n\t   alertType ~= ShiMingConst.AntiAddictionType.JUVENILE_PERIOD then\n\t\t-- assert(false, \"PolicyHandler invalid alertType : \" .. tostring(alertType))\n\t\treturn\n\tend\n\n\tlocal function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.ANTI_ADDICTION)\n\tend\n\n\tlocal function creator()\n\t\tif alertType == ShiMingConst.AntiAddictionType.JUVENILE_CUMULATIVE then\n\t\t\t_G.amfBean(\"ShiMingManager\"):popPanelJuvenileTimeCumulativeLimit()\n\t\telseif alertType == ShiMingConst.AntiAddictionType.JUVENILE_PERIOD then\n\t\t\t_G.amfBean(\"ShiMingManager\"):popPanelJuvenileTimePeriodLimit()\n\t\tend\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.ANTI_ADDICTION, creator)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not alertType then return end",
+        "if alertType ~= ShiMingConst.AntiAddictionType.JUVENILE_CUMULATIVE and",
+        "return",
+        "if alertType == ShiMingConst.AntiAddictionType.JUVENILE_CUMULATIVE then"
+      ]
+    },
+    {
+      "id": "TR143",
+      "source": "amf/middleware/autopop/module/poptype/PolicyHandler.lua",
+      "line": 84,
+      "sha256": "d2fd0f7e17c45de5615c76a8ab585a74b28cd84614ca5e7abf0b0083f3fa3a49",
+      "function": "PolicyHandler:handleRecallShiMing()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.RECALL_SHIMING, creator)",
+      "stages": [],
+      "context": "function PolicyHandler:handleRecallShiMing()\n\tlocal function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.RECALL_SHIMING)\n\tend\n\n\tlocal function creator()\n\t\t_G.amfBean(\"ShiMingManager\"):handleAutoPopupMainPanel(onHandleOver)\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.RECALL_SHIMING, creator)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": []
+    },
+    {
+      "id": "TR144",
+      "source": "amf/middleware/autopop/module/poptype/PolicyHandler.lua",
+      "line": 104,
+      "sha256": "d2fd0f7e17c45de5615c76a8ab585a74b28cd84614ca5e7abf0b0083f3fa3a49",
+      "function": "PolicyHandler:handleHWShiMingSyncAlert(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.HW_SHIMING_SYNC_ALERT, creator)",
+      "stages": [],
+      "context": "function PolicyHandler:handleHWShiMingSyncAlert(params)\n\tlocal regType = params.regType\n\tlocal alertPanelType = params.alertPanelType\n\tlocal function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.HW_SHIMING_SYNC_ALERT)\n\tend\n\n\tlocal function creator()\n\t\tif alertPanelType == ShiMingConst.PanelId.HW_JUVENILE_ALERT then\n\t\t\t_G.amfBean(\"ShiMingManager\"):popPanelHWJuvenileAlert(regType, onHandleOver)\n\t\telseif alertPanelType == ShiMingConst.PanelId.HW_UNKNOWN_ALERT then\n\t\t\t_G.amfBean(\"ShiMingManager\"):popPanelHWUnknownAlert(regType, onHandleOver)\n\t\telse\n\t\t\tassert(false, \"PolicyHandler invalid alertPanelType : \" .. tostring(alertPanelType))\n\t\tend\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.HW_SHIMING_SYNC_ALERT, creator)\nend\n\nreturn PolicyHandler",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if alertPanelType == ShiMingConst.PanelId.HW_JUVENILE_ALERT then",
+        "return PolicyHandler"
+      ]
+    },
+    {
+      "id": "TR145",
+      "source": "amf/middleware/autopop/module/poptype/RecallHandler.lua",
+      "line": 69,
+      "sha256": "4eb00378fa343de993bf670085ce1d50b16e822dc8536eb199a8aeca473c9784",
+      "function": "RecallHandler:handleReflow2025(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.RECALL_2025_STAGE2, creator)",
+      "stages": [],
+      "context": "function RecallHandler:handleReflow2025(params)\n    if _G.amfBean(\"LevelUnLockManager\"):isInNewLevelTime() then\n       return\n    end\n    \n    local Manager = _G.amfBean(\"Recall2025Manager\")\n    \n    if not Manager or not Manager:checkInRecallState() then\n        return\n    end\n    \n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.RECALL_2025_STAGE2)\n    end\n\n    local function checkFunc()\n        if not Manager or not Manager:checkCanGetRightsToday() then\n            return\n        end\n        return true\n    end\n\n    local function openFunc()\n        Manager:tryOpenMainPanel(false, onHandleOver, {\n            stage = AutoPopupConst.PopStage.STAGE_TWO,\n            canEnter = params and params.canEnter,\n        })\n    end\n    \n    local function creator()\n        if checkFunc() then\n            safeRunCall(openFunc)\n        else\n            setTimeOut(function()\n                if checkFunc() then\n                    safeRunCall(openFunc)\n                else\n                    safeRunCall(onHandleOver)\n                end            \n            end, 1)\n        end\n    end\n    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.RECALL_2025_STAGE2, creator)\nend\n\nreturn RecallHandler\n",
+      "classification": "activity_or_reward_or_offer",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "necessary_conditions_at_entry": [
+        "if _G.amfBean(\"LevelUnLockManager\"):isInNewLevelTime() then",
+        "return",
+        "if not Manager or not Manager:checkInRecallState() then",
+        "return",
+        "if not Manager or not Manager:checkCanGetRightsToday() then",
+        "return",
+        "return true",
+        "if checkFunc() then",
+        "if checkFunc() then",
+        "return RecallHandler"
+      ],
+      "name": "回流权益首次领取",
+      "conditions": "场景2回流handler：新关开启时间排除；topPassedLevel>=100且AMFRecallManager命中COMMON_FOURTEEN_DAY；creator检查isEnabled且今天未领、总权益未领完，失败等待1秒再查一次。",
+      "state_writes_and_limits": "领取状态使用bonusDays今日编号和maxBonusCount；不使用本地固定离线天数重算，回流标记由AMFRecallManager消费。",
+      "evidence": "RecallHandler.lua:28,44,57; Recall2025Manager.lua:292,298; Recall2025Model.lua:128,134",
+      "remaining_dependency": "COMMON_FOURTEEN_DAY名称不能替代上游判定的完整定义；本条未声称已审完回流资格生产端"
+    },
+    {
+      "id": "TR146",
+      "source": "amf/middleware/autopop/module/poptype/SystemHandler.lua",
+      "line": 48,
+      "sha256": "3a8d5e12227cd557defd69cad347c985e877b80a1d8abaadb5c21448964f0bd6",
+      "function": "SystemHandler:handleSLAlert()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.SL_ALERT, creator)",
+      "stages": [],
+      "context": "function SystemHandler:handleSLAlert()\n\tlocal function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.SL_ALERT)\n\tend\n\n\tlocal function creator()\n\t\t_G.amfBean(\"HttpErrorManager\"):handleError111():next(onHandleOver)\n\tend\n\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.SL_ALERT, creator)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": []
+    },
+    {
+      "id": "TR147",
+      "source": "amf/middleware/autopop/module/poptype/SystemHandler.lua",
+      "line": 71,
+      "sha256": "3a8d5e12227cd557defd69cad347c985e877b80a1d8abaadb5c21448964f0bd6",
+      "function": "SystemHandler:handleAnnouncement(params)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.ANNOUNCEMENT, creator)",
+      "stages": [],
+      "context": "function SystemHandler:handleAnnouncement(params)\n\t--\n--\n--\n--\n\n\n\tlocal announcementMgr = _G.amfBean(\"AnnouncementMgr\")\n\tif announcementMgr:isInChecking() then return end\n\n\tlocal function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.ANNOUNCEMENT)\n\tend\n\n\tlocal function creator()\n\t\tannouncementMgr:showOnMainScene(onHandleOver)\n\tend\n\n\tannouncementMgr:setCheckFlag()\n\tannouncementMgr:loadOnMainScene(function(hasImportantAnn)\n\t\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.ANNOUNCEMENT, creator)\n\t\t--有重要通知，强制触发一次强弹\n\t\tif hasImportantAnn then\n\t\t\tself._autoPopupMgr:triggerStage2AutoPopup()\n\t\t\tannouncementMgr:setTriggered()\n\t\tend\n\tend)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if announcementMgr:isInChecking() then return end",
+        "if hasImportantAnn then"
+      ]
+    },
+    {
+      "id": "TR148",
+      "source": "amf/middleware/autopop/module/poptype/SystemHandler.lua",
+      "line": 96,
+      "sha256": "3a8d5e12227cd557defd69cad347c985e877b80a1d8abaadb5c21448964f0bd6",
+      "function": "SystemHandler:handlePkgUpdate()",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.PKG_UPDATE, creator)",
+      "stages": [],
+      "context": "function SystemHandler:handlePkgUpdate()\n\tif _G.IOS_Update_Alert_Popped then return end\n\t\n\tlocal updateMgr = _G.amfBean(\"VersionUpdateManager\")\n\tif not updateMgr then return end\n\tif updateMgr:needFlushPackage() then return end\n\t\n\tlocal function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.PKG_UPDATE)\n\tend\n\t\n\tif _G.amfBean(\"YYBWashingPackageManager\") and _G.amfBean(\"YYBWashingPackageManager\"):canOpenYYBUpdatePanel() then return end\n\n\tlocal function creator()\n\t\tupdateMgr:openUpdatePanel(\"auto_pop\", onHandleOver)\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.PKG_UPDATE, creator)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if _G.IOS_Update_Alert_Popped then return end",
+        "if not updateMgr then return end",
+        "if updateMgr:needFlushPackage() then return end",
+        "if _G.amfBean(\"YYBWashingPackageManager\") and _G.amfBean(\"YYBWashingPackageManager\"):canOpenYYBUpdatePanel() then return end"
+      ]
+    },
+    {
+      "id": "TR149",
+      "source": "amf/middleware/autopop/module/poptype/TempActPanelHandler.lua",
+      "line": 75,
+      "sha256": "27a0e8295bad0fc55667aab9d41f2ef1abcc0920caf65af17ae5f0550d2aa75c",
+      "function": "TempActPanelHandler:handleActMainPanel(params, popupCheckPoint)",
+      "checkpoint": ":addPopupConfig(popupCheckPoint, creator, actId)",
+      "stages": [],
+      "context": "function TempActPanelHandler:handleActMainPanel(params, popupCheckPoint)\n    local metaId = params.metaId\n    local actId = params.actId\n\n    local function onHandleOver()\n        ActivityEventCenter:dispatch(ActivityEvent.ACTIVITY_POPUP_OVER,{\n            metaId = metaId\n        })\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, popupCheckPoint)\n    end\n\n    local function onStopAutoPopup()\n        --停掉强弹\n        self._autoPopupMgr:resetPopup()\n    end\n    \n    local function creator()\n        local activityMgr = _G.amfBean(\"ActivityMgr\")\n        if not activityMgr:checkHasAutoPopupByMetaId(metaId) then\n            AutoPopupDebugLog:log(metaId .. \"checkHasAutoPopupByMetaId return false, stop auto popup\")\n            onHandleOver()\n            return\n        end\n\n        ActivityEventCenter:dispatch(ActivityEvent.OPEN_ACTIVITY,{\n            actId = actId,\n            userClick = false,\n        })\n\n        safeRunCall(onStopAutoPopup)\n        ActivityEventCenter:dispatch(ActivityEvent.ACTIVITY_POPUP_OVER,{\n            metaId = metaId\n        })\n    end\n    \n    AutoPopupDC:setDcExtraParam1(popupCheckPoint, actId)\n    self._autoPopupMgr:addPopupConfig(popupCheckPoint, creator, actId)\nend\n\nreturn TempActPanelHandler\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not activityMgr:checkHasAutoPopupByMetaId(metaId) then",
+        "AutoPopupDebugLog:log(metaId .. \"checkHasAutoPopupByMetaId return false, stop auto popup\")",
+        "return",
+        "return TempActPanelHandler"
+      ]
+    },
+    {
+      "id": "TR150",
+      "source": "amf/middleware/autopop/module/registration/PopupRegistration.lua",
+      "line": 312,
+      "sha256": "e68f2ce8275bbb19736f0a4f4348b8251e40becd3a29a6847011ff184591152a",
+      "function": "PopupRegistration:_enqueueRegisteredPopup(candidate)",
+      "checkpoint": ":addPopupConfig(",
+      "stages": [],
+      "context": "function PopupRegistration:_enqueueRegisteredPopup(candidate)\n    local entry = candidate.entry\n    local config = entry.config\n    local checkPoint = entry.checkPoint\n\tlocal function onPopOver()\n\t\tAutoPopEventCenter:dispatch(\n\t\t\tAutoPopEvent.SINGLE_POP_OVER,\n\t\t\tcheckPoint\n\t\t)\n    end\n\n    local pop = config.pop or config.creator\n    local ok, creator = pcall(pop, candidate.stageParams, onPopOver)\n    if not ok or type(creator) ~= \"function\" then\n        AutoPopupDebugLog:log(\"PopupRegistration:creator error\", entry.checkPoint, tostring(creator))\n        AutoPopupDebugLog:recordPopupEnqueue({\n            checkPoint = checkPoint,\n            actId = config.actId,\n            source = \"registered\",\n        }, \"fail\", LogReason.Enqueue.CREATOR_ERROR, checkPoint)\n        return\n    end\n\n    local enqueued = self._autoPopupMgr:addPopupConfig(\n        checkPoint, creator, config.actId, \"registered\"\n    )\n    if enqueued and candidate.stageParams then\n        local popupQueue = self._autoPopupMgr:getPopupQueueByCheckPoint(checkPoint)\n        local popupEntry = popupQueue and popupQueue[checkPoint]\n        if popupEntry then\n            popupEntry.popupStageId = candidate.stageParams.popStage\n        end\n    end\n    return enqueued\nend\n\n",
+      "classification": "shared_queue_or_navigation",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not ok or type(creator) ~= \"function\" then",
+        "return",
+        "if enqueued and candidate.stageParams then",
+        "if popupEntry then",
+        "return enqueued"
+      ]
+    },
+    {
+      "id": "TR151",
+      "source": "amf/middleware/notification/submsg/system/SubMsgBase.lua",
+      "line": 181,
+      "sha256": "fb9984475c30d38faf5a9af99c0160230dc61163ff5ec014471a1888c2e39a2b",
+      "function": "SubMsgBase:handleEnterStage2(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.SUB_MSG, creator)",
+      "stages": [],
+      "context": "function SubMsgBase:handleEnterStage2(evt)\n    if EnvUtil:isDYMiniGame() or EnvUtil:isALIPAYMiniGame() then\n        return\n    end\n\n    if EnvUtil:isHuaweiMiniGame() then\n        return\n    end\n\n    if EnvUtil:isUnionMiniGame() then\n        return\n    end\n\n    if EnvUtil:isKuaiShouMiniGame() then\n        return\n    end\n    \n    if EnvUtil:isJdMiniGame() then\n        return\n    end\n\n    if not self:isEnabled() then return end\n    -- 如果是从订阅进来的，那么打个进入点\n    if self._subMsgUtil:isEnterFromTmpl() then\n        self:dc(\"subscription\", \"enter_game\", {\n            t1 = self._subMsgUtil:getEnterKeyFromValue()\n        })\n    end\n    if not self:checkTodayCanCardEnterReward() then\n        return\n    end\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.SUB_MSG)\n\tend\n\n\tlocal function creator()\n\t\tself:showDailyRewardPanel():next(function()\n\t\t\tonHandleOver()\n\t\tend)\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.SUB_MSG, creator)\nend\n\n-- 场景4强弹\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if EnvUtil:isDYMiniGame() or EnvUtil:isALIPAYMiniGame() then",
+        "return",
+        "if EnvUtil:isHuaweiMiniGame() then",
+        "return",
+        "if EnvUtil:isUnionMiniGame() then",
+        "return",
+        "if EnvUtil:isKuaiShouMiniGame() then",
+        "return",
+        "if EnvUtil:isJdMiniGame() then",
+        "return",
+        "if not self:isEnabled() then return end",
+        "if self._subMsgUtil:isEnterFromTmpl() then",
+        "if not self:checkTodayCanCardEnterReward() then",
+        "return"
+      ]
+    },
+    {
+      "id": "TR152",
+      "source": "amf/middleware/notification/submsg/system/SubMsgBase.lua",
+      "line": 196,
+      "sha256": "fb9984475c30d38faf5a9af99c0160230dc61163ff5ec014471a1888c2e39a2b",
+      "function": "SubMsgBase:handleEnterStage4(evt)",
+      "checkpoint": ":addPopupConfig(PopupCheckPoint.SUB_MSG_STAGE4, creator)",
+      "stages": [],
+      "context": "function SubMsgBase:handleEnterStage4(evt)\n    if not self:checkStage4CanPop() then return end\n    local function onHandleOver()\n\t\tAutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.SUB_MSG_STAGE4)\n\tend\n\tlocal function creator()\n\t\tself:showMainPanel({\n\t\t\tcloseCallback = onHandleOver,\n\t\t\tt1 = 2\n\t\t})\n\tend\n\tself._autoPopupMgr:addPopupConfig(PopupCheckPoint.SUB_MSG_STAGE4, creator)\nend\n\n-- 过关检查是否要开启\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:checkStage4CanPop() then return end"
+      ]
+    },
+    {
+      "id": "TR153",
+      "source": "amf/middleware/setting/option/widescreen/system/WideScreenLogic.lua",
+      "line": 211,
+      "sha256": "27f99491ecf5716fb785321781cc8df2cccd4ed78fde1d78591bd91ea12d9115",
+      "function": "WideScreenLogic:tryAddPop()",
+      "checkpoint": ":addPopupConfig(key, creator)",
+      "stages": [],
+      "context": "function WideScreenLogic:tryAddPop()\n    if not self:isEnabled() or self:hasPopped() then return end\n\n    local key = PopupCheckPoint.WIDE_SCREEN_ADVICE\n\n    local function onHandleOver()\n        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, key)\n    end\n\n    local creator = function ( ... )\n        if not self:isEnabled() then\n            onHandleOver()\n            return\n        end\n        _G.amfBean(\"AutoPopupMgr\"):sendPermanentData(key)\n        self:openNoticePanel(onHandleOver)\n    end\n\n    _G.amfBean(\"AutoPopupMgr\"):addPopupConfig(key, creator)\nend\n\n",
+      "classification": "account_system_or_policy",
+      "review": "classified_entry_context_only",
+      "necessary_conditions_at_entry": [
+        "if not self:isEnabled() or self:hasPopped() then return end",
+        "if not self:isEnabled() then",
+        "return"
+      ]
+    },
+    {
+      "id": "EX_WEEKLY_RACE",
+      "source": "amf/feature/weeklyrace/WeeklyRaceManager.lua",
+      "line": 63,
+      "sha256": "438b66996df930e4cf9a427c9d16211c92e87de93017644afaa98ab651d577a4",
+      "name": "萌宠周赛图标/手动入口",
+      "classification": "manual_activity_entry_no_autopopup_found",
+      "review": "consumer_and_named_direct_helpers_reviewed",
+      "conditions": "tryUpdateIcon要求FeatureSwitch.WEEKLY_RACE、topLevel>=180、主界面、图标未存在；接口iconInfo.petSkinId非0才创建图标。onTouchIcon要求网络并再次关卡检查，下载meta/Weeklyrace.xml与请求weekMatch2020Info后打开。",
+      "state_writes_and_limits": "图标已存在则不重复创建；本文件未发现自动弹窗注册。isActEnd调用被注释，不能据2025-12-31的常量声称入口关闭。",
+      "evidence": "WeeklyRaceManager.lua:63,112,118,182; config/WeeklyRaceConst.lua:3,5",
+      "remaining_dependency": "动态模块资源、线上FeatureSwitch及接口回应未知。没有全树证明其他旧周赛自动弹窗路径绝不存在。"
+    }
+  ]
+}

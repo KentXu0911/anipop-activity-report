@@ -1,0 +1,92 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/sprintgiftpackage/config/SprintGiftPackageConst.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="0678a0944c7b.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/sprintgiftpackage/config/SprintGiftPackageConst.lua</h1><p>SHA256 89afa6304a03f55f0c06a2384d82b1cc18d5bfa6128db54d5ac762b5c0e7e1ae</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Const = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>Const.GuideSetId = {</span>
+<span id="L4" class="line"><a href="#L4">4</a>    </span>
+<span id="L5" class="line"><a href="#L5">5</a>}</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>Const.actOpenVersion = 1            -- 活动开启周期，如果需要本地数据变更，或者升版本清数据啥的用</span>
+<span id="L8" class="line"><a href="#L8">8</a>Const.actId = 8074                  -- 活动actId，朴实无华 </span>
+<span id="L9" class="line"><a href="#L9">9</a>Const.actChName = &quot;冲关回馈&quot;            -- 活动中文名</span>
+<span id="L10" class="line"><a href="#L10">10</a>Const.actSource = &quot;sprintgiftpackage/Config.lua&quot;  -- 活动路径</span>
+<span id="L11" class="line"><a href="#L11">11</a></span>
+<span id="L12" class="line"><a href="#L12">12</a>Const.dcFeature = &quot;activity&quot; -- 打点用</span>
+<span id="L13" class="line"><a href="#L13">13</a></span>
+<span id="L14" class="line"><a href="#L14">14</a>Const.infoPrefix = &quot;userInfo.data&quot;       -- 数据keyChain前缀，可以没有，说明你直接存在data里，没再加个表</span>
+<span id="L15" class="line"><a href="#L15">15</a>Const.configPrefix = &quot;localConfig&quot;  -- 配置keyChain前缀，同上</span>
+<span id="L16" class="line"><a href="#L16">16</a>Const.timePrefix = &quot;userInfo&quot;</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>Const.downloadLabels = {</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>}</span>
+<span id="L21" class="line"><a href="#L21">21</a>Const.autoDownload = false</span>
+<span id="L22" class="line"><a href="#L22">22</a>Const.actColorType = _G.PanelColorConst.ColorType.kGreen</span>
+<span id="L23" class="line"><a href="#L23">23</a>Const.GAME_NAME = &quot;&quot;</span>
+<span id="L24" class="line"><a href="#L24">24</a>Const.popTip2 = &quot;mainTimeAllTaskDonePop&quot;</span>
+<span id="L25" class="line"><a href="#L25">25</a>Const.popTip3 = &quot;rewardTimeNeedBuyPop&quot;</span>
+<span id="L26" class="line"><a href="#L26">26</a>Const.popTip4 = &quot;rewardTimeBoughtNeedClaimPop&quot;</span>
+<span id="L27" class="line"><a href="#L27">27</a>Const.addFiveShowTimeStr = &quot;addFiveShowTime&quot;</span>
+<span id="L28" class="line"><a href="#L28">28</a>Const.historyLevelStatus = &quot;historyLevelStatus&quot;</span>
+<span id="L29" class="line"><a href="#L29">29</a></span>
+<span id="L30" class="line"><a href="#L30">30</a>Const.HapticsConfig = {</span>
+<span id="L31" class="line"><a href="#L31">31</a>    changeToGet = {</span>
+<span id="L32" class="line"><a href="#L32">32</a>        strength = 1,</span>
+<span id="L33" class="line"><a href="#L33">33</a>        richTap = {</span>
+<span id="L34" class="line"><a href="#L34">34</a>            path = &quot;he2/act/sprintgiftpackage/change_to_get.he&quot;,</span>
+<span id="L35" class="line"><a href="#L35">35</a>        },</span>
+<span id="L36" class="line"><a href="#L36">36</a>        default = {</span>
+<span id="L37" class="line"><a href="#L37">37</a>            data={50, 128}</span>
+<span id="L38" class="line"><a href="#L38">38</a>        },</span>
+<span id="L39" class="line"><a href="#L39">39</a>        -- miniGame = {</span>
+<span id="L40" class="line"><a href="#L40">40</a>        --     level = &quot;light&quot;</span>
+<span id="L41" class="line"><a href="#L41">41</a>        -- }</span>
+<span id="L42" class="line"><a href="#L42">42</a>    },</span>
+<span id="L43" class="line"><a href="#L43">43</a>    clickGet = {</span>
+<span id="L44" class="line"><a href="#L44">44</a>        strength = 1,</span>
+<span id="L45" class="line"><a href="#L45">45</a>        richTap = {</span>
+<span id="L46" class="line"><a href="#L46">46</a>            path = &quot;he2/act/sprintgiftpackage/click_get.he&quot;,</span>
+<span id="L47" class="line"><a href="#L47">47</a>        },</span>
+<span id="L48" class="line"><a href="#L48">48</a>        default = {</span>
+<span id="L49" class="line"><a href="#L49">49</a>            data={50, 128}</span>
+<span id="L50" class="line"><a href="#L50">50</a>        },</span>
+<span id="L51" class="line"><a href="#L51">51</a>        -- miniGame = {</span>
+<span id="L52" class="line"><a href="#L52">52</a>        --     level = &quot;light&quot;</span>
+<span id="L53" class="line"><a href="#L53">53</a>        -- }</span>
+<span id="L54" class="line"><a href="#L54">54</a>    },</span>
+<span id="L55" class="line"><a href="#L55">55</a>    clickProgress = {</span>
+<span id="L56" class="line"><a href="#L56">56</a>        strength = 1,</span>
+<span id="L57" class="line"><a href="#L57">57</a>        richTap = {</span>
+<span id="L58" class="line"><a href="#L58">58</a>            path = &quot;he2/act/sprintgiftpackage/click_progress.he&quot;,</span>
+<span id="L59" class="line"><a href="#L59">59</a>        },</span>
+<span id="L60" class="line"><a href="#L60">60</a>        default = {</span>
+<span id="L61" class="line"><a href="#L61">61</a>            data={50, 128}</span>
+<span id="L62" class="line"><a href="#L62">62</a>        },</span>
+<span id="L63" class="line"><a href="#L63">63</a>        -- miniGame = {</span>
+<span id="L64" class="line"><a href="#L64">64</a>        --     level = &quot;light&quot;</span>
+<span id="L65" class="line"><a href="#L65">65</a>        -- }</span>
+<span id="L66" class="line"><a href="#L66">66</a>    },</span>
+<span id="L67" class="line"><a href="#L67">67</a>    playDiscount = {</span>
+<span id="L68" class="line"><a href="#L68">68</a>        strength = 1,</span>
+<span id="L69" class="line"><a href="#L69">69</a>        richTap = {</span>
+<span id="L70" class="line"><a href="#L70">70</a>            path = &quot;he2/act/sprintgiftpackage/play_discount.he&quot;,</span>
+<span id="L71" class="line"><a href="#L71">71</a>        },</span>
+<span id="L72" class="line"><a href="#L72">72</a>        default = {</span>
+<span id="L73" class="line"><a href="#L73">73</a>            data={50, 128}</span>
+<span id="L74" class="line"><a href="#L74">74</a>        },</span>
+<span id="L75" class="line"><a href="#L75">75</a>        -- miniGame = {</span>
+<span id="L76" class="line"><a href="#L76">76</a>        --     level = &quot;light&quot;</span>
+<span id="L77" class="line"><a href="#L77">77</a>        -- }</span>
+<span id="L78" class="line"><a href="#L78">78</a>    },</span>
+<span id="L79" class="line"><a href="#L79">79</a>}</span>
+<span id="L80" class="line"><a href="#L80">80</a></span>
+<span id="L81" class="line"><a href="#L81">81</a>Const.changeToGetHaptic = &quot;changeToGet&quot;</span>
+<span id="L82" class="line"><a href="#L82">82</a>Const.clickGetHaptic = &quot;clickGet&quot;</span>
+<span id="L83" class="line"><a href="#L83">83</a>Const.clickProgressHaptic = &quot;clickProgress&quot;</span>
+<span id="L84" class="line"><a href="#L84">84</a>Const.playDiscountHaptic = &quot;playDiscount&quot;</span>
+<span id="L85" class="line"><a href="#L85">85</a>Const.timeOutTipMinTime = 30*60</span>
+<span id="L86" class="line"><a href="#L86">86</a>Const.timeOutTipMaxTime = 60*60*24</span>
+<span id="L87" class="line"><a href="#L87">87</a>Const.addFiveSteps = &quot;addFiveSteps&quot;</span>
+<span id="L88" class="line"><a href="#L88">88</a>Const.shopPanel = &quot;shopPanel&quot;</span>
+<span id="L89" class="line"><a href="#L89">89</a>Const.NormalSkin = &quot;Normal&quot;</span>
+<span id="L90" class="line"><a href="#L90">90</a>Const.SpecialSkin = &quot;Special&quot;</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>return Const</span></pre></main></html>

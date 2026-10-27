@@ -1,0 +1,1118 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/supermagicbird/SuperMagicBird2024Manager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="cfb05de713e4.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/supermagicbird/SuperMagicBird2024Manager.lua</h1><p>SHA256 565e8c77ec6f98ed4eb74d640af215aab48ad647a168e1bb8f319ed56f101eda</p><pre><span id="L1" class="line"><a href="#L1">1</a>require &quot;amf.feature.localactivity.supermagicbird.SmbDebug&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local BaseFeatureManager = require&quot;amf.middleware.activity.base.BaseFeatureManager&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>local SuperMagicBird2024Manager = class(&quot;SuperMagicBird2024Manager&quot;,BaseFeatureManager)</span>
+<span id="L6" class="line"><a href="#L6">6</a>--扩展mgr</span>
+<span id="L7" class="line"><a href="#L7">7</a>-- local ServerData = require &#x27;amf.feature.localactivity.supermagicbird.model.SuperMagicBirdModel&#x27;</span>
+<span id="L8" class="line"><a href="#L8">8</a>local Meta = require &quot;amf.feature.localactivity.supermagicbird.config.SuperMagicBirdConst.lua&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>-- local closeAct =require &#x27;amf.feature.localactivity.supermagicbird.SuperMagicBird2024Manager_closeAct&#x27;</span>
+<span id="L11" class="line"><a href="#L11">11</a>-- closeAct(SuperMagicBird2024Manager)</span>
+<span id="L12" class="line"><a href="#L12">12</a>local fuuu = require &#x27;amf.feature.localactivity.supermagicbird.SuperMagicBird2024Manager_fuuu&#x27;</span>
+<span id="L13" class="line"><a href="#L13">13</a>fuuu(SuperMagicBird2024Manager)</span>
+<span id="L14" class="line"><a href="#L14">14</a>local fuuuv2 = require &#x27;amf.feature.localactivity.supermagicbird.SuperMagicBird2024Manager_fuuuV2&#x27;</span>
+<span id="L15" class="line"><a href="#L15">15</a>fuuuv2(SuperMagicBird2024Manager)</span>
+<span id="L16" class="line"><a href="#L16">16</a>local pop = require &#x27;amf.feature.localactivity.supermagicbird.SuperMagicBird2024Manager_pop&#x27;</span>
+<span id="L17" class="line"><a href="#L17">17</a>pop(SuperMagicBird2024Manager)</span>
+<span id="L18" class="line"><a href="#L18">18</a>local http = require &#x27;amf.feature.localactivity.supermagicbird.SuperMagicBird2024Manager_http&#x27;</span>
+<span id="L19" class="line"><a href="#L19">19</a>http(SuperMagicBird2024Manager)</span>
+<span id="L20" class="line"><a href="#L20">20</a>local inLevel = require &#x27;amf.feature.localactivity.supermagicbird.SuperMagicBird2024Manager_inLevel&#x27;</span>
+<span id="L21" class="line"><a href="#L21">21</a>inLevel(SuperMagicBird2024Manager)</span>
+<span id="L22" class="line"><a href="#L22">22</a>local guide = require &#x27;amf.feature.localactivity.supermagicbird.SuperMagicBird2024Manager_guide&#x27;</span>
+<span id="L23" class="line"><a href="#L23">23</a>guide(SuperMagicBird2024Manager)</span>
+<span id="L24" class="line"><a href="#L24">24</a>SuperMagicBird2024Manager.ACT_OPEN_VERSION = 3  --如果此活动复用 此值应递增 以区分本地存储值</span>
+<span id="L25" class="line"><a href="#L25">25</a>local ActivityEventCenter = require &#x27;amf.middleware.activity.event.ActivityEventCenter&#x27;</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>-- 主线</span>
+<span id="L28" class="line"><a href="#L28">28</a>SuperMagicBird2024Manager.ACT_ID = 8068</span>
+<span id="L29" class="line"><a href="#L29">29</a>-- SuperMagicBird2024Manager.ACT_SOURCE = &quot;SuperMagicBird2024/Config.lua&quot;</span>
+<span id="L30" class="line"><a href="#L30">30</a>SuperMagicBird2024Manager.GAME_NAME = &quot;bird_win&quot;</span>
+<span id="L31" class="line"><a href="#L31">31</a>SuperMagicBird2024Manager.DCFeature = &quot;supermagicbird&quot;</span>
+<span id="L32" class="line"><a href="#L32">32</a>SuperMagicBird2024Manager.DCSource = &quot;act_&quot;..SuperMagicBird2024Manager.ACT_ID</span>
+<span id="L33" class="line"><a href="#L33">33</a>SuperMagicBird2024Manager.ACT_CH_NAME = &quot;超级魔力鸟&quot; </span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>local ACT_NAME = &quot;supermagicbird&quot;</span>
+<span id="L36" class="line"><a href="#L36">36</a>local LOCAL_PATH = &#x27;amf.feature.localactivity.&#x27;..string.lower( ACT_NAME )</span>
+<span id="L37" class="line"><a href="#L37">37</a>local SECONDS_PER_DAY = 24 * 60 * 60</span>
+<span id="L38" class="line"><a href="#L38">38</a></span>
+<span id="L39" class="line"><a href="#L39">39</a>local log = _G.SmbLog or doNothing</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>function SuperMagicBird2024Manager:_init()</span>
+<span id="L42" class="line"><a href="#L42">42</a>    self._reviveConfirmAutoPopPending = false</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>    -- self.__unlockAreaListener = function ()</span>
+<span id="L45" class="line"><a href="#L45">45</a>    --     if not self:isEnabled() then return end</span>
+<span id="L46" class="line"><a href="#L46">46</a>    --     self:tryShowActIcon()</span>
+<span id="L47" class="line"><a href="#L47">47</a>    -- end</span>
+<span id="L48" class="line"><a href="#L48">48</a>    _G.amfEC:registerNormal(NormalEvent.PASS_DAY, self.onActPassDay, self)</span>
+<span id="L49" class="line"><a href="#L49">49</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)</span>
+<span id="L50" class="line"><a href="#L50">50</a>end</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a>function SuperMagicBird2024Manager:onActPassDay()</span>
+<span id="L53" class="line"><a href="#L53">53</a>    self:notify(self:getBaseEvent().kCloseAllPanel)</span>
+<span id="L54" class="line"><a href="#L54">54</a>    BaseFeatureManager.onActPassDay(self)</span>
+<span id="L55" class="line"><a href="#L55">55</a>end</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>function SuperMagicBird2024Manager:setActivityMgr(activityMgr)</span>
+<span id="L58" class="line"><a href="#L58">58</a>    self._activityMgr = activityMgr</span>
+<span id="L59" class="line"><a href="#L59">59</a>end</span>
+<span id="L60" class="line"><a href="#L60">60</a></span>
+<span id="L61" class="line"><a href="#L61">61</a>function SuperMagicBird2024Manager:setAutoPopupMgr(autoPopupMgr)</span>
+<span id="L62" class="line"><a href="#L62">62</a>    self.autoPopupMgr = autoPopupMgr</span>
+<span id="L63" class="line"><a href="#L63">63</a>end</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>function SuperMagicBird2024Manager:_getExtraPlugsConfigList()</span>
+<span id="L66" class="line"><a href="#L66">66</a>    return {</span>
+<span id="L67" class="line"><a href="#L67">67</a>        {key = &quot;Panel&quot;},</span>
+<span id="L68" class="line"><a href="#L68">68</a>        {key = &quot;Download&quot;},</span>
+<span id="L69" class="line"><a href="#L69">69</a>        {key = &quot;AutoPop&quot;},</span>
+<span id="L70" class="line"><a href="#L70">70</a>    }</span>
+<span id="L71" class="line"><a href="#L71">71</a>end</span>
+<span id="L72" class="line"><a href="#L72">72</a></span>
+<span id="L73" class="line"><a href="#L73">73</a>function SuperMagicBird2024Manager:_getAutoPopConfigList()</span>
+<span id="L74" class="line"><a href="#L74">74</a>    local PopStage = AutoPopupConst.PopStage</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>    return {</span>
+<span id="L77" class="line"><a href="#L77">77</a>        {</span>
+<span id="L78" class="line"><a href="#L78">78</a>            -- 仅场景4；条件触发类最高优先级；玩家带超鸟失败并实际断鸟后的下一次场景4，复活卡可用时弹出激活二次确认面板；次数由一次性断鸟标记控制。</span>
+<span id="L79" class="line"><a href="#L79">79</a>            checkPoint = PopupCheckPoint.SUPER_MAGIC_BIRD_REVIVE_CONFIRM,</span>
+<span id="L80" class="line"><a href="#L80">80</a>            stages = { PopStage.STAGE_FOUR },</span>
+<span id="L81" class="line"><a href="#L81">81</a>            check = function()</span>
+<span id="L82" class="line"><a href="#L82">82</a>                return self:checkCanAutoPopReviveConfirm()</span>
+<span id="L83" class="line"><a href="#L83">83</a>            end,</span>
+<span id="L84" class="line"><a href="#L84">84</a>            creator = function(_, onPopOver)</span>
+<span id="L85" class="line"><a href="#L85">85</a>                return function()</span>
+<span id="L86" class="line"><a href="#L86">86</a>                    self:popReviveConfirmAutoPop(onPopOver)</span>
+<span id="L87" class="line"><a href="#L87">87</a>                end</span>
+<span id="L88" class="line"><a href="#L88">88</a>            end,</span>
+<span id="L89" class="line"><a href="#L89">89</a>        },</span>
+<span id="L90" class="line"><a href="#L90">90</a>        {</span>
+<span id="L91" class="line"><a href="#L91">91</a>            -- 场景2、场景4每天最多弹出一次，活动类优先级仅次于签到面板；未领取时先领取再展示，已领取时直接展示。</span>
+<span id="L92" class="line"><a href="#L92">92</a>            checkPoint = PopupCheckPoint.SUPER_MAGIC_BIRD_REVIVE,</span>
+<span id="L93" class="line"><a href="#L93">93</a>            stages = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },</span>
+<span id="L94" class="line"><a href="#L94">94</a>            check = function()</span>
+<span id="L95" class="line"><a href="#L95">95</a>                return self:checkCanAutoPop()</span>
+<span id="L96" class="line"><a href="#L96">96</a>            end,</span>
+<span id="L97" class="line"><a href="#L97">97</a>            creator = function(stageParams, onPopOver)</span>
+<span id="L98" class="line"><a href="#L98">98</a>                return function()</span>
+<span id="L99" class="line"><a href="#L99">99</a>                    self:openReviveCardDeliveryAutoPop(onPopOver, stageParams.popStage)</span>
+<span id="L100" class="line"><a href="#L100">100</a>                end</span>
+<span id="L101" class="line"><a href="#L101">101</a>            end,</span>
+<span id="L102" class="line"><a href="#L102">102</a>        },</span>
+<span id="L103" class="line"><a href="#L103">103</a>    }</span>
+<span id="L104" class="line"><a href="#L104">104</a>end</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>function SuperMagicBird2024Manager:markReviveConfirmAutoPopPending()</span>
+<span id="L107" class="line"><a href="#L107">107</a>    self._reviveConfirmAutoPopPending = true</span>
+<span id="L108" class="line"><a href="#L108">108</a>end</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>function SuperMagicBird2024Manager:checkCanAutoPopReviveConfirm()</span>
+<span id="L111" class="line"><a href="#L111">111</a>    if self._reviveConfirmAutoPopPending ~= true then</span>
+<span id="L112" class="line"><a href="#L112">112</a>        return false</span>
+<span id="L113" class="line"><a href="#L113">113</a>    end</span>
+<span id="L114" class="line"><a href="#L114">114</a></span>
+<span id="L115" class="line"><a href="#L115">115</a>    return self:canActivateReviveCard()</span>
+<span id="L116" class="line"><a href="#L116">116</a>end</span>
+<span id="L117" class="line"><a href="#L117">117</a></span>
+<span id="L118" class="line"><a href="#L118">118</a>function SuperMagicBird2024Manager:popReviveConfirmAutoPop(onPopOver)</span>
+<span id="L119" class="line"><a href="#L119">119</a>    if not self:canActivateReviveCard() then</span>
+<span id="L120" class="line"><a href="#L120">120</a>        safeRunCall(onPopOver)</span>
+<span id="L121" class="line"><a href="#L121">121</a>        return</span>
+<span id="L122" class="line"><a href="#L122">122</a>    end</span>
+<span id="L123" class="line"><a href="#L123">123</a>    self._reviveConfirmAutoPopPending = false</span>
+<span id="L124" class="line"><a href="#L124">124</a>    self:openReviveConfirmPanel({</span>
+<span id="L125" class="line"><a href="#L125">125</a>        isAutoPop = true,</span>
+<span id="L126" class="line"><a href="#L126">126</a>        closeCallback = function()</span>
+<span id="L127" class="line"><a href="#L127">127</a>            safeRunCall(onPopOver)</span>
+<span id="L128" class="line"><a href="#L128">128</a>            local playLevelContext = PlayLevelContext.new()</span>
+<span id="L129" class="line"><a href="#L129">129</a>            _G.amfTransaction(TransactionEvent.PLAY_LEVEL, playLevelContext)</span>
+<span id="L130" class="line"><a href="#L130">130</a>        end,</span>
+<span id="L131" class="line"><a href="#L131">131</a>    })</span>
+<span id="L132" class="line"><a href="#L132">132</a>end</span>
+<span id="L133" class="line"><a href="#L133">133</a></span>
+<span id="L134" class="line"><a href="#L134">134</a>function SuperMagicBird2024Manager:checkCanAutoPop()</span>
+<span id="L135" class="line"><a href="#L135">135</a>    return self:hasReviveCard() or self:canRewardReviveCardToday()</span>
+<span id="L136" class="line"><a href="#L136">136</a>end</span>
+<span id="L137" class="line"><a href="#L137">137</a></span>
+<span id="L138" class="line"><a href="#L138">138</a>function SuperMagicBird2024Manager:markReviveCardDeliveryAutoPopConsumed()</span>
+<span id="L139" class="line"><a href="#L139">139</a>    local reviveCheckPoint = PopupCheckPoint.SUPER_MAGIC_BIRD_REVIVE</span>
+<span id="L140" class="line"><a href="#L140">140</a>    if self.autoPopupMgr:getCheckPointPopNum(reviveCheckPoint) &lt;= 0 then</span>
+<span id="L141" class="line"><a href="#L141">141</a>        self.autoPopupMgr:increaseCheckPointPopNum(reviveCheckPoint)</span>
+<span id="L142" class="line"><a href="#L142">142</a>    end</span>
+<span id="L143" class="line"><a href="#L143">143</a>end</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>function SuperMagicBird2024Manager:popReviveCardDeliveryNoticePanel(onPopOver, popStage)</span>
+<span id="L146" class="line"><a href="#L146">146</a>    local showType = self:getReviveCardDeliveryPanelShowType(false, popStage)</span>
+<span id="L147" class="line"><a href="#L147">147</a>    self:popReviveCardDeliveryPanel(</span>
+<span id="L148" class="line"><a href="#L148">148</a>        onPopOver,</span>
+<span id="L149" class="line"><a href="#L149">149</a>        false,</span>
+<span id="L150" class="line"><a href="#L150">150</a>        showType,</span>
+<span id="L151" class="line"><a href="#L151">151</a>        Meta.ReviveCardDeliveryMode.kClickContinue</span>
+<span id="L152" class="line"><a href="#L152">152</a>    )</span>
+<span id="L153" class="line"><a href="#L153">153</a>end</span>
+<span id="L154" class="line"><a href="#L154">154</a></span>
+<span id="L155" class="line"><a href="#L155">155</a>function SuperMagicBird2024Manager:openReviveCardDeliveryAutoPop(onPopOver, popStage)</span>
+<span id="L156" class="line"><a href="#L156">156</a>    if self:hasReviveCard() then</span>
+<span id="L157" class="line"><a href="#L157">157</a>        self:popReviveCardDeliveryNoticePanel(onPopOver, popStage)</span>
+<span id="L158" class="line"><a href="#L158">158</a>        return</span>
+<span id="L159" class="line"><a href="#L159">159</a>    end</span>
+<span id="L160" class="line"><a href="#L160">160</a></span>
+<span id="L161" class="line"><a href="#L161">161</a>    if self:canRewardReviveCardToday() then</span>
+<span id="L162" class="line"><a href="#L162">162</a>        self:openReviveCardDeliveryPanel(</span>
+<span id="L163" class="line"><a href="#L163">163</a>            onPopOver,</span>
+<span id="L164" class="line"><a href="#L164">164</a>            false,</span>
+<span id="L165" class="line"><a href="#L165">165</a>            popStage,</span>
+<span id="L166" class="line"><a href="#L166">166</a>            Meta.ReviveCardDeliveryMode.kClickContinue</span>
+<span id="L167" class="line"><a href="#L167">167</a>        )</span>
+<span id="L168" class="line"><a href="#L168">168</a>        return</span>
+<span id="L169" class="line"><a href="#L169">169</a>    end</span>
+<span id="L170" class="line"><a href="#L170">170</a></span>
+<span id="L171" class="line"><a href="#L171">171</a>    safeRunCall(onPopOver)</span>
+<span id="L172" class="line"><a href="#L172">172</a>end</span>
+<span id="L173" class="line"><a href="#L173">173</a></span>
+<span id="L174" class="line"><a href="#L174">174</a>function SuperMagicBird2024Manager:openReviveCardDeliveryPanel(onPopOver, userClick, popStage, deliveryMode)</span>
+<span id="L175" class="line"><a href="#L175">175</a>    deliveryMode = deliveryMode or Meta.ReviveCardDeliveryMode.kTakeButton</span>
+<span id="L176" class="line"><a href="#L176">176</a>    local todayRewarded = self:hasReviveCard()</span>
+<span id="L177" class="line"><a href="#L177">177</a>    local showType = self:getReviveCardDeliveryPanelShowType(userClick, popStage)</span>
+<span id="L178" class="line"><a href="#L178">178</a>    local panelCloseCallback = onPopOver</span>
+<span id="L179" class="line"><a href="#L179">179</a>    if userClick and todayRewarded then</span>
+<span id="L180" class="line"><a href="#L180">180</a>        panelCloseCallback = nil</span>
+<span id="L181" class="line"><a href="#L181">181</a>    end</span>
+<span id="L182" class="line"><a href="#L182">182</a>    if not self:canRewardReviveCardToday() then</span>
+<span id="L183" class="line"><a href="#L183">183</a>        if userClick then</span>
+<span id="L184" class="line"><a href="#L184">184</a>            self:popReviveCardDeliveryPanel(panelCloseCallback, todayRewarded, showType, deliveryMode)</span>
+<span id="L185" class="line"><a href="#L185">185</a>        else</span>
+<span id="L186" class="line"><a href="#L186">186</a>            safeRunCall(onPopOver)</span>
+<span id="L187" class="line"><a href="#L187">187</a>        end</span>
+<span id="L188" class="line"><a href="#L188">188</a>        return</span>
+<span id="L189" class="line"><a href="#L189">189</a>    end</span>
+<span id="L190" class="line"><a href="#L190">190</a></span>
+<span id="L191" class="line"><a href="#L191">191</a>    local function onSuccess()</span>
+<span id="L192" class="line"><a href="#L192">192</a>        self:popReviveCardDeliveryPanel(panelCloseCallback, todayRewarded, showType, deliveryMode)</span>
+<span id="L193" class="line"><a href="#L193">193</a>    end</span>
+<span id="L194" class="line"><a href="#L194">194</a></span>
+<span id="L195" class="line"><a href="#L195">195</a>    local requestOverCallback = onPopOver</span>
+<span id="L196" class="line"><a href="#L196">196</a>    if userClick then</span>
+<span id="L197" class="line"><a href="#L197">197</a>        requestOverCallback = nil</span>
+<span id="L198" class="line"><a href="#L198">198</a>    end</span>
+<span id="L199" class="line"><a href="#L199">199</a>    self:requestReviveCardReward(onSuccess, requestOverCallback, requestOverCallback)</span>
+<span id="L200" class="line"><a href="#L200">200</a>end</span>
+<span id="L201" class="line"><a href="#L201">201</a></span>
+<span id="L202" class="line"><a href="#L202">202</a>function SuperMagicBird2024Manager:getReviveCardDeliveryPanelShowType(userClick, popStage)</span>
+<span id="L203" class="line"><a href="#L203">203</a>    if userClick then</span>
+<span id="L204" class="line"><a href="#L204">204</a>        return 3</span>
+<span id="L205" class="line"><a href="#L205">205</a>    end</span>
+<span id="L206" class="line"><a href="#L206">206</a></span>
+<span id="L207" class="line"><a href="#L207">207</a>    local PopStage = AutoPopupConst.PopStage</span>
+<span id="L208" class="line"><a href="#L208">208</a>    if popStage == PopStage.STAGE_TWO then</span>
+<span id="L209" class="line"><a href="#L209">209</a>        return 1</span>
+<span id="L210" class="line"><a href="#L210">210</a>    elseif popStage == PopStage.STAGE_FOUR then</span>
+<span id="L211" class="line"><a href="#L211">211</a>        return 2</span>
+<span id="L212" class="line"><a href="#L212">212</a>    end</span>
+<span id="L213" class="line"><a href="#L213">213</a>end</span>
+<span id="L214" class="line"><a href="#L214">214</a></span>
+<span id="L215" class="line"><a href="#L215">215</a>function SuperMagicBird2024Manager:popReviveCardDeliveryPanel(onPopOver, todayRewarded, showType, deliveryMode)</span>
+<span id="L216" class="line"><a href="#L216">216</a>    local panelClass = require(&quot;amf.feature.localactivity.supermagicbird.views.ReviveCardDeliveryPanelVM&quot;)</span>
+<span id="L217" class="line"><a href="#L217">217</a>    local panel = panelClass:create({</span>
+<span id="L218" class="line"><a href="#L218">218</a>        mgr = self,</span>
+<span id="L219" class="line"><a href="#L219">219</a>        closeCallback = onPopOver,</span>
+<span id="L220" class="line"><a href="#L220">220</a>        todayRewarded = todayRewarded,</span>
+<span id="L221" class="line"><a href="#L221">221</a>        isLastDay = self:isReviveCardLastDay(),</span>
+<span id="L222" class="line"><a href="#L222">222</a>        showType = showType,</span>
+<span id="L223" class="line"><a href="#L223">223</a>        deliveryMode = deliveryMode,</span>
+<span id="L224" class="line"><a href="#L224">224</a>    })</span>
+<span id="L225" class="line"><a href="#L225">225</a>    panel:popout()</span>
+<span id="L226" class="line"><a href="#L226">226</a>    self:markReviveCardDeliveryAutoPopConsumed()</span>
+<span id="L227" class="line"><a href="#L227">227</a>    self.panelPlug:managePanelVM(panel)</span>
+<span id="L228" class="line"><a href="#L228">228</a>end</span>
+<span id="L229" class="line"><a href="#L229">229</a></span>
+<span id="L230" class="line"><a href="#L230">230</a>function SuperMagicBird2024Manager:dcReviveCardDeliveryPanelShow(showType, todayRewarded, panelId)</span>
+<span id="L231" class="line"><a href="#L231">231</a>    self:dc(&quot;bird_win_v2&quot;, &quot;reborn_show&quot;, showType, todayRewarded and 2 or 1, nil, nil, {</span>
+<span id="L232" class="line"><a href="#L232">232</a>        panel_id = panelId,</span>
+<span id="L233" class="line"><a href="#L233">233</a>    })</span>
+<span id="L234" class="line"><a href="#L234">234</a>end</span>
+<span id="L235" class="line"><a href="#L235">235</a></span>
+<span id="L236" class="line"><a href="#L236">236</a>function SuperMagicBird2024Manager:dcReviveCardDeliveryPanelClick(panelId)</span>
+<span id="L237" class="line"><a href="#L237">237</a>    self:dc(&quot;bird_win_v2&quot;, &quot;reborn_click&quot;, nil, nil, nil, nil, {</span>
+<span id="L238" class="line"><a href="#L238">238</a>        panel_id = panelId,</span>
+<span id="L239" class="line"><a href="#L239">239</a>    })</span>
+<span id="L240" class="line"><a href="#L240">240</a>end</span>
+<span id="L241" class="line"><a href="#L241">241</a></span>
+<span id="L242" class="line"><a href="#L242">242</a>-- 获取model路径</span>
+<span id="L243" class="line"><a href="#L243">243</a>function SuperMagicBird2024Manager:_getModelPath()</span>
+<span id="L244" class="line"><a href="#L244">244</a>    return LOCAL_PATH..&#x27;.model.SuperMagicBirdModel&#x27;</span>
+<span id="L245" class="line"><a href="#L245">245</a>end</span>
+<span id="L246" class="line"><a href="#L246">246</a></span>
+<span id="L247" class="line"><a href="#L247">247</a>function SuperMagicBird2024Manager:_getConstPath()</span>
+<span id="L248" class="line"><a href="#L248">248</a>    return LOCAL_PATH..&#x27;.config.SuperMagicBirdConst&#x27;</span>
+<span id="L249" class="line"><a href="#L249">249</a>end</span>
+<span id="L250" class="line"><a href="#L250">250</a></span>
+<span id="L251" class="line"><a href="#L251">251</a>function SuperMagicBird2024Manager:getData()</span>
+<span id="L252" class="line"><a href="#L252">252</a>    return self:getModel()</span>
+<span id="L253" class="line"><a href="#L253">253</a>end</span>
+<span id="L254" class="line"><a href="#L254">254</a></span>
+<span id="L255" class="line"><a href="#L255">255</a>function SuperMagicBird2024Manager:getActInfo()</span>
+<span id="L256" class="line"><a href="#L256">256</a>	local actInfo = self._activityMgr:getActInfo(self.ACT_ID)</span>
+<span id="L257" class="line"><a href="#L257">257</a>    return actInfo</span>
+<span id="L258" class="line"><a href="#L258">258</a>end</span>
+<span id="L259" class="line"><a href="#L259">259</a></span>
+<span id="L260" class="line"><a href="#L260">260</a>function SuperMagicBird2024Manager:breakWin()</span>
+<span id="L261" class="line"><a href="#L261">261</a>    if not self:isEnabled() then return end</span>
+<span id="L262" class="line"><a href="#L262">262</a>    self:getData():passLevelFunc( false, self:getNeedWinNum(), false, false, false, Meta.keepWinReason.kNone )</span>
+<span id="L263" class="line"><a href="#L263">263</a>end</span>
+<span id="L264" class="line"><a href="#L264">264</a></span>
+<span id="L265" class="line"><a href="#L265">265</a></span>
+<span id="L266" class="line"><a href="#L266">266</a>-- function SuperMagicBird2024Manager:isSupport()</span>
+<span id="L267" class="line"><a href="#L267">267</a>--     if self:isUnSupportPkg() then return false end</span>
+<span id="L268" class="line"><a href="#L268">268</a>--     if not self:isTopLevelSupport() then return false end</span>
+<span id="L269" class="line"><a href="#L269">269</a>--     local actInfo = self:getActInfo()</span>
+<span id="L270" class="line"><a href="#L270">270</a>--     if not actInfo then return false end</span>
+<span id="L271" class="line"><a href="#L271">271</a>--     return true</span>
+<span id="L272" class="line"><a href="#L272">272</a>-- end</span>
+<span id="L273" class="line"><a href="#L273">273</a></span>
+<span id="L274" class="line"><a href="#L274">274</a>-- function SuperMagicBird2024Manager:isUnSupportPkg()</span>
+<span id="L275" class="line"><a href="#L275">275</a>--     if _G.isPrePackage then</span>
+<span id="L276" class="line"><a href="#L276">276</a>--         return true</span>
+<span id="L277" class="line"><a href="#L277">277</a>--     end</span>
+<span id="L278" class="line"><a href="#L278">278</a>--     return false</span>
+<span id="L279" class="line"><a href="#L279">279</a>-- end</span>
+<span id="L280" class="line"><a href="#L280">280</a></span>
+<span id="L281" class="line"><a href="#L281">281</a>function SuperMagicBird2024Manager:isTopLevelSupport()</span>
+<span id="L282" class="line"><a href="#L282">282</a>    local levelId = _G.amfBean(&quot;LevelAreaManager&quot;):getTopPassedLevel()</span>
+<span id="L283" class="line"><a href="#L283">283</a>    if Meta.passLevelId and levelId&lt;(Meta.passLevelId) then</span>
+<span id="L284" class="line"><a href="#L284">284</a>        return false</span>
+<span id="L285" class="line"><a href="#L285">285</a>    end</span>
+<span id="L286" class="line"><a href="#L286">286</a>    return true</span>
+<span id="L287" class="line"><a href="#L287">287</a>end</span>
+<span id="L288" class="line"><a href="#L288">288</a></span>
+<span id="L289" class="line"><a href="#L289">289</a>function SuperMagicBird2024Manager:onActEnterMainScene(evt)</span>
+<span id="L290" class="line"><a href="#L290">290</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L291" class="line"><a href="#L291">291</a>        addGlobalTestButton(&quot;超鸟Log开关&quot;, function()</span>
+<span id="L292" class="line"><a href="#L292">292</a>            local logEnabled = _G.switchSmbLogEnabled and _G.switchSmbLogEnabled()</span>
+<span id="L293" class="line"><a href="#L293">293</a>            local msg = logEnabled and &quot;超鸟log已开启\n请查看[-13]通道&quot; or &quot;超鸟log已关闭&quot;</span>
+<span id="L294" class="line"><a href="#L294">294</a>            return msg, false</span>
+<span id="L295" class="line"><a href="#L295">295</a>        end, { TestButtonConst.Tags.DEVELOP })</span>
+<span id="L296" class="line"><a href="#L296">296</a>    end</span>
+<span id="L297" class="line"><a href="#L297">297</a></span>
+<span id="L298" class="line"><a href="#L298">298</a>    -- local data = evt:getData()</span>
+<span id="L299" class="line"><a href="#L299">299</a>    -- if not ( data and data.firstEnter ) then return end</span>
+<span id="L300" class="line"><a href="#L300">300</a>    -- if not self:isSupport() then return end</span>
+<span id="L301" class="line"><a href="#L301">301</a></span>
+<span id="L302" class="line"><a href="#L302">302</a>    -- --发lightStart</span>
+<span id="L303" class="line"><a href="#L303">303</a>    -- self:getInfoAsync(nil,nil,nil,true,false)</span>
+<span id="L304" class="line"><a href="#L304">304</a>end</span>
+<span id="L305" class="line"><a href="#L305">305</a></span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>function SuperMagicBird2024Manager:checkCanUseActInfoData( actInfoExtra )</span>
+<span id="L308" class="line"><a href="#L308">308</a></span>
+<span id="L309" class="line"><a href="#L309">309</a>    log(&quot;checkCanUseActInfoData 是否使用后端actInfo数据检测开始&quot;, actInfoExtra)</span>
+<span id="L310" class="line"><a href="#L310">310</a></span>
+<span id="L311" class="line"><a href="#L311">311</a>    if not actInfoExtra then return true end</span>
+<span id="L312" class="line"><a href="#L312">312</a></span>
+<span id="L313" class="line"><a href="#L313">313</a>    local extra = actInfoExtra</span>
+<span id="L314" class="line"><a href="#L314">314</a></span>
+<span id="L315" class="line"><a href="#L315">315</a>    local bCanChangeData = false</span>
+<span id="L316" class="line"><a href="#L316">316</a>    if extra.ignoreBreakVersion1 then</span>
+<span id="L317" class="line"><a href="#L317">317</a>        bCanChangeData = true</span>
+<span id="L318" class="line"><a href="#L318">318</a>        log(&quot;checkCanUseActInfoData 开关关闭，信任后端&quot;)</span>
+<span id="L319" class="line"><a href="#L319">319</a>    else</span>
+<span id="L320" class="line"><a href="#L320">320</a>        if self:isEnabled() then</span>
+<span id="L321" class="line"><a href="#L321">321</a>            log(&quot;checkCanUseActInfoData 本地有数据记录，校验本地数据&quot;)</span>
+<span id="L322" class="line"><a href="#L322">322</a></span>
+<span id="L323" class="line"><a href="#L323">323</a>            local clientBreakVersion = self:getData():getDataByKey( &#x27;breakVersion1&#x27; ) or 0</span>
+<span id="L324" class="line"><a href="#L324">324</a>            local serverBreakVersion = extra.breakVersion1 or 0</span>
+<span id="L325" class="line"><a href="#L325">325</a></span>
+<span id="L326" class="line"><a href="#L326">326</a>            log(&quot;checkCanUseActInfoData 客户端断鸟版本 后端断鸟版本&quot;, clientBreakVersion, serverBreakVersion )</span>
+<span id="L327" class="line"><a href="#L327">327</a></span>
+<span id="L328" class="line"><a href="#L328">328</a>            if clientBreakVersion &lt;= serverBreakVersion then</span>
+<span id="L329" class="line"><a href="#L329">329</a>                bCanChangeData = true</span>
+<span id="L330" class="line"><a href="#L330">330</a>                log(&quot;checkCanUseActInfoData 当前版本小于等于后端，使用后端&quot;)</span>
+<span id="L331" class="line"><a href="#L331">331</a>            end</span>
+<span id="L332" class="line"><a href="#L332">332</a>        else</span>
+<span id="L333" class="line"><a href="#L333">333</a>            log(&quot;checkCanUseActInfoData 本地无数据记录，跳过校验，直接用后端的&quot;)</span>
+<span id="L334" class="line"><a href="#L334">334</a>            bCanChangeData = true</span>
+<span id="L335" class="line"><a href="#L335">335</a>        end</span>
+<span id="L336" class="line"><a href="#L336">336</a>    end</span>
+<span id="L337" class="line"><a href="#L337">337</a></span>
+<span id="L338" class="line"><a href="#L338">338</a>    log(&quot;checkCanUseActInfoData 是否使用后端actInfo数据检测结束 bCanChangeData =&quot;, bCanChangeData)</span>
+<span id="L339" class="line"><a href="#L339">339</a></span>
+<span id="L340" class="line"><a href="#L340">340</a>    return bCanChangeData</span>
+<span id="L341" class="line"><a href="#L341">341</a>end</span>
+<span id="L342" class="line"><a href="#L342">342</a></span>
+<span id="L343" class="line"><a href="#L343">343</a>function SuperMagicBird2024Manager:onActReceiveEmergency(evt)</span>
+<span id="L344" class="line"><a href="#L344">344</a>    local eventData = evt:getData()</span>
+<span id="L345" class="line"><a href="#L345">345</a></span>
+<span id="L346" class="line"><a href="#L346">346</a>    if eventData and eventData.endPoint == EmergencyConst.SUPERMAGICBIRD and eventData.data then</span>
+<span id="L347" class="line"><a href="#L347">347</a>        local data = table.clone(eventData.data)</span>
+<span id="L348" class="line"><a href="#L348">348</a>        if not self:isEnabled() then return end</span>
+<span id="L349" class="line"><a href="#L349">349</a></span>
+<span id="L350" class="line"><a href="#L350">350</a>        log(&quot;onActReceiveEmergency&quot;)</span>
+<span id="L351" class="line"><a href="#L351">351</a></span>
+<span id="L352" class="line"><a href="#L352">352</a>        local bCanChangeData = self:checkCanUseActInfoData(data)</span>
+<span id="L353" class="line"><a href="#L353">353</a>    </span>
+<span id="L354" class="line"><a href="#L354">354</a>        if bCanChangeData then</span>
+<span id="L355" class="line"><a href="#L355">355</a>            if data.adjustInfo then</span>
+<span id="L356" class="line"><a href="#L356">356</a>                self:getData():updateAdjustInfo(data.adjustInfo)</span>
+<span id="L357" class="line"><a href="#L357">357</a>            end</span>
+<span id="L358" class="line"><a href="#L358">358</a></span>
+<span id="L359" class="line"><a href="#L359">359</a>            if data.cycleInfo then</span>
+<span id="L360" class="line"><a href="#L360">360</a>                self:getData():updateCycleInfo(data.cycleInfo)</span>
+<span id="L361" class="line"><a href="#L361">361</a>            end</span>
+<span id="L362" class="line"><a href="#L362">362</a></span>
+<span id="L363" class="line"><a href="#L363">363</a>            if data.adjustInfo2025 then</span>
+<span id="L364" class="line"><a href="#L364">364</a>                self:getData():updateCycleInfo2025(data.adjustInfo2025)</span>
+<span id="L365" class="line"><a href="#L365">365</a>            end</span>
+<span id="L366" class="line"><a href="#L366">366</a></span>
+<span id="L367" class="line"><a href="#L367">367</a>            if data.breakVersion1 then</span>
+<span id="L368" class="line"><a href="#L368">368</a>                self:getData():updateBreakVersion1( data.breakVersion1 )</span>
+<span id="L369" class="line"><a href="#L369">369</a>            end</span>
+<span id="L370" class="line"><a href="#L370">370</a>        end</span>
+<span id="L371" class="line"><a href="#L371">371</a>    end</span>
+<span id="L372" class="line"><a href="#L372">372</a>end</span>
+<span id="L373" class="line"><a href="#L373">373</a></span>
+<span id="L374" class="line"><a href="#L374">374</a>-- function SuperMagicBird2024Manager:firstInitActData(actInfo)</span>
+<span id="L375" class="line"><a href="#L375">375</a>--     --从user的actInfo中初始化数据</span>
+<span id="L376" class="line"><a href="#L376">376</a>--     -- if self:isEnabled() then return end</span>
+<span id="L377" class="line"><a href="#L377">377</a></span>
+<span id="L378" class="line"><a href="#L378">378</a>--     if actInfo then</span>
+<span id="L379" class="line"><a href="#L379">379</a>--         if actInfo.extra then</span>
+<span id="L380" class="line"><a href="#L380">380</a></span>
+<span id="L381" class="line"><a href="#L381">381</a>--             local extra = table.deserialize(actInfo.extra)</span>
+<span id="L382" class="line"><a href="#L382">382</a></span>
+<span id="L383" class="line"><a href="#L383">383</a>--             log(&quot;firstInitActData&quot;)</span>
+<span id="L384" class="line"><a href="#L384">384</a></span>
+<span id="L385" class="line"><a href="#L385">385</a>--             local bCanChangeData = self:checkCanUseActInfoData(extra)</span>
+<span id="L386" class="line"><a href="#L386">386</a></span>
+<span id="L387" class="line"><a href="#L387">387</a>--             if not self:isEnabled() and bCanChangeData and extra.cycleInfo then</span>
+<span id="L388" class="line"><a href="#L388">388</a></span>
+<span id="L389" class="line"><a href="#L389">389</a>--                 local data = {}</span>
+<span id="L390" class="line"><a href="#L390">390</a></span>
+<span id="L391" class="line"><a href="#L391">391</a>--                 data.data = {</span>
+<span id="L392" class="line"><a href="#L392">392</a>--                     adjustInfo = table.clone(extra.adjustInfo),</span>
+<span id="L393" class="line"><a href="#L393">393</a>--                     cycleInfo = table.clone(extra.cycleInfo),</span>
+<span id="L394" class="line"><a href="#L394">394</a>--                     callback = extra.periodInfo.callback,</span>
+<span id="L395" class="line"><a href="#L395">395</a>--                     canFarm = extra.canFarm,</span>
+<span id="L396" class="line"><a href="#L396">396</a>--                     close = extra.periodInfo.close,</span>
+<span id="L397" class="line"><a href="#L397">397</a>--                     group = extra.periodInfo.group,</span>
+<span id="L398" class="line"><a href="#L398">398</a>--                     payTag = extra.payTag,</span>
+<span id="L399" class="line"><a href="#L399">399</a>--                     callBackInfo = table.clone(extra.callBackInfo),</span>
+<span id="L400" class="line"><a href="#L400">400</a>--                     guideIds = table.clone(extra.guideIds),</span>
+<span id="L401" class="line"><a href="#L401">401</a>--                     maxWinStreakNums = extra.maxWinStreakNums,</span>
+<span id="L402" class="line"><a href="#L402">402</a>--                     -- winCombInfo = extra.winCombInfo and table.clone(extra.winCombInfo),</span>
+<span id="L403" class="line"><a href="#L403">403</a>--                     --新增</span>
+<span id="L404" class="line"><a href="#L404">404</a>--                     group2025 = extra.periodInfo.group2025 or &quot;OFF1&quot;,</span>
+<span id="L405" class="line"><a href="#L405">405</a>--                     adjustInfo2025 = table.clone(extra.adjustInfo2025 or {}),</span>
+<span id="L406" class="line"><a href="#L406">406</a></span>
+<span id="L407" class="line"><a href="#L407">407</a>--                     breakVersion1 = extra.breakVersion1,</span>
+<span id="L408" class="line"><a href="#L408">408</a>--                 }</span>
+<span id="L409" class="line"><a href="#L409">409</a></span>
+<span id="L410" class="line"><a href="#L410">410</a>--                 data.serverVersionedConfig = {</span>
+<span id="L411" class="line"><a href="#L411">411</a>--                     serverMd5 = &quot;12345&quot;,</span>
+<span id="L412" class="line"><a href="#L412">412</a>--                     config = {</span>
+<span id="L413" class="line"><a href="#L413">413</a>--                         peakTopLevelId = extra.peakTopLevelId,</span>
+<span id="L414" class="line"><a href="#L414">414</a>--                         minTopLevelId = extra.minTopLevelId,</span>
+<span id="L415" class="line"><a href="#L415">415</a>--                         minTriggerLevelNums = extra.minTriggerLevelNums,</span>
+<span id="L416" class="line"><a href="#L416">416</a>--                         maxTopLevelId = extra.maxTopLevelId,</span>
+<span id="L417" class="line"><a href="#L417">417</a>--                         keepLimit = extra.keepLimit,</span>
+<span id="L418" class="line"><a href="#L418">418</a>--                         periodInfo = table.clone(extra.periodInfo),</span>
+<span id="L419" class="line"><a href="#L419">419</a>--                         pityValAdjustMetas= table.clone(extra.pityValAdjustMetas),</span>
+<span id="L420" class="line"><a href="#L420">420</a>--                     }</span>
+<span id="L421" class="line"><a href="#L421">421</a>--                 }</span>
+<span id="L422" class="line"><a href="#L422">422</a></span>
+<span id="L423" class="line"><a href="#L423">423</a>--                 data.serverVersionedConfig.config = table.serialize( data.serverVersionedConfig.config )</span>
+<span id="L424" class="line"><a href="#L424">424</a></span>
+<span id="L425" class="line"><a href="#L425">425</a>--                 local toMgrData = {}</span>
+<span id="L426" class="line"><a href="#L426">426</a>--                 toMgrData.userData = table.clone(data.data)</span>
+<span id="L427" class="line"><a href="#L427">427</a>--                 toMgrData.endTime = math.floor(extra.periodInfo.endTs/1000) or 0</span>
+<span id="L428" class="line"><a href="#L428">428</a>--                 toMgrData.mainEndTime = math.floor(extra.periodInfo.mainEndTs/1000) or 0</span>
+<span id="L429" class="line"><a href="#L429">429</a>--                 toMgrData.mainBeginTime = math.floor(extra.periodInfo.mainBeginTs/1000) or 0</span>
+<span id="L430" class="line"><a href="#L430">430</a>--                 toMgrData.beginTime = math.floor(extra.periodInfo.mainBeginTs/1000) or 0</span>
+<span id="L431" class="line"><a href="#L431">431</a>--                 local dataConfig = table.clone(data.serverVersionedConfig)</span>
+<span id="L432" class="line"><a href="#L432">432</a></span>
+<span id="L433" class="line"><a href="#L433">433</a>--                 self:fromServer(toMgrData, dataConfig)</span>
+<span id="L434" class="line"><a href="#L434">434</a>--             end</span>
+<span id="L435" class="line"><a href="#L435">435</a>--         end</span>
+<span id="L436" class="line"><a href="#L436">436</a>--     end</span>
+<span id="L437" class="line"><a href="#L437">437</a>-- end</span>
+<span id="L438" class="line"><a href="#L438">438</a></span>
+<span id="L439" class="line"><a href="#L439">439</a>function SuperMagicBird2024Manager:onActActInfoUpdate(event)</span>
+<span id="L440" class="line"><a href="#L440">440</a>    --同步最新后端内容</span>
+<span id="L441" class="line"><a href="#L441">441</a>    local data = event:getData()</span>
+<span id="L442" class="line"><a href="#L442">442</a>    local actInfos = data.actInfos or {}</span>
+<span id="L443" class="line"><a href="#L443">443</a>    local fromServer = data.fromServer</span>
+<span id="L444" class="line"><a href="#L444">444</a>    local actInfo = actInfos[tostring(SuperMagicBird2024Manager.ACT_ID)]</span>
+<span id="L445" class="line"><a href="#L445">445</a></span>
+<span id="L446" class="line"><a href="#L446">446</a>    if fromServer then</span>
+<span id="L447" class="line"><a href="#L447">447</a>        -- if self:isEnabled() then</span>
+<span id="L448" class="line"><a href="#L448">448</a>            if actInfo then</span>
+<span id="L449" class="line"><a href="#L449">449</a>                if actInfo.extra then</span>
+<span id="L450" class="line"><a href="#L450">450</a>                    local extra = table.deserialize(actInfo.extra)</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>                    log(&quot;onActActInfoUpdate&quot;)</span>
+<span id="L453" class="line"><a href="#L453">453</a>                    local bCanChangeData = self:checkCanUseActInfoData(extra)</span>
+<span id="L454" class="line"><a href="#L454">454</a></span>
+<span id="L455" class="line"><a href="#L455">455</a>                    if bCanChangeData then</span>
+<span id="L456" class="line"><a href="#L456">456</a></span>
+<span id="L457" class="line"><a href="#L457">457</a>                        if extra.payTag then</span>
+<span id="L458" class="line"><a href="#L458">458</a>                            self:getData():setPayTag( extra.payTag )</span>
+<span id="L459" class="line"><a href="#L459">459</a>                        end</span>
+<span id="L460" class="line"><a href="#L460">460</a>                        </span>
+<span id="L461" class="line"><a href="#L461">461</a>                        if extra.adjustInfo then</span>
+<span id="L462" class="line"><a href="#L462">462</a>                            self:getData():updateAdjustInfo(extra.adjustInfo)</span>
+<span id="L463" class="line"><a href="#L463">463</a>                        end</span>
+<span id="L464" class="line"><a href="#L464">464</a></span>
+<span id="L465" class="line"><a href="#L465">465</a>                        if extra.cycleInfo then</span>
+<span id="L466" class="line"><a href="#L466">466</a>                            self:getData():updateCycleInfo(extra.cycleInfo)</span>
+<span id="L467" class="line"><a href="#L467">467</a>                        end</span>
+<span id="L468" class="line"><a href="#L468">468</a></span>
+<span id="L469" class="line"><a href="#L469">469</a>                        if extra.adjustInfo2025 then</span>
+<span id="L470" class="line"><a href="#L470">470</a>                            self:getData():updateCycleInfo2025(extra.adjustInfo2025)</span>
+<span id="L471" class="line"><a href="#L471">471</a>                        end</span>
+<span id="L472" class="line"><a href="#L472">472</a></span>
+<span id="L473" class="line"><a href="#L473">473</a>                        if extra.maxWinStreakNums then</span>
+<span id="L474" class="line"><a href="#L474">474</a>                            self:getData():setMaxWinStreakNums(extra.maxWinStreakNums)</span>
+<span id="L475" class="line"><a href="#L475">475</a>                        end</span>
+<span id="L476" class="line"><a href="#L476">476</a></span>
+<span id="L477" class="line"><a href="#L477">477</a>                        if extra.breakVersion1 then</span>
+<span id="L478" class="line"><a href="#L478">478</a>                            self:getData():updateBreakVersion1( extra.breakVersion1 )</span>
+<span id="L479" class="line"><a href="#L479">479</a>                        end</span>
+<span id="L480" class="line"><a href="#L480">480</a>                    end</span>
+<span id="L481" class="line"><a href="#L481">481</a>                    self:getData():updateReviveCardInfo(extra.reviveCardInfo)</span>
+<span id="L482" class="line"><a href="#L482">482</a>                end</span>
+<span id="L483" class="line"><a href="#L483">483</a></span>
+<span id="L484" class="line"><a href="#L484">484</a>                if self:isEnabled() and self:curTimeTopLevelIsEnabled() then</span>
+<span id="L485" class="line"><a href="#L485">485</a>                    self:dcQualify()</span>
+<span id="L486" class="line"><a href="#L486">486</a>                end</span>
+<span id="L487" class="line"><a href="#L487">487</a>            end</span>
+<span id="L488" class="line"><a href="#L488">488</a>        -- else</span>
+<span id="L489" class="line"><a href="#L489">489</a>        --     if actInfo then</span>
+<span id="L490" class="line"><a href="#L490">490</a>        --         self:firstInitActData(actInfo)</span>
+<span id="L491" class="line"><a href="#L491">491</a>        --     end</span>
+<span id="L492" class="line"><a href="#L492">492</a>        -- end</span>
+<span id="L493" class="line"><a href="#L493">493</a>    end</span>
+<span id="L494" class="line"><a href="#L494">494</a>end</span>
+<span id="L495" class="line"><a href="#L495">495</a></span>
+<span id="L496" class="line"><a href="#L496">496</a>-- function SuperMagicBird2024Manager:fromServer(data, config)</span>
+<span id="L497" class="line"><a href="#L497">497</a>--     self:getData():fromSever(data, config)</span>
+<span id="L498" class="line"><a href="#L498">498</a>-- end</span>
+<span id="L499" class="line"><a href="#L499">499</a></span>
+<span id="L500" class="line"><a href="#L500">500</a>function SuperMagicBird2024Manager:curTimeTopLevelIsEnabled()</span>
+<span id="L501" class="line"><a href="#L501">501</a></span>
+<span id="L502" class="line"><a href="#L502">502</a>    local isFMJ = _G.amfBean(&quot;UserStateManager&quot;):isFMJ()</span>
+<span id="L503" class="line"><a href="#L503">503</a>    if isFMJ then return true end</span>
+<span id="L504" class="line"><a href="#L504">504</a></span>
+<span id="L505" class="line"><a href="#L505">505</a>    --当前时间，头部关是否满足。 当前时间如果大于本地最高关开启时间7天，活动不开</span>
+<span id="L506" class="line"><a href="#L506">506</a>    local newLevelOpenTime, countDownAreaId = _G.amfBean(&quot;LevelUnLockManager&quot;):getLastOpenNewLevelTime()</span>
+<span id="L507" class="line"><a href="#L507">507</a>    local diffTime = TimeKit:timeInSec() - newLevelOpenTime</span>
+<span id="L508" class="line"><a href="#L508">508</a></span>
+<span id="L509" class="line"><a href="#L509">509</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L510" class="line"><a href="#L510">510</a>        log(&quot;检测新关解锁时间是否满足7日内&quot;, newLevelOpenTime, TimeKit:timeInSec(), diffTime, 60*60*24*7)</span>
+<span id="L511" class="line"><a href="#L511">511</a>    end</span>
+<span id="L512" class="line"><a href="#L512">512</a></span>
+<span id="L513" class="line"><a href="#L513">513</a>    if diffTime &gt;= 60*60*24*7 then</span>
+<span id="L514" class="line"><a href="#L514">514</a>        return false</span>
+<span id="L515" class="line"><a href="#L515">515</a>    end</span>
+<span id="L516" class="line"><a href="#L516">516</a>    return true</span>
+<span id="L517" class="line"><a href="#L517">517</a>end</span>
+<span id="L518" class="line"><a href="#L518">518</a></span>
+<span id="L519" class="line"><a href="#L519">519</a>function SuperMagicBird2024Manager:curTimeIsInNewLevelOpenTimeAndLevelIsNewLevel( levelId, levelScene )</span>
+<span id="L520" class="line"><a href="#L520">520</a>    --当前时间是否在新关开启7日内，并且关卡是新关区间</span>
+<span id="L521" class="line"><a href="#L521">521</a>    if not UBFLevelSceneFunc:isMainLevel(levelScene) then return false end</span>
+<span id="L522" class="line"><a href="#L522">522</a></span>
+<span id="L523" class="line"><a href="#L523">523</a>    local isFMJ = _G.amfBean(&quot;UserStateManager&quot;):isFMJ()</span>
+<span id="L524" class="line"><a href="#L524">524</a>    if not isFMJ then return false end</span>
+<span id="L525" class="line"><a href="#L525">525</a></span>
+<span id="L526" class="line"><a href="#L526">526</a>    local deltaTime = 60*60*24*7</span>
+<span id="L527" class="line"><a href="#L527">527</a>    if _G.amfBean(&quot;LevelUnLockManager&quot;):isInNewLevelTime(deltaTime) and _G.amfBean(&quot;LevelUnLockManager&quot;):isTopNewMainLevel(levelId) then</span>
+<span id="L528" class="line"><a href="#L528">528</a>        return true</span>
+<span id="L529" class="line"><a href="#L529">529</a>    end</span>
+<span id="L530" class="line"><a href="#L530">530</a></span>
+<span id="L531" class="line"><a href="#L531">531</a>    return false</span>
+<span id="L532" class="line"><a href="#L532">532</a>end</span>
+<span id="L533" class="line"><a href="#L533">533</a></span>
+<span id="L534" class="line"><a href="#L534">534</a>function SuperMagicBird2024Manager:getTrueTopLevelId()</span>
+<span id="L535" class="line"><a href="#L535">535</a>    return _G.amfBean(&quot;LevelAreaManager&quot;):getTopPassedMainLevelId() + 1</span>
+<span id="L536" class="line"><a href="#L536">536</a>end</span>
+<span id="L537" class="line"><a href="#L537">537</a></span>
+<span id="L538" class="line"><a href="#L538">538</a>function SuperMagicBird2024Manager:getMinTopLevelId()</span>
+<span id="L539" class="line"><a href="#L539">539</a>    if not self:isEnabled() then return Meta.bottomMostLevelConfig end</span>
+<span id="L540" class="line"><a href="#L540">540</a>    -- local value = self:getData():getConfigByKey(Meta.minTopLevelId)</span>
+<span id="L541" class="line"><a href="#L541">541</a>    local value = self:getData():getDataByKey(Meta.minTopLevelId)</span>
+<span id="L542" class="line"><a href="#L542">542</a>    if not value then</span>
+<span id="L543" class="line"><a href="#L543">543</a>        value = Meta.bottomMostLevelConfig</span>
+<span id="L544" class="line"><a href="#L544">544</a>    end</span>
+<span id="L545" class="line"><a href="#L545">545</a>    return value</span>
+<span id="L546" class="line"><a href="#L546">546</a>end</span>
+<span id="L547" class="line"><a href="#L547">547</a></span>
+<span id="L548" class="line"><a href="#L548">548</a>-- 未激活状态下胜利数量</span>
+<span id="L549" class="line"><a href="#L549">549</a>function SuperMagicBird2024Manager:getPassTopNums()</span>
+<span id="L550" class="line"><a href="#L550">550</a>    if not self:isEnabled() then return 0 end</span>
+<span id="L551" class="line"><a href="#L551">551</a>    local value = self:getData():getCycleInfoDataByKey(Meta.passTopNums)</span>
+<span id="L552" class="line"><a href="#L552">552</a>    if not value then</span>
+<span id="L553" class="line"><a href="#L553">553</a>        return 0</span>
+<span id="L554" class="line"><a href="#L554">554</a>    end</span>
+<span id="L555" class="line"><a href="#L555">555</a>    return value</span>
+<span id="L556" class="line"><a href="#L556">556</a>end</span>
+<span id="L557" class="line"><a href="#L557">557</a></span>
+<span id="L558" class="line"><a href="#L558">558</a>-- 配置中激活魔力鸟需要胜利的局数</span>
+<span id="L559" class="line"><a href="#L559">559</a>function SuperMagicBird2024Manager:getNeedWinNum()</span>
+<span id="L560" class="line"><a href="#L560">560</a>    if not self:isEnabled() then return 0 end</span>
+<span id="L561" class="line"><a href="#L561">561</a>    -- local winNum = self:getData():getConfigByKey(Meta.minTriggerLevelNums)</span>
+<span id="L562" class="line"><a href="#L562">562</a>    local winNum = self:getData():getDataByKey(Meta.minTriggerLevelNums)</span>
+<span id="L563" class="line"><a href="#L563">563</a>    if not winNum then</span>
+<span id="L564" class="line"><a href="#L564">564</a>        return 8</span>
+<span id="L565" class="line"><a href="#L565">565</a>    end</span>
+<span id="L566" class="line"><a href="#L566">566</a>    return winNum</span>
+<span id="L567" class="line"><a href="#L567">567</a>end</span>
+<span id="L568" class="line"><a href="#L568">568</a></span>
+<span id="L569" class="line"><a href="#L569">569</a>-- 是否已激活</span>
+<span id="L570" class="line"><a href="#L570">570</a>function SuperMagicBird2024Manager:getAvailable()</span>
+<span id="L571" class="line"><a href="#L571">571</a>    if not self:isEnabled() then return false end</span>
+<span id="L572" class="line"><a href="#L572">572</a>    local type = self:getData():getCycleInfoDataByKey(Meta.type)</span>
+<span id="L573" class="line"><a href="#L573">573</a>    if not type then</span>
+<span id="L574" class="line"><a href="#L574">574</a>        type = 0</span>
+<span id="L575" class="line"><a href="#L575">575</a>    end</span>
+<span id="L576" class="line"><a href="#L576">576</a>    return type &gt; 0</span>
+<span id="L577" class="line"><a href="#L577">577</a>end</span>
+<span id="L578" class="line"><a href="#L578">578</a></span>
+<span id="L579" class="line"><a href="#L579">579</a>function SuperMagicBird2024Manager:hasRewards()</span>
+<span id="L580" class="line"><a href="#L580">580</a>    if not self:isEnabled() then return false end</span>
+<span id="L581" class="line"><a href="#L581">581</a>    return false</span>
+<span id="L582" class="line"><a href="#L582">582</a>end</span>
+<span id="L583" class="line"><a href="#L583">583</a></span>
+<span id="L584" class="line"><a href="#L584">584</a>function SuperMagicBird2024Manager:hasSuperPower()</span>
+<span id="L585" class="line"><a href="#L585">585</a>    if not self:isEnabled() then return false end</span>
+<span id="L586" class="line"><a href="#L586">586</a>    local superPower = self:getAvailable()</span>
+<span id="L587" class="line"><a href="#L587">587</a>    return superPower</span>
+<span id="L588" class="line"><a href="#L588">588</a>end</span>
+<span id="L589" class="line"><a href="#L589">589</a></span>
+<span id="L590" class="line"><a href="#L590">590</a>function SuperMagicBird2024Manager:onActAutoStartLevelBackUser(evt)</span>
+<span id="L591" class="line"><a href="#L591">591</a>    local data = evt:getData() or {}</span>
+<span id="L592" class="line"><a href="#L592">592</a>    local callback = data.callback</span>
+<span id="L593" class="line"><a href="#L593">593</a>    data.handled = true</span>
+<span id="L594" class="line"><a href="#L594">594</a>    self.autoPopupMgr:removePopupConfig(PopupCheckPoint.SUPER_MAGIC_BIRD_REVIVE)</span>
+<span id="L595" class="line"><a href="#L595">595</a>    self:markReviveCardDeliveryAutoPopConsumed()</span>
+<span id="L596" class="line"><a href="#L596">596</a>    if not self:tryGetReviveCardReward(callback, callback, callback) then</span>
+<span id="L597" class="line"><a href="#L597">597</a>        safeRunCall(callback)</span>
+<span id="L598" class="line"><a href="#L598">598</a>    end</span>
+<span id="L599" class="line"><a href="#L599">599</a>end</span>
+<span id="L600" class="line"><a href="#L600">600</a></span>
+<span id="L601" class="line"><a href="#L601">601</a>function SuperMagicBird2024Manager:getReviveCardInfo()</span>
+<span id="L602" class="line"><a href="#L602">602</a>    return self:getData():getReviveCardInfo()</span>
+<span id="L603" class="line"><a href="#L603">603</a>end</span>
+<span id="L604" class="line"><a href="#L604">604</a></span>
+<span id="L605" class="line"><a href="#L605">605</a>function SuperMagicBird2024Manager:isReviveCardFeatureEnabled()</span>
+<span id="L606" class="line"><a href="#L606">606</a>    if not self:isEnabled() then return false end</span>
+<span id="L607" class="line"><a href="#L607">607</a>    local reviveCardInfo = self:getReviveCardInfo()</span>
+<span id="L608" class="line"><a href="#L608">608</a>    if not reviveCardInfo or not reviveCardInfo.beginTs or not reviveCardInfo.endTs then</span>
+<span id="L609" class="line"><a href="#L609">609</a>        return false</span>
+<span id="L610" class="line"><a href="#L610">610</a>    end</span>
+<span id="L611" class="line"><a href="#L611">611</a></span>
+<span id="L612" class="line"><a href="#L612">612</a>    local beginTime = TimeKit:tryConvertMsToSec(reviveCardInfo.beginTs)</span>
+<span id="L613" class="line"><a href="#L613">613</a>    local endTime = TimeKit:tryConvertMsToSec(reviveCardInfo.endTs)</span>
+<span id="L614" class="line"><a href="#L614">614</a>    local now = TimeKit:timeInSec()</span>
+<span id="L615" class="line"><a href="#L615">615</a>    return beginTime ~= nil and endTime ~= nil and now &gt;= beginTime and now &lt; endTime</span>
+<span id="L616" class="line"><a href="#L616">616</a>end</span>
+<span id="L617" class="line"><a href="#L617">617</a></span>
+<span id="L618" class="line"><a href="#L618">618</a>function SuperMagicBird2024Manager:hasTodayTimestamp(timestampList)</span>
+<span id="L619" class="line"><a href="#L619">619</a>    local todayStart = TimeKit:getTodayStart()</span>
+<span id="L620" class="line"><a href="#L620">620</a>    for _, timestamp in pairs(timestampList or {}) do</span>
+<span id="L621" class="line"><a href="#L621">621</a>        local timestampInSec = TimeKit:tryConvertMsToSec(timestamp)</span>
+<span id="L622" class="line"><a href="#L622">622</a>        if timestampInSec and TimeKit:getDayStartTimeByTS(timestampInSec) == todayStart then</span>
+<span id="L623" class="line"><a href="#L623">623</a>            return true</span>
+<span id="L624" class="line"><a href="#L624">624</a>        end</span>
+<span id="L625" class="line"><a href="#L625">625</a>    end</span>
+<span id="L626" class="line"><a href="#L626">626</a>    return false</span>
+<span id="L627" class="line"><a href="#L627">627</a>end</span>
+<span id="L628" class="line"><a href="#L628">628</a></span>
+<span id="L629" class="line"><a href="#L629">629</a>function SuperMagicBird2024Manager:hasReviveCard()</span>
+<span id="L630" class="line"><a href="#L630">630</a>    local reviveCardInfo = self:getReviveCardInfo()</span>
+<span id="L631" class="line"><a href="#L631">631</a>    return reviveCardInfo ~= nil and self:hasTodayTimestamp(reviveCardInfo.rewardMs)</span>
+<span id="L632" class="line"><a href="#L632">632</a>end</span>
+<span id="L633" class="line"><a href="#L633">633</a></span>
+<span id="L634" class="line"><a href="#L634">634</a>function SuperMagicBird2024Manager:hasReviveCardInBag()</span>
+<span id="L635" class="line"><a href="#L635">635</a>    local userPropsManager = _G.amfBean(&quot;UserPropsManager&quot;)</span>
+<span id="L636" class="line"><a href="#L636">636</a>    local reviveCardNum = tonumber(userPropsManager:getUserPropNumber(AMFPropId.SUPER_BIRD_REVIVE_CARD)) or 0</span>
+<span id="L637" class="line"><a href="#L637">637</a>    return reviveCardNum &gt; 0</span>
+<span id="L638" class="line"><a href="#L638">638</a>end</span>
+<span id="L639" class="line"><a href="#L639">639</a></span>
+<span id="L640" class="line"><a href="#L640">640</a>function SuperMagicBird2024Manager:isReviveCardLastDay()</span>
+<span id="L641" class="line"><a href="#L641">641</a>    local reviveCardInfo = self:getReviveCardInfo()</span>
+<span id="L642" class="line"><a href="#L642">642</a>    if not reviveCardInfo or not reviveCardInfo.endTs then</span>
+<span id="L643" class="line"><a href="#L643">643</a>        return false</span>
+<span id="L644" class="line"><a href="#L644">644</a>    end</span>
+<span id="L645" class="line"><a href="#L645">645</a></span>
+<span id="L646" class="line"><a href="#L646">646</a>    local endTime = TimeKit:tryConvertMsToSec(reviveCardInfo.endTs)</span>
+<span id="L647" class="line"><a href="#L647">647</a>    return TimeKit:getDayStartTimeByTS(endTime) == TimeKit:getTodayStart()</span>
+<span id="L648" class="line"><a href="#L648">648</a>end</span>
+<span id="L649" class="line"><a href="#L649">649</a></span>
+<span id="L650" class="line"><a href="#L650">650</a>function SuperMagicBird2024Manager:canRewardReviveCardToday()</span>
+<span id="L651" class="line"><a href="#L651">651</a>    return self:isReviveCardFeatureEnabled()</span>
+<span id="L652" class="line"><a href="#L652">652</a>        and not self:hasReviveCard()</span>
+<span id="L653" class="line"><a href="#L653">653</a>end</span>
+<span id="L654" class="line"><a href="#L654">654</a></span>
+<span id="L655" class="line"><a href="#L655">655</a>function SuperMagicBird2024Manager:tryGetReviveCardReward(successCallback, failCallback, cancelCallback)</span>
+<span id="L656" class="line"><a href="#L656">656</a>    if not self:canRewardReviveCardToday() then</span>
+<span id="L657" class="line"><a href="#L657">657</a>        return false</span>
+<span id="L658" class="line"><a href="#L658">658</a>    end</span>
+<span id="L659" class="line"><a href="#L659">659</a></span>
+<span id="L660" class="line"><a href="#L660">660</a>    self:requestReviveCardReward(successCallback, failCallback, cancelCallback)</span>
+<span id="L661" class="line"><a href="#L661">661</a>    return true</span>
+<span id="L662" class="line"><a href="#L662">662</a>end</span>
+<span id="L663" class="line"><a href="#L663">663</a></span>
+<span id="L664" class="line"><a href="#L664">664</a>function SuperMagicBird2024Manager:canAccumulateChargeProgress()</span>
+<span id="L665" class="line"><a href="#L665">665</a>    return not self:getAvailable() and self:getPassTopNums() &lt; self:getNeedWinNum()</span>
+<span id="L666" class="line"><a href="#L666">666</a>end</span>
+<span id="L667" class="line"><a href="#L667">667</a></span>
+<span id="L668" class="line"><a href="#L668">668</a>function SuperMagicBird2024Manager:canActivateReviveCard()</span>
+<span id="L669" class="line"><a href="#L669">669</a>    return self:hasReviveCardInBag()</span>
+<span id="L670" class="line"><a href="#L670">670</a>        and self:canAccumulateChargeProgress()</span>
+<span id="L671" class="line"><a href="#L671">671</a>end</span>
+<span id="L672" class="line"><a href="#L672">672</a></span>
+<span id="L673" class="line"><a href="#L673">673</a>function SuperMagicBird2024Manager:getReviveCardSlpState(params)</span>
+<span id="L674" class="line"><a href="#L674">674</a>    params = params or {}</span>
+<span id="L675" class="line"><a href="#L675">675</a>    local reviveCardEnabled = self:isEnabled()</span>
+<span id="L676" class="line"><a href="#L676">676</a>    local canAccumulate = self:canAccumulateChargeProgress()</span>
+<span id="L677" class="line"><a href="#L677">677</a>        and self:isEnabledInLevel(params)</span>
+<span id="L678" class="line"><a href="#L678">678</a>    local hasUsableCard = self:hasReviveCardInBag()</span>
+<span id="L679" class="line"><a href="#L679">679</a>    local cardExpireAt = 0</span>
+<span id="L680" class="line"><a href="#L680">680</a></span>
+<span id="L681" class="line"><a href="#L681">681</a>    if hasUsableCard then</span>
+<span id="L682" class="line"><a href="#L682">682</a>        cardExpireAt = TimeKit:getTodayStart() + SECONDS_PER_DAY</span>
+<span id="L683" class="line"><a href="#L683">683</a>        local reviveCardInfo = self:getReviveCardInfo() or {}</span>
+<span id="L684" class="line"><a href="#L684">684</a>        local activityExpireAt = tonumber(TimeKit:tryConvertMsToSec(reviveCardInfo.endTs)) or 0</span>
+<span id="L685" class="line"><a href="#L685">685</a>        if activityExpireAt &gt; 0 then</span>
+<span id="L686" class="line"><a href="#L686">686</a>            cardExpireAt = math.min(cardExpireAt, activityExpireAt)</span>
+<span id="L687" class="line"><a href="#L687">687</a>        end</span>
+<span id="L688" class="line"><a href="#L688">688</a>        local now = TimeKit:timeInSec()</span>
+<span id="L689" class="line"><a href="#L689">689</a>        if now &gt;= cardExpireAt then</span>
+<span id="L690" class="line"><a href="#L690">690</a>            hasUsableCard = false</span>
+<span id="L691" class="line"><a href="#L691">691</a>            cardExpireAt = 0</span>
+<span id="L692" class="line"><a href="#L692">692</a>        end</span>
+<span id="L693" class="line"><a href="#L693">693</a>    end</span>
+<span id="L694" class="line"><a href="#L694">694</a></span>
+<span id="L695" class="line"><a href="#L695">695</a>    return {</span>
+<span id="L696" class="line"><a href="#L696">696</a>        reviveCardEnabled = reviveCardEnabled,</span>
+<span id="L697" class="line"><a href="#L697">697</a>        canAccumulate = canAccumulate,</span>
+<span id="L698" class="line"><a href="#L698">698</a>        hasUsableCard = hasUsableCard,</span>
+<span id="L699" class="line"><a href="#L699">699</a>        cardExpireAt = cardExpireAt,</span>
+<span id="L700" class="line"><a href="#L700">700</a>        isSuperBirdActive = self:getAvailable() == true,</span>
+<span id="L701" class="line"><a href="#L701">701</a>        currentProgress = self:getPassTopNums() or 0,</span>
+<span id="L702" class="line"><a href="#L702">702</a>        maxProgress = self:getNeedWinNum() or 8,</span>
+<span id="L703" class="line"><a href="#L703">703</a>    }</span>
+<span id="L704" class="line"><a href="#L704">704</a>end</span>
+<span id="L705" class="line"><a href="#L705">705</a></span>
+<span id="L706" class="line"><a href="#L706">706</a>function SuperMagicBird2024Manager:onActDcStageCommon(event)</span>
+<span id="L707" class="line"><a href="#L707">707</a>    if not event then return end</span>
+<span id="L708" class="line"><a href="#L708">708</a></span>
+<span id="L709" class="line"><a href="#L709">709</a>    local dcInfo = event:getData()</span>
+<span id="L710" class="line"><a href="#L710">710</a>    if not dcInfo</span>
+<span id="L711" class="line"><a href="#L711">711</a>        or dcInfo.category ~= &quot;stage&quot;</span>
+<span id="L712" class="line"><a href="#L712">712</a>        or dcInfo.sub_category ~= &quot;start_show&quot;</span>
+<span id="L713" class="line"><a href="#L713">713</a>    then</span>
+<span id="L714" class="line"><a href="#L714">714</a>        return</span>
+<span id="L715" class="line"><a href="#L715">715</a>    end</span>
+<span id="L716" class="line"><a href="#L716">716</a></span>
+<span id="L717" class="line"><a href="#L717">717</a>    local reviveCardState = self:getReviveCardSlpState({</span>
+<span id="L718" class="line"><a href="#L718">718</a>        levelId = dcInfo.levelId or dcInfo.current_stage,</span>
+<span id="L719" class="line"><a href="#L719">719</a>        levelScene = dcInfo.levelScene,</span>
+<span id="L720" class="line"><a href="#L720">720</a>    })</span>
+<span id="L721" class="line"><a href="#L721">721</a>    local entryMaintenanceName = EnvUtil:isMiniGameProject() and &quot;superbird_mini&quot; or &quot;superbird_app&quot;</span>
+<span id="L722" class="line"><a href="#L722">722</a>    local entryEnabled = MaintenanceManager:getInstance():isEnabledInGroup(entryMaintenanceName, &quot;ON&quot;)</span>
+<span id="L723" class="line"><a href="#L723">723</a>        and not (dcInfo.t1 == 1 and dcInfo.t2 == 0)</span>
+<span id="L724" class="line"><a href="#L724">724</a>    local hasUsableCard = reviveCardState and reviveCardState.hasUsableCard == true</span>
+<span id="L725" class="line"><a href="#L725">725</a>    local showReviveCard = entryEnabled</span>
+<span id="L726" class="line"><a href="#L726">726</a>        and hasUsableCard</span>
+<span id="L727" class="line"><a href="#L727">727</a>        and reviveCardState.reviveCardEnabled == true</span>
+<span id="L728" class="line"><a href="#L728">728</a>        and reviveCardState.canAccumulate == true</span>
+<span id="L729" class="line"><a href="#L729">729</a>        and reviveCardState.isSuperBirdActive ~= true</span>
+<span id="L730" class="line"><a href="#L730">730</a></span>
+<span id="L731" class="line"><a href="#L731">731</a>    dcInfo.bird_status = showReviveCard and 1 or 0</span>
+<span id="L732" class="line"><a href="#L732">732</a>    dcInfo.bird_reborn_cnt = hasUsableCard and 1 or 0</span>
+<span id="L733" class="line"><a href="#L733">733</a>end</span>
+<span id="L734" class="line"><a href="#L734">734</a></span>
+<span id="L735" class="line"><a href="#L735">735</a>function SuperMagicBird2024Manager:addRewards(rewardItems, dcFeature, dcSource)</span>
+<span id="L736" class="line"><a href="#L736">736</a>    _G.GainPropData:create()</span>
+<span id="L737" class="line"><a href="#L737">737</a>    :setFeature(dcFeature)</span>
+<span id="L738" class="line"><a href="#L738">738</a>    :setSource(dcSource)</span>
+<span id="L739" class="line"><a href="#L739">739</a>    :setProps(rewardItems)</span>
+<span id="L740" class="line"><a href="#L740">740</a>    :execute()</span>
+<span id="L741" class="line"><a href="#L741">741</a>end</span>
+<span id="L742" class="line"><a href="#L742">742</a></span>
+<span id="L743" class="line"><a href="#L743">743</a>-- 激活后连胜数量</span>
+<span id="L744" class="line"><a href="#L744">744</a>function SuperMagicBird2024Manager:getWinStreakNums()</span>
+<span id="L745" class="line"><a href="#L745">745</a>    if self:getAvailable() then</span>
+<span id="L746" class="line"><a href="#L746">746</a>        return self:getData():getCycleInfoDataByKey(Meta.winStreakNums)</span>
+<span id="L747" class="line"><a href="#L747">747</a>    end</span>
+<span id="L748" class="line"><a href="#L748">748</a>    return 0</span>
+<span id="L749" class="line"><a href="#L749">749</a>end</span>
+<span id="L750" class="line"><a href="#L750">750</a></span>
+<span id="L751" class="line"><a href="#L751">751</a>-- 最高连胜数</span>
+<span id="L752" class="line"><a href="#L752">752</a>function SuperMagicBird2024Manager:getMaxWinStreakNums()</span>
+<span id="L753" class="line"><a href="#L753">753</a>    if self:getAvailable() then</span>
+<span id="L754" class="line"><a href="#L754">754</a>        return self:getData():getMaxWinStreakNums()</span>
+<span id="L755" class="line"><a href="#L755">755</a>    end</span>
+<span id="L756" class="line"><a href="#L756">756</a>    return 0</span>
+<span id="L757" class="line"><a href="#L757">757</a>end</span>
+<span id="L758" class="line"><a href="#L758">758</a></span>
+<span id="L759" class="line"><a href="#L759">759</a>function SuperMagicBird2024Manager:getPlugEndTime()</span>
+<span id="L760" class="line"><a href="#L760">760</a>    local chargeConfig = self:getData():getChargeConfig()</span>
+<span id="L761" class="line"><a href="#L761">761</a>    if not chargeConfig then</span>
+<span id="L762" class="line"><a href="#L762">762</a>        return 0</span>
+<span id="L763" class="line"><a href="#L763">763</a>    else</span>
+<span id="L764" class="line"><a href="#L764">764</a>        return chargeConfig.endTs or 0</span>
+<span id="L765" class="line"><a href="#L765">765</a>    end</span>
+<span id="L766" class="line"><a href="#L766">766</a>end</span>
+<span id="L767" class="line"><a href="#L767">767</a></span>
+<span id="L768" class="line"><a href="#L768">768</a>function SuperMagicBird2024Manager:getPlugBeginTime()</span>
+<span id="L769" class="line"><a href="#L769">769</a>    local chargeConfig = self:getData():getChargeConfig()</span>
+<span id="L770" class="line"><a href="#L770">770</a>    if not chargeConfig then</span>
+<span id="L771" class="line"><a href="#L771">771</a>        return 0</span>
+<span id="L772" class="line"><a href="#L772">772</a>    else</span>
+<span id="L773" class="line"><a href="#L773">773</a>        return chargeConfig.beginTs or 0</span>
+<span id="L774" class="line"><a href="#L774">774</a>    end</span>
+<span id="L775" class="line"><a href="#L775">775</a>end</span>
+<span id="L776" class="line"><a href="#L776">776</a></span>
+<span id="L777" class="line"><a href="#L777">777</a>function SuperMagicBird2024Manager:getChargeConfig()</span>
+<span id="L778" class="line"><a href="#L778">778</a>    return self:getData():getChargeConfig()</span>
+<span id="L779" class="line"><a href="#L779">779</a>end</span>
+<span id="L780" class="line"><a href="#L780">780</a></span>
+<span id="L781" class="line"><a href="#L781">781</a>function SuperMagicBird2024Manager:getChargeData()</span>
+<span id="L782" class="line"><a href="#L782">782</a>    return self:getData():getChargeData()</span>
+<span id="L783" class="line"><a href="#L783">783</a>end</span>
+<span id="L784" class="line"><a href="#L784">784</a></span>
+<span id="L785" class="line"><a href="#L785">785</a>function SuperMagicBird2024Manager:getDcFeatureAndSource(actId, suffix )</span>
+<span id="L786" class="line"><a href="#L786">786</a>    return &quot;bird_win&quot;, &quot;get_reward&quot;</span>
+<span id="L787" class="line"><a href="#L787">787</a>end</span>
+<span id="L788" class="line"><a href="#L788">788</a></span>
+<span id="L789" class="line"><a href="#L789">789</a>function SuperMagicBird2024Manager:checkCurCanGuideCallbackProp()</span>
+<span id="L790" class="line"><a href="#L790">790</a>    if self:getData():checkGuide( Meta.GuideIds.kGuideProp ) then</span>
+<span id="L791" class="line"><a href="#L791">791</a>        return false</span>
+<span id="L792" class="line"><a href="#L792">792</a>    else</span>
+<span id="L793" class="line"><a href="#L793">793</a>        return self:getData():checkCurTimeCanGuideCallbackProp()</span>
+<span id="L794" class="line"><a href="#L794">794</a>    end</span>
+<span id="L795" class="line"><a href="#L795">795</a>end</span>
+<span id="L796" class="line"><a href="#L796">796</a></span>
+<span id="L797" class="line"><a href="#L797">797</a>function SuperMagicBird2024Manager:setCurGuideCallbackPropSucess()</span>
+<span id="L798" class="line"><a href="#L798">798</a>    self:getData():setGuideIndex( Meta.GuideIds.kGuideProp)</span>
+<span id="L799" class="line"><a href="#L799">799</a>end</span>
+<span id="L800" class="line"><a href="#L800">800</a></span>
+<span id="L801" class="line"><a href="#L801">801</a>-- dc</span>
+<span id="L802" class="line"><a href="#L802">802</a>function SuperMagicBird2024Manager:dc(category, subCategory, t1, t2, t3, t4, extraData)</span>
+<span id="L803" class="line"><a href="#L803">803</a>    local params = {</span>
+<span id="L804" class="line"><a href="#L804">804</a>        game_type = &quot;stage&quot;,</span>
+<span id="L805" class="line"><a href="#L805">805</a>        game_name = SuperMagicBird2024Manager.GAME_NAME,</span>
+<span id="L806" class="line"><a href="#L806">806</a>        category = category,</span>
+<span id="L807" class="line"><a href="#L807">807</a>        sub_category = subCategory,</span>
+<span id="L808" class="line"><a href="#L808">808</a>        t1 = t1,</span>
+<span id="L809" class="line"><a href="#L809">809</a>        t2 = t2,</span>
+<span id="L810" class="line"><a href="#L810">810</a>        t3 = t3,</span>
+<span id="L811" class="line"><a href="#L811">811</a>        t4 = t4,</span>
+<span id="L812" class="line"><a href="#L812">812</a>    }</span>
+<span id="L813" class="line"><a href="#L813">813</a></span>
+<span id="L814" class="line"><a href="#L814">814</a>    for i, v in pairs(extraData or {}) do</span>
+<span id="L815" class="line"><a href="#L815">815</a>        params[i] = v</span>
+<span id="L816" class="line"><a href="#L816">816</a>    end</span>
+<span id="L817" class="line"><a href="#L817">817</a>    DcUtil:dcForUserTrack(params)</span>
+<span id="L818" class="line"><a href="#L818">818</a>end</span>
+<span id="L819" class="line"><a href="#L819">819</a></span>
+<span id="L820" class="line"><a href="#L820">820</a>function SuperMagicBird2024Manager:dcCanyuDaily(subCategory, localKey)</span>
+<span id="L821" class="line"><a href="#L821">821</a>    if self:getFlagFromLocalByKey(localKey, true) then return end</span>
+<span id="L822" class="line"><a href="#L822">822</a></span>
+<span id="L823" class="line"><a href="#L823">823</a>    self:saveFlagToLocalByKey(localKey, true)</span>
+<span id="L824" class="line"><a href="#L824">824</a>    self:dc(&quot;canyu&quot;, subCategory, nil, nil, nil, nil, {</span>
+<span id="L825" class="line"><a href="#L825">825</a>        actid = SuperMagicBird2024Manager.ACT_ID,</span>
+<span id="L826" class="line"><a href="#L826">826</a>    })</span>
+<span id="L827" class="line"><a href="#L827">827</a>end</span>
+<span id="L828" class="line"><a href="#L828">828</a></span>
+<span id="L829" class="line"><a href="#L829">829</a>function SuperMagicBird2024Manager:dcQualify()</span>
+<span id="L830" class="line"><a href="#L830">830</a>    self:dcCanyuDaily(&quot;qualify&quot;, Meta.dcQualifyDaily)</span>
+<span id="L831" class="line"><a href="#L831">831</a>end</span>
+<span id="L832" class="line"><a href="#L832">832</a></span>
+<span id="L833" class="line"><a href="#L833">833</a>function SuperMagicBird2024Manager:dcJoin()</span>
+<span id="L834" class="line"><a href="#L834">834</a>    self:dcCanyuDaily(&quot;join&quot;, Meta.dcJoinDaily)</span>
+<span id="L835" class="line"><a href="#L835">835</a>end</span>
+<span id="L836" class="line"><a href="#L836">836</a></span>
+<span id="L837" class="line"><a href="#L837">837</a>function SuperMagicBird2024Manager:JumpFlyToAnimation(config)</span>
+<span id="L838" class="line"><a href="#L838">838</a>	if not config.sprites or #config.sprites &lt;= 0 or not config.duration or config.duration &lt;= 0 then return end</span>
+<span id="L839" class="line"><a href="#L839">839</a>	config.delayTime = config.delayTime or 0</span>
+<span id="L840" class="line"><a href="#L840">840</a>	config.dstPosition = config.dstPosition or ccp(0, 0)</span>
+<span id="L841" class="line"><a href="#L841">841</a>	config.height = config.height or 100</span>
+<span id="L842" class="line"><a href="#L842">842</a>	local counter = #config.sprites</span>
+<span id="L843" class="line"><a href="#L843">843</a>	local time = 0</span>
+<span id="L844" class="line"><a href="#L844">844</a>	for k, v in ipairs(config.sprites) do</span>
+<span id="L845" class="line"><a href="#L845">845</a>		local position = v:getPosition()</span>
+<span id="L846" class="line"><a href="#L846">846</a>		local parent = v:getParent()</span>
+<span id="L847" class="line"><a href="#L847">847</a></span>
+<span id="L848" class="line"><a href="#L848">848</a>		local sequence = CCArray:create()</span>
+<span id="L849" class="line"><a href="#L849">849</a>		if config.easeIn and counter &gt; 1 then</span>
+<span id="L850" class="line"><a href="#L850">850</a>			sequence:addObject(CCDelayTime:create(time))</span>
+<span id="L851" class="line"><a href="#L851">851</a>			time = time + math.cos((k - 1) / (counter - 1) * math.pi / 2) * config.delayTime</span>
+<span id="L852" class="line"><a href="#L852">852</a>		else</span>
+<span id="L853" class="line"><a href="#L853">853</a>			sequence:addObject(CCDelayTime:create(config.delayTime * (k - 1)))</span>
+<span id="L854" class="line"><a href="#L854">854</a>		end</span>
+<span id="L855" class="line"><a href="#L855">855</a>		local function onStart() if config.startCallback then config.startCallback(v) end end</span>
+<span id="L856" class="line"><a href="#L856">856</a>		sequence:addObject(CCCallFunc:create(onStart))</span>
+<span id="L857" class="line"><a href="#L857">857</a>		local spawn = CCArray:create()</span>
+<span id="L858" class="line"><a href="#L858">858</a>		local inPosition = parent:convertToNodeSpace(config.dstPosition)</span>
+<span id="L859" class="line"><a href="#L859">859</a></span>
+<span id="L860" class="line"><a href="#L860">860</a>		spawn:addObject(CCEaseBackIn:create(CCMoveBy:create(config.duration, ccp(0, inPosition.y - position.y))))</span>
+<span id="L861" class="line"><a href="#L861">861</a>		spawn:addObject(CCMoveBy:create(config.duration, ccp(inPosition.x - position.x, 0)))</span>
+<span id="L862" class="line"><a href="#L862">862</a>		if config.dstSize then</span>
+<span id="L863" class="line"><a href="#L863">863</a>			local size = v:getGroupBounds().size</span>
+<span id="L864" class="line"><a href="#L864">864</a>            spawn:addObject(CCScaleBy:create(config.duration, config.dstSize.width / size.width, config.dstSize.height / size.height))</span>
+<span id="L865" class="line"><a href="#L865">865</a>		end</span>
+<span id="L866" class="line"><a href="#L866">866</a>		if config.extendAction then</span>
+<span id="L867" class="line"><a href="#L867">867</a>			local extendActionCopy = config.extendAction:copy()</span>
+<span id="L868" class="line"><a href="#L868">868</a>			spawn:addObject(extendActionCopy) </span>
+<span id="L869" class="line"><a href="#L869">869</a>			extendActionCopy:release()</span>
+<span id="L870" class="line"><a href="#L870">870</a>		end</span>
+<span id="L871" class="line"><a href="#L871">871</a>		sequence:addObject(CCSpawn:create(spawn))</span>
+<span id="L872" class="line"><a href="#L872">872</a>		local function onReach()</span>
+<span id="L873" class="line"><a href="#L873">873</a>			counter = counter - 1</span>
+<span id="L874" class="line"><a href="#L874">874</a>			if config.reachCallback then config.reachCallback(v) end</span>
+<span id="L875" class="line"><a href="#L875">875</a>			if counter == 0 and config.finishCallback then config.finishCallback() end</span>
+<span id="L876" class="line"><a href="#L876">876</a>		end</span>
+<span id="L877" class="line"><a href="#L877">877</a>		sequence:addObject(CCCallFunc:create(onReach))</span>
+<span id="L878" class="line"><a href="#L878">878</a>		</span>
+<span id="L879" class="line"><a href="#L879">879</a>		v:runAction(CCSequence:create(sequence))</span>
+<span id="L880" class="line"><a href="#L880">880</a>	end</span>
+<span id="L881" class="line"><a href="#L881">881</a>end</span>
+<span id="L882" class="line"><a href="#L882">882</a></span>
+<span id="L883" class="line"><a href="#L883">883</a>function SuperMagicBird2024Manager:flyTo(config)</span>
+<span id="L884" class="line"><a href="#L884">884</a>    self:JumpFlyToAnimation(config)</span>
+<span id="L885" class="line"><a href="#L885">885</a>end</span>
+<span id="L886" class="line"><a href="#L886">886</a></span>
+<span id="L887" class="line"><a href="#L887">887</a>function SuperMagicBird2024Manager:jumpFlyTo(config)</span>
+<span id="L888" class="line"><a href="#L888">888</a>    self:JumpFlyToAnimation(config)</span>
+<span id="L889" class="line"><a href="#L889">889</a>end</span>
+<span id="L890" class="line"><a href="#L890">890</a></span>
+<span id="L891" class="line"><a href="#L891">891</a>function SuperMagicBird2024Manager:isEnabled()</span>
+<span id="L892" class="line"><a href="#L892">892</a>    if not self:getData():isSmbEnabled() then return false end</span>
+<span id="L893" class="line"><a href="#L893">893</a>    return true</span>
+<span id="L894" class="line"><a href="#L894">894</a>end</span>
+<span id="L895" class="line"><a href="#L895">895</a></span>
+<span id="L896" class="line"><a href="#L896">896</a>--- @deprecated</span>
+<span id="L897" class="line"><a href="#L897">897</a>function SuperMagicBird2024Manager:isEnabled2()</span>
+<span id="L898" class="line"><a href="#L898">898</a>    return self:isEnabled()</span>
+<span id="L899" class="line"><a href="#L899">899</a>end</span>
+<span id="L900" class="line"><a href="#L900">900</a></span>
+<span id="L901" class="line"><a href="#L901">901</a>-- function SuperMagicBird2024Manager:getShowMsgNum()</span>
+<span id="L902" class="line"><a href="#L902">902</a>--     return 0</span>
+<span id="L903" class="line"><a href="#L903">903</a>-- end</span>
+<span id="L904" class="line"><a href="#L904">904</a></span>
+<span id="L905" class="line"><a href="#L905">905</a>-- function SuperMagicBird2024Manager:getActivityIcon()</span>
+<span id="L906" class="line"><a href="#L906">906</a>-- end</span>
+<span id="L907" class="line"><a href="#L907">907</a></span>
+<span id="L908" class="line"><a href="#L908">908</a>-- function SuperMagicBird2024Manager:updateTipView(actInfo)</span>
+<span id="L909" class="line"><a href="#L909">909</a>-- end</span>
+<span id="L910" class="line"><a href="#L910">910</a></span>
+<span id="L911" class="line"><a href="#L911">911</a>-- function SuperMagicBird2024Manager:getEndTime()</span>
+<span id="L912" class="line"><a href="#L912">912</a>--     return self:getData():getEndTime()</span>
+<span id="L913" class="line"><a href="#L913">913</a>-- end</span>
+<span id="L914" class="line"><a href="#L914">914</a></span>
+<span id="L915" class="line"><a href="#L915">915</a>-- function SuperMagicBird2024Manager:getStartTime()</span>
+<span id="L916" class="line"><a href="#L916">916</a>--     return self:getData():getMainBeginTime()</span>
+<span id="L917" class="line"><a href="#L917">917</a>-- end</span>
+<span id="L918" class="line"><a href="#L918">918</a></span>
+<span id="L919" class="line"><a href="#L919">919</a>function SuperMagicBird2024Manager:getRealBeginTime()</span>
+<span id="L920" class="line"><a href="#L920">920</a>    local data = self:getData()</span>
+<span id="L921" class="line"><a href="#L921">921</a>    if not data then return 0 end</span>
+<span id="L922" class="line"><a href="#L922">922</a></span>
+<span id="L923" class="line"><a href="#L923">923</a>    return self:getData():getValue(&#x27;beginTime&#x27;) or 0</span>
+<span id="L924" class="line"><a href="#L924">924</a>end</span>
+<span id="L925" class="line"><a href="#L925">925</a></span>
+<span id="L926" class="line"><a href="#L926">926</a>-- 本地缓存 bool</span>
+<span id="L927" class="line"><a href="#L927">927</a>function SuperMagicBird2024Manager:saveFlagToLocalByKey(key, needTime, value, needActStartTimeCheck)</span>
+<span id="L928" class="line"><a href="#L928">928</a>    if value == nil then value = true end</span>
+<span id="L929" class="line"><a href="#L929">929</a>    self:setLocalValueByKey( key, needTime, value, needActStartTimeCheck )</span>
+<span id="L930" class="line"><a href="#L930">930</a>end</span>
+<span id="L931" class="line"><a href="#L931">931</a></span>
+<span id="L932" class="line"><a href="#L932">932</a>function SuperMagicBird2024Manager:getFlagFromLocalByKey(key, needTime, needActStartTimeCheck)</span>
+<span id="L933" class="line"><a href="#L933">933</a>	local defaultValue = false</span>
+<span id="L934" class="line"><a href="#L934">934</a>    local result = self:getLocalValueByKey(key, needTime, needActStartTimeCheck)</span>
+<span id="L935" class="line"><a href="#L935">935</a>    if result == nil then </span>
+<span id="L936" class="line"><a href="#L936">936</a>    	return defaultValue</span>
+<span id="L937" class="line"><a href="#L937">937</a>    else</span>
+<span id="L938" class="line"><a href="#L938">938</a>    	return result</span>
+<span id="L939" class="line"><a href="#L939">939</a>    end</span>
+<span id="L940" class="line"><a href="#L940">940</a>end</span>
+<span id="L941" class="line"><a href="#L941">941</a></span>
+<span id="L942" class="line"><a href="#L942">942</a>-- 本地缓存int</span>
+<span id="L943" class="line"><a href="#L943">943</a>function SuperMagicBird2024Manager:saveFlagToLocalByKeyInt(key, needTime, value, needActStartTimeCheck)</span>
+<span id="L944" class="line"><a href="#L944">944</a>	if value == nil then value = 0 end</span>
+<span id="L945" class="line"><a href="#L945">945</a>    self:setLocalValueByKey( key, needTime, value, needActStartTimeCheck )</span>
+<span id="L946" class="line"><a href="#L946">946</a>end</span>
+<span id="L947" class="line"><a href="#L947">947</a></span>
+<span id="L948" class="line"><a href="#L948">948</a>function SuperMagicBird2024Manager:getFlagFromLocalByKeyInt(key, needTime, needActStartTimeCheck, defaultValue)</span>
+<span id="L949" class="line"><a href="#L949">949</a>	if defaultValue == nil then defaultValue = 0 end</span>
+<span id="L950" class="line"><a href="#L950">950</a></span>
+<span id="L951" class="line"><a href="#L951">951</a>    local result = self:getLocalValueByKey(key, needTime, needActStartTimeCheck)</span>
+<span id="L952" class="line"><a href="#L952">952</a>    if result == nil then </span>
+<span id="L953" class="line"><a href="#L953">953</a>    	return defaultValue</span>
+<span id="L954" class="line"><a href="#L954">954</a>    else</span>
+<span id="L955" class="line"><a href="#L955">955</a>    	return result</span>
+<span id="L956" class="line"><a href="#L956">956</a>    end</span>
+<span id="L957" class="line"><a href="#L957">957</a>end</span>
+<span id="L958" class="line"><a href="#L958">958</a></span>
+<span id="L959" class="line"><a href="#L959">959</a></span>
+<span id="L960" class="line"><a href="#L960">960</a>function SuperMagicBird2024Manager:setLocalValueByKey(key, needTime, value, needActStartTimeCheck)</span>
+<span id="L961" class="line"><a href="#L961">961</a>    if not key then return end</span>
+<span id="L962" class="line"><a href="#L962">962</a>    -- if bSkip == nil then bSkip = true end</span>
+<span id="L963" class="line"><a href="#L963">963</a></span>
+<span id="L964" class="line"><a href="#L964">964</a>    local nowTime = getDayStartTimeByTS(TimeKit:timeInSec())</span>
+<span id="L965" class="line"><a href="#L965">965</a>    local actBeginTime = self:getRealBeginTime() or 0</span>
+<span id="L966" class="line"><a href="#L966">966</a></span>
+<span id="L967" class="line"><a href="#L967">967</a>    local saveValue = {</span>
+<span id="L968" class="line"><a href="#L968">968</a>    	time = nowTime,</span>
+<span id="L969" class="line"><a href="#L969">969</a>    	value = value,</span>
+<span id="L970" class="line"><a href="#L970">970</a>    	actBeginTime = actBeginTime,</span>
+<span id="L971" class="line"><a href="#L971">971</a>    }</span>
+<span id="L972" class="line"><a href="#L972">972</a>    local saveStr = table.serialize(saveValue)</span>
+<span id="L973" class="line"><a href="#L973">973</a></span>
+<span id="L974" class="line"><a href="#L974">974</a>    self:getData():setValue(key, saveStr, true)</span>
+<span id="L975" class="line"><a href="#L975">975</a>end</span>
+<span id="L976" class="line"><a href="#L976">976</a></span>
+<span id="L977" class="line"><a href="#L977">977</a>function SuperMagicBird2024Manager:getLocalValueByKey(key, needTime, needActStartTimeCheck)</span>
+<span id="L978" class="line"><a href="#L978">978</a>    if not key then return end</span>
+<span id="L979" class="line"><a href="#L979">979</a>    local saveJsonStr = self:getData():getValue(key)</span>
+<span id="L980" class="line"><a href="#L980">980</a>    if saveJsonStr == nil then return end</span>
+<span id="L981" class="line"><a href="#L981">981</a>    if type(saveJsonStr) ~= &quot;string&quot; then return end</span>
+<span id="L982" class="line"><a href="#L982">982</a></span>
+<span id="L983" class="line"><a href="#L983">983</a>    local saveTable = table.deserialize(saveJsonStr)</span>
+<span id="L984" class="line"><a href="#L984">984</a></span>
+<span id="L985" class="line"><a href="#L985">985</a>    local nowTime = getDayStartTimeByTS(TimeKit:timeInSec())</span>
+<span id="L986" class="line"><a href="#L986">986</a>    local actBeginTime = self:getRealBeginTime() or 0</span>
+<span id="L987" class="line"><a href="#L987">987</a></span>
+<span id="L988" class="line"><a href="#L988">988</a>    local bTimeIsOk = true</span>
+<span id="L989" class="line"><a href="#L989">989</a>    if needTime then</span>
+<span id="L990" class="line"><a href="#L990">990</a>    	if saveTable.time ~= nowTime then</span>
+<span id="L991" class="line"><a href="#L991">991</a>    		bTimeIsOk = false</span>
+<span id="L992" class="line"><a href="#L992">992</a>    	end</span>
+<span id="L993" class="line"><a href="#L993">993</a>    end</span>
+<span id="L994" class="line"><a href="#L994">994</a></span>
+<span id="L995" class="line"><a href="#L995">995</a>    local versionIsOk = true</span>
+<span id="L996" class="line"><a href="#L996">996</a>    if needActStartTimeCheck then</span>
+<span id="L997" class="line"><a href="#L997">997</a>    	if saveTable.actBeginTime ~= actBeginTime then</span>
+<span id="L998" class="line"><a href="#L998">998</a>    		versionIsOk = false</span>
+<span id="L999" class="line"><a href="#L999">999</a>    	end</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>    end</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a></span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>    if bTimeIsOk and versionIsOk then</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>    	return saveTable.value</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>    end</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>end</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a></span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>function SuperMagicBird2024Manager:openMainActivity(closeCallback, extra, userClick, duanMianData)</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>    local function getActDataSuccess()</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>        local scene = Director:sharedDirector():run()</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>        if scene == nil or not scene:isScene(&quot;MainScene&quot;) then</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>            return</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>        end</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a></span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>        if not self:curTimeTopLevelIsEnabled() then</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>            self:popNeedUpdateLevelTip(closeCallback)</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a>            return</span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>        end</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a></span>
+<span id="L1019" class="line"><a href="#L1019">1019</a>        if not extra then</span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>            extra = {}</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>        end</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a></span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>        local hasStartPanelContext = type(extra.closeSlpCallback) == &quot;function&quot;</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>            and extra.levelId ~= nil</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>            and extra.levelScene ~= nil</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a></span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>        local delegate = {</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>            closeCallback = closeCallback,</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>            extra = extra,</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>            resumeData = duanMianData,</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>            userClick = userClick,</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>        }</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a></span>
+<span id="L1034" class="line"><a href="#L1034">1034</a>        if hasStartPanelContext and self:canActivateReviveCard() then</span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>            local closeSlpCallback = extra.closeSlpCallback</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>            extra.closeSlpCallback = nil</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>            safeRunCall(closeSlpCallback)</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>            self:openReviveConfirmPanel({</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>                isRetryPanel = extra.isRetryPanel == true,</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>                closeCallback = function(activateSucceeded)</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>                    if activateSucceeded then</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>                        safeRunCall(delegate.closeCallback)</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>                        local playLevelContext = PlayLevelContext.new(extra.levelId, PlayLevelContext.PlayType.OPEN_SL_PANEL)</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>                        playLevelContext:setLevelScene(extra.levelScene)</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>                        _G.amfTransaction(TransactionEvent.PLAY_LEVEL, playLevelContext)</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>                    else</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>                        self:openMainPanel(delegate)</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>                    end</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a>                end,</span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>            })</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>            return</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>        end</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a></span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>        -- 未激活但是已经进度条满了</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>        if not extra.closePopOut and not self:getAvailable() and self:getPassTopNums() &gt;= self:getNeedWinNum() then</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>            local successCallback = function()</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>                self:openMainPanel(delegate, config)</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>            end</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>            local failCallback = function()</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>                self:openMainPanel(delegate, config)</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>            end</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>            self:requestActivate(successCallback, failCallback, failCallback)</span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>            return</span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>        end</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>        self:openMainPanel(delegate, config)</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>    end</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a></span>
+<span id="L1068" class="line"><a href="#L1068">1068</a>    getActDataSuccess()</span>
+<span id="L1069" class="line"><a href="#L1069">1069</a>    -- self:getInfoAsync(getActDataSuccess, function() safeRunCall(endCallback) end, function() safeRunCall(endCallback) end, false, userClick)</span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>end</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a></span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>function SuperMagicBird2024Manager:openMainPanel(delegate)</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a>    -- self:refreshIconProgress()</span>
+<span id="L1074" class="line"><a href="#L1074">1074</a></span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>    if not delegate then</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>        delegate = {}</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>    end</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a></span>
+<span id="L1079" class="line"><a href="#L1079">1079</a>    local mainPanelClass = require(&quot;amf.feature.localactivity.supermagicbird.views.MainPanelVM&quot;)</span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>    if not mainPanelClass then</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>        safeRunCall(delegate.closeCallback)</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>        return</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>    end</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a></span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>    if delegate.userClick then</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>        delegate.t1 = 1</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>    else</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>        delegate.t1 = 2</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a>    end</span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>    </span>
+<span id="L1091" class="line"><a href="#L1091">1091</a>    if delegate and delegate.extra and delegate.extra.closePopOut then</span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>        delegate.closePopOut = delegate.extra.closePopOut</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>    else</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>        delegate.closePopOut = false</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>    end</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a></span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>    local mainPanel = mainPanelClass:create(delegate)</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>    mainPanel:popout()</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>    self.panelPlug:managePanelVM(mainPanel)</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>end</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a></span>
+<span id="L1102" class="line"><a href="#L1102">1102</a>function SuperMagicBird2024Manager:openReviveConfirmPanel(delegate)</span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>    local panelClass = require(&quot;amf.feature.localactivity.supermagicbird.views.ReviveConfirmPanelVM&quot;)</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a>    local panel = panelClass:create(delegate or {})</span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>    panel:popout()</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>    self.panelPlug:managePanelVM(panel)</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>end</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a></span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>function SuperMagicBird2024Manager:getPityValAdjustMetas( )</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>    if not self:isEnabled() then</span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>        return false, {}</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>    end</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a></span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>    local pityValAdjustMetas = self:getData():getPityValAdjustMetas()</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a>    return true, pityValAdjustMetas</span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>end</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a></span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>return SuperMagicBird2024Manager</span></pre></main></html>

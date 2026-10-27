@@ -1,0 +1,585 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/underthesin/UnderTheSinMgr.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="6c811658cad4.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/underthesin/UnderTheSinMgr.lua</h1><p>SHA256 f2329b4f306e91f3dbeb5d4cc0187d1d855e571e8120b247d84734774829c06a</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureManager = require&quot;amf.middleware.activity.base.BaseFeatureManager&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local ActionUtil = require &quot;amf.middleware.ui.util.ActionUtil&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local SecondRewardPanelVM = require(&quot;amf.middleware.ui.kit.commonpanel.view.SecondRewardPanelVM&quot;)</span>
+<span id="L5" class="line"><a href="#L5">5</a>local ActivityName = &quot;UnderTheSin&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local Manager = class(ActivityName..&quot;Mgr&quot;, BaseFeatureManager)</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>----------- 可能需要修改start -----------</span>
+<span id="L9" class="line"><a href="#L9">9</a>-- Manager.ACT_ID = 22003</span>
+<span id="L10" class="line"><a href="#L10">10</a>-- Manager.SHARE_ID = 302</span>
+<span id="L11" class="line"><a href="#L11">11</a>-- Manager.SHARE_SUB_TYPE = &quot;help_activity&quot;</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>function Manager:log(...)</span>
+<span id="L14" class="line"><a href="#L14">14</a>    printx(42, &quot;***** UnderTheSin *****  &quot;, ...)</span>
+<span id="L15" class="line"><a href="#L15">15</a>end</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a>-- 获取常量路径</span>
+<span id="L18" class="line"><a href="#L18">18</a>function Manager:_getConstPath()</span>
+<span id="L19" class="line"><a href="#L19">19</a>    return &quot;amf.feature.localactivity.underthesin.const.UnderTheSinConst&quot;</span>
+<span id="L20" class="line"><a href="#L20">20</a>end</span>
+<span id="L21" class="line"><a href="#L21">21</a></span>
+<span id="L22" class="line"><a href="#L22">22</a>-- 获取model路径</span>
+<span id="L23" class="line"><a href="#L23">23</a>function Manager:_getModelPath()</span>
+<span id="L24" class="line"><a href="#L24">24</a>    return &quot;amf.feature.localactivity.underthesin.model.UnderTheSinModel&quot;</span>
+<span id="L25" class="line"><a href="#L25">25</a>end</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>-- 如果有自己需要初始化的内容，覆写这个</span>
+<span id="L28" class="line"><a href="#L28">28</a>function Manager:_init()</span>
+<span id="L29" class="line"><a href="#L29">29</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>    -- 注册 求助点回</span>
+<span id="L32" class="line"><a href="#L32">32</a>    require(&quot;amf.feature.localactivity.underthesin.share.ResponseAskHelpShareHandler&quot;):create()</span>
+<span id="L33" class="line"><a href="#L33">33</a>end</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>-- 获取需要启动的额外功能列表</span>
+<span id="L36" class="line"><a href="#L36">36</a>function Manager:_getExtraPlugsConfigList()</span>
+<span id="L37" class="line"><a href="#L37">37</a>    return {</span>
+<span id="L38" class="line"><a href="#L38">38</a>        {</span>
+<span id="L39" class="line"><a href="#L39">39</a>            key = &quot;Rewards&quot;,</span>
+<span id="L40" class="line"><a href="#L40">40</a>        },</span>
+<span id="L41" class="line"><a href="#L41">41</a>        {</span>
+<span id="L42" class="line"><a href="#L42">42</a>            key = &quot;Panel&quot;,</span>
+<span id="L43" class="line"><a href="#L43">43</a>        },</span>
+<span id="L44" class="line"><a href="#L44">44</a>        {</span>
+<span id="L45" class="line"><a href="#L45">45</a>            -- 场景4强弹改为声明式注册（见 _getAutoPopConfigList）</span>
+<span id="L46" class="line"><a href="#L46">46</a>            key = &quot;AutoPop&quot;,</span>
+<span id="L47" class="line"><a href="#L47">47</a>        },</span>
+<span id="L48" class="line"><a href="#L48">48</a>    }</span>
+<span id="L49" class="line"><a href="#L49">49</a>end</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>-- 强弹框架注入入口：只保存引用，不在 setter 中注册强弹或写业务逻辑</span>
+<span id="L52" class="line"><a href="#L52">52</a>function Manager:setAutoPopupMgr(manager)</span>
+<span id="L53" class="line"><a href="#L53">53</a>    self.autoPopupMgr = manager</span>
+<span id="L54" class="line"><a href="#L54">54</a>end</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>function Manager:setNetworkStatusManager(networkStatusManager)</span>
+<span id="L57" class="line"><a href="#L57">57</a>    self._networkStatusManager = networkStatusManager</span>
+<span id="L58" class="line"><a href="#L58">58</a>end</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>function Manager:isEnabled()</span>
+<span id="L61" class="line"><a href="#L61">61</a>    return self:getModel():isDataEnabled() and self:isInMainTime()</span>
+<span id="L62" class="line"><a href="#L62">62</a>end</span>
+<span id="L63" class="line"><a href="#L63">63</a></span>
+<span id="L64" class="line"><a href="#L64">64</a>function Manager:isEnabled2()</span>
+<span id="L65" class="line"><a href="#L65">65</a>    return self:getModel():isDataEnabled()</span>
+<span id="L66" class="line"><a href="#L66">66</a>end</span>
+<span id="L67" class="line"><a href="#L67">67</a></span>
+<span id="L68" class="line"><a href="#L68">68</a>-- 预热期</span>
+<span id="L69" class="line"><a href="#L69">69</a>function Manager:isInPreTime(  )</span>
+<span id="L70" class="line"><a href="#L70">70</a>    return self:getModel():isInPreheatTime()</span>
+<span id="L71" class="line"><a href="#L71">71</a>end</span>
+<span id="L72" class="line"><a href="#L72">72</a></span>
+<span id="L73" class="line"><a href="#L73">73</a>--是否是主活动期</span>
+<span id="L74" class="line"><a href="#L74">74</a>function Manager:isInMainTime()</span>
+<span id="L75" class="line"><a href="#L75">75</a>    return self:getModel():isInMainTime()</span>
+<span id="L76" class="line"><a href="#L76">76</a>end</span>
+<span id="L77" class="line"><a href="#L77">77</a></span>
+<span id="L78" class="line"><a href="#L78">78</a>--是否是领奖期</span>
+<span id="L79" class="line"><a href="#L79">79</a>function Manager:isInRewardTime()</span>
+<span id="L80" class="line"><a href="#L80">80</a>    return self:getModel():isInRewardTime()</span>
+<span id="L81" class="line"><a href="#L81">81</a>end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>-- 实物奖励入口与未领取奖字分离：地址已登记后领奖期仍可进入修改地址。</span>
+<span id="L84" class="line"><a href="#L84">84</a>function Manager:hasPhysicalReward()</span>
+<span id="L85" class="line"><a href="#L85">85</a>    if not self:isEnabled2() then return false end</span>
+<span id="L86" class="line"><a href="#L86">86</a>    return self:getModel():getDataByKey(&quot;needContact&quot;, false) == true</span>
+<span id="L87" class="line"><a href="#L87">87</a>end</span>
+<span id="L88" class="line"><a href="#L88">88</a></span>
+<span id="L89" class="line"><a href="#L89">89</a>-- 同步所有数据</span>
+<span id="L90" class="line"><a href="#L90">90</a>function Manager:updateData(data, skipSaveLocal, fromServer)</span>
+<span id="L91" class="line"><a href="#L91">91</a>    if not data then return end</span>
+<span id="L92" class="line"><a href="#L92">92</a></span>
+<span id="L93" class="line"><a href="#L93">93</a>    self:getModel():fromServer(data,skipSaveLocal)</span>
+<span id="L94" class="line"><a href="#L94">94</a>    if fromServer == true then</span>
+<span id="L95" class="line"><a href="#L95">95</a>        self.hasGetDataFromServer = true</span>
+<span id="L96" class="line"><a href="#L96">96</a>    end</span>
+<span id="L97" class="line"><a href="#L97">97</a>end</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>-- 打点</span>
+<span id="L100" class="line"><a href="#L100">100</a>function Manager:dc(category, subCategory, panel_id, t1, t2, t3, t4, extraData)</span>
+<span id="L101" class="line"><a href="#L101">101</a>    local params = {</span>
+<span id="L102" class="line"><a href="#L102">102</a>        game_type = &quot;stage&quot;,</span>
+<span id="L103" class="line"><a href="#L103">103</a>        game_name = self:getConst().GAME_NAME,</span>
+<span id="L104" class="line"><a href="#L104">104</a>        category = category,</span>
+<span id="L105" class="line"><a href="#L105">105</a>        sub_category = subCategory,</span>
+<span id="L106" class="line"><a href="#L106">106</a>        panel_id = panel_id,</span>
+<span id="L107" class="line"><a href="#L107">107</a>        t1 = t1,</span>
+<span id="L108" class="line"><a href="#L108">108</a>        t2 = t2,</span>
+<span id="L109" class="line"><a href="#L109">109</a>        t3 = t3,</span>
+<span id="L110" class="line"><a href="#L110">110</a>        t4 = t4,</span>
+<span id="L111" class="line"><a href="#L111">111</a>    }</span>
+<span id="L112" class="line"><a href="#L112">112</a></span>
+<span id="L113" class="line"><a href="#L113">113</a>    for i, v in pairs(extraData or {}) do</span>
+<span id="L114" class="line"><a href="#L114">114</a>        params[i] = v</span>
+<span id="L115" class="line"><a href="#L115">115</a>    end</span>
+<span id="L116" class="line"><a href="#L116">116</a>    DcUtil:activity(params)</span>
+<span id="L117" class="line"><a href="#L117">117</a>end</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>-- 每天一次的活动点：本地标记按自然日失效（needTime=true）</span>
+<span id="L120" class="line"><a href="#L120">120</a>function Manager:dcDayOnce(category, subCategory, ...)</span>
+<span id="L121" class="line"><a href="#L121">121</a>    local key = &quot;dcDayOnce_&quot; .. category .. &quot;_&quot; .. subCategory</span>
+<span id="L122" class="line"><a href="#L122">122</a>    if (self:getModel():getLocalCache(key, true) or 0) &gt;= 1 then return end</span>
+<span id="L123" class="line"><a href="#L123">123</a>    self:getModel():setLocalCache(key, true, 1)</span>
+<span id="L124" class="line"><a href="#L124">124</a>    self:dc(category, subCategory, ...)</span>
+<span id="L125" class="line"><a href="#L125">125</a>end</span>
+<span id="L126" class="line"><a href="#L126">126</a></span>
+<span id="L127" class="line"><a href="#L127">127</a>-- 是否是活动正式期最后一天</span>
+<span id="L128" class="line"><a href="#L128">128</a>function Manager:isLastDay(  )</span>
+<span id="L129" class="line"><a href="#L129">129</a>    local todayStartTime = getDayStartTimeByTS(TimeKit:timeInSec())</span>
+<span id="L130" class="line"><a href="#L130">130</a>    local lastDayStartTime = getDayStartTimeByTS(self:getModel():getMainEndTime())</span>
+<span id="L131" class="line"><a href="#L131">131</a>    return todayStartTime == lastDayStartTime</span>
+<span id="L132" class="line"><a href="#L132">132</a>end</span>
+<span id="L133" class="line"><a href="#L133">133</a></span>
+<span id="L134" class="line"><a href="#L134">134</a>-- 获取服务器时间是活动周期内的第几天</span>
+<span id="L135" class="line"><a href="#L135">135</a>function Manager:getDayFromActOpen( time )</span>
+<span id="L136" class="line"><a href="#L136">136</a>    if not self:isEnabled() then return 0 end</span>
+<span id="L137" class="line"><a href="#L137">137</a>    local startTime = getDayStartTimeByTS(self:getModel():getMainBeginTime())</span>
+<span id="L138" class="line"><a href="#L138">138</a>    local curTime = getDayStartTimeByTS(time or TimeKit:timeInSec())</span>
+<span id="L139" class="line"><a href="#L139">139</a>    return math.floor((curTime-startTime)/86400)+1</span>
+<span id="L140" class="line"><a href="#L140">140</a>end</span>
+<span id="L141" class="line"><a href="#L141">141</a></span>
+<span id="L142" class="line"><a href="#L142">142</a>function Manager:getDayFrom1970( time )</span>
+<span id="L143" class="line"><a href="#L143">143</a>    local curDayStartTime = getDayStartTimeByTS(time or TimeKit:timeInSec())</span>
+<span id="L144" class="line"><a href="#L144">144</a>    return math.ceil(curDayStartTime/86400)</span>
+<span id="L145" class="line"><a href="#L145">145</a>end</span>
+<span id="L146" class="line"><a href="#L146">146</a></span>
+<span id="L147" class="line"><a href="#L147">147</a>-- 检测引导标记</span>
+<span id="L148" class="line"><a href="#L148">148</a>function Manager:hasGuideIndex(index, checkLocalData)</span>
+<span id="L149" class="line"><a href="#L149">149</a>    local hasIndex = self:getModel():hasGuide(index)</span>
+<span id="L150" class="line"><a href="#L150">150</a>    </span>
+<span id="L151" class="line"><a href="#L151">151</a>    if checkLocalData == nil then checkLocalData = true end</span>
+<span id="L152" class="line"><a href="#L152">152</a>    if checkLocalData then</span>
+<span id="L153" class="line"><a href="#L153">153</a>        local hasLocal = self:getModel():getFlagFromLocalByKey(&quot;LocalGuideId&quot;..index, false)</span>
+<span id="L154" class="line"><a href="#L154">154</a>        if hasLocal then</span>
+<span id="L155" class="line"><a href="#L155">155</a>            if not hasIndex then self:addGuideIndex(index) end</span>
+<span id="L156" class="line"><a href="#L156">156</a>            hasIndex = true</span>
+<span id="L157" class="line"><a href="#L157">157</a>        end</span>
+<span id="L158" class="line"><a href="#L158">158</a>    end</span>
+<span id="L159" class="line"><a href="#L159">159</a>    return hasIndex</span>
+<span id="L160" class="line"><a href="#L160">160</a>end</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>-- 设置引导标记</span>
+<span id="L163" class="line"><a href="#L163">163</a>function Manager:addGuideIndex(index, needSaveLocal)</span>
+<span id="L164" class="line"><a href="#L164">164</a>    self:getModel():setGuide(index)</span>
+<span id="L165" class="line"><a href="#L165">165</a></span>
+<span id="L166" class="line"><a href="#L166">166</a>    if needSaveLocal == nil then needSaveLocal = true end</span>
+<span id="L167" class="line"><a href="#L167">167</a>    if needSaveLocal then</span>
+<span id="L168" class="line"><a href="#L168">168</a>        self:getModel():saveFlagToLocalByKey(&quot;LocalGuideId&quot;..index, false, true)</span>
+<span id="L169" class="line"><a href="#L169">169</a>    end</span>
+<span id="L170" class="line"><a href="#L170">170</a></span>
+<span id="L171" class="line"><a href="#L171">171</a>    local ActCommonHttp = require &#x27;amf.middleware.activity.http.ActCommonHttp&#x27;</span>
+<span id="L172" class="line"><a href="#L172">172</a>    ActCommonHttp:setActGuideFlag(self:getConst().actId, index)</span>
+<span id="L173" class="line"><a href="#L173">173</a>end</span>
+<span id="L174" class="line"><a href="#L174">174</a></span>
+<span id="L175" class="line"><a href="#L175">175</a>function Manager:onPassDay()</span>
+<span id="L176" class="line"><a href="#L176">176</a>    if not self:isEnabled() then return end</span>
+<span id="L177" class="line"><a href="#L177">177</a>    self:getModel():passDayClear()</span>
+<span id="L178" class="line"><a href="#L178">178</a>end</span>
+<span id="L179" class="line"><a href="#L179">179</a></span>
+<span id="L180" class="line"><a href="#L180">180</a>-- 主icon奖字</span>
+<span id="L181" class="line"><a href="#L181">181</a>function Manager:hasRewards()</span>
+<span id="L182" class="line"><a href="#L182">182</a>    if not self:isEnabled2() then return false end</span>
+<span id="L183" class="line"><a href="#L183">183</a></span>
+<span id="L184" class="line"><a href="#L184">184</a>    if self:isInMainTime() then</span>
+<span id="L185" class="line"><a href="#L185">185</a>        local isFullClue = self:isFullClue()</span>
+<span id="L186" class="line"><a href="#L186">186</a>        local gotLevelFloorReward = self:getModel():getDataByKey(&quot;gotLevelFloorReward&quot;,false)</span>
+<span id="L187" class="line"><a href="#L187">187</a>        local needContact = self:getModel():getDataByKey(&quot;needContact&quot;,false)</span>
+<span id="L188" class="line"><a href="#L188">188</a>        local registerContact = self:getModel():getDataByKey(&quot;registerContact&quot;,false)</span>
+<span id="L189" class="line"><a href="#L189">189</a>        local todayFreeRewards = self:gotTodayFreeReward()</span>
+<span id="L190" class="line"><a href="#L190">190</a>        local beHelpShowLens = self:getHpNum()</span>
+<span id="L191" class="line"><a href="#L191">191</a></span>
+<span id="L192" class="line"><a href="#L192">192</a>        -- printx(42, &quot;hasMainReward&quot;, </span>
+<span id="L193" class="line"><a href="#L193">193</a>        --     self:canGetProgressReward(), </span>
+<span id="L194" class="line"><a href="#L194">194</a>        --     (isFullClue and not gotLevelFloorReward),</span>
+<span id="L195" class="line"><a href="#L195">195</a>        --     (needContact and not registerContact),</span>
+<span id="L196" class="line"><a href="#L196">196</a>        --     (not todayFreeRewards),</span>
+<span id="L197" class="line"><a href="#L197">197</a>        --     beHelpShowLens)</span>
+<span id="L198" class="line"><a href="#L198">198</a></span>
+<span id="L199" class="line"><a href="#L199">199</a>        return self:canGetProgressReward()</span>
+<span id="L200" class="line"><a href="#L200">200</a>            or (isFullClue and not gotLevelFloorReward)</span>
+<span id="L201" class="line"><a href="#L201">201</a>            or (needContact and not registerContact)</span>
+<span id="L202" class="line"><a href="#L202">202</a>            or (not todayFreeRewards)</span>
+<span id="L203" class="line"><a href="#L203">203</a>            or (beHelpShowLens &gt; 0)</span>
+<span id="L204" class="line"><a href="#L204">204</a>    </span>
+<span id="L205" class="line"><a href="#L205">205</a>    elseif self:isInRewardTime() then</span>
+<span id="L206" class="line"><a href="#L206">206</a>        local isFullClue = self:isFullClue()</span>
+<span id="L207" class="line"><a href="#L207">207</a>        local gotLevelFloorReward = self:getModel():getDataByKey(&quot;gotLevelFloorReward&quot;,false)</span>
+<span id="L208" class="line"><a href="#L208">208</a>        local needContact = self:getModel():getDataByKey(&quot;needContact&quot;,false)</span>
+<span id="L209" class="line"><a href="#L209">209</a>        local registerContact = self:getModel():getDataByKey(&quot;registerContact&quot;,false)</span>
+<span id="L210" class="line"><a href="#L210">210</a></span>
+<span id="L211" class="line"><a href="#L211">211</a>        -- printx(42, &quot;hasRewardReward&quot;,</span>
+<span id="L212" class="line"><a href="#L212">212</a>        --     self:canGetProgressReward(),</span>
+<span id="L213" class="line"><a href="#L213">213</a>        --     (isFullClue and not gotLevelFloorReward),</span>
+<span id="L214" class="line"><a href="#L214">214</a>        --     (needContact and not registerContact))</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>        return self:canGetProgressReward() or (isFullClue and not gotLevelFloorReward) or (needContact and not registerContact)</span>
+<span id="L217" class="line"><a href="#L217">217</a>    end</span>
+<span id="L218" class="line"><a href="#L218">218</a></span>
+<span id="L219" class="line"><a href="#L219">219</a>    return false</span>
+<span id="L220" class="line"><a href="#L220">220</a>end</span>
+<span id="L221" class="line"><a href="#L221">221</a></span>
+<span id="L222" class="line"><a href="#L222">222</a>-- 普通的addRewards,开宝箱之类的</span>
+<span id="L223" class="line"><a href="#L223">223</a>function Manager:addRewardsNormal(rewardItems, params)</span>
+<span id="L224" class="line"><a href="#L224">224</a>    self:callPlug(&quot;Rewards&quot;,&quot;addRewardsNormal&quot;,</span>
+<span id="L225" class="line"><a href="#L225">225</a>    rewardItems,</span>
+<span id="L226" class="line"><a href="#L226">226</a>    params)</span>
+<span id="L227" class="line"><a href="#L227">227</a>end</span>
+<span id="L228" class="line"><a href="#L228">228</a></span>
+<span id="L229" class="line"><a href="#L229">229</a>function Manager:addActItem(reward)</span>
+<span id="L230" class="line"><a href="#L230">230</a>end</span>
+<span id="L231" class="line"><a href="#L231">231</a></span>
+<span id="L232" class="line"><a href="#L232">232</a>------------------------------- 关卡外 -------------------------------</span>
+<span id="L233" class="line"><a href="#L233">233</a></span>
+<span id="L234" class="line"><a href="#L234">234</a>function Manager:updateTipView()</span>
+<span id="L235" class="line"><a href="#L235">235</a>end</span>
+<span id="L236" class="line"><a href="#L236">236</a></span>
+<span id="L237" class="line"><a href="#L237">237</a>function Manager:getActInfo()</span>
+<span id="L238" class="line"><a href="#L238">238</a>    return _G.amfBean(&quot;ActivityMgr&quot;):getActInfo(self:getConst().actId)</span>
+<span id="L239" class="line"><a href="#L239">239</a>end</span>
+<span id="L240" class="line"><a href="#L240">240</a></span>
+<span id="L241" class="line"><a href="#L241">241</a>-- 主icon数字</span>
+<span id="L242" class="line"><a href="#L242">242</a>function Manager:getShowMsgNum()</span>
+<span id="L243" class="line"><a href="#L243">243</a>    return 0</span>
+<span id="L244" class="line"><a href="#L244">244</a>end</span>
+<span id="L245" class="line"><a href="#L245">245</a></span>
+<span id="L246" class="line"><a href="#L246">246</a>function Manager:onActActInfoUpdate(event)</span>
+<span id="L247" class="line"><a href="#L247">247</a>    local data = event:getData()</span>
+<span id="L248" class="line"><a href="#L248">248</a>    local actInfos = data.actInfos or {}</span>
+<span id="L249" class="line"><a href="#L249">249</a>    local fromServer = data.fromServer</span>
+<span id="L250" class="line"><a href="#L250">250</a>    local actInfo = actInfos[tostring(self:getConst().actId)]</span>
+<span id="L251" class="line"><a href="#L251">251</a>    -- not 服务器发来且有actInfo，就返回</span>
+<span id="L252" class="line"><a href="#L252">252</a>    if not (fromServer and actInfo) then return end</span>
+<span id="L253" class="line"><a href="#L253">253</a>    </span>
+<span id="L254" class="line"><a href="#L254">254</a>    if not self:isEnabled() then return end</span>
+<span id="L255" class="line"><a href="#L255">255</a></span>
+<span id="L256" class="line"><a href="#L256">256</a>    local topPassLevelId = _G.amfBean(&quot;LevelAreaManager&quot;):getTopPassedLevel()</span>
+<span id="L257" class="line"><a href="#L257">257</a>    if topPassLevelId == 20 then</span>
+<span id="L258" class="line"><a href="#L258">258</a>        local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L259" class="line"><a href="#L259">259</a>        ActivityEventCenter:dispatch(ActivityEvent.REBUILD_ACTIVITY_ICON,{actId = self:getConst().actId})</span>
+<span id="L260" class="line"><a href="#L260">260</a>    end</span>
+<span id="L261" class="line"><a href="#L261">261</a>end</span>
+<span id="L262" class="line"><a href="#L262">262</a></span>
+<span id="L263" class="line"><a href="#L263">263</a>function Manager:isGetFreeRewards(day)</span>
+<span id="L264" class="line"><a href="#L264">264</a>    if not self:isEnabled() then return false end</span>
+<span id="L265" class="line"><a href="#L265">265</a></span>
+<span id="L266" class="line"><a href="#L266">266</a>    local day = day or getDayStartTimeByTS(TimeKit:timeInSec())</span>
+<span id="L267" class="line"><a href="#L267">267</a>    local freeRewardDays = self:getModel():getDataByKey(&quot;freeRewardDays&quot;, {})</span>
+<span id="L268" class="line"><a href="#L268">268</a>    return table.includes(freeRewardDays, day)</span>
+<span id="L269" class="line"><a href="#L269">269</a>end</span>
+<span id="L270" class="line"><a href="#L270">270</a></span>
+<span id="L271" class="line"><a href="#L271">271</a>function Manager:getFullClueNum()</span>
+<span id="L272" class="line"><a href="#L272">272</a>    local handbooks = self:getModel():getDataByKey(&quot;handbooks&quot;, {})</span>
+<span id="L273" class="line"><a href="#L273">273</a>    local ret = 0</span>
+<span id="L274" class="line"><a href="#L274">274</a>    for k,v in pairs(handbooks) do</span>
+<span id="L275" class="line"><a href="#L275">275</a>        if v.gotClueIds and #v.gotClueIds &gt;= 7 then</span>
+<span id="L276" class="line"><a href="#L276">276</a>            ret = ret + 1</span>
+<span id="L277" class="line"><a href="#L277">277</a>        end</span>
+<span id="L278" class="line"><a href="#L278">278</a>    end</span>
+<span id="L279" class="line"><a href="#L279">279</a>    return ret</span>
+<span id="L280" class="line"><a href="#L280">280</a>end</span>
+<span id="L281" class="line"><a href="#L281">281</a></span>
+<span id="L282" class="line"><a href="#L282">282</a>-- 创建图标icon</span>
+<span id="L283" class="line"><a href="#L283">283</a>function Manager:createIcon( reward )</span>
+<span id="L284" class="line"><a href="#L284">284</a>    if reward.itemId == self:getConst().HealthItemId then</span>
+<span id="L285" class="line"><a href="#L285">285</a>        local icon = UICreateUtil:createSpriteFile(&quot;amf/activity/underthesin/materials/collection.png&quot;, true)</span>
+<span id="L286" class="line"><a href="#L286">286</a>        return icon</span>
+<span id="L287" class="line"><a href="#L287">287</a>    else</span>
+<span id="L288" class="line"><a href="#L288">288</a>        return GameItemCreator:getPropIcon(reward)</span>
+<span id="L289" class="line"><a href="#L289">289</a>    end</span>
+<span id="L290" class="line"><a href="#L290">290</a>end</span>
+<span id="L291" class="line"><a href="#L291">291</a></span>
+<span id="L292" class="line"><a href="#L292">292</a>------------------ 场景4强弹（声明式注册，替代活动配置 autoPopConfigs） ------------------</span>
+<span id="L293" class="line"><a href="#L293">293</a>-- 需求来源：拾光成歌「强弹规则 / 全局弹窗优先级」。</span>
+<span id="L294" class="line"><a href="#L294">294</a>-- 1. 场景4外层仲裁：每次回到场景4只展示一个活动弹窗，优先级 引流1 &gt; 引流2 &gt; 活动主面板每日强弹。</span>
+<span id="L295" class="line"><a href="#L295">295</a>--    所以这里只声明 1 个 checkPoint，三个面板的优先级在 popStage4 内部仲裁；声明成多个 checkPoint 会被框架在同一次回到场景4里依次弹完。</span>
+<span id="L296" class="line"><a href="#L296">296</a>-- 2. 引流1：当日免费奖励待领取时弹；引流2：有新增好友助力生命值待查看时弹。</span>
+<span id="L297" class="line"><a href="#L297">297</a>-- 3. 主面板每日强弹：场景4每日 1 次；当日可收集线索（含当天与之前天数）全部找到时不弹。</span>
+<span id="L298" class="line"><a href="#L298">298</a>-- 4. 领奖期不弹：由 isEnabled() 的正式期判定拦截。</span>
+<span id="L299" class="line"><a href="#L299">299</a>-- 5. 次数限制：框架 CheckPointNumLimit 配置每日 3 次、次日刷新，对应需求「每日最多弹出3次」；</span>
+<span id="L300" class="line"><a href="#L300">300</a>--    主面板分支另有每日 1 次限制，框架无法在同一个 checkPoint 内按分支计数，沿用活动本地缓存（MainPanelPanelPopCount）自控。</span>
+<span id="L301" class="line"><a href="#L301">301</a>function Manager:_getAutoPopConfigList()</span>
+<span id="L302" class="line"><a href="#L302">302</a>    local PCP = _G.PopupCheckPoint</span>
+<span id="L303" class="line"><a href="#L303">303</a>    local PopStage = AutoPopupConst.PopStage</span>
+<span id="L304" class="line"><a href="#L304">304</a></span>
+<span id="L305" class="line"><a href="#L305">305</a>    return {</span>
+<span id="L306" class="line"><a href="#L306">306</a>        -- 场景4强弹（同一次回到场景4只弹这一个）：仅场景4触发；每日 3 次由框架 CheckPointNumLimit 控制。</span>
+<span id="L307" class="line"><a href="#L307">307</a>        -- check：引流1 / 引流2 / 活动主面板每日强弹任一满足；creator：按上面的优先级只弹其中一个。</span>
+<span id="L308" class="line"><a href="#L308">308</a>        {</span>
+<span id="L309" class="line"><a href="#L309">309</a>            checkPoint = PCP.UNDERTHESIN_STAGE4_POP,</span>
+<span id="L310" class="line"><a href="#L310">310</a>            stages = { PopStage.STAGE_FOUR },</span>
+<span id="L311" class="line"><a href="#L311">311</a>            actId = self:getConst().actId,</span>
+<span id="L312" class="line"><a href="#L312">312</a>            check = function()</span>
+<span id="L313" class="line"><a href="#L313">313</a>                return self:checkCanPopStage4()</span>
+<span id="L314" class="line"><a href="#L314">314</a>            end,</span>
+<span id="L315" class="line"><a href="#L315">315</a>            creator = function(_, onPopOver)</span>
+<span id="L316" class="line"><a href="#L316">316</a>                return function()</span>
+<span id="L317" class="line"><a href="#L317">317</a>                    self:popStage4(onPopOver)</span>
+<span id="L318" class="line"><a href="#L318">318</a>                end</span>
+<span id="L319" class="line"><a href="#L319">319</a>            end,</span>
+<span id="L320" class="line"><a href="#L320">320</a>        },</span>
+<span id="L321" class="line"><a href="#L321">321</a>    }</span>
+<span id="L322" class="line"><a href="#L322">322</a>end</span>
+<span id="L323" class="line"><a href="#L323">323</a></span>
+<span id="L324" class="line"><a href="#L324">324</a>-- 场景4强弹可弹条件：正式期，且引流（每日最多 3 次）或主面板每日强弹（每日 1 次）任一满足</span>
+<span id="L325" class="line"><a href="#L325">325</a>function Manager:checkCanPopStage4()</span>
+<span id="L326" class="line"><a href="#L326">326</a>    if not self:isEnabled() then return false end</span>
+<span id="L327" class="line"><a href="#L327">327</a>    return self:checkCanPopYinLiu() or self:checkCanPopMainPanel()</span>
+<span id="L328" class="line"><a href="#L328">328</a>end</span>
+<span id="L329" class="line"><a href="#L329">329</a></span>
+<span id="L330" class="line"><a href="#L330">330</a>-- 场景4强弹弹出：外层仲裁，三个面板只弹一个，优先级 引流1 &gt; 引流2 &gt; 活动主面板每日强弹</span>
+<span id="L331" class="line"><a href="#L331">331</a>function Manager:popStage4(onPopOver)</span>
+<span id="L332" class="line"><a href="#L332">332</a>    local _, canPopYinLiu1, canPopYinLiu2 = self:checkCanPopYinLiu()</span>
+<span id="L333" class="line"><a href="#L333">333</a>    if canPopYinLiu1 then</span>
+<span id="L334" class="line"><a href="#L334">334</a>        self:popYinLiu1Panel(onPopOver)</span>
+<span id="L335" class="line"><a href="#L335">335</a>    elseif canPopYinLiu2 then</span>
+<span id="L336" class="line"><a href="#L336">336</a>        -- 引流面板2 依赖活动文案标签，先加载再弹；加载失败也要结束本次强弹，避免强弹 FSM 卡在 CheckClose</span>
+<span id="L337" class="line"><a href="#L337">337</a>        _G.amfBean(&quot;AssetsUtil&quot;):loadMiniLabels({&quot;underthesin&quot;}):next(function()</span>
+<span id="L338" class="line"><a href="#L338">338</a>            self:popYinLiu2Panel(onPopOver)</span>
+<span id="L339" class="line"><a href="#L339">339</a>        end, function()</span>
+<span id="L340" class="line"><a href="#L340">340</a>            safeRunCall(onPopOver)</span>
+<span id="L341" class="line"><a href="#L341">341</a>        end)</span>
+<span id="L342" class="line"><a href="#L342">342</a>    elseif self:checkCanPopMainPanel() then</span>
+<span id="L343" class="line"><a href="#L343">343</a>        self:popMainPanel(onPopOver)</span>
+<span id="L344" class="line"><a href="#L344">344</a>    else</span>
+<span id="L345" class="line"><a href="#L345">345</a>        -- 入队后状态变化（如已领取免费奖励）导致三个面板都不可弹时，结束本次强弹</span>
+<span id="L346" class="line"><a href="#L346">346</a>        safeRunCall(onPopOver)</span>
+<span id="L347" class="line"><a href="#L347">347</a>    end</span>
+<span id="L348" class="line"><a href="#L348">348</a>end</span>
+<span id="L349" class="line"><a href="#L349">349</a></span>
+<span id="L350" class="line"><a href="#L350">350</a>------------------ 场景4强弹相关 ------------------</span>
+<span id="L351" class="line"><a href="#L351">351</a></span>
+<span id="L352" class="line"><a href="#L352">352</a>function Manager:checkCanPopMainPanel()</span>
+<span id="L353" class="line"><a href="#L353">353</a>    if not self:isEnabled() then</span>
+<span id="L354" class="line"><a href="#L354">354</a>        -- printx(41, Manager.ACT_CH_NAME..&quot; 场景4强弹, 活动不可见&quot;)</span>
+<span id="L355" class="line"><a href="#L355">355</a>        return false</span>
+<span id="L356" class="line"><a href="#L356">356</a>    end</span>
+<span id="L357" class="line"><a href="#L357">357</a>    -- 超过每日上限1次</span>
+<span id="L358" class="line"><a href="#L358">358</a>    if self:getModel():getFlagFromLocalByKeyInt(&quot;MainPanelPanelPopCount&quot;, true) &gt;= 1 then</span>
+<span id="L359" class="line"><a href="#L359">359</a>        -- printx(31, Manager.ACT_CH_NAME..&quot; 场景4强弹, 主面板 今日达到上限1次&quot;)</span>
+<span id="L360" class="line"><a href="#L360">360</a>        return false</span>
+<span id="L361" class="line"><a href="#L361">361</a>    end</span>
+<span id="L362" class="line"><a href="#L362">362</a></span>
+<span id="L363" class="line"><a href="#L363">363</a>    -- 能找的线索都找了</span>
+<span id="L364" class="line"><a href="#L364">364</a>    local handbooks = self:getModel():getDataByKey(&quot;handbooks&quot;, {})</span>
+<span id="L365" class="line"><a href="#L365">365</a>    local handbookMetas = self:getModel():getConfigByKey(&quot;handbookMetas&quot;, {})</span>
+<span id="L366" class="line"><a href="#L366">366</a>    for k,v in pairs(handbooks) do</span>
+<span id="L367" class="line"><a href="#L367">367</a>        local openTs = table.find(handbookMetas, function( vv )</span>
+<span id="L368" class="line"><a href="#L368">368</a>            return vv.id == v.id</span>
+<span id="L369" class="line"><a href="#L369">369</a>        end).openTs</span>
+<span id="L370" class="line"><a href="#L370">370</a></span>
+<span id="L371" class="line"><a href="#L371">371</a>        if (openTs &lt; TimeKit:timeInMillis()) and (#v.gotClueIds &lt; 7) then</span>
+<span id="L372" class="line"><a href="#L372">372</a>            return true</span>
+<span id="L373" class="line"><a href="#L373">373</a>        end</span>
+<span id="L374" class="line"><a href="#L374">374</a>    end</span>
+<span id="L375" class="line"><a href="#L375">375</a></span>
+<span id="L376" class="line"><a href="#L376">376</a>    -- printx(41, Manager.ACT_CH_NAME..&quot; 场景4强弹, 主面板 所有能找的线索已找完&quot;)</span>
+<span id="L377" class="line"><a href="#L377">377</a></span>
+<span id="L378" class="line"><a href="#L378">378</a>    return false</span>
+<span id="L379" class="line"><a href="#L379">379</a>end</span>
+<span id="L380" class="line"><a href="#L380">380</a></span>
+<span id="L381" class="line"><a href="#L381">381</a>-- 引流面板是否可以弹出</span>
+<span id="L382" class="line"><a href="#L382">382</a>function Manager:checkCanPopYinLiu()</span>
+<span id="L383" class="line"><a href="#L383">383</a>    if not self:isEnabled() then</span>
+<span id="L384" class="line"><a href="#L384">384</a>        -- printx(41, Manager.ACT_CH_NAME..&quot; 场景4强弹, 活动不可见&quot;)</span>
+<span id="L385" class="line"><a href="#L385">385</a>        return false, false, false</span>
+<span id="L386" class="line"><a href="#L386">386</a>    end</span>
+<span id="L387" class="line"><a href="#L387">387</a>    -- 超过每日上限3次</span>
+<span id="L388" class="line"><a href="#L388">388</a>    if self:getModel():getFlagFromLocalByKeyInt(&quot;YinLiuPanelPopCount&quot;, true) &gt;= 3 then</span>
+<span id="L389" class="line"><a href="#L389">389</a>        -- printx(31, Manager.ACT_CH_NAME..&quot; 场景4强弹, 引流 今日达到上限3次&quot;)</span>
+<span id="L390" class="line"><a href="#L390">390</a>        return false, false, false</span>
+<span id="L391" class="line"><a href="#L391">391</a>    end</span>
+<span id="L392" class="line"><a href="#L392">392</a>    </span>
+<span id="L393" class="line"><a href="#L393">393</a>    local canPop1, canPop2 = false, false</span>
+<span id="L394" class="line"><a href="#L394">394</a>    -- 引流1</span>
+<span id="L395" class="line"><a href="#L395">395</a>    canPop1 = not self:gotTodayFreeReward()</span>
+<span id="L396" class="line"><a href="#L396">396</a>    -- printx(41, Manager.ACT_CH_NAME..&quot; 场景4强弹, 引流1&quot;, canPop1)</span>
+<span id="L397" class="line"><a href="#L397">397</a></span>
+<span id="L398" class="line"><a href="#L398">398</a>    -- 引流2</span>
+<span id="L399" class="line"><a href="#L399">399</a>    local newHp = self:getHpNum()</span>
+<span id="L400" class="line"><a href="#L400">400</a>    -- printx(41, Manager.ACT_CH_NAME .. &quot; 场景4强弹, 引流2&quot;, newHp)</span>
+<span id="L401" class="line"><a href="#L401">401</a>    if newHp ~= 0 then canPop2 = true end</span>
+<span id="L402" class="line"><a href="#L402">402</a></span>
+<span id="L403" class="line"><a href="#L403">403</a>    return canPop1 or canPop2, canPop1, canPop2</span>
+<span id="L404" class="line"><a href="#L404">404</a>end</span>
+<span id="L405" class="line"><a href="#L405">405</a></span>
+<span id="L406" class="line"><a href="#L406">406</a>function Manager:popMainPanel(done)</span>
+<span id="L407" class="line"><a href="#L407">407</a>    self:getModel():addIntToLocalByKey(&quot;MainPanelPanelPopCount&quot;, true)</span>
+<span id="L408" class="line"><a href="#L408">408</a>    self:openActivity(done, {from = &quot;Stage4&quot;}, false)</span>
+<span id="L409" class="line"><a href="#L409">409</a>end</span>
+<span id="L410" class="line"><a href="#L410">410</a></span>
+<span id="L411" class="line"><a href="#L411">411</a>-- 新增生命值数</span>
+<span id="L412" class="line"><a href="#L412">412</a>function Manager:getHpNum()</span>
+<span id="L413" class="line"><a href="#L413">413</a>    local actInfo = self:getActInfo()</span>
+<span id="L414" class="line"><a href="#L414">414</a>    if (not actInfo) or (not actInfo.extra) then return 0 end</span>
+<span id="L415" class="line"><a href="#L415">415</a>    local extra = table.deserialize(actInfo.extra)</span>
+<span id="L416" class="line"><a href="#L416">416</a>    if type(extra) ~= &quot;table&quot; then return 0 end</span>
+<span id="L417" class="line"><a href="#L417">417</a>    return extra.beHelpShowLens or 0</span>
+<span id="L418" class="line"><a href="#L418">418</a>end</span>
+<span id="L419" class="line"><a href="#L419">419</a></span>
+<span id="L420" class="line"><a href="#L420">420</a>-- 每日免费奖励</span>
+<span id="L421" class="line"><a href="#L421">421</a>function Manager:gotTodayFreeReward()</span>
+<span id="L422" class="line"><a href="#L422">422</a>    local freeRewardDays = self:getModel():getDataByKey(&quot;freeRewardDays&quot;, {})</span>
+<span id="L423" class="line"><a href="#L423">423</a>    local today = self:getDayFrom1970()</span>
+<span id="L424" class="line"><a href="#L424">424</a>    local hasGot = table.exist(freeRewardDays, tostring(today))</span>
+<span id="L425" class="line"><a href="#L425">425</a>    local todayFreeRewards = self:getModel():getDataByKey(&quot;todayFreeRewards&quot;, {})</span>
+<span id="L426" class="line"><a href="#L426">426</a>    local todayReward = todayFreeRewards[1] or {itemId = 10098, num = 10}</span>
+<span id="L427" class="line"><a href="#L427">427</a>    -- printx(31, &quot;gotTodayFreeReward&quot;, hasGot, tts(todayReward))</span>
+<span id="L428" class="line"><a href="#L428">428</a>    return hasGot, todayReward</span>
+<span id="L429" class="line"><a href="#L429">429</a>end</span>
+<span id="L430" class="line"><a href="#L430">430</a></span>
+<span id="L431" class="line"><a href="#L431">431</a>-- 是否图鉴全满</span>
+<span id="L432" class="line"><a href="#L432">432</a>function Manager:isFullClue()</span>
+<span id="L433" class="line"><a href="#L433">433</a>    local handbooks = self:getModel():getDataByKey(&quot;handbooks&quot;, {})</span>
+<span id="L434" class="line"><a href="#L434">434</a>    for k,v in pairs(handbooks) do</span>
+<span id="L435" class="line"><a href="#L435">435</a>        if (not v.gotClueIds) or #v.gotClueIds &lt; 7 then</span>
+<span id="L436" class="line"><a href="#L436">436</a>            return false</span>
+<span id="L437" class="line"><a href="#L437">437</a>        end</span>
+<span id="L438" class="line"><a href="#L438">438</a>    end</span>
+<span id="L439" class="line"><a href="#L439">439</a></span>
+<span id="L440" class="line"><a href="#L440">440</a>    return true</span>
+<span id="L441" class="line"><a href="#L441">441</a>end</span>
+<span id="L442" class="line"><a href="#L442">442</a></span>
+<span id="L443" class="line"><a href="#L443">443</a>-- 是否有未领取的进度奖励</span>
+<span id="L444" class="line"><a href="#L444">444</a>function Manager:canGetProgressReward()</span>
+<span id="L445" class="line"><a href="#L445">445</a>    local handbooks = self:getModel():getDataByKey(&quot;handbooks&quot;, {})</span>
+<span id="L446" class="line"><a href="#L446">446</a>    for k,v in pairs(handbooks) do</span>
+<span id="L447" class="line"><a href="#L447">447</a>        if (#v.gotClueIds &gt;= 7) and (not v.gotProgressReward) then</span>
+<span id="L448" class="line"><a href="#L448">448</a>            return true</span>
+<span id="L449" class="line"><a href="#L449">449</a>        end</span>
+<span id="L450" class="line"><a href="#L450">450</a>    end</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>    return false</span>
+<span id="L453" class="line"><a href="#L453">453</a>end</span>
+<span id="L454" class="line"><a href="#L454">454</a></span>
+<span id="L455" class="line"><a href="#L455">455</a>function Manager:openActivity(closeCallback,extra,userClick)</span>
+<span id="L456" class="line"><a href="#L456">456</a>    -- openActivity(nil, {from = &quot;YinLiu1&quot;}, true)</span>
+<span id="L457" class="line"><a href="#L457">457</a>    -- 断网时活动主面板打不开（活动资源/actInfo 都在服务端），只给提示，不进框架流程</span>
+<span id="L458" class="line"><a href="#L458">458</a>    if not self._networkStatusManager:isNetworkEnabled() then</span>
+<span id="L459" class="line"><a href="#L459">459</a>        CommonTip:showTip(&quot;网络异常，请检查网络~&quot;)</span>
+<span id="L460" class="line"><a href="#L460">460</a>        safeRunCall(closeCallback)</span>
+<span id="L461" class="line"><a href="#L461">461</a>        return</span>
+<span id="L462" class="line"><a href="#L462">462</a>    end</span>
+<span id="L463" class="line"><a href="#L463">463</a>    self:callPlug(&quot;Act&quot;,&quot;openActivity&quot;,{</span>
+<span id="L464" class="line"><a href="#L464">464</a>        actId = self:getConst().actId,</span>
+<span id="L465" class="line"><a href="#L465">465</a>        extra = {</span>
+<span id="L466" class="line"><a href="#L466">466</a>            from = extra.from,</span>
+<span id="L467" class="line"><a href="#L467">467</a>        },</span>
+<span id="L468" class="line"><a href="#L468">468</a>        failCallback = closeCallback,</span>
+<span id="L469" class="line"><a href="#L469">469</a>        endCallback = closeCallback,</span>
+<span id="L470" class="line"><a href="#L470">470</a>        userClick = userClick,</span>
+<span id="L471" class="line"><a href="#L471">471</a>    })</span>
+<span id="L472" class="line"><a href="#L472">472</a>end</span>
+<span id="L473" class="line"><a href="#L473">473</a></span>
+<span id="L474" class="line"><a href="#L474">474</a>function Manager:popYinLiu1Panel(callback)</span>
+<span id="L475" class="line"><a href="#L475">475</a>    local SecondPanelG = require(&quot;amf.middleware.ui.kit.panel.second.SecondPanelGVM&quot;)</span>
+<span id="L476" class="line"><a href="#L476">476</a>    local hasGot, reward = self:gotTodayFreeReward()</span>
+<span id="L477" class="line"><a href="#L477">477</a>    local panel</span>
+<span id="L478" class="line"><a href="#L478">478</a>    local clickBtn = false</span>
+<span id="L479" class="line"><a href="#L479">479</a>    panel = SecondPanelG.Builder.new()</span>
+<span id="L480" class="line"><a href="#L480">480</a>    :setTitle(self:getConst().actChName)</span>
+<span id="L481" class="line"><a href="#L481">481</a>    :setColorType(self:getConst().actColorType)</span>
+<span id="L482" class="line"><a href="#L482">482</a>    :setTopText({</span>
+<span id="L483" class="line"><a href="#L483">483</a>        text = &quot;快去&quot;..self:getConst().actChName..&quot;活动领取奖励吧~&quot;,</span>
+<span id="L484" class="line"><a href="#L484">484</a>        fontSize = 26,</span>
+<span id="L485" class="line"><a href="#L485">485</a>        lineSpace = 10</span>
+<span id="L486" class="line"><a href="#L486">486</a>    })</span>
+<span id="L487" class="line"><a href="#L487">487</a>    :setSubTitle(&quot;免费奖励&quot;)</span>
+<span id="L488" class="line"><a href="#L488">488</a>    :setRewards({reward},function(reward)</span>
+<span id="L489" class="line"><a href="#L489">489</a>        return self:createIcon(reward)</span>
+<span id="L490" class="line"><a href="#L490">490</a>    end)</span>
+<span id="L491" class="line"><a href="#L491">491</a>    :setButtonsConfig({</span>
+<span id="L492" class="line"><a href="#L492">492</a>			{</span>
+<span id="L493" class="line"><a href="#L493">493</a>				str = &quot;去领奖&quot;,</span>
+<span id="L494" class="line"><a href="#L494">494</a>                widthMode = UIButtonConfig.Widths.kShort,</span>
+<span id="L495" class="line"><a href="#L495">495</a>                scaleMode = UIButtonConfig.BtnScales.k90,</span>
+<span id="L496" class="line"><a href="#L496">496</a>                colorMode = UIButtonConfig.ColorMode.green,</span>
+<span id="L497" class="line"><a href="#L497">497</a>				touchFunc = function( event )</span>
+<span id="L498" class="line"><a href="#L498">498</a>					if panel.isDisposed then return end</span>
+<span id="L499" class="line"><a href="#L499">499</a>                    _G.amfBean(&quot;AutoPopupMgr&quot;):resetPopup()</span>
+<span id="L500" class="line"><a href="#L500">500</a>                    clickBtn = true</span>
+<span id="L501" class="line"><a href="#L501">501</a>                    panel:close()</span>
+<span id="L502" class="line"><a href="#L502">502</a>					self:openActivity(nil, {from = &quot;YinLiu1&quot;}, true)</span>
+<span id="L503" class="line"><a href="#L503">503</a>				end,</span>
+<span id="L504" class="line"><a href="#L504">504</a></span>
+<span id="L505" class="line"><a href="#L505">505</a>			}</span>
+<span id="L506" class="line"><a href="#L506">506</a>		})</span>
+<span id="L507" class="line"><a href="#L507">507</a>    :setCloseCallback(function(  )</span>
+<span id="L508" class="line"><a href="#L508">508</a>        if not clickBtn then</span>
+<span id="L509" class="line"><a href="#L509">509</a>            safeRunCall(callback)</span>
+<span id="L510" class="line"><a href="#L510">510</a>        end</span>
+<span id="L511" class="line"><a href="#L511">511</a>    end):build()</span>
+<span id="L512" class="line"><a href="#L512">512</a>    </span>
+<span id="L513" class="line"><a href="#L513">513</a>    panel:popout()</span>
+<span id="L514" class="line"><a href="#L514">514</a>    self:callPlug(&quot;Panel&quot;,&quot;managePanelVM&quot;,panel)</span>
+<span id="L515" class="line"><a href="#L515">515</a></span>
+<span id="L516" class="line"><a href="#L516">516</a>    DcUtil:UserTrack({</span>
+<span id="L517" class="line"><a href="#L517">517</a>        category = &quot;show&quot;,</span>
+<span id="L518" class="line"><a href="#L518">518</a>        sub_category = &quot;attract_panel&quot;,</span>
+<span id="L519" class="line"><a href="#L519">519</a>        game_type = &quot;stage&quot;,</span>
+<span id="L520" class="line"><a href="#L520">520</a>        game_name = self:getConst().GAME_NAME,</span>
+<span id="L521" class="line"><a href="#L521">521</a>        t1 = 1,</span>
+<span id="L522" class="line"><a href="#L522">522</a>    })</span>
+<span id="L523" class="line"><a href="#L523">523</a>    self:getModel():addIntToLocalByKey(&quot;YinLiuPanelPopCount&quot;, true, 1)</span>
+<span id="L524" class="line"><a href="#L524">524</a>end</span>
+<span id="L525" class="line"><a href="#L525">525</a></span>
+<span id="L526" class="line"><a href="#L526">526</a>function Manager:popYinLiu2Panel(callback)</span>
+<span id="L527" class="line"><a href="#L527">527</a>    local SecondPanelG = require(&quot;amf.middleware.ui.kit.panel.second.SecondPanelGVM&quot;)</span>
+<span id="L528" class="line"><a href="#L528">528</a>    local hpNum = self:getHpNum()</span>
+<span id="L529" class="line"><a href="#L529">529</a>    local panel</span>
+<span id="L530" class="line"><a href="#L530">530</a>    local clickBtn = false</span>
+<span id="L531" class="line"><a href="#L531">531</a>    panel = SecondPanelG.Builder.new()</span>
+<span id="L532" class="line"><a href="#L532">532</a>    :setNeedLoadRes({</span>
+<span id="L533" class="line"><a href="#L533">533</a>        &quot;amf/activity/underthesin/materials/collection.png&quot;,</span>
+<span id="L534" class="line"><a href="#L534">534</a>    })</span>
+<span id="L535" class="line"><a href="#L535">535</a>    :setTitle(self:getConst().actChName)</span>
+<span id="L536" class="line"><a href="#L536">536</a>    :setColorType(self:getConst().actColorType)</span>
+<span id="L537" class="line"><a href="#L537">537</a>    :setTopText({</span>
+<span id="L538" class="line"><a href="#L538">538</a>        text = &quot;有好友成功助力啦！快去看看吧！&quot;,</span>
+<span id="L539" class="line"><a href="#L539">539</a>        fontSize = 26,</span>
+<span id="L540" class="line"><a href="#L540">540</a>        lineSpace = 10</span>
+<span id="L541" class="line"><a href="#L541">541</a>    })</span>
+<span id="L542" class="line"><a href="#L542">542</a>    :setSubTitle(&quot;免费奖励&quot;)</span>
+<span id="L543" class="line"><a href="#L543">543</a>    :setRewards({{itemId = self:getConst().HealthItemId, num = hpNum}},function(reward)</span>
+<span id="L544" class="line"><a href="#L544">544</a>        return self:createIcon(reward)</span>
+<span id="L545" class="line"><a href="#L545">545</a>    end)</span>
+<span id="L546" class="line"><a href="#L546">546</a>    :setButtonsConfig({{</span>
+<span id="L547" class="line"><a href="#L547">547</a>        str = &quot;去领取&quot;,</span>
+<span id="L548" class="line"><a href="#L548">548</a>        widthMode = UIButtonConfig.Widths.kShort,</span>
+<span id="L549" class="line"><a href="#L549">549</a>        scaleMode = UIButtonConfig.BtnScales.k90,</span>
+<span id="L550" class="line"><a href="#L550">550</a>        colorMode = UIButtonConfig.ColorMode.green,</span>
+<span id="L551" class="line"><a href="#L551">551</a>        touchFunc = function(event)</span>
+<span id="L552" class="line"><a href="#L552">552</a>            if panel.isDisposed then</span>
+<span id="L553" class="line"><a href="#L553">553</a>                return</span>
+<span id="L554" class="line"><a href="#L554">554</a>            end</span>
+<span id="L555" class="line"><a href="#L555">555</a>            _G.amfBean(&quot;AutoPopupMgr&quot;):resetPopup()</span>
+<span id="L556" class="line"><a href="#L556">556</a>            clickBtn = true</span>
+<span id="L557" class="line"><a href="#L557">557</a>            panel:close()</span>
+<span id="L558" class="line"><a href="#L558">558</a>            self:openActivity(nil, {</span>
+<span id="L559" class="line"><a href="#L559">559</a>                from = &quot;YinLiu2&quot;</span>
+<span id="L560" class="line"><a href="#L560">560</a>            }, true)</span>
+<span id="L561" class="line"><a href="#L561">561</a>        end</span>
+<span id="L562" class="line"><a href="#L562">562</a></span>
+<span id="L563" class="line"><a href="#L563">563</a>    }})</span>
+<span id="L564" class="line"><a href="#L564">564</a>    :setCloseCallback(function()</span>
+<span id="L565" class="line"><a href="#L565">565</a>        if not clickBtn then</span>
+<span id="L566" class="line"><a href="#L566">566</a>            safeRunCall(callback)</span>
+<span id="L567" class="line"><a href="#L567">567</a>        end</span>
+<span id="L568" class="line"><a href="#L568">568</a>    end)</span>
+<span id="L569" class="line"><a href="#L569">569</a>    :build()</span>
+<span id="L570" class="line"><a href="#L570">570</a>    panel:popout()</span>
+<span id="L571" class="line"><a href="#L571">571</a>    self:callPlug(&quot;Panel&quot;,&quot;managePanelVM&quot;,panel)</span>
+<span id="L572" class="line"><a href="#L572">572</a></span>
+<span id="L573" class="line"><a href="#L573">573</a>    DcUtil:UserTrack({</span>
+<span id="L574" class="line"><a href="#L574">574</a>        category = &quot;show&quot;,</span>
+<span id="L575" class="line"><a href="#L575">575</a>        sub_category = &quot;attract_panel&quot;,</span>
+<span id="L576" class="line"><a href="#L576">576</a>        game_type = &quot;stage&quot;,</span>
+<span id="L577" class="line"><a href="#L577">577</a>        game_name = self:getConst().GAME_NAME,</span>
+<span id="L578" class="line"><a href="#L578">578</a>        t1 = 2,</span>
+<span id="L579" class="line"><a href="#L579">579</a>    })</span>
+<span id="L580" class="line"><a href="#L580">580</a>    </span>
+<span id="L581" class="line"><a href="#L581">581</a>    self:getModel():addIntToLocalByKey(&quot;YinLiuPanelPopCount&quot;, true, 1)</span>
+<span id="L582" class="line"><a href="#L582">582</a>end</span>
+<span id="L583" class="line"><a href="#L583">583</a></span>
+<span id="L584" class="line"><a href="#L584">584</a></span>
+<span id="L585" class="line"><a href="#L585">585</a>return Manager</span></pre></main></html>

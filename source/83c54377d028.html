@@ -1,0 +1,476 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/mainscene/module/icon/v2/resolver/RightTopSlotResolver.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="83c54377d028.lua" download>下载Lua原文</a></p><h1>amf/feature/mainscene/module/icon/v2/resolver/RightTopSlotResolver.lua</h1><p>SHA256 7e175949a416292bf60975cc416ae82684b13a4bc8958d87dc4edf75f1af1e82</p><pre><span id="L1" class="line"><a href="#L1">1</a>local RightTopSlotResolver = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a>RightTopSlotResolver.__index = RightTopSlotResolver</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>local DefaultPriorityOrder = {</span>
+<span id="L5" class="line"><a href="#L5">5</a>    &quot;reward&quot;,</span>
+<span id="L6" class="line"><a href="#L6">6</a>    &quot;exclamation&quot;,</span>
+<span id="L7" class="line"><a href="#L7">7</a>    &quot;new&quot;,</span>
+<span id="L8" class="line"><a href="#L8">8</a>    &quot;count&quot;,</span>
+<span id="L9" class="line"><a href="#L9">9</a>    &quot;redDot&quot;,</span>
+<span id="L10" class="line"><a href="#L10">10</a>}</span>
+<span id="L11" class="line"><a href="#L11">11</a></span>
+<span id="L12" class="line"><a href="#L12">12</a>local ValidReminderKinds = {</span>
+<span id="L13" class="line"><a href="#L13">13</a>    reward = true,</span>
+<span id="L14" class="line"><a href="#L14">14</a>    exclamation = true,</span>
+<span id="L15" class="line"><a href="#L15">15</a>    new = true,</span>
+<span id="L16" class="line"><a href="#L16">16</a>    count = true,</span>
+<span id="L17" class="line"><a href="#L17">17</a>    redDot = true,</span>
+<span id="L18" class="line"><a href="#L18">18</a>}</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>local function copyArray(source)</span>
+<span id="L21" class="line"><a href="#L21">21</a>    local target = {}</span>
+<span id="L22" class="line"><a href="#L22">22</a>    for index = 1, #source do</span>
+<span id="L23" class="line"><a href="#L23">23</a>        target[index] = source[index]</span>
+<span id="L24" class="line"><a href="#L24">24</a>    end</span>
+<span id="L25" class="line"><a href="#L25">25</a>    return target</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>local function copyMap(source)</span>
+<span id="L29" class="line"><a href="#L29">29</a>    local target = {}</span>
+<span id="L30" class="line"><a href="#L30">30</a>    for key, value in pairs(source or {}) do</span>
+<span id="L31" class="line"><a href="#L31">31</a>        target[key] = value</span>
+<span id="L32" class="line"><a href="#L32">32</a>    end</span>
+<span id="L33" class="line"><a href="#L33">33</a>    return target</span>
+<span id="L34" class="line"><a href="#L34">34</a>end</span>
+<span id="L35" class="line"><a href="#L35">35</a></span>
+<span id="L36" class="line"><a href="#L36">36</a>local function first(state, paths, defaultValue)</span>
+<span id="L37" class="line"><a href="#L37">37</a>    for pathIndex = 1, #paths do</span>
+<span id="L38" class="line"><a href="#L38">38</a>        local value = state</span>
+<span id="L39" class="line"><a href="#L39">39</a>        local path = paths[pathIndex]</span>
+<span id="L40" class="line"><a href="#L40">40</a>        for index = 1, #path do</span>
+<span id="L41" class="line"><a href="#L41">41</a>            if type(value) ~= &quot;table&quot; then</span>
+<span id="L42" class="line"><a href="#L42">42</a>                value = nil</span>
+<span id="L43" class="line"><a href="#L43">43</a>                break</span>
+<span id="L44" class="line"><a href="#L44">44</a>            end</span>
+<span id="L45" class="line"><a href="#L45">45</a>            value = value[path[index]]</span>
+<span id="L46" class="line"><a href="#L46">46</a>        end</span>
+<span id="L47" class="line"><a href="#L47">47</a>        if value ~= nil then</span>
+<span id="L48" class="line"><a href="#L48">48</a>            return value</span>
+<span id="L49" class="line"><a href="#L49">49</a>        end</span>
+<span id="L50" class="line"><a href="#L50">50</a>    end</span>
+<span id="L51" class="line"><a href="#L51">51</a>    return defaultValue</span>
+<span id="L52" class="line"><a href="#L52">52</a>end</span>
+<span id="L53" class="line"><a href="#L53">53</a></span>
+<span id="L54" class="line"><a href="#L54">54</a>local function describePriorityOrder(order)</span>
+<span id="L55" class="line"><a href="#L55">55</a>    if type(order) ~= &quot;table&quot; then</span>
+<span id="L56" class="line"><a href="#L56">56</a>        return tostring(order)</span>
+<span id="L57" class="line"><a href="#L57">57</a>    end</span>
+<span id="L58" class="line"><a href="#L58">58</a>    local values = {}</span>
+<span id="L59" class="line"><a href="#L59">59</a>    for key, value in pairs(order) do</span>
+<span id="L60" class="line"><a href="#L60">60</a>        values[#values + 1] = tostring(key) .. &quot;=&quot; .. tostring(value)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    end</span>
+<span id="L62" class="line"><a href="#L62">62</a>    table.sort(values)</span>
+<span id="L63" class="line"><a href="#L63">63</a>    return table.concat(values, &quot;,&quot;)</span>
+<span id="L64" class="line"><a href="#L64">64</a>end</span>
+<span id="L65" class="line"><a href="#L65">65</a></span>
+<span id="L66" class="line"><a href="#L66">66</a>local function validatePriorityOrder(order)</span>
+<span id="L67" class="line"><a href="#L67">67</a>    if order == nil then</span>
+<span id="L68" class="line"><a href="#L68">68</a>        return copyArray(DefaultPriorityOrder)</span>
+<span id="L69" class="line"><a href="#L69">69</a>    end</span>
+<span id="L70" class="line"><a href="#L70">70</a>    if type(order) ~= &quot;table&quot; then</span>
+<span id="L71" class="line"><a href="#L71">71</a>        return nil, &quot;priority order must be a table&quot;</span>
+<span id="L72" class="line"><a href="#L72">72</a>    end</span>
+<span id="L73" class="line"><a href="#L73">73</a></span>
+<span id="L74" class="line"><a href="#L74">74</a>    local keyCount = 0</span>
+<span id="L75" class="line"><a href="#L75">75</a>    for key in pairs(order) do</span>
+<span id="L76" class="line"><a href="#L76">76</a>        keyCount = keyCount + 1</span>
+<span id="L77" class="line"><a href="#L77">77</a>        if type(key) ~= &quot;number&quot; or key % 1 ~= 0 or key &lt; 1 or key &gt; #DefaultPriorityOrder then</span>
+<span id="L78" class="line"><a href="#L78">78</a>            return nil, &quot;priority order must be a dense array with at most five items&quot;</span>
+<span id="L79" class="line"><a href="#L79">79</a>        end</span>
+<span id="L80" class="line"><a href="#L80">80</a>    end</span>
+<span id="L81" class="line"><a href="#L81">81</a></span>
+<span id="L82" class="line"><a href="#L82">82</a>    local seen = {}</span>
+<span id="L83" class="line"><a href="#L83">83</a>    local copied = {}</span>
+<span id="L84" class="line"><a href="#L84">84</a>    for index = 1, keyCount do</span>
+<span id="L85" class="line"><a href="#L85">85</a>        local kind = order[index]</span>
+<span id="L86" class="line"><a href="#L86">86</a>        if kind == nil then</span>
+<span id="L87" class="line"><a href="#L87">87</a>            return nil, &quot;priority order must be a dense array&quot;</span>
+<span id="L88" class="line"><a href="#L88">88</a>        end</span>
+<span id="L89" class="line"><a href="#L89">89</a>        if not ValidReminderKinds[kind] then</span>
+<span id="L90" class="line"><a href="#L90">90</a>            return nil, &quot;unsupported reminder kind &quot; .. tostring(kind)</span>
+<span id="L91" class="line"><a href="#L91">91</a>        end</span>
+<span id="L92" class="line"><a href="#L92">92</a>        if seen[kind] then</span>
+<span id="L93" class="line"><a href="#L93">93</a>            return nil, &quot;duplicate reminder kind &quot; .. kind</span>
+<span id="L94" class="line"><a href="#L94">94</a>        end</span>
+<span id="L95" class="line"><a href="#L95">95</a>        seen[kind] = true</span>
+<span id="L96" class="line"><a href="#L96">96</a>        copied[index] = kind</span>
+<span id="L97" class="line"><a href="#L97">97</a>    end</span>
+<span id="L98" class="line"><a href="#L98">98</a>    for index = 1, #DefaultPriorityOrder do</span>
+<span id="L99" class="line"><a href="#L99">99</a>        local kind = DefaultPriorityOrder[index]</span>
+<span id="L100" class="line"><a href="#L100">100</a>        if not seen[kind] then</span>
+<span id="L101" class="line"><a href="#L101">101</a>            copied[#copied + 1] = kind</span>
+<span id="L102" class="line"><a href="#L102">102</a>        end</span>
+<span id="L103" class="line"><a href="#L103">103</a>    end</span>
+<span id="L104" class="line"><a href="#L104">104</a>    return copied</span>
+<span id="L105" class="line"><a href="#L105">105</a>end</span>
+<span id="L106" class="line"><a href="#L106">106</a></span>
+<span id="L107" class="line"><a href="#L107">107</a>local function resolveReminderDynamic(reminder, kind)</span>
+<span id="L108" class="line"><a href="#L108">108</a>    -- Product policy: reward reminder animation is disabled.</span>
+<span id="L109" class="line"><a href="#L109">109</a>    if kind == &quot;reward&quot; then</span>
+<span id="L110" class="line"><a href="#L110">110</a>        return false</span>
+<span id="L111" class="line"><a href="#L111">111</a>    end</span>
+<span id="L112" class="line"><a href="#L112">112</a>    local dynamicKinds = type(reminder.dynamicKinds) == &quot;table&quot; and reminder.dynamicKinds or {}</span>
+<span id="L113" class="line"><a href="#L113">113</a>    if dynamicKinds[kind] ~= nil then</span>
+<span id="L114" class="line"><a href="#L114">114</a>        return dynamicKinds[kind] == true</span>
+<span id="L115" class="line"><a href="#L115">115</a>    end</span>
+<span id="L116" class="line"><a href="#L116">116</a>    return false</span>
+<span id="L117" class="line"><a href="#L117">117</a>end</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>local function normalizeReminderIntent(intent)</span>
+<span id="L120" class="line"><a href="#L120">120</a>    intent = type(intent) == &quot;table&quot; and intent or {}</span>
+<span id="L121" class="line"><a href="#L121">121</a>    local priorityOrder, priorityError = validatePriorityOrder(intent.priorityOrder)</span>
+<span id="L122" class="line"><a href="#L122">122</a>    if not priorityOrder then</span>
+<span id="L123" class="line"><a href="#L123">123</a>        priorityOrder = copyArray(DefaultPriorityOrder)</span>
+<span id="L124" class="line"><a href="#L124">124</a>    end</span>
+<span id="L125" class="line"><a href="#L125">125</a>    local count = type(intent.count) == &quot;number&quot; and intent.count or 0</span>
+<span id="L126" class="line"><a href="#L126">126</a>    local dynamicKinds = {}</span>
+<span id="L127" class="line"><a href="#L127">127</a>    for kind in pairs(ValidReminderKinds) do</span>
+<span id="L128" class="line"><a href="#L128">128</a>        dynamicKinds[kind] = resolveReminderDynamic(intent, kind)</span>
+<span id="L129" class="line"><a href="#L129">129</a>    end</span>
+<span id="L130" class="line"><a href="#L130">130</a>    return {</span>
+<span id="L131" class="line"><a href="#L131">131</a>        visible = {</span>
+<span id="L132" class="line"><a href="#L132">132</a>            reward = intent.rewardVisible == true,</span>
+<span id="L133" class="line"><a href="#L133">133</a>            exclamation = intent.exclamationVisible == true,</span>
+<span id="L134" class="line"><a href="#L134">134</a>            new = intent.newVisible == true,</span>
+<span id="L135" class="line"><a href="#L135">135</a>            count = count &gt; 0,</span>
+<span id="L136" class="line"><a href="#L136">136</a>            redDot = intent.redDotVisible == true or intent.hintVisible == true,</span>
+<span id="L137" class="line"><a href="#L137">137</a>        },</span>
+<span id="L138" class="line"><a href="#L138">138</a>        count = count,</span>
+<span id="L139" class="line"><a href="#L139">139</a>        dynamicKinds = dynamicKinds,</span>
+<span id="L140" class="line"><a href="#L140">140</a>        priorityOrder = priorityOrder,</span>
+<span id="L141" class="line"><a href="#L141">141</a>        priorityError = priorityError,</span>
+<span id="L142" class="line"><a href="#L142">142</a>        prioritySignature = describePriorityOrder(intent.priorityOrder),</span>
+<span id="L143" class="line"><a href="#L143">143</a>    }</span>
+<span id="L144" class="line"><a href="#L144">144</a>end</span>
+<span id="L145" class="line"><a href="#L145">145</a></span>
+<span id="L146" class="line"><a href="#L146">146</a>local function normalizeDiscountIntent(intent)</span>
+<span id="L147" class="line"><a href="#L147">147</a>    intent = type(intent) == &quot;table&quot; and intent or {}</span>
+<span id="L148" class="line"><a href="#L148">148</a>    local discount = intent.discount</span>
+<span id="L149" class="line"><a href="#L149">149</a>    local visible = intent.visible == true</span>
+<span id="L150" class="line"><a href="#L150">150</a>    if visible then</span>
+<span id="L151" class="line"><a href="#L151">151</a>        visible = discount ~= nil and discount &lt; 10</span>
+<span id="L152" class="line"><a href="#L152">152</a>    end</span>
+<span id="L153" class="line"><a href="#L153">153</a>    return {</span>
+<span id="L154" class="line"><a href="#L154">154</a>        visible = visible,</span>
+<span id="L155" class="line"><a href="#L155">155</a>        discount = discount,</span>
+<span id="L156" class="line"><a href="#L156">156</a>    }</span>
+<span id="L157" class="line"><a href="#L157">157</a>end</span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>local function reminderIntentFromState(state)</span>
+<span id="L160" class="line"><a href="#L160">160</a>    local reminder = first(state, {</span>
+<span id="L161" class="line"><a href="#L161">161</a>        {&quot;reminder&quot;},</span>
+<span id="L162" class="line"><a href="#L162">162</a>    }, {}) or {}</span>
+<span id="L163" class="line"><a href="#L163">163</a>    local rewardVisible = first(state, {</span>
+<span id="L164" class="line"><a href="#L164">164</a>        {&quot;reminder&quot;, &quot;rewardVisible&quot;},</span>
+<span id="L165" class="line"><a href="#L165">165</a>        {&quot;rewardReminderVisible&quot;},</span>
+<span id="L166" class="line"><a href="#L166">166</a>        {&quot;rewardVisible&quot;},</span>
+<span id="L167" class="line"><a href="#L167">167</a>    }, false) == true</span>
+<span id="L168" class="line"><a href="#L168">168</a>    return {</span>
+<span id="L169" class="line"><a href="#L169">169</a>        rewardVisible = rewardVisible,</span>
+<span id="L170" class="line"><a href="#L170">170</a>        exclamationVisible = first(state, {</span>
+<span id="L171" class="line"><a href="#L171">171</a>            {&quot;reminder&quot;, &quot;exclamationVisible&quot;},</span>
+<span id="L172" class="line"><a href="#L172">172</a>            {&quot;exclamationVisible&quot;},</span>
+<span id="L173" class="line"><a href="#L173">173</a>        }, false) == true,</span>
+<span id="L174" class="line"><a href="#L174">174</a>        newVisible = first(state, {</span>
+<span id="L175" class="line"><a href="#L175">175</a>            {&quot;reminder&quot;, &quot;newVisible&quot;},</span>
+<span id="L176" class="line"><a href="#L176">176</a>            {&quot;newReminderVisible&quot;},</span>
+<span id="L177" class="line"><a href="#L177">177</a>            {&quot;newVisible&quot;},</span>
+<span id="L178" class="line"><a href="#L178">178</a>        }, false) == true,</span>
+<span id="L179" class="line"><a href="#L179">179</a>        count = first(state, {</span>
+<span id="L180" class="line"><a href="#L180">180</a>            {&quot;reminder&quot;, &quot;count&quot;},</span>
+<span id="L181" class="line"><a href="#L181">181</a>            {&quot;reminderCount&quot;},</span>
+<span id="L182" class="line"><a href="#L182">182</a>            {&quot;redDotCount&quot;},</span>
+<span id="L183" class="line"><a href="#L183">183</a>        }, 0) or 0,</span>
+<span id="L184" class="line"><a href="#L184">184</a>        redDotVisible = first(state, {</span>
+<span id="L185" class="line"><a href="#L185">185</a>            {&quot;reminder&quot;, &quot;redDotVisible&quot;},</span>
+<span id="L186" class="line"><a href="#L186">186</a>            {&quot;redDotVisible&quot;},</span>
+<span id="L187" class="line"><a href="#L187">187</a>            {&quot;pureRedDotVisible&quot;},</span>
+<span id="L188" class="line"><a href="#L188">188</a>        }, false) == true,</span>
+<span id="L189" class="line"><a href="#L189">189</a>        hintVisible = first(state, {</span>
+<span id="L190" class="line"><a href="#L190">190</a>            {&quot;reminder&quot;, &quot;hintVisible&quot;},</span>
+<span id="L191" class="line"><a href="#L191">191</a>            {&quot;hintVisible&quot;},</span>
+<span id="L192" class="line"><a href="#L192">192</a>        }, false) == true,</span>
+<span id="L193" class="line"><a href="#L193">193</a>        dynamic = first(state, {</span>
+<span id="L194" class="line"><a href="#L194">194</a>            {&quot;reminder&quot;, &quot;dynamic&quot;},</span>
+<span id="L195" class="line"><a href="#L195">195</a>            {&quot;visual&quot;, &quot;reminderDynamic&quot;},</span>
+<span id="L196" class="line"><a href="#L196">196</a>            {&quot;visual&quot;, &quot;rewardDynamic&quot;},</span>
+<span id="L197" class="line"><a href="#L197">197</a>            {&quot;rewardDynamic&quot;},</span>
+<span id="L198" class="line"><a href="#L198">198</a>        }, rewardVisible) == true,</span>
+<span id="L199" class="line"><a href="#L199">199</a>        dynamicKinds = copyMap(reminder.dynamicKinds),</span>
+<span id="L200" class="line"><a href="#L200">200</a>        priorityOrder = reminder.priorityOrder,</span>
+<span id="L201" class="line"><a href="#L201">201</a>    }</span>
+<span id="L202" class="line"><a href="#L202">202</a>end</span>
+<span id="L203" class="line"><a href="#L203">203</a></span>
+<span id="L204" class="line"><a href="#L204">204</a>local function discountIntentFromState(state)</span>
+<span id="L205" class="line"><a href="#L205">205</a>    local pay = first(state, {</span>
+<span id="L206" class="line"><a href="#L206">206</a>        {&quot;pay&quot;},</span>
+<span id="L207" class="line"><a href="#L207">207</a>        {&quot;bubble&quot;, &quot;pay&quot;},</span>
+<span id="L208" class="line"><a href="#L208">208</a>    })</span>
+<span id="L209" class="line"><a href="#L209">209</a>    local enabled = type(pay) == &quot;table&quot; and pay.enabled ~= false</span>
+<span id="L210" class="line"><a href="#L210">210</a>    return {</span>
+<span id="L211" class="line"><a href="#L211">211</a>        visible = enabled and pay.discount ~= nil,</span>
+<span id="L212" class="line"><a href="#L212">212</a>        discount = enabled and pay.discount or nil,</span>
+<span id="L213" class="line"><a href="#L213">213</a>    }</span>
+<span id="L214" class="line"><a href="#L214">214</a>end</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>local function selectReminder(reminder)</span>
+<span id="L217" class="line"><a href="#L217">217</a>    for index = 1, #reminder.priorityOrder do</span>
+<span id="L218" class="line"><a href="#L218">218</a>        local kind = reminder.priorityOrder[index]</span>
+<span id="L219" class="line"><a href="#L219">219</a>        if reminder.visible[kind] then</span>
+<span id="L220" class="line"><a href="#L220">220</a>            return {</span>
+<span id="L221" class="line"><a href="#L221">221</a>                kind = kind,</span>
+<span id="L222" class="line"><a href="#L222">222</a>                count = kind == &quot;count&quot; and reminder.count or nil,</span>
+<span id="L223" class="line"><a href="#L223">223</a>                dynamic = reminder.dynamicKinds[kind] == true,</span>
+<span id="L224" class="line"><a href="#L224">224</a>            }</span>
+<span id="L225" class="line"><a href="#L225">225</a>        end</span>
+<span id="L226" class="line"><a href="#L226">226</a>    end</span>
+<span id="L227" class="line"><a href="#L227">227</a>end</span>
+<span id="L228" class="line"><a href="#L228">228</a></span>
+<span id="L229" class="line"><a href="#L229">229</a>local function visualFingerprint(snapshot)</span>
+<span id="L230" class="line"><a href="#L230">230</a>    local reminder = snapshot.reminder or {}</span>
+<span id="L231" class="line"><a href="#L231">231</a>    return table.concat({</span>
+<span id="L232" class="line"><a href="#L232">232</a>        snapshot.kind,</span>
+<span id="L233" class="line"><a href="#L233">233</a>        tostring(snapshot.discount),</span>
+<span id="L234" class="line"><a href="#L234">234</a>        tostring(reminder.kind),</span>
+<span id="L235" class="line"><a href="#L235">235</a>        tostring(reminder.count),</span>
+<span id="L236" class="line"><a href="#L236">236</a>        tostring(reminder.dynamic),</span>
+<span id="L237" class="line"><a href="#L237">237</a>        tostring(reminder.playAnimation),</span>
+<span id="L238" class="line"><a href="#L238">238</a>    }, &quot;|&quot;)</span>
+<span id="L239" class="line"><a href="#L239">239</a>end</span>
+<span id="L240" class="line"><a href="#L240">240</a></span>
+<span id="L241" class="line"><a href="#L241">241</a>local function inputFingerprint(reminder, discount)</span>
+<span id="L242" class="line"><a href="#L242">242</a>    local values = {</span>
+<span id="L243" class="line"><a href="#L243">243</a>        tostring(discount.visible),</span>
+<span id="L244" class="line"><a href="#L244">244</a>        tostring(discount.discount),</span>
+<span id="L245" class="line"><a href="#L245">245</a>        tostring(reminder.count),</span>
+<span id="L246" class="line"><a href="#L246">246</a>    }</span>
+<span id="L247" class="line"><a href="#L247">247</a>    for index = 1, #DefaultPriorityOrder do</span>
+<span id="L248" class="line"><a href="#L248">248</a>        local kind = DefaultPriorityOrder[index]</span>
+<span id="L249" class="line"><a href="#L249">249</a>        values[#values + 1] = tostring(reminder.visible[kind])</span>
+<span id="L250" class="line"><a href="#L250">250</a>        values[#values + 1] = tostring(reminder.dynamicKinds[kind])</span>
+<span id="L251" class="line"><a href="#L251">251</a>        values[#values + 1] = reminder.priorityOrder[index]</span>
+<span id="L252" class="line"><a href="#L252">252</a>    end</span>
+<span id="L253" class="line"><a href="#L253">253</a>    return table.concat(values, &quot;|&quot;)</span>
+<span id="L254" class="line"><a href="#L254">254</a>end</span>
+<span id="L255" class="line"><a href="#L255">255</a></span>
+<span id="L256" class="line"><a href="#L256">256</a>function RightTopSlotResolver.getOrCreate(icon)</span>
+<span id="L257" class="line"><a href="#L257">257</a>    local resolver = icon and icon.v2RightTopSlotResolver</span>
+<span id="L258" class="line"><a href="#L258">258</a>    if resolver and resolver.icon == icon then</span>
+<span id="L259" class="line"><a href="#L259">259</a>        return resolver</span>
+<span id="L260" class="line"><a href="#L260">260</a>    end</span>
+<span id="L261" class="line"><a href="#L261">261</a>    resolver = setmetatable({</span>
+<span id="L262" class="line"><a href="#L262">262</a>        icon = icon,</span>
+<span id="L263" class="line"><a href="#L263">263</a>        reminderIntent = normalizeReminderIntent(),</span>
+<span id="L264" class="line"><a href="#L264">264</a>        discountIntent = normalizeDiscountIntent(),</span>
+<span id="L265" class="line"><a href="#L265">265</a>        diagnostics = {},</span>
+<span id="L266" class="line"><a href="#L266">266</a>        revision = 0,</span>
+<span id="L267" class="line"><a href="#L267">267</a>    }, RightTopSlotResolver)</span>
+<span id="L268" class="line"><a href="#L268">268</a>    if icon then</span>
+<span id="L269" class="line"><a href="#L269">269</a>        icon.v2RightTopSlotResolver = resolver</span>
+<span id="L270" class="line"><a href="#L270">270</a>    end</span>
+<span id="L271" class="line"><a href="#L271">271</a>    return resolver</span>
+<span id="L272" class="line"><a href="#L272">272</a>end</span>
+<span id="L273" class="line"><a href="#L273">273</a></span>
+<span id="L274" class="line"><a href="#L274">274</a>function RightTopSlotResolver:registerReminderRenderer(renderer)</span>
+<span id="L275" class="line"><a href="#L275">275</a>    self.reminderRenderer = renderer</span>
+<span id="L276" class="line"><a href="#L276">276</a>    if self.currentSnapshot then</span>
+<span id="L277" class="line"><a href="#L277">277</a>        self:_applyReminderSnapshot(self.currentSnapshot)</span>
+<span id="L278" class="line"><a href="#L278">278</a>    end</span>
+<span id="L279" class="line"><a href="#L279">279</a>end</span>
+<span id="L280" class="line"><a href="#L280">280</a></span>
+<span id="L281" class="line"><a href="#L281">281</a>function RightTopSlotResolver:registerBubbleRenderer(renderer)</span>
+<span id="L282" class="line"><a href="#L282">282</a>    self.bubbleRenderer = renderer</span>
+<span id="L283" class="line"><a href="#L283">283</a>    if self.currentSnapshot then</span>
+<span id="L284" class="line"><a href="#L284">284</a>        self:_applyBubbleSnapshot(self.currentSnapshot)</span>
+<span id="L285" class="line"><a href="#L285">285</a>    end</span>
+<span id="L286" class="line"><a href="#L286">286</a>end</span>
+<span id="L287" class="line"><a href="#L287">287</a></span>
+<span id="L288" class="line"><a href="#L288">288</a>function RightTopSlotResolver:unregisterReminderRenderer(renderer)</span>
+<span id="L289" class="line"><a href="#L289">289</a>    if self.reminderRenderer == renderer then</span>
+<span id="L290" class="line"><a href="#L290">290</a>        self.reminderRenderer = nil</span>
+<span id="L291" class="line"><a href="#L291">291</a>    end</span>
+<span id="L292" class="line"><a href="#L292">292</a>    self:_releaseIfUnused()</span>
+<span id="L293" class="line"><a href="#L293">293</a>end</span>
+<span id="L294" class="line"><a href="#L294">294</a></span>
+<span id="L295" class="line"><a href="#L295">295</a>function RightTopSlotResolver:unregisterBubbleRenderer(renderer)</span>
+<span id="L296" class="line"><a href="#L296">296</a>    if self.bubbleRenderer == renderer then</span>
+<span id="L297" class="line"><a href="#L297">297</a>        self.bubbleRenderer = nil</span>
+<span id="L298" class="line"><a href="#L298">298</a>    end</span>
+<span id="L299" class="line"><a href="#L299">299</a>    self:_releaseIfUnused()</span>
+<span id="L300" class="line"><a href="#L300">300</a>end</span>
+<span id="L301" class="line"><a href="#L301">301</a></span>
+<span id="L302" class="line"><a href="#L302">302</a>function RightTopSlotResolver:_releaseIfUnused()</span>
+<span id="L303" class="line"><a href="#L303">303</a>    if self.reminderRenderer or self.bubbleRenderer then</span>
+<span id="L304" class="line"><a href="#L304">304</a>        return</span>
+<span id="L305" class="line"><a href="#L305">305</a>    end</span>
+<span id="L306" class="line"><a href="#L306">306</a>    if self.icon and self.icon.v2RightTopSlotResolver == self then</span>
+<span id="L307" class="line"><a href="#L307">307</a>        self.icon.v2RightTopSlotResolver = nil</span>
+<span id="L308" class="line"><a href="#L308">308</a>    end</span>
+<span id="L309" class="line"><a href="#L309">309</a>    self.icon = nil</span>
+<span id="L310" class="line"><a href="#L310">310</a>end</span>
+<span id="L311" class="line"><a href="#L311">311</a></span>
+<span id="L312" class="line"><a href="#L312">312</a>function RightTopSlotResolver:_recordPriorityDiagnostic(reminder)</span>
+<span id="L313" class="line"><a href="#L313">313</a>    if not reminder.priorityError then</span>
+<span id="L314" class="line"><a href="#L314">314</a>        self.lastPriorityDiagnostic = nil</span>
+<span id="L315" class="line"><a href="#L315">315</a>        return</span>
+<span id="L316" class="line"><a href="#L316">316</a>    end</span>
+<span id="L317" class="line"><a href="#L317">317</a>    local signature = reminder.priorityError .. &quot;:&quot; .. reminder.prioritySignature</span>
+<span id="L318" class="line"><a href="#L318">318</a>    if self.lastPriorityDiagnostic == signature then</span>
+<span id="L319" class="line"><a href="#L319">319</a>        return</span>
+<span id="L320" class="line"><a href="#L320">320</a>    end</span>
+<span id="L321" class="line"><a href="#L321">321</a>    self.lastPriorityDiagnostic = signature</span>
+<span id="L322" class="line"><a href="#L322">322</a>    local diagnostic = {</span>
+<span id="L323" class="line"><a href="#L323">323</a>        code = &quot;ICON_V2_INVALID_REMINDER_PRIORITY_ORDER&quot;,</span>
+<span id="L324" class="line"><a href="#L324">324</a>        detail = reminder.priorityError,</span>
+<span id="L325" class="line"><a href="#L325">325</a>        configuredOrder = reminder.prioritySignature,</span>
+<span id="L326" class="line"><a href="#L326">326</a>        iconKey = self.icon and self.icon.iconKey,</span>
+<span id="L327" class="line"><a href="#L327">327</a>    }</span>
+<span id="L328" class="line"><a href="#L328">328</a>    self.diagnostics[#self.diagnostics + 1] = diagnostic</span>
+<span id="L329" class="line"><a href="#L329">329</a>    if ALog and ALog.error then</span>
+<span id="L330" class="line"><a href="#L330">330</a>        ALog.error(diagnostic.code .. &quot;: iconKey=&quot; .. tostring(diagnostic.iconKey))</span>
+<span id="L331" class="line"><a href="#L331">331</a>    end</span>
+<span id="L332" class="line"><a href="#L332">332</a>end</span>
+<span id="L333" class="line"><a href="#L333">333</a></span>
+<span id="L334" class="line"><a href="#L334">334</a>function RightTopSlotResolver:_buildSnapshot(previousSnapshot)</span>
+<span id="L335" class="line"><a href="#L335">335</a>    self.revision = self.revision + 1</span>
+<span id="L336" class="line"><a href="#L336">336</a>    if self.discountIntent.visible and self.bubbleRenderer then</span>
+<span id="L337" class="line"><a href="#L337">337</a>        return {</span>
+<span id="L338" class="line"><a href="#L338">338</a>            slot = &quot;rightTop&quot;,</span>
+<span id="L339" class="line"><a href="#L339">339</a>            kind = &quot;discount&quot;,</span>
+<span id="L340" class="line"><a href="#L340">340</a>            discount = self.discountIntent.discount,</span>
+<span id="L341" class="line"><a href="#L341">341</a>            revision = self.revision,</span>
+<span id="L342" class="line"><a href="#L342">342</a>        }</span>
+<span id="L343" class="line"><a href="#L343">343</a>    end</span>
+<span id="L344" class="line"><a href="#L344">344</a></span>
+<span id="L345" class="line"><a href="#L345">345</a>    local reminder = selectReminder(self.reminderIntent)</span>
+<span id="L346" class="line"><a href="#L346">346</a>    if not reminder then</span>
+<span id="L347" class="line"><a href="#L347">347</a>        return {</span>
+<span id="L348" class="line"><a href="#L348">348</a>            slot = &quot;rightTop&quot;,</span>
+<span id="L349" class="line"><a href="#L349">349</a>            kind = &quot;none&quot;,</span>
+<span id="L350" class="line"><a href="#L350">350</a>            revision = self.revision,</span>
+<span id="L351" class="line"><a href="#L351">351</a>        }</span>
+<span id="L352" class="line"><a href="#L352">352</a>    end</span>
+<span id="L353" class="line"><a href="#L353">353</a>    local recoveredFromDiscount = previousSnapshot and previousSnapshot.kind == &quot;discount&quot;</span>
+<span id="L354" class="line"><a href="#L354">354</a>    reminder.playAnimation = reminder.dynamic and not recoveredFromDiscount</span>
+<span id="L355" class="line"><a href="#L355">355</a>    return {</span>
+<span id="L356" class="line"><a href="#L356">356</a>        slot = &quot;rightTop&quot;,</span>
+<span id="L357" class="line"><a href="#L357">357</a>        kind = &quot;reminder&quot;,</span>
+<span id="L358" class="line"><a href="#L358">358</a>        reminder = reminder,</span>
+<span id="L359" class="line"><a href="#L359">359</a>        recoveredFromDiscount = recoveredFromDiscount == true,</span>
+<span id="L360" class="line"><a href="#L360">360</a>        revision = self.revision,</span>
+<span id="L361" class="line"><a href="#L361">361</a>    }</span>
+<span id="L362" class="line"><a href="#L362">362</a>end</span>
+<span id="L363" class="line"><a href="#L363">363</a></span>
+<span id="L364" class="line"><a href="#L364">364</a>function RightTopSlotResolver:_applyReminderSnapshot(snapshot)</span>
+<span id="L365" class="line"><a href="#L365">365</a>    local renderer = self.reminderRenderer</span>
+<span id="L366" class="line"><a href="#L366">366</a>    if not renderer then</span>
+<span id="L367" class="line"><a href="#L367">367</a>        return</span>
+<span id="L368" class="line"><a href="#L368">368</a>    end</span>
+<span id="L369" class="line"><a href="#L369">369</a>    if type(renderer.applyRightTopSlot) == &quot;function&quot; then</span>
+<span id="L370" class="line"><a href="#L370">370</a>        return renderer:applyRightTopSlot(snapshot)</span>
+<span id="L371" class="line"><a href="#L371">371</a>    end</span>
+<span id="L372" class="line"><a href="#L372">372</a>    if snapshot.kind == &quot;reminder&quot; then</span>
+<span id="L373" class="line"><a href="#L373">373</a>        local reminder = snapshot.reminder</span>
+<span id="L374" class="line"><a href="#L374">374</a>        return renderer:show(reminder.kind, reminder.count, reminder.playAnimation)</span>
+<span id="L375" class="line"><a href="#L375">375</a>    end</span>
+<span id="L376" class="line"><a href="#L376">376</a>    return renderer:hide()</span>
+<span id="L377" class="line"><a href="#L377">377</a>end</span>
+<span id="L378" class="line"><a href="#L378">378</a></span>
+<span id="L379" class="line"><a href="#L379">379</a>function RightTopSlotResolver:_applyBubbleSnapshot(snapshot)</span>
+<span id="L380" class="line"><a href="#L380">380</a>    local renderer = self.bubbleRenderer</span>
+<span id="L381" class="line"><a href="#L381">381</a>    if renderer and type(renderer.applyRightTopSlot) == &quot;function&quot; then</span>
+<span id="L382" class="line"><a href="#L382">382</a>        return renderer:applyRightTopSlot(snapshot)</span>
+<span id="L383" class="line"><a href="#L383">383</a>    end</span>
+<span id="L384" class="line"><a href="#L384">384</a>end</span>
+<span id="L385" class="line"><a href="#L385">385</a></span>
+<span id="L386" class="line"><a href="#L386">386</a>function RightTopSlotResolver:_commit(snapshot)</span>
+<span id="L387" class="line"><a href="#L387">387</a>    if snapshot.kind == &quot;discount&quot; then</span>
+<span id="L388" class="line"><a href="#L388">388</a>        self:_applyReminderSnapshot(snapshot)</span>
+<span id="L389" class="line"><a href="#L389">389</a>        self:_applyBubbleSnapshot(snapshot)</span>
+<span id="L390" class="line"><a href="#L390">390</a>    else</span>
+<span id="L391" class="line"><a href="#L391">391</a>        self:_applyBubbleSnapshot(snapshot)</span>
+<span id="L392" class="line"><a href="#L392">392</a>        self:_applyReminderSnapshot(snapshot)</span>
+<span id="L393" class="line"><a href="#L393">393</a>    end</span>
+<span id="L394" class="line"><a href="#L394">394</a>end</span>
+<span id="L395" class="line"><a href="#L395">395</a></span>
+<span id="L396" class="line"><a href="#L396">396</a>function RightTopSlotResolver:_resolve(forceCommit)</span>
+<span id="L397" class="line"><a href="#L397">397</a>    local currentInputFingerprint = inputFingerprint(self.reminderIntent, self.discountIntent)</span>
+<span id="L398" class="line"><a href="#L398">398</a>    if forceCommit ~= true</span>
+<span id="L399" class="line"><a href="#L399">399</a>        and self.currentSnapshot</span>
+<span id="L400" class="line"><a href="#L400">400</a>        and self.lastInputFingerprint == currentInputFingerprint then</span>
+<span id="L401" class="line"><a href="#L401">401</a>        return {</span>
+<span id="L402" class="line"><a href="#L402">402</a>            changed = false,</span>
+<span id="L403" class="line"><a href="#L403">403</a>            selectionChanged = false,</span>
+<span id="L404" class="line"><a href="#L404">404</a>            snapshot = self.currentSnapshot,</span>
+<span id="L405" class="line"><a href="#L405">405</a>            recoveredFromDiscount = self.currentSnapshot.recoveredFromDiscount == true,</span>
+<span id="L406" class="line"><a href="#L406">406</a>        }</span>
+<span id="L407" class="line"><a href="#L407">407</a>    end</span>
+<span id="L408" class="line"><a href="#L408">408</a>    local previousSnapshot = self.currentSnapshot</span>
+<span id="L409" class="line"><a href="#L409">409</a>    local snapshot = self:_buildSnapshot(previousSnapshot)</span>
+<span id="L410" class="line"><a href="#L410">410</a>    local fingerprint = visualFingerprint(snapshot)</span>
+<span id="L411" class="line"><a href="#L411">411</a>    local changed = forceCommit == true or fingerprint ~= self.lastVisualFingerprint</span>
+<span id="L412" class="line"><a href="#L412">412</a>    self.currentSnapshot = snapshot</span>
+<span id="L413" class="line"><a href="#L413">413</a>    self.lastInputFingerprint = currentInputFingerprint</span>
+<span id="L414" class="line"><a href="#L414">414</a>    if changed then</span>
+<span id="L415" class="line"><a href="#L415">415</a>        self.lastVisualFingerprint = fingerprint</span>
+<span id="L416" class="line"><a href="#L416">416</a>        self:_commit(snapshot)</span>
+<span id="L417" class="line"><a href="#L417">417</a>    end</span>
+<span id="L418" class="line"><a href="#L418">418</a>    local previousReminderKind = previousSnapshot and previousSnapshot.reminder and previousSnapshot.reminder.kind</span>
+<span id="L419" class="line"><a href="#L419">419</a>    local currentReminderKind = snapshot.reminder and snapshot.reminder.kind</span>
+<span id="L420" class="line"><a href="#L420">420</a>    return {</span>
+<span id="L421" class="line"><a href="#L421">421</a>        changed = changed,</span>
+<span id="L422" class="line"><a href="#L422">422</a>        selectionChanged = previousSnapshot == nil</span>
+<span id="L423" class="line"><a href="#L423">423</a>            or previousSnapshot.kind ~= snapshot.kind</span>
+<span id="L424" class="line"><a href="#L424">424</a>            or previousReminderKind ~= currentReminderKind,</span>
+<span id="L425" class="line"><a href="#L425">425</a>        snapshot = snapshot,</span>
+<span id="L426" class="line"><a href="#L426">426</a>        recoveredFromDiscount = snapshot.recoveredFromDiscount == true,</span>
+<span id="L427" class="line"><a href="#L427">427</a>    }</span>
+<span id="L428" class="line"><a href="#L428">428</a>end</span>
+<span id="L429" class="line"><a href="#L429">429</a></span>
+<span id="L430" class="line"><a href="#L430">430</a>function RightTopSlotResolver:applyState(state)</span>
+<span id="L431" class="line"><a href="#L431">431</a>    local reminder = normalizeReminderIntent(reminderIntentFromState(state or {}))</span>
+<span id="L432" class="line"><a href="#L432">432</a>    self:_recordPriorityDiagnostic(reminder)</span>
+<span id="L433" class="line"><a href="#L433">433</a>    self.reminderIntent = reminder</span>
+<span id="L434" class="line"><a href="#L434">434</a>    self.discountIntent = normalizeDiscountIntent(discountIntentFromState(state or {}))</span>
+<span id="L435" class="line"><a href="#L435">435</a>    return self:_resolve(false)</span>
+<span id="L436" class="line"><a href="#L436">436</a>end</span>
+<span id="L437" class="line"><a href="#L437">437</a></span>
+<span id="L438" class="line"><a href="#L438">438</a>function RightTopSlotResolver:updateReminder(intent, forceCommit)</span>
+<span id="L439" class="line"><a href="#L439">439</a>    local reminder = normalizeReminderIntent(intent)</span>
+<span id="L440" class="line"><a href="#L440">440</a>    self:_recordPriorityDiagnostic(reminder)</span>
+<span id="L441" class="line"><a href="#L441">441</a>    self.reminderIntent = reminder</span>
+<span id="L442" class="line"><a href="#L442">442</a>    return self:_resolve(forceCommit == true)</span>
+<span id="L443" class="line"><a href="#L443">443</a>end</span>
+<span id="L444" class="line"><a href="#L444">444</a></span>
+<span id="L445" class="line"><a href="#L445">445</a>function RightTopSlotResolver:rememberReminder(intent)</span>
+<span id="L446" class="line"><a href="#L446">446</a>    local reminder = normalizeReminderIntent(intent)</span>
+<span id="L447" class="line"><a href="#L447">447</a>    self:_recordPriorityDiagnostic(reminder)</span>
+<span id="L448" class="line"><a href="#L448">448</a>    self.reminderIntent = reminder</span>
+<span id="L449" class="line"><a href="#L449">449</a>end</span>
+<span id="L450" class="line"><a href="#L450">450</a></span>
+<span id="L451" class="line"><a href="#L451">451</a>function RightTopSlotResolver:updateDiscount(intent)</span>
+<span id="L452" class="line"><a href="#L452">452</a>    self.discountIntent = normalizeDiscountIntent(intent)</span>
+<span id="L453" class="line"><a href="#L453">453</a>    return self:_resolve(false)</span>
+<span id="L454" class="line"><a href="#L454">454</a>end</span>
+<span id="L455" class="line"><a href="#L455">455</a></span>
+<span id="L456" class="line"><a href="#L456">456</a>function RightTopSlotResolver:isDiscountVisible()</span>
+<span id="L457" class="line"><a href="#L457">457</a>    return self.discountIntent.visible == true</span>
+<span id="L458" class="line"><a href="#L458">458</a>end</span>
+<span id="L459" class="line"><a href="#L459">459</a></span>
+<span id="L460" class="line"><a href="#L460">460</a>function RightTopSlotResolver:invalidate()</span>
+<span id="L461" class="line"><a href="#L461">461</a>    self.lastVisualFingerprint = nil</span>
+<span id="L462" class="line"><a href="#L462">462</a>    self.lastInputFingerprint = nil</span>
+<span id="L463" class="line"><a href="#L463">463</a>end</span>
+<span id="L464" class="line"><a href="#L464">464</a></span>
+<span id="L465" class="line"><a href="#L465">465</a>function RightTopSlotResolver:getSnapshot()</span>
+<span id="L466" class="line"><a href="#L466">466</a>    return self.currentSnapshot</span>
+<span id="L467" class="line"><a href="#L467">467</a>end</span>
+<span id="L468" class="line"><a href="#L468">468</a></span>
+<span id="L469" class="line"><a href="#L469">469</a>function RightTopSlotResolver:getDiagnostics()</span>
+<span id="L470" class="line"><a href="#L470">470</a>    return copyArray(self.diagnostics)</span>
+<span id="L471" class="line"><a href="#L471">471</a>end</span>
+<span id="L472" class="line"><a href="#L472">472</a></span>
+<span id="L473" class="line"><a href="#L473">473</a>RightTopSlotResolver.DefaultPriorityOrder = DefaultPriorityOrder</span>
+<span id="L474" class="line"><a href="#L474">474</a>RightTopSlotResolver.ValidReminderKinds = ValidReminderKinds</span>
+<span id="L475" class="line"><a href="#L475">475</a></span>
+<span id="L476" class="line"><a href="#L476">476</a>return RightTopSlotResolver</span></pre></main></html>

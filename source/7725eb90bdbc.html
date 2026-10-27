@@ -1,0 +1,1394 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/winrepeatrank/WinRepeatRankManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="7725eb90bdbc.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/winrepeatrank/WinRepeatRankManager.lua</h1><p>SHA256 f4e737e9897965942f9dc0e0af6506d28c322c9bc8f03271302db867588390cd</p><pre><span id="L1" class="line"><a href="#L1">1</a>local WinRepeatRankManager = class(&quot;WinRepeatRankManager&quot;)</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local IconTipEventCenter = require(&quot;amf.feature.icontip.event.IconTipEventCenter&quot;)</span>
+<span id="L5" class="line"><a href="#L5">5</a>local IconCapability = require &quot;amf.feature.mainscene.module.icon.capability.IconCapability&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>-- 扩展mgr</span>
+<span id="L8" class="line"><a href="#L8">8</a>local ServerData = require(&quot;amf.feature.localactivity.winrepeatrank.model.WinRepeatRankModel&quot;)</span>
+<span id="L9" class="line"><a href="#L9">9</a>local Meta = require(&quot;amf.feature.localactivity.winrepeatrank.meta.WinRepeatRankMeta&quot;)</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>WinRepeatRankManager.ACT_OPEN_VERSION = 1 -- 如果此活动复用 此值应递增 以区分本地存储值</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>-- 主线</span>
+<span id="L14" class="line"><a href="#L14">14</a>WinRepeatRankManager.ACT_ID = 4046</span>
+<span id="L15" class="line"><a href="#L15">15</a>WinRepeatRankManager.ACT_SOURCE = &quot;winrepeatrank2024/Config.lua&quot;</span>
+<span id="L16" class="line"><a href="#L16">16</a>WinRepeatRankManager.DCFeature = &quot;WinRepeatRank2023&quot;</span>
+<span id="L17" class="line"><a href="#L17">17</a>WinRepeatRankManager.DCSource = &quot;act_&quot; .. WinRepeatRankManager.ACT_ID</span>
+<span id="L18" class="line"><a href="#L18">18</a>WinRepeatRankManager.ACT_CH_NAME = &quot;连胜排行&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a>WinRepeatRankManager.POPOUT_OFF_SWITCH = &quot;Winrank_Popout_Off&quot;</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>function WinRepeatRankManager:getEndTime()</span>
+<span id="L22" class="line"><a href="#L22">22</a>    local data = self.serverData</span>
+<span id="L23" class="line"><a href="#L23">23</a>    local mainEndTime = data:getValue(&quot;mainEndTime&quot;)</span>
+<span id="L24" class="line"><a href="#L24">24</a>    return mainEndTime</span>
+<span id="L25" class="line"><a href="#L25">25</a>end</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>function WinRepeatRankManager:getStartTime()</span>
+<span id="L28" class="line"><a href="#L28">28</a>    local data = self.serverData</span>
+<span id="L29" class="line"><a href="#L29">29</a>    local mainBeginTime = data:getValue(&quot;mainBeginTime&quot;)</span>
+<span id="L30" class="line"><a href="#L30">30</a>    return mainBeginTime</span>
+<span id="L31" class="line"><a href="#L31">31</a>end</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>function WinRepeatRankManager:getRealEndTime()</span>
+<span id="L34" class="line"><a href="#L34">34</a>    local data = self.serverData</span>
+<span id="L35" class="line"><a href="#L35">35</a>    local endTime = data:getValue(&quot;endTime&quot;)</span>
+<span id="L36" class="line"><a href="#L36">36</a>    return endTime</span>
+<span id="L37" class="line"><a href="#L37">37</a>end</span>
+<span id="L38" class="line"><a href="#L38">38</a></span>
+<span id="L39" class="line"><a href="#L39">39</a>-- Compatibility for activity versions before Cocos MR !2106.</span>
+<span id="L40" class="line"><a href="#L40">40</a>-- Those versions read Icon V2 state through getIconV2Snapshot. MR !2106 and</span>
+<span id="L41" class="line"><a href="#L41">41</a>-- later read actInfo directly. Delete this block only after MR !2106 is the</span>
+<span id="L42" class="line"><a href="#L42">42</a>-- minimum loadable activity version and the old cache/rollback window ends.</span>
+<span id="L43" class="line"><a href="#L43">43</a>WinRepeatRankManager.IconV2State = {</span>
+<span id="L44" class="line"><a href="#L44">44</a>    UNJOINED = &quot;unjoined&quot;,</span>
+<span id="L45" class="line"><a href="#L45">45</a>    IN_PROGRESS = &quot;inProgress&quot;,</span>
+<span id="L46" class="line"><a href="#L46">46</a>    PENDING_SETTLEMENT = &quot;pendingSettlement&quot;,</span>
+<span id="L47" class="line"><a href="#L47">47</a>}</span>
+<span id="L48" class="line"><a href="#L48">48</a></span>
+<span id="L49" class="line"><a href="#L49">49</a>function WinRepeatRankManager:setAutoPopupMgr(autoPopupMgr)</span>
+<span id="L50" class="line"><a href="#L50">50</a>    self.autoPopupMgr = autoPopupMgr</span>
+<span id="L51" class="line"><a href="#L51">51</a>end</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>local function firstNumber(...)</span>
+<span id="L54" class="line"><a href="#L54">54</a>    for index = 1, select(&quot;#&quot;, ...) do</span>
+<span id="L55" class="line"><a href="#L55">55</a>        local selected = select(index, ...)</span>
+<span id="L56" class="line"><a href="#L56">56</a>        local value = tonumber(selected)</span>
+<span id="L57" class="line"><a href="#L57">57</a>        if value then</span>
+<span id="L58" class="line"><a href="#L58">58</a>            return value</span>
+<span id="L59" class="line"><a href="#L59">59</a>        end</span>
+<span id="L60" class="line"><a href="#L60">60</a>    end</span>
+<span id="L61" class="line"><a href="#L61">61</a>end</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>local function millisToSeconds(value)</span>
+<span id="L64" class="line"><a href="#L64">64</a>    value = tonumber(value)</span>
+<span id="L65" class="line"><a href="#L65">65</a>    if not value then</span>
+<span id="L66" class="line"><a href="#L66">66</a>        return nil</span>
+<span id="L67" class="line"><a href="#L67">67</a>    end</span>
+<span id="L68" class="line"><a href="#L68">68</a>    return math.floor(math.ceil(value / 1000))</span>
+<span id="L69" class="line"><a href="#L69">69</a>end</span>
+<span id="L70" class="line"><a href="#L70">70</a></span>
+<span id="L71" class="line"><a href="#L71">71</a>local function firstBoolean(...)</span>
+<span id="L72" class="line"><a href="#L72">72</a>    for index = 1, select(&quot;#&quot;, ...) do</span>
+<span id="L73" class="line"><a href="#L73">73</a>        local selected = select(index, ...)</span>
+<span id="L74" class="line"><a href="#L74">74</a>        if type(selected) == &quot;boolean&quot; then</span>
+<span id="L75" class="line"><a href="#L75">75</a>            return selected</span>
+<span id="L76" class="line"><a href="#L76">76</a>        end</span>
+<span id="L77" class="line"><a href="#L77">77</a>    end</span>
+<span id="L78" class="line"><a href="#L78">78</a>    return false</span>
+<span id="L79" class="line"><a href="#L79">79</a>end</span>
+<span id="L80" class="line"><a href="#L80">80</a></span>
+<span id="L81" class="line"><a href="#L81">81</a>local function firstValidRaceType(...)</span>
+<span id="L82" class="line"><a href="#L82">82</a>    for index = 1, select(&quot;#&quot;, ...) do</span>
+<span id="L83" class="line"><a href="#L83">83</a>        local selected = select(index, ...)</span>
+<span id="L84" class="line"><a href="#L84">84</a>        local raceType = tonumber(selected)</span>
+<span id="L85" class="line"><a href="#L85">85</a>        if raceType == Meta.mainPanelShowType.kMainPanel1</span>
+<span id="L86" class="line"><a href="#L86">86</a>            or raceType == Meta.mainPanelShowType.kMainPanel2</span>
+<span id="L87" class="line"><a href="#L87">87</a>            or raceType == Meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L88" class="line"><a href="#L88">88</a>            return raceType</span>
+<span id="L89" class="line"><a href="#L89">89</a>        end</span>
+<span id="L90" class="line"><a href="#L90">90</a>    end</span>
+<span id="L91" class="line"><a href="#L91">91</a>end</span>
+<span id="L92" class="line"><a href="#L92">92</a></span>
+<span id="L93" class="line"><a href="#L93">93</a>local function resolvePositiveRank(value)</span>
+<span id="L94" class="line"><a href="#L94">94</a>    value = tonumber(value)</span>
+<span id="L95" class="line"><a href="#L95">95</a>    if not value or value &lt;= 0 then</span>
+<span id="L96" class="line"><a href="#L96">96</a>        return 0</span>
+<span id="L97" class="line"><a href="#L97">97</a>    end</span>
+<span id="L98" class="line"><a href="#L98">98</a>    return math.floor(value)</span>
+<span id="L99" class="line"><a href="#L99">99</a>end</span>
+<span id="L100" class="line"><a href="#L100">100</a></span>
+<span id="L101" class="line"><a href="#L101">101</a>function WinRepeatRankManager:_getIconV2ActExtra(actInfo)</span>
+<span id="L102" class="line"><a href="#L102">102</a>    if type(actInfo) ~= &quot;table&quot; then</span>
+<span id="L103" class="line"><a href="#L103">103</a>        return nil, &quot;WIN_REPEAT_RANK_ICON_V2_ACT_INFO_REQUIRED&quot;</span>
+<span id="L104" class="line"><a href="#L104">104</a>    end</span>
+<span id="L105" class="line"><a href="#L105">105</a>    if type(actInfo.extra) == &quot;table&quot; then</span>
+<span id="L106" class="line"><a href="#L106">106</a>        return actInfo.extra</span>
+<span id="L107" class="line"><a href="#L107">107</a>    end</span>
+<span id="L108" class="line"><a href="#L108">108</a>    if type(actInfo.extra) ~= &quot;string&quot; or actInfo.extra == &quot;&quot; then</span>
+<span id="L109" class="line"><a href="#L109">109</a>        return nil, &quot;WIN_REPEAT_RANK_ICON_V2_EXTRA_REQUIRED&quot;</span>
+<span id="L110" class="line"><a href="#L110">110</a>    end</span>
+<span id="L111" class="line"><a href="#L111">111</a>    local success, extra = pcall(table.deserialize, actInfo.extra)</span>
+<span id="L112" class="line"><a href="#L112">112</a>    if not success or type(extra) ~= &quot;table&quot; then</span>
+<span id="L113" class="line"><a href="#L113">113</a>        return nil, &quot;WIN_REPEAT_RANK_ICON_V2_EXTRA_INVALID&quot;</span>
+<span id="L114" class="line"><a href="#L114">114</a>    end</span>
+<span id="L115" class="line"><a href="#L115">115</a>    return extra</span>
+<span id="L116" class="line"><a href="#L116">116</a>end</span>
+<span id="L117" class="line"><a href="#L117">117</a></span>
+<span id="L118" class="line"><a href="#L118">118</a>function WinRepeatRankManager:_getIconV2PeriodTimes(extra)</span>
+<span id="L119" class="line"><a href="#L119">119</a>    local data = self:getData()</span>
+<span id="L120" class="line"><a href="#L120">120</a>    local stageOneBeginTime = firstNumber(</span>
+<span id="L121" class="line"><a href="#L121">121</a>        millisToSeconds(extra.stageOneBeginTime),</span>
+<span id="L122" class="line"><a href="#L122">122</a>        millisToSeconds(data:getStageOneBeginTime()),</span>
+<span id="L123" class="line"><a href="#L123">123</a>        self:getStartTime()</span>
+<span id="L124" class="line"><a href="#L124">124</a>    )</span>
+<span id="L125" class="line"><a href="#L125">125</a>    local stageOneEndTime = firstNumber(</span>
+<span id="L126" class="line"><a href="#L126">126</a>        millisToSeconds(extra.stageOneEndTime),</span>
+<span id="L127" class="line"><a href="#L127">127</a>        millisToSeconds(data:getStageOneEndTime())</span>
+<span id="L128" class="line"><a href="#L128">128</a>    )</span>
+<span id="L129" class="line"><a href="#L129">129</a>    local stageTwoBeginTime = firstNumber(</span>
+<span id="L130" class="line"><a href="#L130">130</a>        millisToSeconds(extra.stageTwoBeginTime),</span>
+<span id="L131" class="line"><a href="#L131">131</a>        millisToSeconds(data:getStageTwoBeginTime()),</span>
+<span id="L132" class="line"><a href="#L132">132</a>        stageOneEndTime</span>
+<span id="L133" class="line"><a href="#L133">133</a>    )</span>
+<span id="L134" class="line"><a href="#L134">134</a>    local stageTwoEndTime = firstNumber(</span>
+<span id="L135" class="line"><a href="#L135">135</a>        millisToSeconds(extra.stageTwoEndTime),</span>
+<span id="L136" class="line"><a href="#L136">136</a>        millisToSeconds(data:getStageTwoEndTime()),</span>
+<span id="L137" class="line"><a href="#L137">137</a>        self:getEndTime()</span>
+<span id="L138" class="line"><a href="#L138">138</a>    )</span>
+<span id="L139" class="line"><a href="#L139">139</a>    local rewardEndTime = firstNumber(</span>
+<span id="L140" class="line"><a href="#L140">140</a>        millisToSeconds(extra.rewardEndTime),</span>
+<span id="L141" class="line"><a href="#L141">141</a>        self:getRealEndTime()</span>
+<span id="L142" class="line"><a href="#L142">142</a>    )</span>
+<span id="L143" class="line"><a href="#L143">143</a></span>
+<span id="L144" class="line"><a href="#L144">144</a>    if not stageOneBeginTime or not stageOneEndTime</span>
+<span id="L145" class="line"><a href="#L145">145</a>        or not stageTwoBeginTime or not stageTwoEndTime or not rewardEndTime</span>
+<span id="L146" class="line"><a href="#L146">146</a>        or stageOneEndTime &lt;= stageOneBeginTime</span>
+<span id="L147" class="line"><a href="#L147">147</a>        or stageTwoEndTime &lt;= stageTwoBeginTime</span>
+<span id="L148" class="line"><a href="#L148">148</a>        or rewardEndTime &lt; stageTwoEndTime then</span>
+<span id="L149" class="line"><a href="#L149">149</a>        return nil, &quot;WIN_REPEAT_RANK_ICON_V2_PERIOD_INVALID&quot;</span>
+<span id="L150" class="line"><a href="#L150">150</a>    end</span>
+<span id="L151" class="line"><a href="#L151">151</a></span>
+<span id="L152" class="line"><a href="#L152">152</a>    return {</span>
+<span id="L153" class="line"><a href="#L153">153</a>        stageOneBeginTime = stageOneBeginTime,</span>
+<span id="L154" class="line"><a href="#L154">154</a>        stageOneEndTime = stageOneEndTime,</span>
+<span id="L155" class="line"><a href="#L155">155</a>        stageTwoBeginTime = stageTwoBeginTime,</span>
+<span id="L156" class="line"><a href="#L156">156</a>        stageTwoEndTime = stageTwoEndTime,</span>
+<span id="L157" class="line"><a href="#L157">157</a>        rewardEndTime = rewardEndTime,</span>
+<span id="L158" class="line"><a href="#L158">158</a>    }</span>
+<span id="L159" class="line"><a href="#L159">159</a>end</span>
+<span id="L160" class="line"><a href="#L160">160</a></span>
+<span id="L161" class="line"><a href="#L161">161</a>function WinRepeatRankManager:_resolveIconV2DisplayState(now, times, enterGroup)</span>
+<span id="L162" class="line"><a href="#L162">162</a>    if now &gt; times.stageTwoEndTime then</span>
+<span id="L163" class="line"><a href="#L163">163</a>        return self.IconV2State.PENDING_SETTLEMENT</span>
+<span id="L164" class="line"><a href="#L164">164</a>    end</span>
+<span id="L165" class="line"><a href="#L165">165</a>    if not enterGroup then</span>
+<span id="L166" class="line"><a href="#L166">166</a>        return self.IconV2State.UNJOINED</span>
+<span id="L167" class="line"><a href="#L167">167</a>    end</span>
+<span id="L168" class="line"><a href="#L168">168</a>    return self.IconV2State.IN_PROGRESS</span>
+<span id="L169" class="line"><a href="#L169">169</a>end</span>
+<span id="L170" class="line"><a href="#L170">170</a></span>
+<span id="L171" class="line"><a href="#L171">171</a>function WinRepeatRankManager:_resolveIconV2TimedLabel(now, times, state, rankType)</span>
+<span id="L172" class="line"><a href="#L172">172</a>    if state == self.IconV2State.PENDING_SETTLEMENT then</span>
+<span id="L173" class="line"><a href="#L173">173</a>        return &quot;待结算&quot;, times.stageTwoEndTime, times.rewardEndTime, &quot;fixedText&quot;</span>
+<span id="L174" class="line"><a href="#L174">174</a>    end</span>
+<span id="L175" class="line"><a href="#L175">175</a>    if state == self.IconV2State.UNJOINED then</span>
+<span id="L176" class="line"><a href="#L176">176</a>        return &quot;连胜排行榜&quot;, times.stageOneBeginTime, times.stageTwoEndTime, &quot;auto&quot;, &quot;活动已结束&quot;</span>
+<span id="L177" class="line"><a href="#L177">177</a>    end</span>
+<span id="L178" class="line"><a href="#L178">178</a>    if now &lt;= times.stageOneEndTime then</span>
+<span id="L179" class="line"><a href="#L179">179</a>        return &quot;连胜预选赛&quot;, times.stageOneBeginTime, times.stageOneEndTime, &quot;auto&quot;</span>
+<span id="L180" class="line"><a href="#L180">180</a>    end</span>
+<span id="L181" class="line"><a href="#L181">181</a>    if rankType == Meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L182" class="line"><a href="#L182">182</a>        return &quot;连胜精英赛&quot;, times.stageTwoBeginTime, times.stageTwoEndTime, &quot;auto&quot;, &quot;活动已结束&quot;</span>
+<span id="L183" class="line"><a href="#L183">183</a>    end</span>
+<span id="L184" class="line"><a href="#L184">184</a>    if rankType == Meta.mainPanelShowType.kMainPanel2 then</span>
+<span id="L185" class="line"><a href="#L185">185</a>        return &quot;连胜新星赛&quot;, times.stageTwoBeginTime, times.stageTwoEndTime, &quot;auto&quot;, &quot;活动已结束&quot;</span>
+<span id="L186" class="line"><a href="#L186">186</a>    end</span>
+<span id="L187" class="line"><a href="#L187">187</a>    return &quot;连胜预选赛&quot;, times.stageTwoBeginTime, times.stageTwoEndTime, &quot;auto&quot;, &quot;活动已结束&quot;</span>
+<span id="L188" class="line"><a href="#L188">188</a>end</span>
+<span id="L189" class="line"><a href="#L189">189</a></span>
+<span id="L190" class="line"><a href="#L190">190</a>function WinRepeatRankManager:getIconV2Snapshot(now, overrides)</span>
+<span id="L191" class="line"><a href="#L191">191</a>    local actInfo = self:getActInfo()</span>
+<span id="L192" class="line"><a href="#L192">192</a>    local extra, extraError = self:_getIconV2ActExtra(actInfo)</span>
+<span id="L193" class="line"><a href="#L193">193</a>    if not extra then</span>
+<span id="L194" class="line"><a href="#L194">194</a>        return nil, extraError</span>
+<span id="L195" class="line"><a href="#L195">195</a>    end</span>
+<span id="L196" class="line"><a href="#L196">196</a>    local times, periodError = self:_getIconV2PeriodTimes(extra)</span>
+<span id="L197" class="line"><a href="#L197">197</a>    if not times then</span>
+<span id="L198" class="line"><a href="#L198">198</a>        return nil, periodError</span>
+<span id="L199" class="line"><a href="#L199">199</a>    end</span>
+<span id="L200" class="line"><a href="#L200">200</a></span>
+<span id="L201" class="line"><a href="#L201">201</a>    now = tonumber(now) or TimeKit:timeInSec()</span>
+<span id="L202" class="line"><a href="#L202">202</a>    local data = self:getData()</span>
+<span id="L203" class="line"><a href="#L203">203</a>    overrides = type(overrides) == &quot;table&quot; and overrides or nil</span>
+<span id="L204" class="line"><a href="#L204">204</a>    local modelRankType = data:getCurMainTimeShowType()</span>
+<span id="L205" class="line"><a href="#L205">205</a>    local enterGroup = firstBoolean(</span>
+<span id="L206" class="line"><a href="#L206">206</a>        overrides and overrides.enterGroup,</span>
+<span id="L207" class="line"><a href="#L207">207</a>        data:checkIsEnterGroup(),</span>
+<span id="L208" class="line"><a href="#L208">208</a>        extra.entryGroup</span>
+<span id="L209" class="line"><a href="#L209">209</a>    )</span>
+<span id="L210" class="line"><a href="#L210">210</a>    if modelRankType == Meta.mainPanelShowType.kMainPanel0 then</span>
+<span id="L211" class="line"><a href="#L211">211</a>        enterGroup = false</span>
+<span id="L212" class="line"><a href="#L212">212</a>    end</span>
+<span id="L213" class="line"><a href="#L213">213</a>    local rankType = firstValidRaceType(</span>
+<span id="L214" class="line"><a href="#L214">214</a>        overrides and overrides.rankType,</span>
+<span id="L215" class="line"><a href="#L215">215</a>        modelRankType,</span>
+<span id="L216" class="line"><a href="#L216">216</a>        extra.raceType</span>
+<span id="L217" class="line"><a href="#L217">217</a>    ) or Meta.mainPanelShowType.kMainPanel1</span>
+<span id="L218" class="line"><a href="#L218">218</a>    local state = self:_resolveIconV2DisplayState(now, times, enterGroup)</span>
+<span id="L219" class="line"><a href="#L219">219</a>    local label, phaseStartTime, phaseEndTime, timedLabelMode, reachedText =</span>
+<span id="L220" class="line"><a href="#L220">220</a>        self:_resolveIconV2TimedLabel(now, times, state, rankType)</span>
+<span id="L221" class="line"><a href="#L221">221</a>    local available = now &gt;= times.stageOneBeginTime and now &lt;= times.rewardEndTime</span>
+<span id="L222" class="line"><a href="#L222">222</a>    local newActivityPermitted = available</span>
+<span id="L223" class="line"><a href="#L223">223</a>        and state ~= self.IconV2State.PENDING_SETTLEMENT</span>
+<span id="L224" class="line"><a href="#L224">224</a>    local hasReward = self:hasRewards() == true</span>
+<span id="L225" class="line"><a href="#L225">225</a>    local rankValue = actInfo.rank</span>
+<span id="L226" class="line"><a href="#L226">226</a>    if overrides and overrides.rank ~= nil then</span>
+<span id="L227" class="line"><a href="#L227">227</a>        rankValue = overrides.rank</span>
+<span id="L228" class="line"><a href="#L228">228</a>    end</span>
+<span id="L229" class="line"><a href="#L229">229</a>    local rank = enterGroup and resolvePositiveRank(rankValue) or 0</span>
+<span id="L230" class="line"><a href="#L230">230</a>    local assetAnimation = enterGroup</span>
+<span id="L231" class="line"><a href="#L231">231</a>        and rankType == Meta.mainPanelShowType.kMainPanel3</span>
+<span id="L232" class="line"><a href="#L232">232</a>        and &quot;lv2&quot;</span>
+<span id="L233" class="line"><a href="#L233">233</a>        or &quot;lv1&quot;</span>
+<span id="L234" class="line"><a href="#L234">234</a></span>
+<span id="L235" class="line"><a href="#L235">235</a>    return {</span>
+<span id="L236" class="line"><a href="#L236">236</a>        enabled = available,</span>
+<span id="L237" class="line"><a href="#L237">237</a>        newActivityPermitted = newActivityPermitted == true,</span>
+<span id="L238" class="line"><a href="#L238">238</a>        activityState = state,</span>
+<span id="L239" class="line"><a href="#L239">239</a>        periodKey = table.concat({</span>
+<span id="L240" class="line"><a href="#L240">240</a>            &quot;winrepeatrank2024&quot;,</span>
+<span id="L241" class="line"><a href="#L241">241</a>            tostring(self.ACT_ID),</span>
+<span id="L242" class="line"><a href="#L242">242</a>            tostring(times.stageOneBeginTime),</span>
+<span id="L243" class="line"><a href="#L243">243</a>            tostring(times.rewardEndTime),</span>
+<span id="L244" class="line"><a href="#L244">244</a>        }, &quot;:&quot;),</span>
+<span id="L245" class="line"><a href="#L245">245</a>        phaseStartTime = phaseStartTime,</span>
+<span id="L246" class="line"><a href="#L246">246</a>        phaseEndTime = phaseEndTime,</span>
+<span id="L247" class="line"><a href="#L247">247</a>        timedLabelMode = timedLabelMode,</span>
+<span id="L248" class="line"><a href="#L248">248</a>        reachedText = reachedText,</span>
+<span id="L249" class="line"><a href="#L249">249</a>        label = label,</span>
+<span id="L250" class="line"><a href="#L250">250</a>        rank = rank,</span>
+<span id="L251" class="line"><a href="#L251">251</a>        rankType = rankType,</span>
+<span id="L252" class="line"><a href="#L252">252</a>        enterGroup = enterGroup,</span>
+<span id="L253" class="line"><a href="#L253">253</a>        hasReward = hasReward,</span>
+<span id="L254" class="line"><a href="#L254">254</a>        assetAnimation = assetAnimation,</span>
+<span id="L255" class="line"><a href="#L255">255</a>    }</span>
+<span id="L256" class="line"><a href="#L256">256</a>end</span>
+<span id="L257" class="line"><a href="#L257">257</a></span>
+<span id="L258" class="line"><a href="#L258">258</a>--------------------------------------------------------------------------------</span>
+<span id="L259" class="line"><a href="#L259">259</a>-- End of Legacy activity IconData compatibility.</span>
+<span id="L260" class="line"><a href="#L260">260</a>--------------------------------------------------------------------------------</span>
+<span id="L261" class="line"><a href="#L261">261</a></span>
+<span id="L262" class="line"><a href="#L262">262</a>local function applyPatch(target, patch)</span>
+<span id="L263" class="line"><a href="#L263">263</a>    if type(patch) ~= &quot;table&quot; then</span>
+<span id="L264" class="line"><a href="#L264">264</a>        return</span>
+<span id="L265" class="line"><a href="#L265">265</a>    end</span>
+<span id="L266" class="line"><a href="#L266">266</a>    for key, value in pairs(patch) do</span>
+<span id="L267" class="line"><a href="#L267">267</a>        target[key] = value</span>
+<span id="L268" class="line"><a href="#L268">268</a>    end</span>
+<span id="L269" class="line"><a href="#L269">269</a>end</span>
+<span id="L270" class="line"><a href="#L270">270</a></span>
+<span id="L271" class="line"><a href="#L271">271</a>local function cloneActInfoExtra(actInfo)</span>
+<span id="L272" class="line"><a href="#L272">272</a>    local rawExtra = actInfo and actInfo.extra</span>
+<span id="L273" class="line"><a href="#L273">273</a>    if type(rawExtra) == &quot;table&quot; then</span>
+<span id="L274" class="line"><a href="#L274">274</a>        return table.clone(rawExtra)</span>
+<span id="L275" class="line"><a href="#L275">275</a>    end</span>
+<span id="L276" class="line"><a href="#L276">276</a>    if type(rawExtra) ~= &quot;string&quot; or rawExtra == &quot;&quot; then</span>
+<span id="L277" class="line"><a href="#L277">277</a>        return nil, &quot;WIN_REPEAT_RANK_ACT_INFO_EXTRA_REQUIRED&quot;</span>
+<span id="L278" class="line"><a href="#L278">278</a>    end</span>
+<span id="L279" class="line"><a href="#L279">279</a>    local extra = table.deserialize(rawExtra)</span>
+<span id="L280" class="line"><a href="#L280">280</a>    if type(extra) ~= &quot;table&quot; then</span>
+<span id="L281" class="line"><a href="#L281">281</a>        return nil, &quot;WIN_REPEAT_RANK_ACT_INFO_EXTRA_INVALID&quot;</span>
+<span id="L282" class="line"><a href="#L282">282</a>    end</span>
+<span id="L283" class="line"><a href="#L283">283</a>    return table.clone(extra)</span>
+<span id="L284" class="line"><a href="#L284">284</a>end</span>
+<span id="L285" class="line"><a href="#L285">285</a></span>
+<span id="L286" class="line"><a href="#L286">286</a>--是否是预热期</span>
+<span id="L287" class="line"><a href="#L287">287</a>function WinRepeatRankManager:isInPreheatTime()</span>
+<span id="L288" class="line"><a href="#L288">288</a>    local data = self.serverData</span>
+<span id="L289" class="line"><a href="#L289">289</a>    local mainBeginTime = data:getValue(&quot;mainBeginTime&quot;)</span>
+<span id="L290" class="line"><a href="#L290">290</a>    local beginTime = data:getValue(&quot;beginTime&quot;)</span>
+<span id="L291" class="line"><a href="#L291">291</a>    if not mainBeginTime or not beginTime then return end</span>
+<span id="L292" class="line"><a href="#L292">292</a>    local now = TimeKit:timeInSec()</span>
+<span id="L293" class="line"><a href="#L293">293</a></span>
+<span id="L294" class="line"><a href="#L294">294</a>    return now &gt;= tonumber(beginTime) and now &lt;= tonumber(mainBeginTime)</span>
+<span id="L295" class="line"><a href="#L295">295</a>end</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>--是否是主活动期</span>
+<span id="L298" class="line"><a href="#L298">298</a>function WinRepeatRankManager:isInMainTime()</span>
+<span id="L299" class="line"><a href="#L299">299</a>    local data = self.serverData</span>
+<span id="L300" class="line"><a href="#L300">300</a>    local mainBeginTime = data:getValue(&quot;mainBeginTime&quot;)</span>
+<span id="L301" class="line"><a href="#L301">301</a>    local mainEndTime = data:getValue(&quot;mainEndTime&quot;)</span>
+<span id="L302" class="line"><a href="#L302">302</a>    if not mainBeginTime or not mainEndTime then return end</span>
+<span id="L303" class="line"><a href="#L303">303</a>    local now = TimeKit:timeInSec()</span>
+<span id="L304" class="line"><a href="#L304">304</a></span>
+<span id="L305" class="line"><a href="#L305">305</a>    return now &gt;= tonumber(mainBeginTime) and now &lt;= tonumber(mainEndTime)</span>
+<span id="L306" class="line"><a href="#L306">306</a>end</span>
+<span id="L307" class="line"><a href="#L307">307</a></span>
+<span id="L308" class="line"><a href="#L308">308</a>--是否是领奖期</span>
+<span id="L309" class="line"><a href="#L309">309</a>function WinRepeatRankManager:isInRewardTime()</span>
+<span id="L310" class="line"><a href="#L310">310</a>    local data = self.serverData</span>
+<span id="L311" class="line"><a href="#L311">311</a>    local mainEndTime = data:getValue(&quot;mainEndTime&quot;)</span>
+<span id="L312" class="line"><a href="#L312">312</a>    local endTime = data:getValue(&quot;endTime&quot;)</span>
+<span id="L313" class="line"><a href="#L313">313</a>    if not endTime or not mainEndTime then return end</span>
+<span id="L314" class="line"><a href="#L314">314</a>    local now = TimeKit:timeInSec()</span>
+<span id="L315" class="line"><a href="#L315">315</a></span>
+<span id="L316" class="line"><a href="#L316">316</a>    return now &gt;= tonumber(mainEndTime) and now &lt;= tonumber(endTime)</span>
+<span id="L317" class="line"><a href="#L317">317</a>end</span>
+<span id="L318" class="line"><a href="#L318">318</a></span>
+<span id="L319" class="line"><a href="#L319">319</a>-- 本地bool缓存</span>
+<span id="L320" class="line"><a href="#L320">320</a>function WinRepeatRankManager:saveFlagToLocalByKey(key, needTime, bSkip)</span>
+<span id="L321" class="line"><a href="#L321">321</a>    if not key then return end</span>
+<span id="L322" class="line"><a href="#L322">322</a>    if bSkip == nil then bSkip = true end</span>
+<span id="L323" class="line"><a href="#L323">323</a>    if needTime then</span>
+<span id="L324" class="line"><a href="#L324">324</a>        self:getData():setValue(key, getDayStartTimeByTS(TimeKit:timeInSec()), true)</span>
+<span id="L325" class="line"><a href="#L325">325</a>    else</span>
+<span id="L326" class="line"><a href="#L326">326</a>        self:getData():setValue(key, bSkip, true)</span>
+<span id="L327" class="line"><a href="#L327">327</a>    end</span>
+<span id="L328" class="line"><a href="#L328">328</a>end</span>
+<span id="L329" class="line"><a href="#L329">329</a></span>
+<span id="L330" class="line"><a href="#L330">330</a>function WinRepeatRankManager:getFlagFromLocalByKey(key, needTime)</span>
+<span id="L331" class="line"><a href="#L331">331</a>    if needTime then</span>
+<span id="L332" class="line"><a href="#L332">332</a>        local nowTime = getDayStartTimeByTS(TimeKit:timeInSec())</span>
+<span id="L333" class="line"><a href="#L333">333</a>        return self:getData():getValue(key) == nowTime</span>
+<span id="L334" class="line"><a href="#L334">334</a>    else</span>
+<span id="L335" class="line"><a href="#L335">335</a>        return self:getData():getValue(key)</span>
+<span id="L336" class="line"><a href="#L336">336</a>    end</span>
+<span id="L337" class="line"><a href="#L337">337</a>end</span>
+<span id="L338" class="line"><a href="#L338">338</a></span>
+<span id="L339" class="line"><a href="#L339">339</a>function WinRepeatRankManager:isEnabled()</span>
+<span id="L340" class="line"><a href="#L340">340</a>    if (self:isInMainTime() ) and self.serverData:getValue(&quot;userData&quot;) then</span>
+<span id="L341" class="line"><a href="#L341">341</a>        return true</span>
+<span id="L342" class="line"><a href="#L342">342</a>    else</span>
+<span id="L343" class="line"><a href="#L343">343</a>        return false</span>
+<span id="L344" class="line"><a href="#L344">344</a>    end</span>
+<span id="L345" class="line"><a href="#L345">345</a>end</span>
+<span id="L346" class="line"><a href="#L346">346</a></span>
+<span id="L347" class="line"><a href="#L347">347</a></span>
+<span id="L348" class="line"><a href="#L348">348</a>function WinRepeatRankManager:isEnabled2()</span>
+<span id="L349" class="line"><a href="#L349">349</a>    if (self:isInMainTime() or self:isInRewardTime() ) and self.serverData:getValue(&quot;userData&quot;) then</span>
+<span id="L350" class="line"><a href="#L350">350</a>        return true</span>
+<span id="L351" class="line"><a href="#L351">351</a>    else</span>
+<span id="L352" class="line"><a href="#L352">352</a>        return false</span>
+<span id="L353" class="line"><a href="#L353">353</a>    end</span>
+<span id="L354" class="line"><a href="#L354">354</a>end</span>
+<span id="L355" class="line"><a href="#L355">355</a></span>
+<span id="L356" class="line"><a href="#L356">356</a>function WinRepeatRankManager:isPopoutDisabled()</span>
+<span id="L357" class="line"><a href="#L357">357</a>    return MaintenanceManager:getInstance():isEnabledInGroup(WinRepeatRankManager.POPOUT_OFF_SWITCH, &quot;ON&quot;)</span>
+<span id="L358" class="line"><a href="#L358">358</a>end</span>
+<span id="L359" class="line"><a href="#L359">359</a></span>
+<span id="L360" class="line"><a href="#L360">360</a>function WinRepeatRankManager:initialize()</span>
+<span id="L361" class="line"><a href="#L361">361</a>    self.serverData = ServerData:create(&quot;WinRepeatRankManager&quot; .. WinRepeatRankManager.ACT_OPEN_VERSION)</span>
+<span id="L362" class="line"><a href="#L362">362</a></span>
+<span id="L363" class="line"><a href="#L363">363</a>    self.meta = Meta</span>
+<span id="L364" class="line"><a href="#L364">364</a></span>
+<span id="L365" class="line"><a href="#L365">365</a>    self.oldWinNumForIconAnim = 0</span>
+<span id="L366" class="line"><a href="#L366">366</a></span>
+<span id="L367" class="line"><a href="#L367">367</a>    self.isEventDataUpdated = false</span>
+<span id="L368" class="line"><a href="#L368">368</a>    self.eventDataInfo = {}</span>
+<span id="L369" class="line"><a href="#L369">369</a></span>
+<span id="L370" class="line"><a href="#L370">370</a>    self:registerEvents()</span>
+<span id="L371" class="line"><a href="#L371">371</a>    self:initPlugs()</span>
+<span id="L372" class="line"><a href="#L372">372</a></span>
+<span id="L373" class="line"><a href="#L373">373</a>    local InLevelBridgeModule = require &quot;amf.feature.localactivity.winrepeatrank.module.InLevelBridgeModule&quot;</span>
+<span id="L374" class="line"><a href="#L374">374</a>    self.inLevelBridgeModule = InLevelBridgeModule:create(self)</span>
+<span id="L375" class="line"><a href="#L375">375</a>end</span>
+<span id="L376" class="line"><a href="#L376">376</a></span>
+<span id="L377" class="line"><a href="#L377">377</a></span>
+<span id="L378" class="line"><a href="#L378">378</a>------------------------------------------- 额外插件 -------------------------------------------</span>
+<span id="L379" class="line"><a href="#L379">379</a>function WinRepeatRankManager:getConst()</span>
+<span id="L380" class="line"><a href="#L380">380</a>    local WinRepeatRankMeta = require&quot;amf.feature.localactivity.winrepeatrank.meta.WinRepeatRankMeta&quot;</span>
+<span id="L381" class="line"><a href="#L381">381</a>    return WinRepeatRankMeta</span>
+<span id="L382" class="line"><a href="#L382">382</a>end</span>
+<span id="L383" class="line"><a href="#L383">383</a></span>
+<span id="L384" class="line"><a href="#L384">384</a>function WinRepeatRankManager:initPlugs()</span>
+<span id="L385" class="line"><a href="#L385">385</a>    self:_initPlug(&quot;AutoPop&quot;, {</span>
+<span id="L386" class="line"><a href="#L386">386</a>        plugPath = &quot;amf.middleware.activity.base.plug.AutoPopPlug&quot;,</span>
+<span id="L387" class="line"><a href="#L387">387</a>    })</span>
+<span id="L388" class="line"><a href="#L388">388</a>    self:_initPlug(&quot;ActSend&quot;,{</span>
+<span id="L389" class="line"><a href="#L389">389</a>        plugPath = &quot;amf.feature.localactivity.winrepeatrank.plug.WinRepeatRankSendPlug&quot;,</span>
+<span id="L390" class="line"><a href="#L390">390</a>    })</span>
+<span id="L391" class="line"><a href="#L391">391</a>end</span>
+<span id="L392" class="line"><a href="#L392">392</a></span>
+<span id="L393" class="line"><a href="#L393">393</a>local blockedForTopLevelPlayer</span>
+<span id="L394" class="line"><a href="#L394">394</a></span>
+<span id="L395" class="line"><a href="#L395">395</a>local function isAutoPopupLevelEffective()</span>
+<span id="L396" class="line"><a href="#L396">396</a>    return _G.getTopLevelId() &gt;= 75</span>
+<span id="L397" class="line"><a href="#L397">397</a>end</span>
+<span id="L398" class="line"><a href="#L398">398</a></span>
+<span id="L399" class="line"><a href="#L399">399</a>function WinRepeatRankManager:_getAutoPopConfigList()</span>
+<span id="L400" class="line"><a href="#L400">400</a>    return {</span>
+<span id="L401" class="line"><a href="#L401">401</a>        {</span>
+<span id="L402" class="line"><a href="#L402">402</a>            checkPoint = PopupCheckPoint.WIN_REPEAT_RANK_STAGE3_POP,</span>
+<span id="L403" class="line"><a href="#L403">403</a>            actId = self.ACT_ID,</span>
+<span id="L404" class="line"><a href="#L404">404</a>            stages = {AutoPopupConst.PopStage.STAGE_THREE},</span>
+<span id="L405" class="line"><a href="#L405">405</a>            check = function()</span>
+<span id="L406" class="line"><a href="#L406">406</a>                if not _G.amfBean(&quot;ActivityMgr&quot;):isActSupported(self.ACT_ID) then return false end</span>
+<span id="L407" class="line"><a href="#L407">407</a>                -- 注册式强弹会在活动数据异步到达前执行 check；此时不能进入</span>
+<span id="L408" class="line"><a href="#L408">408</a>                -- getCurTimeRankRaceType 的时间比较。</span>
+<span id="L409" class="line"><a href="#L409">409</a>                return self:isEnabled() and isAutoPopupLevelEffective()</span>
+<span id="L410" class="line"><a href="#L410">410</a>                    and self:checkCanPopStage3()</span>
+<span id="L411" class="line"><a href="#L411">411</a>            end,</span>
+<span id="L412" class="line"><a href="#L412">412</a>            pop = function(_, onPopOver)</span>
+<span id="L413" class="line"><a href="#L413">413</a>                return function()</span>
+<span id="L414" class="line"><a href="#L414">414</a>                    self:popStage3(onPopOver)</span>
+<span id="L415" class="line"><a href="#L415">415</a>                end</span>
+<span id="L416" class="line"><a href="#L416">416</a>            end,</span>
+<span id="L417" class="line"><a href="#L417">417</a>        },</span>
+<span id="L418" class="line"><a href="#L418">418</a>        {</span>
+<span id="L419" class="line"><a href="#L419">419</a>            checkPoint = PopupCheckPoint.WIN_REPEAT_RANK_STAGE4_POP,</span>
+<span id="L420" class="line"><a href="#L420">420</a>            actId = self.ACT_ID,</span>
+<span id="L421" class="line"><a href="#L421">421</a>            stages = {AutoPopupConst.PopStage.STAGE_FOUR},</span>
+<span id="L422" class="line"><a href="#L422">422</a>            check = function()</span>
+<span id="L423" class="line"><a href="#L423">423</a>                if not _G.amfBean(&quot;ActivityMgr&quot;):isActSupported(self.ACT_ID) then return false end</span>
+<span id="L424" class="line"><a href="#L424">424</a>                return self:isEnabled() and isAutoPopupLevelEffective()</span>
+<span id="L425" class="line"><a href="#L425">425</a>                    and not blockedForTopLevelPlayer()</span>
+<span id="L426" class="line"><a href="#L426">426</a>                    and (self:checkCanPopMainPanel()</span>
+<span id="L427" class="line"><a href="#L427">427</a>                        or self:checkCanPopMainPanelForGroupReward())</span>
+<span id="L428" class="line"><a href="#L428">428</a>            end,</span>
+<span id="L429" class="line"><a href="#L429">429</a>            pop = function(_, onPopOver)</span>
+<span id="L430" class="line"><a href="#L430">430</a>                return function()</span>
+<span id="L431" class="line"><a href="#L431">431</a>                    self:popMainPanel(onPopOver, 4)</span>
+<span id="L432" class="line"><a href="#L432">432</a>                end</span>
+<span id="L433" class="line"><a href="#L433">433</a>            end,</span>
+<span id="L434" class="line"><a href="#L434">434</a>        },</span>
+<span id="L435" class="line"><a href="#L435">435</a>    }</span>
+<span id="L436" class="line"><a href="#L436">436</a>end</span>
+<span id="L437" class="line"><a href="#L437">437</a></span>
+<span id="L438" class="line"><a href="#L438">438</a></span>
+<span id="L439" class="line"><a href="#L439">439</a>-- 如果要自己继承插件改的话自己传plugPath, 可以继承调用</span>
+<span id="L440" class="line"><a href="#L440">440</a>-- 如果有自己的插件模块要添加也可以这么整，在自己的活动功能文件夹下整插件加上去。</span>
+<span id="L441" class="line"><a href="#L441">441</a>function WinRepeatRankManager:_initPlug(key, data)</span>
+<span id="L442" class="line"><a href="#L442">442</a>    local plugPath</span>
+<span id="L443" class="line"><a href="#L443">443</a>    if data and data.plugPath then</span>
+<span id="L444" class="line"><a href="#L444">444</a>        plugPath = data.plugPath</span>
+<span id="L445" class="line"><a href="#L445">445</a>    end</span>
+<span id="L446" class="line"><a href="#L446">446</a></span>
+<span id="L447" class="line"><a href="#L447">447</a>    local TextUtil = require &quot;amf.middleware.ui.util.TextUtil&quot;</span>
+<span id="L448" class="line"><a href="#L448">448</a>    local holdName = TextUtil:lowercaseFirstLetter(key) .. &quot;Plug&quot;</span>
+<span id="L449" class="line"><a href="#L449">449</a></span>
+<span id="L450" class="line"><a href="#L450">450</a>    self:_installPlug(key, data, plugPath):as(holdName)</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>    -- 插件函数调用</span>
+<span id="L453" class="line"><a href="#L453">453</a>    self[&quot;call&quot; .. key .. &quot;Func&quot;] = function(obj, funcName, ...)</span>
+<span id="L454" class="line"><a href="#L454">454</a>        return obj:callPlug(key, funcName, ...)</span>
+<span id="L455" class="line"><a href="#L455">455</a>    end</span>
+<span id="L456" class="line"><a href="#L456">456</a>end</span>
+<span id="L457" class="line"><a href="#L457">457</a></span>
+<span id="L458" class="line"><a href="#L458">458</a>function WinRepeatRankManager:_getPlugContainer()</span>
+<span id="L459" class="line"><a href="#L459">459</a>    if not self.plugContainer then</span>
+<span id="L460" class="line"><a href="#L460">460</a>        local PlugContainer = require &quot;amf.script.pattern.plug.PlugContainer&quot;</span>
+<span id="L461" class="line"><a href="#L461">461</a>        self.plugContainer = PlugContainer:create(self, &quot;amf.feature.localactivity.winrepeatrank.plug&quot;)</span>
+<span id="L462" class="line"><a href="#L462">462</a>    end</span>
+<span id="L463" class="line"><a href="#L463">463</a>    return self.plugContainer</span>
+<span id="L464" class="line"><a href="#L464">464</a>end</span>
+<span id="L465" class="line"><a href="#L465">465</a></span>
+<span id="L466" class="line"><a href="#L466">466</a>function WinRepeatRankManager:_installPlug(plugType, installData, scriptPath)</span>
+<span id="L467" class="line"><a href="#L467">467</a>    local plug = self:_getPlugContainer():install(plugType, installData, scriptPath)</span>
+<span id="L468" class="line"><a href="#L468">468</a>    return {</span>
+<span id="L469" class="line"><a href="#L469">469</a>        as = function(_, name)</span>
+<span id="L470" class="line"><a href="#L470">470</a>            if name then</span>
+<span id="L471" class="line"><a href="#L471">471</a>                if self[name] == plug then</span>
+<span id="L472" class="line"><a href="#L472">472</a>                    self[name] = nil</span>
+<span id="L473" class="line"><a href="#L473">473</a>                end</span>
+<span id="L474" class="line"><a href="#L474">474</a>                self[name] = plug</span>
+<span id="L475" class="line"><a href="#L475">475</a>            end</span>
+<span id="L476" class="line"><a href="#L476">476</a>        end</span>
+<span id="L477" class="line"><a href="#L477">477</a>    }</span>
+<span id="L478" class="line"><a href="#L478">478</a>end</span>
+<span id="L479" class="line"><a href="#L479">479</a></span>
+<span id="L480" class="line"><a href="#L480">480</a>function WinRepeatRankManager:_uninstallPlug(plugType)</span>
+<span id="L481" class="line"><a href="#L481">481</a>    self:_getPlugContainer():uninstall(plugType)</span>
+<span id="L482" class="line"><a href="#L482">482</a>end</span>
+<span id="L483" class="line"><a href="#L483">483</a></span>
+<span id="L484" class="line"><a href="#L484">484</a>function WinRepeatRankManager:_getPlug(plugType)</span>
+<span id="L485" class="line"><a href="#L485">485</a>    return self:_getPlugContainer():getPlug(plugType)</span>
+<span id="L486" class="line"><a href="#L486">486</a>end</span>
+<span id="L487" class="line"><a href="#L487">487</a></span>
+<span id="L488" class="line"><a href="#L488">488</a>function WinRepeatRankManager:callPlug(plugType, funcName, ...)</span>
+<span id="L489" class="line"><a href="#L489">489</a>    return self:_getPlugContainer():call(plugType, funcName, ...)</span>
+<span id="L490" class="line"><a href="#L490">490</a>end</span>
+<span id="L491" class="line"><a href="#L491">491</a></span>
+<span id="L492" class="line"><a href="#L492">492</a>------------------额外插件over ------------</span>
+<span id="L493" class="line"><a href="#L493">493</a></span>
+<span id="L494" class="line"><a href="#L494">494</a></span>
+<span id="L495" class="line"><a href="#L495">495</a>function WinRepeatRankManager:registerEvents()</span>
+<span id="L496" class="line"><a href="#L496">496</a>    _G.amfEC:registerFeature(self)</span>
+<span id="L497" class="line"><a href="#L497">497</a>    _G.amfEC:registerSystem(self)</span>
+<span id="L498" class="line"><a href="#L498">498</a></span>
+<span id="L499" class="line"><a href="#L499">499</a>    _G.amfEC:registerNormal(NormalEvent.PASS_DAY, self.onActPassDay, self)</span>
+<span id="L500" class="line"><a href="#L500">500</a></span>
+<span id="L501" class="line"><a href="#L501">501</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)</span>
+<span id="L502" class="line"><a href="#L502">502</a>    IconTipEventCenter:register(IconTipEvent.CHECK_ICON_TIP, self.onActCheckIconTip, self)</span>
+<span id="L503" class="line"><a href="#L503">503</a>end</span>
+<span id="L504" class="line"><a href="#L504">504</a></span>
+<span id="L505" class="line"><a href="#L505">505</a>function WinRepeatRankManager:onActPassDay()</span>
+<span id="L506" class="line"><a href="#L506">506</a>    if not self:isEnabled() then</span>
+<span id="L507" class="line"><a href="#L507">507</a>        return</span>
+<span id="L508" class="line"><a href="#L508">508</a>    end</span>
+<span id="L509" class="line"><a href="#L509">509</a>    self:getData():passDayClear()</span>
+<span id="L510" class="line"><a href="#L510">510</a>end</span>
+<span id="L511" class="line"><a href="#L511">511</a></span>
+<span id="L512" class="line"><a href="#L512">512</a>function WinRepeatRankManager:getData()</span>
+<span id="L513" class="line"><a href="#L513">513</a>    return self.serverData</span>
+<span id="L514" class="line"><a href="#L514">514</a>end</span>
+<span id="L515" class="line"><a href="#L515">515</a></span>
+<span id="L516" class="line"><a href="#L516">516</a>function WinRepeatRankManager:getMeta()</span>
+<span id="L517" class="line"><a href="#L517">517</a>    return self.meta</span>
+<span id="L518" class="line"><a href="#L518">518</a>end</span>
+<span id="L519" class="line"><a href="#L519">519</a></span>
+<span id="L520" class="line"><a href="#L520">520</a>function WinRepeatRankManager:updateIconActInfo(actInfoPatch, extraPatch)</span>
+<span id="L521" class="line"><a href="#L521">521</a>    local actInfo = self:getActInfo()</span>
+<span id="L522" class="line"><a href="#L522">522</a>    if type(actInfo) ~= &quot;table&quot; then</span>
+<span id="L523" class="line"><a href="#L523">523</a>        return false, &quot;WIN_REPEAT_RANK_ACT_INFO_REQUIRED&quot;</span>
+<span id="L524" class="line"><a href="#L524">524</a>    end</span>
+<span id="L525" class="line"><a href="#L525">525</a></span>
+<span id="L526" class="line"><a href="#L526">526</a>    local nextActInfo = table.clone(actInfo)</span>
+<span id="L527" class="line"><a href="#L527">527</a>    if type(extraPatch) == &quot;table&quot; then</span>
+<span id="L528" class="line"><a href="#L528">528</a>        local extra, extraError = cloneActInfoExtra(actInfo)</span>
+<span id="L529" class="line"><a href="#L529">529</a>        if not extra then</span>
+<span id="L530" class="line"><a href="#L530">530</a>            return false, extraError</span>
+<span id="L531" class="line"><a href="#L531">531</a>        end</span>
+<span id="L532" class="line"><a href="#L532">532</a>        applyPatch(extra, extraPatch)</span>
+<span id="L533" class="line"><a href="#L533">533</a>        nextActInfo.extra = table.serialize(extra)</span>
+<span id="L534" class="line"><a href="#L534">534</a>    end</span>
+<span id="L535" class="line"><a href="#L535">535</a>    applyPatch(nextActInfo, actInfoPatch)</span>
+<span id="L536" class="line"><a href="#L536">536</a>    nextActInfo.fromLocal = true</span>
+<span id="L537" class="line"><a href="#L537">537</a></span>
+<span id="L538" class="line"><a href="#L538">538</a>    ActivityEventCenter:dispatch(ActivityEvent.SET_ACT_INFO, nextActInfo)</span>
+<span id="L539" class="line"><a href="#L539">539</a>    return true</span>
+<span id="L540" class="line"><a href="#L540">540</a>end</span>
+<span id="L541" class="line"><a href="#L541">541</a></span>
+<span id="L542" class="line"><a href="#L542">542</a>-- 更新活动icon(actInfo更新后)</span>
+<span id="L543" class="line"><a href="#L543">543</a>function WinRepeatRankManager:onActActInfoUpdate(event)</span>
+<span id="L544" class="line"><a href="#L544">544</a>    local data = event:getData()</span>
+<span id="L545" class="line"><a href="#L545">545</a>    local actInfos = data.actInfos or {}</span>
+<span id="L546" class="line"><a href="#L546">546</a>    local fromServer = data.fromServer</span>
+<span id="L547" class="line"><a href="#L547">547</a>    local actInfo = actInfos[tostring(WinRepeatRankManager.ACT_ID)]</span>
+<span id="L548" class="line"><a href="#L548">548</a></span>
+<span id="L549" class="line"><a href="#L549">549</a>    -- 没有actInfo，且是从服务器发来的，清空数据</span>
+<span id="L550" class="line"><a href="#L550">550</a>    if not actInfo and fromServer then</span>
+<span id="L551" class="line"><a href="#L551">551</a>        self:getData():reset()</span>
+<span id="L552" class="line"><a href="#L552">552</a>        local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L553" class="line"><a href="#L553">553</a>        ActivityEventCenter:dispatch(ActivityEvent.REMOVE_ACTIVITY,{actId = WinRepeatRankManager.ACT_ID})</span>
+<span id="L554" class="line"><a href="#L554">554</a>        return</span>
+<span id="L555" class="line"><a href="#L555">555</a>    end</span>
+<span id="L556" class="line"><a href="#L556">556</a></span>
+<span id="L557" class="line"><a href="#L557">557</a>    if actInfo then</span>
+<span id="L558" class="line"><a href="#L558">558</a>        if self:isEnabled() and (not actInfo.fromLocal) then</span>
+<span id="L559" class="line"><a href="#L559">559</a>            -- 更新最新的领奖数据</span>
+<span id="L560" class="line"><a href="#L560">560</a>            self:getData():updateDataFromActInfo(actInfo)</span>
+<span id="L561" class="line"><a href="#L561">561</a>        end</span>
+<span id="L562" class="line"><a href="#L562">562</a></span>
+<span id="L563" class="line"><a href="#L563">563</a>        local extra = table.deserialize(actInfo.extra or &quot;&quot;)</span>
+<span id="L564" class="line"><a href="#L564">564</a>        -- 更新icon</span>
+<span id="L565" class="line"><a href="#L565">565</a>        local enterGroup = extra.entryGroup</span>
+<span id="L566" class="line"><a href="#L566">566</a>        local rankType = extra.raceType</span>
+<span id="L567" class="line"><a href="#L567">567</a>        local rank = actInfo.rank or 0</span>
+<span id="L568" class="line"><a href="#L568">568</a></span>
+<span id="L569" class="line"><a href="#L569">569</a>        self:refreshIcon(rank, rankType, enterGroup)</span>
+<span id="L570" class="line"><a href="#L570">570</a>    end</span>
+<span id="L571" class="line"><a href="#L571">571</a>end</span>
+<span id="L572" class="line"><a href="#L572">572</a></span>
+<span id="L573" class="line"><a href="#L573">573</a>function WinRepeatRankManager:refreshIcon(rank, rankType, enterGroup)</span>
+<span id="L574" class="line"><a href="#L574">574</a>    local icon = self:getActivityIcon()</span>
+<span id="L575" class="line"><a href="#L575">575</a></span>
+<span id="L576" class="line"><a href="#L576">576</a>    if IconCapability:isUsableIcon(icon) then</span>
+<span id="L577" class="line"><a href="#L577">577</a>        if IconCapability:isDataDrivenIcon(icon) then</span>
+<span id="L578" class="line"><a href="#L578">578</a>            return true</span>
+<span id="L579" class="line"><a href="#L579">579</a>        end</span>
+<span id="L580" class="line"><a href="#L580">580</a>        icon:refreshIconData({</span>
+<span id="L581" class="line"><a href="#L581">581</a>            rank = rank,</span>
+<span id="L582" class="line"><a href="#L582">582</a>            rankType = rankType,</span>
+<span id="L583" class="line"><a href="#L583">583</a>            enterGroup = enterGroup</span>
+<span id="L584" class="line"><a href="#L584">584</a>        })</span>
+<span id="L585" class="line"><a href="#L585">585</a>        icon:updateState()</span>
+<span id="L586" class="line"><a href="#L586">586</a>    end</span>
+<span id="L587" class="line"><a href="#L587">587</a>end</span>
+<span id="L588" class="line"><a href="#L588">588</a></span>
+<span id="L589" class="line"><a href="#L589">589</a>function WinRepeatRankManager:hasRewards()</span>
+<span id="L590" class="line"><a href="#L590">590</a>    if not self:isEnabled2() then</span>
+<span id="L591" class="line"><a href="#L591">591</a>        return false</span>
+<span id="L592" class="line"><a href="#L592">592</a>    end</span>
+<span id="L593" class="line"><a href="#L593">593</a></span>
+<span id="L594" class="line"><a href="#L594">594</a>    return self:getData():checkCanGetGroupRewardForIcon()</span>
+<span id="L595" class="line"><a href="#L595">595</a>end</span>
+<span id="L596" class="line"><a href="#L596">596</a></span>
+<span id="L597" class="line"><a href="#L597">597</a>function WinRepeatRankManager:getActInfo()</span>
+<span id="L598" class="line"><a href="#L598">598</a>    return _G.amfBean(&quot;ActivityMgr&quot;):getActInfo(WinRepeatRankManager.ACT_ID)</span>
+<span id="L599" class="line"><a href="#L599">599</a>end</span>
+<span id="L600" class="line"><a href="#L600">600</a></span>
+<span id="L601" class="line"><a href="#L601">601</a>function WinRepeatRankManager:setGroupRewardSucess(mainPanelShowType)</span>
+<span id="L602" class="line"><a href="#L602">602</a>    self:getData():setGroupRewardSucess(mainPanelShowType)</span>
+<span id="L603" class="line"><a href="#L603">603</a>end</span>
+<span id="L604" class="line"><a href="#L604">604</a></span>
+<span id="L605" class="line"><a href="#L605">605</a>function WinRepeatRankManager:updateTipView(actInfo)</span>
+<span id="L606" class="line"><a href="#L606">606</a>    local icon = self:getActivityIcon()</span>
+<span id="L607" class="line"><a href="#L607">607</a>    local isDataDrivenIcon = IconCapability:isDataDrivenIcon(icon)</span>
+<span id="L608" class="line"><a href="#L608">608</a>    if not isDataDrivenIcon and not self:isEnabled() then</span>
+<span id="L609" class="line"><a href="#L609">609</a>        return</span>
+<span id="L610" class="line"><a href="#L610">610</a>    end</span>
+<span id="L611" class="line"><a href="#L611">611</a>    if isDataDrivenIcon then</span>
+<span id="L612" class="line"><a href="#L612">612</a>        return self:updateIconActInfo({</span>
+<span id="L613" class="line"><a href="#L613">613</a>            reward = self:hasRewards() == true,</span>
+<span id="L614" class="line"><a href="#L614">614</a>            msgNum = 0,</span>
+<span id="L615" class="line"><a href="#L615">615</a>        })</span>
+<span id="L616" class="line"><a href="#L616">616</a>    end</span>
+<span id="L617" class="line"><a href="#L617">617</a></span>
+<span id="L618" class="line"><a href="#L618">618</a>    local actInfo = actInfo or self:getActInfo(WinRepeatRankManager.ACT_ID)</span>
+<span id="L619" class="line"><a href="#L619">619</a></span>
+<span id="L620" class="line"><a href="#L620">620</a>    local function setIconInfo( source, hasReward, msgNum )</span>
+<span id="L621" class="line"><a href="#L621">621</a>        if not actInfo then return end</span>
+<span id="L622" class="line"><a href="#L622">622</a>        actInfo.reward = hasReward</span>
+<span id="L623" class="line"><a href="#L623">623</a>        actInfo.msgNum = msgNum</span>
+<span id="L624" class="line"><a href="#L624">624</a>        actInfo.fromLocal = true</span>
+<span id="L625" class="line"><a href="#L625">625</a>        ActivityEventCenter:dispatch(ActivityEvent.SET_ACT_INFO, actInfo)</span>
+<span id="L626" class="line"><a href="#L626">626</a>    end</span>
+<span id="L627" class="line"><a href="#L627">627</a></span>
+<span id="L628" class="line"><a href="#L628">628</a>    local hasReward = self:hasRewards()</span>
+<span id="L629" class="line"><a href="#L629">629</a>    setIconInfo(WinRepeatRankManager.ACT_SOURCE, hasReward, 0)</span>
+<span id="L630" class="line"><a href="#L630">630</a></span>
+<span id="L631" class="line"><a href="#L631">631</a>    local rank = 0</span>
+<span id="L632" class="line"><a href="#L632">632</a>    if actInfo then</span>
+<span id="L633" class="line"><a href="#L633">633</a>        rank = actInfo.rank or 0</span>
+<span id="L634" class="line"><a href="#L634">634</a>    end</span>
+<span id="L635" class="line"><a href="#L635">635</a></span>
+<span id="L636" class="line"><a href="#L636">636</a>    local rankType = self:getData():getCurMainTimeShowType()</span>
+<span id="L637" class="line"><a href="#L637">637</a>    local enterGroup = self:getData():checkIsEnterGroup()</span>
+<span id="L638" class="line"><a href="#L638">638</a>    self:refreshIcon(rank, rankType, enterGroup)</span>
+<span id="L639" class="line"><a href="#L639">639</a>end</span>
+<span id="L640" class="line"><a href="#L640">640</a></span>
+<span id="L641" class="line"><a href="#L641">641</a>--闪退恢复失败</span>
+<span id="L642" class="line"><a href="#L642">642</a>function WinRepeatRankManager:onActCrashResumeFailed(event)</span>
+<span id="L643" class="line"><a href="#L643">643</a>    local data = event.data</span>
+<span id="L644" class="line"><a href="#L644">644</a>    if not data or not data.resumeData or not data.levelId then return end</span>
+<span id="L645" class="line"><a href="#L645">645</a>    if not self:isEnabled() then return  end</span>
+<span id="L646" class="line"><a href="#L646">646</a>    local resumeData = data.resumeData</span>
+<span id="L647" class="line"><a href="#L647">647</a>    -- 闪退恢复里有本活动的数据，需要清除连胜</span>
+<span id="L648" class="line"><a href="#L648">648</a>    if resumeData:hasGameMod(UBFActivityIdConst.kWinRepeatRank2023) then</span>
+<span id="L649" class="line"><a href="#L649">649</a>        local oldWinNum = self:getData():getWinningCount()</span>
+<span id="L650" class="line"><a href="#L650">650</a>        self:getData():clearWinningCount()</span>
+<span id="L651" class="line"><a href="#L651">651</a></span>
+<span id="L652" class="line"><a href="#L652">652</a>        -- local RequestOpNotifyOffline = require &quot;amf.middleware.interconnection.remote.http.RequestOpNotifyOffline&quot;</span>
+<span id="L653" class="line"><a href="#L653">653</a>	    -- RequestOpNotifyOffline:post(RequestOpNotifyOffline.OpType.kCloseResumePanel, WinRepeatRankManager.ACT_ID)</span>
+<span id="L654" class="line"><a href="#L654">654</a>        --通知后端清除连胜，不需要额外给后端发协议了，后端现在都统一处理CancelCrashResumePanel这个协议了</span>
+<span id="L655" class="line"><a href="#L655">655</a>        if data.json then</span>
+<span id="L656" class="line"><a href="#L656">656</a>            data.json[tostring(WinRepeatRankManager.ACT_ID)] = {curWinNum = oldWinNum}</span>
+<span id="L657" class="line"><a href="#L657">657</a>        end</span>
+<span id="L658" class="line"><a href="#L658">658</a>    end</span>
+<span id="L659" class="line"><a href="#L659">659</a></span>
+<span id="L660" class="line"><a href="#L660">660</a>    return true</span>
+<span id="L661" class="line"><a href="#L661">661</a>end</span>
+<span id="L662" class="line"><a href="#L662">662</a></span>
+<span id="L663" class="line"><a href="#L663">663</a>function WinRepeatRankManager:checkCanPopMainPanelForGroupReward()</span>
+<span id="L664" class="line"><a href="#L664">664</a>    if self:isPopoutDisabled() or not self:isEnabled() then</span>
+<span id="L665" class="line"><a href="#L665">665</a>        return false</span>
+<span id="L666" class="line"><a href="#L666">666</a>    end</span>
+<span id="L667" class="line"><a href="#L667">667</a></span>
+<span id="L668" class="line"><a href="#L668">668</a>    self:updateMJRewardType()</span>
+<span id="L669" class="line"><a href="#L669">669</a></span>
+<span id="L670" class="line"><a href="#L670">670</a>    local canGetGroupReward = self:getData():checkCanGetGroupReward()</span>
+<span id="L671" class="line"><a href="#L671">671</a>    local canGetMJRewared = self:getData():checkCanGetMJReward()</span>
+<span id="L672" class="line"><a href="#L672">672</a>    local canGetMXRewared = self:getData():checkCanGetMJMXReward()</span>
+<span id="L673" class="line"><a href="#L673">673</a></span>
+<span id="L674" class="line"><a href="#L674">674</a>    return canGetGroupReward or canGetMJRewared or canGetMXRewared</span>
+<span id="L675" class="line"><a href="#L675">675</a>end</span>
+<span id="L676" class="line"><a href="#L676">676</a></span>
+<span id="L677" class="line"><a href="#L677">677</a>function WinRepeatRankManager:checkCanPopMainPanel()</span>
+<span id="L678" class="line"><a href="#L678">678</a>    if self:isPopoutDisabled() or not self:isEnabled() then</span>
+<span id="L679" class="line"><a href="#L679">679</a>        return false</span>
+<span id="L680" class="line"><a href="#L680">680</a>    end</span>
+<span id="L681" class="line"><a href="#L681">681</a></span>
+<span id="L682" class="line"><a href="#L682">682</a>    local mainEndTime = self:getEndTime()</span>
+<span id="L683" class="line"><a href="#L683">683</a>    local hasEntered = (tonumber(mainEndTime) or 0) &gt; 0</span>
+<span id="L684" class="line"><a href="#L684">684</a>        and self:getData():getValue(Meta.AutoPopReduceEnteredEndTimeKey) == mainEndTime</span>
+<span id="L685" class="line"><a href="#L685">685</a>    local raceType = self:getCurTimeRankRaceType()</span>
+<span id="L686" class="line"><a href="#L686">686</a>    local isLowValueRace = raceType == Meta.mainPanelShowType.kMainPanel1</span>
+<span id="L687" class="line"><a href="#L687">687</a>        or raceType == Meta.mainPanelShowType.kMainPanel2</span>
+<span id="L688" class="line"><a href="#L688">688</a>    if isLowValueRace and not hasEntered</span>
+<span id="L689" class="line"><a href="#L689">689</a>        and _G.amfBean(&quot;ActivityParticipationMgr&quot;):shouldReduceAutoPopup(self.ACT_ID) then</span>
+<span id="L690" class="line"><a href="#L690">690</a>        return false</span>
+<span id="L691" class="line"><a href="#L691">691</a>    end</span>
+<span id="L692" class="line"><a href="#L692">692</a></span>
+<span id="L693" class="line"><a href="#L693">693</a>    local todayHadPop = self:getFlagFromLocalByKey(Meta.SavePopMainPanelKey, true)</span>
+<span id="L694" class="line"><a href="#L694">694</a>    return not todayHadPop</span>
+<span id="L695" class="line"><a href="#L695">695</a>end</span>
+<span id="L696" class="line"><a href="#L696">696</a></span>
+<span id="L697" class="line"><a href="#L697">697</a>local function shouldReduceAutoPopup(manager)</span>
+<span id="L698" class="line"><a href="#L698">698</a>    local mainEndTime = manager:getEndTime()</span>
+<span id="L699" class="line"><a href="#L699">699</a>    local hasEntered = (tonumber(mainEndTime) or 0) &gt; 0</span>
+<span id="L700" class="line"><a href="#L700">700</a>        and manager:getData():getValue(&quot;autoPopReduceEnteredEndTime&quot;) == mainEndTime</span>
+<span id="L701" class="line"><a href="#L701">701</a>    return not hasEntered</span>
+<span id="L702" class="line"><a href="#L702">702</a>        and _G.amfBean(&quot;ActivityParticipationMgr&quot;):shouldReduceAutoPopup(manager.ACT_ID)</span>
+<span id="L703" class="line"><a href="#L703">703</a>end</span>
+<span id="L704" class="line"><a href="#L704">704</a></span>
+<span id="L705" class="line"><a href="#L705">705</a>blockedForTopLevelPlayer = function()</span>
+<span id="L706" class="line"><a href="#L706">706</a>    local levelUnlockManager = _G.amfBean(&quot;LevelUnLockManager&quot;)</span>
+<span id="L707" class="line"><a href="#L707">707</a>    local topLevel = levelUnlockManager:getLocalTopLevel(false)</span>
+<span id="L708" class="line"><a href="#L708">708</a>    local myTopLevel = _G.getTopPassedLevelId()</span>
+<span id="L709" class="line"><a href="#L709">709</a>    if topLevel - myTopLevel &lt;= 30 then</span>
+<span id="L710" class="line"><a href="#L710">710</a>        local lastOpenTime = levelUnlockManager:getLastOpenNewLevelTime()</span>
+<span id="L711" class="line"><a href="#L711">711</a>        if lastOpenTime then</span>
+<span id="L712" class="line"><a href="#L712">712</a>            local diffTime = TimeKit:timeInSec() - lastOpenTime</span>
+<span id="L713" class="line"><a href="#L713">713</a>            if diffTime &gt;= 0 and diffTime &lt; 4 * 3600 then</span>
+<span id="L714" class="line"><a href="#L714">714</a>                return true</span>
+<span id="L715" class="line"><a href="#L715">715</a>            end</span>
+<span id="L716" class="line"><a href="#L716">716</a>        end</span>
+<span id="L717" class="line"><a href="#L717">717</a>    end</span>
+<span id="L718" class="line"><a href="#L718">718</a>    return false</span>
+<span id="L719" class="line"><a href="#L719">719</a>end</span>
+<span id="L720" class="line"><a href="#L720">720</a></span>
+<span id="L721" class="line"><a href="#L721">721</a>function WinRepeatRankManager:checkCanPopJoinTip()</span>
+<span id="L722" class="line"><a href="#L722">722</a>    local showType = self.meta.mainPanelShowType.kMainPanel0</span>
+<span id="L723" class="line"><a href="#L723">723</a>    local winNum = self:getData():getWinningCount()</span>
+<span id="L724" class="line"><a href="#L724">724</a>    local raceType = self:getCurTimeRankRaceType()</span>
+<span id="L725" class="line"><a href="#L725">725</a>    if raceType == self.meta.mainPanelShowType.kMainPanel1 then</span>
+<span id="L726" class="line"><a href="#L726">726</a>        if not self:getData():checkGuide(self.meta.GuideIds.kHadPopJoinFirstRank) and winNum &gt; 0 then</span>
+<span id="L727" class="line"><a href="#L727">727</a>            showType = raceType</span>
+<span id="L728" class="line"><a href="#L728">728</a>        end</span>
+<span id="L729" class="line"><a href="#L729">729</a>    elseif raceType == self.meta.mainPanelShowType.kMainPanel2</span>
+<span id="L730" class="line"><a href="#L730">730</a>        or raceType == self.meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L731" class="line"><a href="#L731">731</a>        if not self:getData():checkGuide(self.meta.GuideIds.kHadPopJoinSecondRank) and winNum &gt; 0 then</span>
+<span id="L732" class="line"><a href="#L732">732</a>            showType = raceType</span>
+<span id="L733" class="line"><a href="#L733">733</a>        end</span>
+<span id="L734" class="line"><a href="#L734">734</a>    end</span>
+<span id="L735" class="line"><a href="#L735">735</a>    return showType ~= self.meta.mainPanelShowType.kMainPanel0, showType</span>
+<span id="L736" class="line"><a href="#L736">736</a>end</span>
+<span id="L737" class="line"><a href="#L737">737</a></span>
+<span id="L738" class="line"><a href="#L738">738</a>function WinRepeatRankManager:checkCanPopStage3()</span>
+<span id="L739" class="line"><a href="#L739">739</a>    if blockedForTopLevelPlayer() then return false end</span>
+<span id="L740" class="line"><a href="#L740">740</a>    local canPopGroupReward = self:checkCanPopMainPanelForGroupReward()</span>
+<span id="L741" class="line"><a href="#L741">741</a>    local canPopJoinTip, showType = self:checkCanPopJoinTip()</span>
+<span id="L742" class="line"><a href="#L742">742</a>    if shouldReduceAutoPopup(self) then</span>
+<span id="L743" class="line"><a href="#L743">743</a>        local preselectionInfo = self:getData():getDataByKey(&quot;preselectionInfo&quot;)</span>
+<span id="L744" class="line"><a href="#L744">744</a>        if preselectionInfo and not preselectionInfo.acquiredReward then</span>
+<span id="L745" class="line"><a href="#L745">745</a>            canPopGroupReward = false</span>
+<span id="L746" class="line"><a href="#L746">746</a>        end</span>
+<span id="L747" class="line"><a href="#L747">747</a>        if showType == self.meta.mainPanelShowType.kMainPanel1</span>
+<span id="L748" class="line"><a href="#L748">748</a>            or showType == self.meta.mainPanelShowType.kMainPanel2 then</span>
+<span id="L749" class="line"><a href="#L749">749</a>            canPopJoinTip = false</span>
+<span id="L750" class="line"><a href="#L750">750</a>        end</span>
+<span id="L751" class="line"><a href="#L751">751</a>    end</span>
+<span id="L752" class="line"><a href="#L752">752</a>    return canPopGroupReward or canPopJoinTip</span>
+<span id="L753" class="line"><a href="#L753">753</a>end</span>
+<span id="L754" class="line"><a href="#L754">754</a></span>
+<span id="L755" class="line"><a href="#L755">755</a>function WinRepeatRankManager:popStage3(onHandleOver)</span>
+<span id="L756" class="line"><a href="#L756">756</a>    local canPopGroupReward = self:checkCanPopMainPanelForGroupReward()</span>
+<span id="L757" class="line"><a href="#L757">757</a>    local canPopJoinTip, showType = self:checkCanPopJoinTip()</span>
+<span id="L758" class="line"><a href="#L758">758</a>    if shouldReduceAutoPopup(self) then</span>
+<span id="L759" class="line"><a href="#L759">759</a>        local preselectionInfo = self:getData():getDataByKey(&quot;preselectionInfo&quot;)</span>
+<span id="L760" class="line"><a href="#L760">760</a>        if preselectionInfo and not preselectionInfo.acquiredReward then</span>
+<span id="L761" class="line"><a href="#L761">761</a>            canPopGroupReward = false</span>
+<span id="L762" class="line"><a href="#L762">762</a>        end</span>
+<span id="L763" class="line"><a href="#L763">763</a>        if showType == self.meta.mainPanelShowType.kMainPanel1</span>
+<span id="L764" class="line"><a href="#L764">764</a>            or showType == self.meta.mainPanelShowType.kMainPanel2 then</span>
+<span id="L765" class="line"><a href="#L765">765</a>            canPopJoinTip = false</span>
+<span id="L766" class="line"><a href="#L766">766</a>        end</span>
+<span id="L767" class="line"><a href="#L767">767</a>    end</span>
+<span id="L768" class="line"><a href="#L768">768</a>    if not canPopGroupReward and not canPopJoinTip then</span>
+<span id="L769" class="line"><a href="#L769">769</a>        safeRunCall(onHandleOver)</span>
+<span id="L770" class="line"><a href="#L770">770</a>        return</span>
+<span id="L771" class="line"><a href="#L771">771</a>    end</span>
+<span id="L772" class="line"><a href="#L772">772</a>    if showType == self.meta.mainPanelShowType.kMainPanel1 then</span>
+<span id="L773" class="line"><a href="#L773">773</a>        self:getData():setGuideIndex(self.meta.GuideIds.kHadPopJoinFirstRank)</span>
+<span id="L774" class="line"><a href="#L774">774</a>    elseif showType == self.meta.mainPanelShowType.kMainPanel2</span>
+<span id="L775" class="line"><a href="#L775">775</a>        or showType == self.meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L776" class="line"><a href="#L776">776</a>        self:getData():setGuideIndex(self.meta.GuideIds.kHadPopJoinSecondRank)</span>
+<span id="L777" class="line"><a href="#L777">777</a>    end</span>
+<span id="L778" class="line"><a href="#L778">778</a>    self:popMainPanel(onHandleOver, 3)</span>
+<span id="L779" class="line"><a href="#L779">779</a>end</span>
+<span id="L780" class="line"><a href="#L780">780</a></span>
+<span id="L781" class="line"><a href="#L781">781</a>function WinRepeatRankManager:openMainActivity(closeCallback, extra, userClick, duanMianData)</span>
+<span id="L782" class="line"><a href="#L782">782</a>    ActivityEventCenter:dispatch(ActivityEvent.OPEN_ACTIVITY, {</span>
+<span id="L783" class="line"><a href="#L783">783</a>        actId = WinRepeatRankManager.ACT_ID,</span>
+<span id="L784" class="line"><a href="#L784">784</a>        endCallback = closeCallback,</span>
+<span id="L785" class="line"><a href="#L785">785</a>        failCallback = closeCallback,</span>
+<span id="L786" class="line"><a href="#L786">786</a>        userClick = userClick,</span>
+<span id="L787" class="line"><a href="#L787">787</a>        extra = extra,</span>
+<span id="L788" class="line"><a href="#L788">788</a>        duanMianData = duanMianData</span>
+<span id="L789" class="line"><a href="#L789">789</a>    })</span>
+<span id="L790" class="line"><a href="#L790">790</a>end</span>
+<span id="L791" class="line"><a href="#L791">791</a></span>
+<span id="L792" class="line"><a href="#L792">792</a>function WinRepeatRankManager:popMainPanel(endCall, popScene)</span>
+<span id="L793" class="line"><a href="#L793">793</a>    if self:isPopoutDisabled() or not self:isEnabled() then</span>
+<span id="L794" class="line"><a href="#L794">794</a>        safeRunCall(endCall)</span>
+<span id="L795" class="line"><a href="#L795">795</a>        return</span>
+<span id="L796" class="line"><a href="#L796">796</a>    end</span>
+<span id="L797" class="line"><a href="#L797">797</a></span>
+<span id="L798" class="line"><a href="#L798">798</a>    if popScene == 3 then</span>
+<span id="L799" class="line"><a href="#L799">799</a>        self:openMainActivity(endCall, {</span>
+<span id="L800" class="line"><a href="#L800">800</a>            needSavePop = true,</span>
+<span id="L801" class="line"><a href="#L801">801</a>            needShowWinNumPanel = true</span>
+<span id="L802" class="line"><a href="#L802">802</a>        }, nil, false)</span>
+<span id="L803" class="line"><a href="#L803">803</a>    else</span>
+<span id="L804" class="line"><a href="#L804">804</a>        self:openMainActivity(endCall, {</span>
+<span id="L805" class="line"><a href="#L805">805</a>            needSavePop = true</span>
+<span id="L806" class="line"><a href="#L806">806</a>        }, nil, false)</span>
+<span id="L807" class="line"><a href="#L807">807</a>    end</span>
+<span id="L808" class="line"><a href="#L808">808</a>end</span>
+<span id="L809" class="line"><a href="#L809">809</a></span>
+<span id="L810" class="line"><a href="#L810">810</a>function WinRepeatRankManager:getActivityIcon()</span>
+<span id="L811" class="line"><a href="#L811">811</a>    return _G.amfBean(&quot;IconManager&quot;):getIconByIconKey(tostring(WinRepeatRankManager.ACT_ID))</span>
+<span id="L812" class="line"><a href="#L812">812</a>end</span>
+<span id="L813" class="line"><a href="#L813">813</a></span>
+<span id="L814" class="line"><a href="#L814">814</a>function WinRepeatRankManager:dc(category, subCategory, ...)</span>
+<span id="L815" class="line"><a href="#L815">815</a>    local params = {</span>
+<span id="L816" class="line"><a href="#L816">816</a>        game_type = &quot;stage&quot;,</span>
+<span id="L817" class="line"><a href="#L817">817</a>        game_name = WinRepeatRankManager.DCFeature,</span>
+<span id="L818" class="line"><a href="#L818">818</a>        category = category,</span>
+<span id="L819" class="line"><a href="#L819">819</a>        sub_category = subCategory,</span>
+<span id="L820" class="line"><a href="#L820">820</a>    }</span>
+<span id="L821" class="line"><a href="#L821">821</a></span>
+<span id="L822" class="line"><a href="#L822">822</a>    for i, v in pairs({...}) do</span>
+<span id="L823" class="line"><a href="#L823">823</a>        if v then</span>
+<span id="L824" class="line"><a href="#L824">824</a>            if i == 1 and type(v) == &#x27;table&#x27; then</span>
+<span id="L825" class="line"><a href="#L825">825</a>                for k, v2 in pairs(v) do</span>
+<span id="L826" class="line"><a href="#L826">826</a>                    params[k] = v2</span>
+<span id="L827" class="line"><a href="#L827">827</a>                end</span>
+<span id="L828" class="line"><a href="#L828">828</a>                break</span>
+<span id="L829" class="line"><a href="#L829">829</a>            else</span>
+<span id="L830" class="line"><a href="#L830">830</a>                params[&#x27;t&#x27;..tostring(i)] = v</span>
+<span id="L831" class="line"><a href="#L831">831</a>            end</span>
+<span id="L832" class="line"><a href="#L832">832</a>        end</span>
+<span id="L833" class="line"><a href="#L833">833</a>    end</span>
+<span id="L834" class="line"><a href="#L834">834</a>    DcUtil:UserTrack(params)</span>
+<span id="L835" class="line"><a href="#L835">835</a>end</span>
+<span id="L836" class="line"><a href="#L836">836</a></span>
+<span id="L837" class="line"><a href="#L837">837</a>---------------------------------- tip --------------------------------</span>
+<span id="L838" class="line"><a href="#L838">838</a>function WinRepeatRankManager:checkCanShowIconTip()</span>
+<span id="L839" class="line"><a href="#L839">839</a>    --判断是否可以弹出排名变化tip</span>
+<span id="L840" class="line"><a href="#L840">840</a>    --历史排名 与 新的排名比较</span>
+<span id="L841" class="line"><a href="#L841">841</a>    --取出后端新发来的排名信息，与本次获得的收集物比较</span>
+<span id="L842" class="line"><a href="#L842">842</a>    if not self:checkEventDataUpdated() then return false, false, 0  end</span>
+<span id="L843" class="line"><a href="#L843">843</a></span>
+<span id="L844" class="line"><a href="#L844">844</a>    local eventDataInfo = self:getEventDataInfo()</span>
+<span id="L845" class="line"><a href="#L845">845</a></span>
+<span id="L846" class="line"><a href="#L846">846</a>    local bCanShowIconTip = false</span>
+<span id="L847" class="line"><a href="#L847">847</a>    local bIsUp = false</span>
+<span id="L848" class="line"><a href="#L848">848</a>    local bOldIsDown = false</span>
+<span id="L849" class="line"><a href="#L849">849</a></span>
+<span id="L850" class="line"><a href="#L850">850</a>    local newRank = eventDataInfo.newRank</span>
+<span id="L851" class="line"><a href="#L851">851</a>    local oldRank = eventDataInfo.oldRank</span>
+<span id="L852" class="line"><a href="#L852">852</a></span>
+<span id="L853" class="line"><a href="#L853">853</a>    local oldShowRank = eventDataInfo.oldShowRank</span>
+<span id="L854" class="line"><a href="#L854">854</a></span>
+<span id="L855" class="line"><a href="#L855">855</a>    if newRank &lt; oldRank then</span>
+<span id="L856" class="line"><a href="#L856">856</a>        --上升</span>
+<span id="L857" class="line"><a href="#L857">857</a>        bCanShowIconTip = true</span>
+<span id="L858" class="line"><a href="#L858">858</a>        bIsUp = true</span>
+<span id="L859" class="line"><a href="#L859">859</a>    end</span>
+<span id="L860" class="line"><a href="#L860">860</a></span>
+<span id="L861" class="line"><a href="#L861">861</a>    if oldShowRank and oldShowRank ~= 0 and not bIsUp and oldShowRank &lt; newRank then</span>
+<span id="L862" class="line"><a href="#L862">862</a>        --下降</span>
+<span id="L863" class="line"><a href="#L863">863</a>        bOldIsDown = true</span>
+<span id="L864" class="line"><a href="#L864">864</a>        bCanShowIconTip = true</span>
+<span id="L865" class="line"><a href="#L865">865</a>    end</span>
+<span id="L866" class="line"><a href="#L866">866</a></span>
+<span id="L867" class="line"><a href="#L867">867</a>    return bCanShowIconTip, bIsUp, newRank, bOldIsDown</span>
+<span id="L868" class="line"><a href="#L868">868</a>end</span>
+<span id="L869" class="line"><a href="#L869">869</a></span>
+<span id="L870" class="line"><a href="#L870">870</a>function WinRepeatRankManager:onActCheckIconTip(event)</span>
+<span id="L871" class="line"><a href="#L871">871</a>    local bCanShowIconTip, bIsUp, newRank, bOldIsDown = self:checkCanShowIconTip()</span>
+<span id="L872" class="line"><a href="#L872">872</a>    if not bCanShowIconTip then return end</span>
+<span id="L873" class="line"><a href="#L873">873</a>    -- local data = event:getData()</span>
+<span id="L874" class="line"><a href="#L874">874</a>    local tipStr = &quot;&quot;</span>
+<span id="L875" class="line"><a href="#L875">875</a>    if bIsUp then</span>
+<span id="L876" class="line"><a href="#L876">876</a>        tipStr = &quot;排名上升至第&quot; .. newRank .. &quot;名&quot;</span>
+<span id="L877" class="line"><a href="#L877">877</a>    elseif bOldIsDown then</span>
+<span id="L878" class="line"><a href="#L878">878</a>        tipStr =  &#x27;被超越了，立刻反击！&#x27;</span>
+<span id="L879" class="line"><a href="#L879">879</a>    end</span>
+<span id="L880" class="line"><a href="#L880">880</a></span>
+<span id="L881" class="line"><a href="#L881">881</a>    local delegate = self:createTip(tipStr)</span>
+<span id="L882" class="line"><a href="#L882">882</a>    IconTipEventCenter:dispatch(IconTipEvent.ADD_ICON_TIP, delegate)</span>
+<span id="L883" class="line"><a href="#L883">883</a>    self:setEventDataUpdated(false)</span>
+<span id="L884" class="line"><a href="#L884">884</a>end</span>
+<span id="L885" class="line"><a href="#L885">885</a></span>
+<span id="L886" class="line"><a href="#L886">886</a>function WinRepeatRankManager:createTip(str)</span>
+<span id="L887" class="line"><a href="#L887">887</a>    local delegate = {}</span>
+<span id="L888" class="line"><a href="#L888">888</a>    delegate.iconKey = tostring(WinRepeatRankManager.ACT_ID)</span>
+<span id="L889" class="line"><a href="#L889">889</a>    delegate.iconType = IconTipType.MESSAGE</span>
+<span id="L890" class="line"><a href="#L890">890</a>    delegate.creatorDelegate = {</span>
+<span id="L891" class="line"><a href="#L891">891</a>        tipsType = HomeIconTipsType.ONLY_TEXT,</span>
+<span id="L892" class="line"><a href="#L892">892</a>        text = str,</span>
+<span id="L893" class="line"><a href="#L893">893</a>    }</span>
+<span id="L894" class="line"><a href="#L894">894</a>    delegate.priority = &quot;S&quot;</span>
+<span id="L895" class="line"><a href="#L895">895</a>    delegate.duration = 5</span>
+<span id="L896" class="line"><a href="#L896">896</a>    return delegate</span>
+<span id="L897" class="line"><a href="#L897">897</a>end</span>
+<span id="L898" class="line"><a href="#L898">898</a></span>
+<span id="L899" class="line"><a href="#L899">899</a>---------------------------------- 关卡内 begin--------------------------------</span>
+<span id="L900" class="line"><a href="#L900">900</a>-- 关卡内触发任务条件</span>
+<span id="L901" class="line"><a href="#L901">901</a>function WinRepeatRankManager:isEnabledInLevel(data)</span>
+<span id="L902" class="line"><a href="#L902">902</a>    self.winRepeatRankPassLevelData = nil</span>
+<span id="L903" class="line"><a href="#L903">903</a>    if not self:isEnabled() then</span>
+<span id="L904" class="line"><a href="#L904">904</a>        return false</span>
+<span id="L905" class="line"><a href="#L905">905</a>    end</span>
+<span id="L906" class="line"><a href="#L906">906</a>    -- 判断当前是哪期，在不在期的时间内</span>
+<span id="L907" class="line"><a href="#L907">907</a>    local curRaceType = self:getData():getCurMainTimeShowType()</span>
+<span id="L908" class="line"><a href="#L908">908</a></span>
+<span id="L909" class="line"><a href="#L909">909</a>    local checkStartTime = 0</span>
+<span id="L910" class="line"><a href="#L910">910</a>    local checkEndTime = 0</span>
+<span id="L911" class="line"><a href="#L911">911</a>    if curRaceType == Meta.mainPanelShowType.kMainPanel0 then</span>
+<span id="L912" class="line"><a href="#L912">912</a>        return true</span>
+<span id="L913" class="line"><a href="#L913">913</a>    elseif curRaceType == Meta.mainPanelShowType.kMainPanel1 then</span>
+<span id="L914" class="line"><a href="#L914">914</a>        checkStartTime = math.floor(self:getData():getStageOneBeginTime() / 1000)</span>
+<span id="L915" class="line"><a href="#L915">915</a>        checkEndTime = math.floor(self:getData():getStageOneEndTime() / 1000)</span>
+<span id="L916" class="line"><a href="#L916">916</a>    elseif curRaceType == Meta.mainPanelShowType.kMainPanel2 or curRaceType == Meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L917" class="line"><a href="#L917">917</a>        checkStartTime = math.floor(self:getData():getStageTwoBeginTime() / 1000)</span>
+<span id="L918" class="line"><a href="#L918">918</a>        checkEndTime = math.floor(self:getData():getStageTwoEndTime() / 1000)</span>
+<span id="L919" class="line"><a href="#L919">919</a>    end</span>
+<span id="L920" class="line"><a href="#L920">920</a></span>
+<span id="L921" class="line"><a href="#L921">921</a>    local curTime = TimeKit:timeInSec()</span>
+<span id="L922" class="line"><a href="#L922">922</a>    if curTime &gt;= checkStartTime and curTime &lt;= checkEndTime then</span>
+<span id="L923" class="line"><a href="#L923">923</a>        return true</span>
+<span id="L924" class="line"><a href="#L924">924</a>    end</span>
+<span id="L925" class="line"><a href="#L925">925</a></span>
+<span id="L926" class="line"><a href="#L926">926</a>    return false</span>
+<span id="L927" class="line"><a href="#L927">927</a>end</span>
+<span id="L928" class="line"><a href="#L928">928</a></span>
+<span id="L929" class="line"><a href="#L929">929</a></span>
+<span id="L930" class="line"><a href="#L930">930</a>function WinRepeatRankManager:isCanUseScoreBuff(data)</span>
+<span id="L931" class="line"><a href="#L931">931</a>    if not data or not data.levelId then</span>
+<span id="L932" class="line"><a href="#L932">932</a>        return false</span>
+<span id="L933" class="line"><a href="#L933">933</a>    end</span>
+<span id="L934" class="line"><a href="#L934">934</a>    if not self:isEnabled2() then</span>
+<span id="L935" class="line"><a href="#L935">935</a>        return false</span>
+<span id="L936" class="line"><a href="#L936">936</a>    end</span>
+<span id="L937" class="line"><a href="#L937">937</a>    local levelScene = data.levelScene or UBFLevelSceneType.kDefault</span>
+<span id="L938" class="line"><a href="#L938">938</a>    local isMainLevel = UBFLevelSceneFunc:isMainLevel(levelScene)</span>
+<span id="L939" class="line"><a href="#L939">939</a>    if not isMainLevel then</span>
+<span id="L940" class="line"><a href="#L940">940</a>        return false</span>
+<span id="L941" class="line"><a href="#L941">941</a>    end</span>
+<span id="L942" class="line"><a href="#L942">942</a></span>
+<span id="L943" class="line"><a href="#L943">943</a>    -- 满级非满星打可补星关</span>
+<span id="L944" class="line"><a href="#L944">944</a>    local userState = _G.amfBean(&quot;UserStateManager&quot;):getUserLevelState()</span>
+<span id="L945" class="line"><a href="#L945">945</a>    if userState == _G.UserStateConst.UserLevelState.TOP_LEVEL then</span>
+<span id="L946" class="line"><a href="#L946">946</a>        if not UBFActHelper:isFullStar(data.levelId) then</span>
+<span id="L947" class="line"><a href="#L947">947</a>            return true</span>
+<span id="L948" class="line"><a href="#L948">948</a>        end</span>
+<span id="L949" class="line"><a href="#L949">949</a>    end</span>
+<span id="L950" class="line"><a href="#L950">950</a></span>
+<span id="L951" class="line"><a href="#L951">951</a>    return false</span>
+<span id="L952" class="line"><a href="#L952">952</a>end</span>
+<span id="L953" class="line"><a href="#L953">953</a></span>
+<span id="L954" class="line"><a href="#L954">954</a>-- 获取分数BUFF加成值跟buff结束时间</span>
+<span id="L955" class="line"><a href="#L955">955</a>function WinRepeatRankManager:getCurAvailableBuffAndEndTime(data)</span>
+<span id="L956" class="line"><a href="#L956">956</a>    local scoreBuffRate = Meta.scoreBuffRate</span>
+<span id="L957" class="line"><a href="#L957">957</a>    local hasScoreBuff, scoreAddBuffEndTime = self:getData():getAddScoreBuffEndTime()</span>
+<span id="L958" class="line"><a href="#L958">958</a>    local isLegal = self:isCanUseScoreBuff(data)</span>
+<span id="L959" class="line"><a href="#L959">959</a>    if hasScoreBuff and isLegal then</span>
+<span id="L960" class="line"><a href="#L960">960</a>        return scoreBuffRate, scoreAddBuffEndTime * 1000</span>
+<span id="L961" class="line"><a href="#L961">961</a>    end</span>
+<span id="L962" class="line"><a href="#L962">962</a></span>
+<span id="L963" class="line"><a href="#L963">963</a>    return 0, 0</span>
+<span id="L964" class="line"><a href="#L964">964</a>end</span>
+<span id="L965" class="line"><a href="#L965">965</a></span>
+<span id="L966" class="line"><a href="#L966">966</a>-- 返回关卡内打关所需要的数据</span>
+<span id="L967" class="line"><a href="#L967">967</a>function WinRepeatRankManager:getInLevelActData(levelId)</span>
+<span id="L968" class="line"><a href="#L968">968</a>    local inLevelActData = {}</span>
+<span id="L969" class="line"><a href="#L969">969</a>    inLevelActData.winNum = self:getData():getWinningCount()</span>
+<span id="L970" class="line"><a href="#L970">970</a>    inLevelActData.addScore = self:getData():getAddScore(inLevelActData.winNum + 1)</span>
+<span id="L971" class="line"><a href="#L971">971</a>    return inLevelActData</span>
+<span id="L972" class="line"><a href="#L972">972</a>end</span>
+<span id="L973" class="line"><a href="#L973">973</a></span>
+<span id="L974" class="line"><a href="#L974">974</a>-- 打关结束时更新数据</span>
+<span id="L975" class="line"><a href="#L975">975</a>function WinRepeatRankManager:updatePassLevelData(data, addScore, collectionMap, passLevelData)</span>
+<span id="L976" class="line"><a href="#L976">976</a>    -- 结算失败时不给收集物</span>
+<span id="L977" class="line"><a href="#L977">977</a>    local settleMentState = data.settleMentState</span>
+<span id="L978" class="line"><a href="#L978">978</a>    local levelSupportType = data.modEnvData and data.modEnvData.levelSupportType</span>
+<span id="L979" class="line"><a href="#L979">979</a></span>
+<span id="L980" class="line"><a href="#L980">980</a>    if settleMentState and addScore &gt; 0 then</span>
+<span id="L981" class="line"><a href="#L981">981</a>        self:updateOldWinNum()</span>
+<span id="L982" class="line"><a href="#L982">982</a>        self:getData():addWinningCount(1)</span>
+<span id="L983" class="line"><a href="#L983">983</a>        -- 组织过关面板数据</span>
+<span id="L984" class="line"><a href="#L984">984</a>        local curRaceType = self:getData():getCurMainTimeShowType()</span>
+<span id="L985" class="line"><a href="#L985">985</a>        local isShowClickCloseTip = self:getIsShowClickCloseTip()</span>
+<span id="L986" class="line"><a href="#L986">986</a>        local collectionInfo = passLevelData[&quot;passLevelJson&quot;] and passLevelData[&quot;passLevelJson&quot;][&quot;collectionInfo&quot;]</span>
+<span id="L987" class="line"><a href="#L987">987</a>        self.winRepeatRankPassLevelData = {</span>
+<span id="L988" class="line"><a href="#L988">988</a>            isQualifier = curRaceType == Meta.mainPanelShowType.kMainPanel3,</span>
+<span id="L989" class="line"><a href="#L989">989</a>            curWinNum = self:getData():getWinningCount(),</span>
+<span id="L990" class="line"><a href="#L990">990</a>            collectionRate = collectionInfo[&quot;82&quot;] and collectionInfo[&quot;82&quot;][&quot;rate&quot;] or 1,</span>
+<span id="L991" class="line"><a href="#L991">991</a>            addScore = addScore,</span>
+<span id="L992" class="line"><a href="#L992">992</a>            isShowClickCloseTip = isShowClickCloseTip</span>
+<span id="L993" class="line"><a href="#L993">993</a>        }</span>
+<span id="L994" class="line"><a href="#L994">994</a>        if not isShowClickCloseTip then</span>
+<span id="L995" class="line"><a href="#L995">995</a>            CCUserDefault:sharedUserDefault():setBoolForKey(&quot;isFirstShowWinRepeatRankPassLevel&quot;, false)</span>
+<span id="L996" class="line"><a href="#L996">996</a>            CCUserDefault:sharedUserDefault():flush()</span>
+<span id="L997" class="line"><a href="#L997">997</a>        end</span>
+<span id="L998" class="line"><a href="#L998">998</a>        self.inLevelBridgeModule:tryUpdateElData()</span>
+<span id="L999" class="line"><a href="#L999">999</a>    else</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>        self:updateOldWinNum()</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>        self:getData():clearWinningCount()</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>    end</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a></span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>    self.levelSupportType = levelSupportType</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>end</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a></span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>function WinRepeatRankManager:updateOldWinNum()</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>    self.oldWinNumForIconAnim = self:getData():getWinningCount()</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>end</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a></span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>function WinRepeatRankManager:resetOldWinNum()</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>    self.oldWinNumForIconAnim = -1</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a>end</span>
+<span id="L1014" class="line"><a href="#L1014">1014</a></span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>function WinRepeatRankManager:getIsShowClickCloseTip()</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a>    local isFirstShowWinRepeatRankPassLevel = CCUserDefault:sharedUserDefault():getBoolForKey(&quot;isFirstShowWinRepeatRankPassLevel&quot;, true)</span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>    return not isFirstShowWinRepeatRankPassLevel</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>end</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a></span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>-- 获取连胜过关面板数据</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>function WinRepeatRankManager:getWinRepeatRankPassLevelData()</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>    if not self:isEnabled() then return end</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>    return self.winRepeatRankPassLevelData</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>end</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>---------------------------------- 关卡内 end----------------------------------</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>function WinRepeatRankManager:updateMJRewardType()</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>    -- 如果打关之前是未满级 当前是满黄满彩 那么直接设置满级奖励已领</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>    if not self:isEnabled() then</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>        return</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>    end</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a></span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>    local levelSupportType = self.levelSupportType</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>    local preIsFMJ = (levelSupportType == LevelSupportModeType.kNormal)</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a></span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>    local bMainStarFull = _G.amfBean(&quot;UserStateManager&quot;):isMainStarFull()</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>    local bColorfulStarFull = _G.amfBean(&quot;UserStateManager&quot;):isColorfulStarFull()</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a></span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>    if preIsFMJ and bMainStarFull and bColorfulStarFull then</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>        self:getData():setDataByKey(&#x27;gotFullLevelReward&#x27;, true, true)</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>    end</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>end</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a></span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>----------------------------------------</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>--------过关面板吊牌</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>----------------------------------------</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>-- **开始关卡清空记录的事件数</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>-- **过关接收事件数据</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>-- **过关面板加入吊牌</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a>function WinRepeatRankManager:onActBeforeStartLevel(event)</span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>    if not self:isEnabled() or not self:isEnabled2() then</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>        return</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>    end</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a>    self:setEventDataUpdated(false)</span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>end</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a></span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>function WinRepeatRankManager:setEventDataUpdated(enabled)</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>    self.isEventDataUpdated = enabled</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>end</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a></span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>function WinRepeatRankManager:checkEventDataUpdated()</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>    return self.isEventDataUpdated</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>end</span>
+<span id="L1063" class="line"><a href="#L1063">1063</a></span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>function WinRepeatRankManager:getEventDataInfo()</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>    return self.eventDataInfo</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>end</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a></span>
+<span id="L1068" class="line"><a href="#L1068">1068</a>function WinRepeatRankManager:onActReceiveEmergency(evt)</span>
+<span id="L1069" class="line"><a href="#L1069">1069</a>    local eventData = evt:getData()</span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>    if not eventData or eventData.endPoint ~= EmergencyConst.STREAK_WINRANK_EVENT then</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>        return</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>    end</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a></span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>    if not self:isEnabled() then</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>        return</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>    end</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>    self._rankDataGeneration = (self._rankDataGeneration or 0) + 1</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>    local newRank = self:processServerRankData(eventData)</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a>    self:updateIconActInfo({</span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>        rank = newRank,</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>    }, {</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>        raceType = eventData.data.raceType,</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>        entryGroup = true,</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a>    })</span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>    self.inLevelBridgeModule:tryUpdateElData()</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>end</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a></span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>function WinRepeatRankManager:processServerRankData(eventData)</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a>    -- 把数据存起来</span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>    self.eventDataInfo = table.clone(eventData.data)</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a></span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>    local meUid = _G.amfBean(&quot;ProfileManager&quot;):getXxlId()</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a></span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>    local newScore = 0</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>    local oldScore = 0</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a></span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>    local oldShowScore = self:getFlagFromLocalByKey(Meta.SaveOldRankScoreKey) or 0</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>    local oldShowRank = self:getFlagFromLocalByKey(Meta.SaveOldRankKey) or 0</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a></span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>    -- 把profile整理进去</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>    local profilesByUid = {}</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a>    local profiles = self.eventDataInfo.activityGroupCommonList.profiles</span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>    local numProfiles = profiles and #profiles or 0</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a></span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>    for i = 1, numProfiles do</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>        local profileItem = profiles[i]</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>        profilesByUid[profileItem.uid] = profileItem</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a>    end</span>
+<span id="L1109" class="line"><a href="#L1109">1109</a></span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>    for i, v in ipairs(self.eventDataInfo.activityGroupCommonList.rankList) do</span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>        if v.uid == meUid or (tonumber(v.uid) == tonumber(_G.amfBean(&quot;ProfileManager&quot;):getUid())) then</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>            v.isMe = true</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a>            -- v.score = 100001</span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>        end</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a></span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>        v.profile = v.isMe and _G.amfBean(&quot;ProfileManager&quot;):getProfile() or profilesByUid[v.uid]</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a>    end</span>
+<span id="L1118" class="line"><a href="#L1118">1118</a></span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>    -- 插入无人上榜</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a>    local allNum = 15</span>
+<span id="L1121" class="line"><a href="#L1121">1121</a>    if self.eventDataInfo.raceType == Meta.mainPanelShowType.kMainPanel1 or self.eventDataInfo.raceType == Meta.mainPanelShowType.kMainPanel2 then</span>
+<span id="L1122" class="line"><a href="#L1122">1122</a>        allNum = 15</span>
+<span id="L1123" class="line"><a href="#L1123">1123</a>    elseif self.eventDataInfo.raceType == Meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>        allNum = 5</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>    end</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a></span>
+<span id="L1127" class="line"><a href="#L1127">1127</a>    local curRankNum = #self.eventDataInfo.activityGroupCommonList.rankList</span>
+<span id="L1128" class="line"><a href="#L1128">1128</a>    if curRankNum &lt; allNum then</span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>        local addNum = allNum - curRankNum</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>        for i = 1, addNum do</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>            local info = {}</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a>            info.score = -1</span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>            info.uid = 12345 + i</span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>            info.isEmpty = true</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a>            info.updateTime = 0</span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>            info.profile = {</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>                uid = info.uid</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>            }</span>
+<span id="L1139" class="line"><a href="#L1139">1139</a>            table.insert(self.eventDataInfo.activityGroupCommonList.rankList, info)</span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>        end</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>    end</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a></span>
+<span id="L1143" class="line"><a href="#L1143">1143</a>    -- 排序</span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>    local function sortRankList(rankList)</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a>        -- 按分数排序</span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>        local meRank = 0</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a>        table.sort(rankList, function(a, b)</span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>            if a and b and a.score and b.score then</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>                if a.score == b.score then</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>                    if a.updateTime == b.updateTime then</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>                        return a.uid &gt; b.uid</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>                    else</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a>                        return tonumber(a.updateTime) &lt; tonumber(b.updateTime)</span>
+<span id="L1154" class="line"><a href="#L1154">1154</a>                    end</span>
+<span id="L1155" class="line"><a href="#L1155">1155</a>                else</span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>                    return a.score &gt; b.score</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a>                end</span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>            end</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a></span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>            return false</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a>        end)</span>
+<span id="L1162" class="line"><a href="#L1162">1162</a></span>
+<span id="L1163" class="line"><a href="#L1163">1163</a>        for i, v in ipairs(rankList) do</span>
+<span id="L1164" class="line"><a href="#L1164">1164</a>            v.rank = i</span>
+<span id="L1165" class="line"><a href="#L1165">1165</a></span>
+<span id="L1166" class="line"><a href="#L1166">1166</a>            if v.isMe then</span>
+<span id="L1167" class="line"><a href="#L1167">1167</a>                meRank = v.rank</span>
+<span id="L1168" class="line"><a href="#L1168">1168</a>            end</span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>        end</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a></span>
+<span id="L1171" class="line"><a href="#L1171">1171</a>        return meRank</span>
+<span id="L1172" class="line"><a href="#L1172">1172</a>    end</span>
+<span id="L1173" class="line"><a href="#L1173">1173</a></span>
+<span id="L1174" class="line"><a href="#L1174">1174</a>    local newRank = sortRankList(self.eventDataInfo.activityGroupCommonList.rankList)</span>
+<span id="L1175" class="line"><a href="#L1175">1175</a></span>
+<span id="L1176" class="line"><a href="#L1176">1176</a>    -- 把本次获得的扣除, 记录下newScore。 使用记录的旧分数</span>
+<span id="L1177" class="line"><a href="#L1177">1177</a>    for i, v in ipairs(self.eventDataInfo.activityGroupCommonList.rankList) do</span>
+<span id="L1178" class="line"><a href="#L1178">1178</a>        if v.isMe then</span>
+<span id="L1179" class="line"><a href="#L1179">1179</a>            newScore = v.score</span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>            v.score = v.score - self.eventDataInfo.addCollections</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a>            oldScore = v.score</span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>            break</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a>        end</span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>    end</span>
+<span id="L1185" class="line"><a href="#L1185">1185</a></span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>    -- 排序2</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a>    local oldRank = sortRankList(self.eventDataInfo.activityGroupCommonList.rankList)</span>
+<span id="L1188" class="line"><a href="#L1188">1188</a></span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>    self.eventDataInfo.newRank = newRank</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a>    self.eventDataInfo.newScore = newScore</span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>    self.eventDataInfo.oldRank = oldRank</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a>    self.eventDataInfo.oldScore = oldScore</span>
+<span id="L1193" class="line"><a href="#L1193">1193</a></span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>    -- 旧的展示排名， 播动画用</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>    self.eventDataInfo.oldShowScore = oldShowScore</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a>    self.eventDataInfo.oldShowRank = oldShowRank</span>
+<span id="L1197" class="line"><a href="#L1197">1197</a></span>
+<span id="L1198" class="line"><a href="#L1198">1198</a>    self:saveFlagToLocalByKey(Meta.SaveOldRankScoreKey, false, newScore)</span>
+<span id="L1199" class="line"><a href="#L1199">1199</a>    self:saveFlagToLocalByKey(Meta.SaveOldRankKey, false, newRank)</span>
+<span id="L1200" class="line"><a href="#L1200">1200</a></span>
+<span id="L1201" class="line"><a href="#L1201">1201</a>    --</span>
+<span id="L1202" class="line"><a href="#L1202">1202</a>    self:setEventDataUpdated(true)</span>
+<span id="L1203" class="line"><a href="#L1203">1203</a>    return newRank</span>
+<span id="L1204" class="line"><a href="#L1204">1204</a>end</span>
+<span id="L1205" class="line"><a href="#L1205">1205</a></span>
+<span id="L1206" class="line"><a href="#L1206">1206</a>function WinRepeatRankManager:getCurTimeRankRaceType()</span>
+<span id="L1207" class="line"><a href="#L1207">1207</a>    -- 获取当前时间应该所在的rankRace</span>
+<span id="L1208" class="line"><a href="#L1208">1208</a>    local curTime = TimeKit:timeInSec() * 1000</span>
+<span id="L1209" class="line"><a href="#L1209">1209</a>    local oneEndTime = tonumber(self:getData():getStageOneEndTime())</span>
+<span id="L1210" class="line"><a href="#L1210">1210</a>    if not oneEndTime then</span>
+<span id="L1211" class="line"><a href="#L1211">1211</a>        return Meta.mainPanelShowType.kMainPanel0</span>
+<span id="L1212" class="line"><a href="#L1212">1212</a>    end</span>
+<span id="L1213" class="line"><a href="#L1213">1213</a>    local canEliteRace = self:getData():getDataByKey(&#x27;canEliteRace&#x27;)</span>
+<span id="L1214" class="line"><a href="#L1214">1214</a>    local raceType = Meta.mainPanelShowType.kMainPanel0</span>
+<span id="L1215" class="line"><a href="#L1215">1215</a>    if curTime &lt; oneEndTime then</span>
+<span id="L1216" class="line"><a href="#L1216">1216</a>        raceType = Meta.mainPanelShowType.kMainPanel1</span>
+<span id="L1217" class="line"><a href="#L1217">1217</a>    else</span>
+<span id="L1218" class="line"><a href="#L1218">1218</a>        raceType = tonumber(self:getData():getDataByKey(&#x27;raceType&#x27;)) or 0</span>
+<span id="L1219" class="line"><a href="#L1219">1219</a>        if raceType == 0 then</span>
+<span id="L1220" class="line"><a href="#L1220">1220</a>            -- use Server</span>
+<span id="L1221" class="line"><a href="#L1221">1221</a>            if canEliteRace then</span>
+<span id="L1222" class="line"><a href="#L1222">1222</a>                raceType = Meta.mainPanelShowType.kMainPanel3</span>
+<span id="L1223" class="line"><a href="#L1223">1223</a>            else</span>
+<span id="L1224" class="line"><a href="#L1224">1224</a>                raceType = Meta.mainPanelShowType.kMainPanel2</span>
+<span id="L1225" class="line"><a href="#L1225">1225</a>            end</span>
+<span id="L1226" class="line"><a href="#L1226">1226</a>        end</span>
+<span id="L1227" class="line"><a href="#L1227">1227</a>    end</span>
+<span id="L1228" class="line"><a href="#L1228">1228</a>    return raceType</span>
+<span id="L1229" class="line"><a href="#L1229">1229</a>end</span>
+<span id="L1230" class="line"><a href="#L1230">1230</a></span>
+<span id="L1231" class="line"><a href="#L1231">1231</a>function WinRepeatRankManager:isCanCreatePassLevelPanelDownPart()</span>
+<span id="L1232" class="line"><a href="#L1232">1232</a>    if not self:isEnabled() then return false end</span>
+<span id="L1233" class="line"><a href="#L1233">1233</a>    if not self:checkEventDataUpdated() then return false end</span>
+<span id="L1234" class="line"><a href="#L1234">1234</a>    --rankRace要相同</span>
+<span id="L1235" class="line"><a href="#L1235">1235</a>    local curTimeRankRaceType = self:getCurTimeRankRaceType()</span>
+<span id="L1236" class="line"><a href="#L1236">1236</a>    local eventDataInfo = self:getEventDataInfo()</span>
+<span id="L1237" class="line"><a href="#L1237">1237</a>    if eventDataInfo.raceType ~= curTimeRankRaceType and curTimeRankRaceType ~= Meta.mainPanelShowType.kMainPanel0  then return end</span>
+<span id="L1238" class="line"><a href="#L1238">1238</a>    if eventDataInfo.addCollections &lt;= 0 then</span>
+<span id="L1239" class="line"><a href="#L1239">1239</a>        return false</span>
+<span id="L1240" class="line"><a href="#L1240">1240</a>    end</span>
+<span id="L1241" class="line"><a href="#L1241">1241</a></span>
+<span id="L1242" class="line"><a href="#L1242">1242</a>    return true</span>
+<span id="L1243" class="line"><a href="#L1243">1243</a>end</span>
+<span id="L1244" class="line"><a href="#L1244">1244</a></span>
+<span id="L1245" class="line"><a href="#L1245">1245</a>--过关面板下方挂牌的面板数据</span>
+<span id="L1246" class="line"><a href="#L1246">1246</a>function WinRepeatRankManager:getPlpBottomData(params)</span>
+<span id="L1247" class="line"><a href="#L1247">1247</a>    local _eventDataInfo = self:getEventDataInfo()</span>
+<span id="L1248" class="line"><a href="#L1248">1248</a>    if not table.isEmpty(_eventDataInfo) then</span>
+<span id="L1249" class="line"><a href="#L1249">1249</a>        local eventDataInfo = table.clone(_eventDataInfo)</span>
+<span id="L1250" class="line"><a href="#L1250">1250</a>        local endTime = 0</span>
+<span id="L1251" class="line"><a href="#L1251">1251</a>        local titleName = Meta.rankNameList[1]</span>
+<span id="L1252" class="line"><a href="#L1252">1252</a>        if eventDataInfo.raceType == Meta.mainPanelShowType.kMainPanel1 then</span>
+<span id="L1253" class="line"><a href="#L1253">1253</a>            endTime = self:getData():getStageOneEndTime()</span>
+<span id="L1254" class="line"><a href="#L1254">1254</a>            titleName = Meta.rankNameList[1]</span>
+<span id="L1255" class="line"><a href="#L1255">1255</a>        elseif eventDataInfo.raceType == Meta.mainPanelShowType.kMainPanel2 then</span>
+<span id="L1256" class="line"><a href="#L1256">1256</a>            endTime = self:getData():getStageTwoEndTime()</span>
+<span id="L1257" class="line"><a href="#L1257">1257</a>            titleName = Meta.rankNameList[2]</span>
+<span id="L1258" class="line"><a href="#L1258">1258</a>        elseif eventDataInfo.raceType == Meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L1259" class="line"><a href="#L1259">1259</a>            endTime = self:getData():getStageTwoEndTime()</span>
+<span id="L1260" class="line"><a href="#L1260">1260</a>            titleName = Meta.rankNameList[3]</span>
+<span id="L1261" class="line"><a href="#L1261">1261</a>        end</span>
+<span id="L1262" class="line"><a href="#L1262">1262</a></span>
+<span id="L1263" class="line"><a href="#L1263">1263</a>        return {</span>
+<span id="L1264" class="line"><a href="#L1264">1264</a>            eventDataInfo =eventDataInfo,</span>
+<span id="L1265" class="line"><a href="#L1265">1265</a>            endTime = endTime,</span>
+<span id="L1266" class="line"><a href="#L1266">1266</a>            titleName = &#x27;连胜&#x27;..titleName,</span>
+<span id="L1267" class="line"><a href="#L1267">1267</a>            isQualifier = eventDataInfo.raceType == Meta.mainPanelShowType.kMainPanel3,</span>
+<span id="L1268" class="line"><a href="#L1268">1268</a>            dcParams = {</span>
+<span id="L1269" class="line"><a href="#L1269">1269</a>                pass_show = {</span>
+<span id="L1270" class="line"><a href="#L1270">1270</a>                    t1 = WinRepeatRankManager.ACT_ID,</span>
+<span id="L1271" class="line"><a href="#L1271">1271</a>                },</span>
+<span id="L1272" class="line"><a href="#L1272">1272</a>            }</span>
+<span id="L1273" class="line"><a href="#L1273">1273</a>        }</span>
+<span id="L1274" class="line"><a href="#L1274">1274</a>    end</span>
+<span id="L1275" class="line"><a href="#L1275">1275</a>end</span>
+<span id="L1276" class="line"><a href="#L1276">1276</a></span>
+<span id="L1277" class="line"><a href="#L1277">1277</a>function WinRepeatRankManager:onActCrashResumeBeforePopPanelConfirm(evt)</span>
+<span id="L1278" class="line"><a href="#L1278">1278</a>    --强行断连胜</span>
+<span id="L1279" class="line"><a href="#L1279">1279</a>    local data = evt.data</span>
+<span id="L1280" class="line"><a href="#L1280">1280</a>    if not self:isEnabled() then return end</span>
+<span id="L1281" class="line"><a href="#L1281">1281</a></span>
+<span id="L1282" class="line"><a href="#L1282">1282</a>    local actInfos = data.actInfos</span>
+<span id="L1283" class="line"><a href="#L1283">1283</a>    for i,v in ipairs(actInfos) do</span>
+<span id="L1284" class="line"><a href="#L1284">1284</a>        if v.actId == WinRepeatRankManager.ACT_ID then</span>
+<span id="L1285" class="line"><a href="#L1285">1285</a>            self:getData():clearWinningCount()</span>
+<span id="L1286" class="line"><a href="#L1286">1286</a>            break</span>
+<span id="L1287" class="line"><a href="#L1287">1287</a>        end</span>
+<span id="L1288" class="line"><a href="#L1288">1288</a>    end</span>
+<span id="L1289" class="line"><a href="#L1289">1289</a>end</span>
+<span id="L1290" class="line"><a href="#L1290">1290</a></span>
+<span id="L1291" class="line"><a href="#L1291">1291</a>-- 获取过关面板吊牌节点的奖励列表</span>
+<span id="L1292" class="line"><a href="#L1292">1292</a>function WinRepeatRankManager:getPlpBottomCellRewardList(raceType,rank)</span>
+<span id="L1293" class="line"><a href="#L1293">1293</a>    local rewards = self:getData():getRankRewards(raceType,rank)</span>
+<span id="L1294" class="line"><a href="#L1294">1294</a>    local replaceRewards = self:_getPlug(&quot;ActSend&quot;):replaceRankReward(rewards, raceType, rank)</span>
+<span id="L1295" class="line"><a href="#L1295">1295</a>    local extraRewards = self:_getPlug(&quot;ActSend&quot;):getRankExtraReward(raceType, rank)</span>
+<span id="L1296" class="line"><a href="#L1296">1296</a>    return replaceRewards,extraRewards</span>
+<span id="L1297" class="line"><a href="#L1297">1297</a>end</span>
+<span id="L1298" class="line"><a href="#L1298">1298</a></span>
+<span id="L1299" class="line"><a href="#L1299">1299</a>local function filterRewardFunc(rewardList)</span>
+<span id="L1300" class="line"><a href="#L1300">1300</a>    local newRewardList = {}</span>
+<span id="L1301" class="line"><a href="#L1301">1301</a>    for i, reward in ipairs(rewardList or {}) do</span>
+<span id="L1302" class="line"><a href="#L1302">1302</a>        local newReward = {}</span>
+<span id="L1303" class="line"><a href="#L1303">1303</a>        for k, v in pairs(reward or {}) do</span>
+<span id="L1304" class="line"><a href="#L1304">1304</a>            if type(v) ~= &quot;function&quot; then</span>
+<span id="L1305" class="line"><a href="#L1305">1305</a>                newReward[k] = v</span>
+<span id="L1306" class="line"><a href="#L1306">1306</a>            end</span>
+<span id="L1307" class="line"><a href="#L1307">1307</a>        end</span>
+<span id="L1308" class="line"><a href="#L1308">1308</a>        table.insert(newRewardList, newReward)</span>
+<span id="L1309" class="line"><a href="#L1309">1309</a>    end</span>
+<span id="L1310" class="line"><a href="#L1310">1310</a>    return newRewardList</span>
+<span id="L1311" class="line"><a href="#L1311">1311</a>end</span>
+<span id="L1312" class="line"><a href="#L1312">1312</a></span>
+<span id="L1313" class="line"><a href="#L1313">1313</a>function WinRepeatRankManager:getPlpBottomRankRewardMap()</span>
+<span id="L1314" class="line"><a href="#L1314">1314</a>    local eventDataInfo = self:getEventDataInfo()</span>
+<span id="L1315" class="line"><a href="#L1315">1315</a>    local rankList = eventDataInfo and eventDataInfo.activityGroupCommonList and eventDataInfo.activityGroupCommonList.rankList or {}</span>
+<span id="L1316" class="line"><a href="#L1316">1316</a>    local raceType = eventDataInfo and eventDataInfo.raceType</span>
+<span id="L1317" class="line"><a href="#L1317">1317</a>    local rankRewardMap = {}</span>
+<span id="L1318" class="line"><a href="#L1318">1318</a>    for _, info in ipairs(rankList or {}) do</span>
+<span id="L1319" class="line"><a href="#L1319">1319</a>        local rank = info.rank</span>
+<span id="L1320" class="line"><a href="#L1320">1320</a>        if rank and not rankRewardMap[rank] then</span>
+<span id="L1321" class="line"><a href="#L1321">1321</a>            local rewards, extraRewards = self:getPlpBottomCellRewardList(raceType, rank)</span>
+<span id="L1322" class="line"><a href="#L1322">1322</a>            rankRewardMap[rank] = {</span>
+<span id="L1323" class="line"><a href="#L1323">1323</a>                rewards = filterRewardFunc(rewards),</span>
+<span id="L1324" class="line"><a href="#L1324">1324</a>                extraRewards = filterRewardFunc(extraRewards),</span>
+<span id="L1325" class="line"><a href="#L1325">1325</a>            }</span>
+<span id="L1326" class="line"><a href="#L1326">1326</a>        end</span>
+<span id="L1327" class="line"><a href="#L1327">1327</a>    end</span>
+<span id="L1328" class="line"><a href="#L1328">1328</a></span>
+<span id="L1329" class="line"><a href="#L1329">1329</a>    return rankRewardMap</span>
+<span id="L1330" class="line"><a href="#L1330">1330</a>end</span>
+<span id="L1331" class="line"><a href="#L1331">1331</a></span>
+<span id="L1332" class="line"><a href="#L1332">1332</a>-- 加载服务器排行数据</span>
+<span id="L1333" class="line"><a href="#L1333">1333</a>function WinRepeatRankManager:requestServerRankData(successCallback, failCallback)</span>
+<span id="L1334" class="line"><a href="#L1334">1334</a>    local raceType = self:getData():getCurMainTimeShowType()</span>
+<span id="L1335" class="line"><a href="#L1335">1335</a>    if raceType == Meta.mainPanelShowType.kMainPanel0 then</span>
+<span id="L1336" class="line"><a href="#L1336">1336</a>        safeRunCall(failCallback)</span>
+<span id="L1337" class="line"><a href="#L1337">1337</a>        return</span>
+<span id="L1338" class="line"><a href="#L1338">1338</a>    end</span>
+<span id="L1339" class="line"><a href="#L1339">1339</a>    self._rankDataGeneration = (self._rankDataGeneration or 0) + 1</span>
+<span id="L1340" class="line"><a href="#L1340">1340</a>    local requestGeneration = self._rankDataGeneration</span>
+<span id="L1341" class="line"><a href="#L1341">1341</a>    local function onSuccess(evt)</span>
+<span id="L1342" class="line"><a href="#L1342">1342</a>        local data = evt.data</span>
+<span id="L1343" class="line"><a href="#L1343">1343</a>        local newProfileList = {}</span>
+<span id="L1344" class="line"><a href="#L1344">1344</a>        if data.profiles then</span>
+<span id="L1345" class="line"><a href="#L1345">1345</a>            for i,v in ipairs(data.profiles or {}) do</span>
+<span id="L1346" class="line"><a href="#L1346">1346</a>                local newProfile = {</span>
+<span id="L1347" class="line"><a href="#L1347">1347</a>                    headUrl = v.headUrl,</span>
+<span id="L1348" class="line"><a href="#L1348">1348</a>                    uid = v.uid,</span>
+<span id="L1349" class="line"><a href="#L1349">1349</a>                }</span>
+<span id="L1350" class="line"><a href="#L1350">1350</a>                table.insert(newProfileList, newProfile)</span>
+<span id="L1351" class="line"><a href="#L1351">1351</a>            end</span>
+<span id="L1352" class="line"><a href="#L1352">1352</a>            data.profiles = newProfileList</span>
+<span id="L1353" class="line"><a href="#L1353">1353</a>            data.groupSize = nil</span>
+<span id="L1354" class="line"><a href="#L1354">1354</a>            data.rankRewardAcquired = nil</span>
+<span id="L1355" class="line"><a href="#L1355">1355</a>            data.rewards = nil</span>
+<span id="L1356" class="line"><a href="#L1356">1356</a>        end</span>
+<span id="L1357" class="line"><a href="#L1357">1357</a>        local eventData = {</span>
+<span id="L1358" class="line"><a href="#L1358">1358</a>            activityGroupCommonList = data,</span>
+<span id="L1359" class="line"><a href="#L1359">1359</a>            addCollections = 0,</span>
+<span id="L1360" class="line"><a href="#L1360">1360</a>            raceType = raceType,</span>
+<span id="L1361" class="line"><a href="#L1361">1361</a>        }</span>
+<span id="L1362" class="line"><a href="#L1362">1362</a>        if self._rankDataGeneration == requestGeneration</span>
+<span id="L1363" class="line"><a href="#L1363">1363</a>            and self:getData():getCurMainTimeShowType() == raceType then</span>
+<span id="L1364" class="line"><a href="#L1364">1364</a>            local newRank = self:processServerRankData({data=eventData})</span>
+<span id="L1365" class="line"><a href="#L1365">1365</a>            self:updateIconActInfo({rank = newRank})</span>
+<span id="L1366" class="line"><a href="#L1366">1366</a>        end</span>
+<span id="L1367" class="line"><a href="#L1367">1367</a>        safeRunCall(successCallback)</span>
+<span id="L1368" class="line"><a href="#L1368">1368</a>    end</span>
+<span id="L1369" class="line"><a href="#L1369">1369</a></span>
+<span id="L1370" class="line"><a href="#L1370">1370</a>    local function onFail(evt)</span>
+<span id="L1371" class="line"><a href="#L1371">1371</a>        safeRunCall(failCallback, evt)</span>
+<span id="L1372" class="line"><a href="#L1372">1372</a>    end</span>
+<span id="L1373" class="line"><a href="#L1373">1373</a></span>
+<span id="L1374" class="line"><a href="#L1374">1374</a>    local request = require(&quot;amf.feature.localactivity.winrepeatrank.http.RequestRankList&quot;)</span>
+<span id="L1375" class="line"><a href="#L1375">1375</a>    local reqParams = {activityId = raceType,}</span>
+<span id="L1376" class="line"><a href="#L1376">1376</a>    request:post(reqParams):next(onSuccess, onFail)</span>
+<span id="L1377" class="line"><a href="#L1377">1377</a>end</span>
+<span id="L1378" class="line"><a href="#L1378">1378</a></span>
+<span id="L1379" class="line"><a href="#L1379">1379</a>-- 获取当前标题</span>
+<span id="L1380" class="line"><a href="#L1380">1380</a>function WinRepeatRankManager:getRankTitleName()</span>
+<span id="L1381" class="line"><a href="#L1381">1381</a>    local raceType = self:getData():getCurMainTimeShowType()</span>
+<span id="L1382" class="line"><a href="#L1382">1382</a>    local titleName = Meta.rankNameList[1]</span>
+<span id="L1383" class="line"><a href="#L1383">1383</a>    if raceType == Meta.mainPanelShowType.kMainPanel1 then</span>
+<span id="L1384" class="line"><a href="#L1384">1384</a>        titleName = Meta.rankNameList[1]</span>
+<span id="L1385" class="line"><a href="#L1385">1385</a>    elseif raceType == Meta.mainPanelShowType.kMainPanel2 then</span>
+<span id="L1386" class="line"><a href="#L1386">1386</a>        titleName = Meta.rankNameList[2]</span>
+<span id="L1387" class="line"><a href="#L1387">1387</a>    elseif raceType == Meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L1388" class="line"><a href="#L1388">1388</a>        titleName = Meta.rankNameList[3]</span>
+<span id="L1389" class="line"><a href="#L1389">1389</a>    end</span>
+<span id="L1390" class="line"><a href="#L1390">1390</a></span>
+<span id="L1391" class="line"><a href="#L1391">1391</a>    return &quot;连胜&quot;..titleName</span>
+<span id="L1392" class="line"><a href="#L1392">1392</a>end</span>
+<span id="L1393" class="line"><a href="#L1393">1393</a></span>
+<span id="L1394" class="line"><a href="#L1394">1394</a>return WinRepeatRankManager</span></pre></main></html>

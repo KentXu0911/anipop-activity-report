@@ -1,0 +1,669 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/pengpeng2026/model/PengPeng2026Model.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="e5558f79cf18.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/pengpeng2026/model/PengPeng2026Model.lua</h1><p>SHA256 db191678107d4f468bc29a7faab4a2678cd96f60e04663fdbbe2d6117dcbfda5</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureModel = require &quot;amf.middleware.activity.base.BaseFeatureModel&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local Config = require &quot;amf.feature.localactivity.pengpeng2026.config.PengPeng2026Config&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>local Model = class(&quot;PengPeng2026Model&quot;, BaseFeatureModel)</span>
+<span id="L5" class="line"><a href="#L5">5</a></span>
+<span id="L6" class="line"><a href="#L6">6</a>-- 安装本地存储插件；当前只保存后端透传的活动基础数据。</span>
+<span id="L7" class="line"><a href="#L7">7</a>function Model:__installPlugs()</span>
+<span id="L8" class="line"><a href="#L8">8</a>    self:installPlug(AMFDataPlugsType.STORAGE, {</span>
+<span id="L9" class="line"><a href="#L9">9</a>        fileName = &quot;PengPeng2026Model&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a>    }):as(&quot;db&quot;)</span>
+<span id="L11" class="line"><a href="#L11">11</a>end</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>-- 返回活动常量路径，供 BaseFeatureModel 解析数据根节点。</span>
+<span id="L14" class="line"><a href="#L14">14</a>function Model:_getConstPath()</span>
+<span id="L15" class="line"><a href="#L15">15</a>    return &quot;amf.feature.localactivity.pengpeng2026.config.PengPeng2026Config&quot;</span>
+<span id="L16" class="line"><a href="#L16">16</a>end</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>-- 声明活动框架基础数据；后端业务字段未定前只保留分组容器，不提前拆字段。</span>
+<span id="L19" class="line"><a href="#L19">19</a>function Model:__declare()</span>
+<span id="L20" class="line"><a href="#L20">20</a>    self:_initServerData()</span>
+<span id="L21" class="line"><a href="#L21">21</a>    self:_initConfigData()</span>
+<span id="L22" class="line"><a href="#L22">22</a>    self:_initLocalData()</span>
+<span id="L23" class="line"><a href="#L23">23</a>end</span>
+<span id="L24" class="line"><a href="#L24">24</a></span>
+<span id="L25" class="line"><a href="#L25">25</a>-- 后端返回字段：活动时间和 userData 先按活动框架原始结构保存。</span>
+<span id="L26" class="line"><a href="#L26">26</a>function Model:_initServerData()</span>
+<span id="L27" class="line"><a href="#L27">27</a>    self.updateDataTime = nil</span>
+<span id="L28" class="line"><a href="#L28">28</a>    self.userData = nil</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self.beginTime = nil</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self.endTime = nil</span>
+<span id="L31" class="line"><a href="#L31">31</a>    self.mainBeginTime = nil</span>
+<span id="L32" class="line"><a href="#L32">32</a>    self.mainEndTime = nil</span>
+<span id="L33" class="line"><a href="#L33">33</a>end</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>-- 配置字段：保存 mainInfo 下发并反序列化后的 localConfig。</span>
+<span id="L36" class="line"><a href="#L36">36</a>function Model:_initConfigData()</span>
+<span id="L37" class="line"><a href="#L37">37</a>    self.localConfig = nil</span>
+<span id="L38" class="line"><a href="#L38">38</a>end</span>
+<span id="L39" class="line"><a href="#L39">39</a></span>
+<span id="L40" class="line"><a href="#L40">40</a>-- 本地字段：后续只放纯本地展示/缓存 key，不放后端权威业务数据。</span>
+<span id="L41" class="line"><a href="#L41">41</a>function Model:_initLocalData()</span>
+<span id="L42" class="line"><a href="#L42">42</a>    self.canyuHadDC = nil</span>
+<span id="L43" class="line"><a href="#L43">43</a>    self.joinHadDC = nil</span>
+<span id="L44" class="line"><a href="#L44">44</a>    self.lastViewedProgressScore = nil</span>
+<span id="L45" class="line"><a href="#L45">45</a>    self.attractPanelDailyShown = nil</span>
+<span id="L46" class="line"><a href="#L46">46</a>    self.attractPanelSuppressCount = nil</span>
+<span id="L47" class="line"><a href="#L47">47</a>end</span>
+<span id="L48" class="line"><a href="#L48">48</a></span>
+<span id="L49" class="line"><a href="#L49">49</a></span>
+<span id="L50" class="line"><a href="#L50">50</a>-- 跨天清理入口；具体本地日维度字段确定后在这里清。</span>
+<span id="L51" class="line"><a href="#L51">51</a>function Model:passDayClear()</span>
+<span id="L52" class="line"><a href="#L52">52</a>end</span>
+<span id="L53" class="line"><a href="#L53">53</a></span>
+<span id="L54" class="line"><a href="#L54">54</a>-- 清空后端返回和配置缓存；活动下线或服务端返回空数据时使用。</span>
+<span id="L55" class="line"><a href="#L55">55</a>function Model:clearLocalData()</span>
+<span id="L56" class="line"><a href="#L56">56</a>    self:setValue(&quot;updateDataTime&quot;, nil)</span>
+<span id="L57" class="line"><a href="#L57">57</a>    self:setValue(&quot;userData&quot;, nil)</span>
+<span id="L58" class="line"><a href="#L58">58</a>    self:setValue(&quot;beginTime&quot;, nil)</span>
+<span id="L59" class="line"><a href="#L59">59</a>    self:setValue(&quot;endTime&quot;, nil)</span>
+<span id="L60" class="line"><a href="#L60">60</a>    self:setValue(&quot;mainBeginTime&quot;, nil)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    self:setValue(&quot;mainEndTime&quot;, nil)</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>    self:setValue(&quot;localConfig&quot;, nil)</span>
+<span id="L64" class="line"><a href="#L64">64</a>end</span>
+<span id="L65" class="line"><a href="#L65">65</a></span>
+<span id="L66" class="line"><a href="#L66">66</a>-- 本地数据变更后的收口；用于记录更新时间，并触发跨天清理。</span>
+<span id="L67" class="line"><a href="#L67">67</a>function Model:fromLocalChangeEnd()</span>
+<span id="L68" class="line"><a href="#L68">68</a>    local bPassDay = false</span>
+<span id="L69" class="line"><a href="#L69">69</a>    local curTime = TimeKit:timeInSec()</span>
+<span id="L70" class="line"><a href="#L70">70</a>    if self.updateDataTime then</span>
+<span id="L71" class="line"><a href="#L71">71</a>        if getDayStartTimeByTS(curTime) ~= getDayStartTimeByTS(self.updateDataTime) then  </span>
+<span id="L72" class="line"><a href="#L72">72</a>            bPassDay = true</span>
+<span id="L73" class="line"><a href="#L73">73</a>        end</span>
+<span id="L74" class="line"><a href="#L74">74</a>        self:setValue(&quot;updateDataTime&quot;, curTime)</span>
+<span id="L75" class="line"><a href="#L75">75</a>    else</span>
+<span id="L76" class="line"><a href="#L76">76</a>        self:setValue(&quot;updateDataTime&quot;, curTime)</span>
+<span id="L77" class="line"><a href="#L77">77</a>    end</span>
+<span id="L78" class="line"><a href="#L78">78</a></span>
+<span id="L79" class="line"><a href="#L79">79</a>    if bPassDay then  </span>
+<span id="L80" class="line"><a href="#L80">80</a>        self:passDayClear()</span>
+<span id="L81" class="line"><a href="#L81">81</a>    end</span>
+<span id="L82" class="line"><a href="#L82">82</a>end</span>
+<span id="L83" class="line"><a href="#L83">83</a></span>
+<span id="L84" class="line"><a href="#L84">84</a>-- 合并服务端活动数据和配置；data.userData 使用后端 ColorfulBump2026UserBean 结构。</span>
+<span id="L85" class="line"><a href="#L85">85</a>function Model:fromServer(data, config)</span>
+<span id="L86" class="line"><a href="#L86">86</a>    -- data 是后端返回活动数据，config.config 是后端下发配置字符串。</span>
+<span id="L87" class="line"><a href="#L87">87</a>    if table.isEmpty(data) then</span>
+<span id="L88" class="line"><a href="#L88">88</a>        self:clearLocalData()</span>
+<span id="L89" class="line"><a href="#L89">89</a>    else</span>
+<span id="L90" class="line"><a href="#L90">90</a>        for k, v in pairs(data) do</span>
+<span id="L91" class="line"><a href="#L91">91</a>            self:setValue(k, v)</span>
+<span id="L92" class="line"><a href="#L92">92</a>        end</span>
+<span id="L93" class="line"><a href="#L93">93</a>    end</span>
+<span id="L94" class="line"><a href="#L94">94</a></span>
+<span id="L95" class="line"><a href="#L95">95</a>    if config and not table.isEmpty(config) and config.config ~= &#x27;&#x27; then</span>
+<span id="L96" class="line"><a href="#L96">96</a>        if type(config.config) == &quot;string&quot; then</span>
+<span id="L97" class="line"><a href="#L97">97</a>            config.config = table.deserialize(config.config)</span>
+<span id="L98" class="line"><a href="#L98">98</a>        end</span>
+<span id="L99" class="line"><a href="#L99">99</a>        self:setValue(&quot;localConfig&quot;, config)</span>
+<span id="L100" class="line"><a href="#L100">100</a>    end</span>
+<span id="L101" class="line"><a href="#L101">101</a>    </span>
+<span id="L102" class="line"><a href="#L102">102</a>    self:flush()</span>
+<span id="L103" class="line"><a href="#L103">103</a>end</span>
+<span id="L104" class="line"><a href="#L104">104</a></span>
+<span id="L105" class="line"><a href="#L105">105</a>-- 获取反序列化后的活动配置；调用方不直接读 localConfig 外层结构。</span>
+<span id="L106" class="line"><a href="#L106">106</a>function Model:getConfig()</span>
+<span id="L107" class="line"><a href="#L107">107</a>    local localConfig = self:getValue(&quot;localConfig&quot;)</span>
+<span id="L108" class="line"><a href="#L108">108</a>    if localConfig and localConfig.config then</span>
+<span id="L109" class="line"><a href="#L109">109</a>        return localConfig.config</span>
+<span id="L110" class="line"><a href="#L110">110</a>    end</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>    return {}</span>
+<span id="L113" class="line"><a href="#L113">113</a>end</span>
+<span id="L114" class="line"><a href="#L114">114</a></span>
+<span id="L115" class="line"><a href="#L115">115</a>-- 从后端 userData 或 Model 顶层读取字段；后端字段名确定前只做通用读取。</span>
+<span id="L116" class="line"><a href="#L116">116</a>function Model:getDataByKey(key, default)</span>
+<span id="L117" class="line"><a href="#L117">117</a>    local value = self:getValue(key)</span>
+<span id="L118" class="line"><a href="#L118">118</a>    if value ~= nil then</span>
+<span id="L119" class="line"><a href="#L119">119</a>        return value</span>
+<span id="L120" class="line"><a href="#L120">120</a>    end</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>    local userData = self:getValue(&quot;userData&quot;)</span>
+<span id="L123" class="line"><a href="#L123">123</a>    if userData and userData[key] ~= nil then</span>
+<span id="L124" class="line"><a href="#L124">124</a>        return userData[key]</span>
+<span id="L125" class="line"><a href="#L125">125</a>    end</span>
+<span id="L126" class="line"><a href="#L126">126</a></span>
+<span id="L127" class="line"><a href="#L127">127</a>    return default</span>
+<span id="L128" class="line"><a href="#L128">128</a>end</span>
+<span id="L129" class="line"><a href="#L129">129</a></span>
+<span id="L130" class="line"><a href="#L130">130</a>-- 写回已存在的后端 userData 字段；避免随意新增未知后端字段。</span>
+<span id="L131" class="line"><a href="#L131">131</a>function Model:setDataByKey(key, value, needSave)</span>
+<span id="L132" class="line"><a href="#L132">132</a>    local userData = self:getValue(&quot;userData&quot;)</span>
+<span id="L133" class="line"><a href="#L133">133</a></span>
+<span id="L134" class="line"><a href="#L134">134</a>    if userData and userData[key] ~= nil then</span>
+<span id="L135" class="line"><a href="#L135">135</a>        userData[key] = value</span>
+<span id="L136" class="line"><a href="#L136">136</a>        self:setValue(&quot;userData&quot;, userData, needSave)</span>
+<span id="L137" class="line"><a href="#L137">137</a>    end</span>
+<span id="L138" class="line"><a href="#L138">138</a>end</span>
+<span id="L139" class="line"><a href="#L139">139</a></span>
+<span id="L140" class="line"><a href="#L140">140</a>-- 写回 userData 字段，允许新增本地已确认需要回写的字段。</span>
+<span id="L141" class="line"><a href="#L141">141</a>function Model:setDataByKeyIgnoreNil(key, value, needSave)</span>
+<span id="L142" class="line"><a href="#L142">142</a>    local userData = self:getValue(&quot;userData&quot;)</span>
+<span id="L143" class="line"><a href="#L143">143</a></span>
+<span id="L144" class="line"><a href="#L144">144</a>    if userData then</span>
+<span id="L145" class="line"><a href="#L145">145</a>        userData[key] = value</span>
+<span id="L146" class="line"><a href="#L146">146</a>        self:setValue(&quot;userData&quot;, userData, needSave)</span>
+<span id="L147" class="line"><a href="#L147">147</a>    end</span>
+<span id="L148" class="line"><a href="#L148">148</a>end</span>
+<span id="L149" class="line"><a href="#L149">149</a></span>
+<span id="L150" class="line"><a href="#L150">150</a>-- 对 userData 中的数字字段做累加；仅用于已确认是数字资产或进度的字段。</span>
+<span id="L151" class="line"><a href="#L151">151</a>function Model:addDataByKey(key, value)</span>
+<span id="L152" class="line"><a href="#L152">152</a>    local userData = self:getValue(&quot;userData&quot;)</span>
+<span id="L153" class="line"><a href="#L153">153</a>    if userData and type(userData[key]) == &#x27;number&#x27; then</span>
+<span id="L154" class="line"><a href="#L154">154</a>        userData[key] = userData[key] + value</span>
+<span id="L155" class="line"><a href="#L155">155</a>        self:setValue(&quot;userData&quot;, userData, true)</span>
+<span id="L156" class="line"><a href="#L156">156</a>    end</span>
+<span id="L157" class="line"><a href="#L157">157</a>end</span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>-- 写入 Model 顶层扩展字段；仅用于明确属于本地缓存的字段。</span>
+<span id="L160" class="line"><a href="#L160">160</a>function Model:setExDataByKey(key, value, needSave)</span>
+<span id="L161" class="line"><a href="#L161">161</a>    self:setValue(key, value, needSave)</span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>-- 按 key 获取活动配置项。</span>
+<span id="L165" class="line"><a href="#L165">165</a>function Model:getConfigByKey(key)</span>
+<span id="L166" class="line"><a href="#L166">166</a>    local config = self:getConfig()</span>
+<span id="L167" class="line"><a href="#L167">167</a>    if config and config[key] then</span>
+<span id="L168" class="line"><a href="#L168">168</a>        return config[key]</span>
+<span id="L169" class="line"><a href="#L169">169</a>    end</span>
+<span id="L170" class="line"><a href="#L170">170</a>end</span>
+<span id="L171" class="line"><a href="#L171">171</a></span>
+<span id="L172" class="line"><a href="#L172">172</a></span>
+<span id="L173" class="line"><a href="#L173">173</a>function Model:getGuides()</span>
+<span id="L174" class="line"><a href="#L174">174</a>    -- 引导标记</span>
+<span id="L175" class="line"><a href="#L175">175</a>    return self:getDataByKey(&#x27;guideIdSet&#x27;) or {}</span>
+<span id="L176" class="line"><a href="#L176">176</a>end</span>
+<span id="L177" class="line"><a href="#L177">177</a></span>
+<span id="L178" class="line"><a href="#L178">178</a>function Model:addGuides(index)</span>
+<span id="L179" class="line"><a href="#L179">179</a>    -- 添加引导标记</span>
+<span id="L180" class="line"><a href="#L180">180</a></span>
+<span id="L181" class="line"><a href="#L181">181</a>    local guideInfo = self:getDataByKey(&#x27;guideIdSet&#x27;)</span>
+<span id="L182" class="line"><a href="#L182">182</a>    table.insert(guideInfo, index)</span>
+<span id="L183" class="line"><a href="#L183">183</a>    self:setDataByKey(&#x27;guideIdSet&#x27;, guideInfo, true)</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>    self:flush()</span>
+<span id="L186" class="line"><a href="#L186">186</a>end</span>
+<span id="L187" class="line"><a href="#L187">187</a></span>
+<span id="L188" class="line"><a href="#L188">188</a>function Model:checkGuide(index)</span>
+<span id="L189" class="line"><a href="#L189">189</a>    -- 检查引导标记</span>
+<span id="L190" class="line"><a href="#L190">190</a>    local guideInfo = self:getDataByKey(&#x27;guideIdSet&#x27;) or {}</span>
+<span id="L191" class="line"><a href="#L191">191</a></span>
+<span id="L192" class="line"><a href="#L192">192</a>    return table.exist(guideInfo, index)</span>
+<span id="L193" class="line"><a href="#L193">193</a>end</span>
+<span id="L194" class="line"><a href="#L194">194</a></span>
+<span id="L195" class="line"><a href="#L195">195</a>function Model:setGuideIndex(index)</span>
+<span id="L196" class="line"><a href="#L196">196</a>    self:addGuides(index)</span>
+<span id="L197" class="line"><a href="#L197">197</a></span>
+<span id="L198" class="line"><a href="#L198">198</a>    local ActCommonHttp = require(&quot;amf.middleware.activity.http.ActCommonHttp&quot;)</span>
+<span id="L199" class="line"><a href="#L199">199</a>    ActCommonHttp:setActGuideFlag(_G.amfBean(&quot;PengPeng2026Manager&quot;):getConst().actId, index)</span>
+<span id="L200" class="line"><a href="#L200">200</a>end</span>
+<span id="L201" class="line"><a href="#L201">201</a></span>
+<span id="L202" class="line"><a href="#L202">202</a>------------------</span>
+<span id="L203" class="line"><a href="#L203">203</a></span>
+<span id="L204" class="line"><a href="#L204">204</a>-- 当前玩法版本配置，直接来自后端 versionMetas。</span>
+<span id="L205" class="line"><a href="#L205">205</a>function Model:getCurrentVersionMeta()</span>
+<span id="L206" class="line"><a href="#L206">206</a>    local config = self:getConfig()</span>
+<span id="L207" class="line"><a href="#L207">207</a>    local targetVersion = tonumber(self:getConfigVersion())</span>
+<span id="L208" class="line"><a href="#L208">208</a>    for _, versionMeta in ipairs(config.versionMetas or {}) do</span>
+<span id="L209" class="line"><a href="#L209">209</a>        if tonumber(versionMeta.configVersion) == targetVersion then</span>
+<span id="L210" class="line"><a href="#L210">210</a>            return versionMeta</span>
+<span id="L211" class="line"><a href="#L211">211</a>        end</span>
+<span id="L212" class="line"><a href="#L212">212</a>    end</span>
+<span id="L213" class="line"><a href="#L213">213</a>    return {}</span>
+<span id="L214" class="line"><a href="#L214">214</a>end</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>-- 获取当前版本的全部棋子配置，字段保持后端 PieceMeta 原始结构。</span>
+<span id="L217" class="line"><a href="#L217">217</a>function Model:getPieceMetas()</span>
+<span id="L218" class="line"><a href="#L218">218</a>    return table.clone((self:getCurrentVersionMeta() or {}).pieceMetas or {})</span>
+<span id="L219" class="line"><a href="#L219">219</a>end</span>
+<span id="L220" class="line"><a href="#L220">220</a></span>
+<span id="L221" class="line"><a href="#L221">221</a>-- 按等级查找后端 PieceMeta；找不到返回空表，让调用方按配置缺失处理。</span>
+<span id="L222" class="line"><a href="#L222">222</a>function Model:getPieceMeta(level)</span>
+<span id="L223" class="line"><a href="#L223">223</a>    level = tonumber(level)</span>
+<span id="L224" class="line"><a href="#L224">224</a>    for _, pieceMeta in ipairs(self:getPieceMetas() or {}) do</span>
+<span id="L225" class="line"><a href="#L225">225</a>        if tonumber(pieceMeta.level) == level then</span>
+<span id="L226" class="line"><a href="#L226">226</a>            return table.clone(pieceMeta)</span>
+<span id="L227" class="line"><a href="#L227">227</a>        end</span>
+<span id="L228" class="line"><a href="#L228">228</a>    end</span>
+<span id="L229" class="line"><a href="#L229">229</a>    return {}</span>
+<span id="L230" class="line"><a href="#L230">230</a>end</span>
+<span id="L231" class="line"><a href="#L231">231</a></span>
+<span id="L232" class="line"><a href="#L232">232</a>-- 获取当前版本的订单池配置，字段保持后端 OrderPoolMeta 原始结构。</span>
+<span id="L233" class="line"><a href="#L233">233</a>function Model:getOrderPoolMetas()</span>
+<span id="L234" class="line"><a href="#L234">234</a>    return table.clone((self:getCurrentVersionMeta() or {}).orderPoolMetas or {})</span>
+<span id="L235" class="line"><a href="#L235">235</a>end</span>
+<span id="L236" class="line"><a href="#L236">236</a></span>
+<span id="L237" class="line"><a href="#L237">237</a>-- 清屏雨触发阈值来自后端 boardPieceMinCount；投放数量从后端 bonusCupCountRange 内随机。</span>
+<span id="L238" class="line"><a href="#L238">238</a>function Model:getClearRainConfig()</span>
+<span id="L239" class="line"><a href="#L239">239</a>    local config = self:getConfig()</span>
+<span id="L240" class="line"><a href="#L240">240</a>    local versionMeta = self:getCurrentVersionMeta() or {}</span>
+<span id="L241" class="line"><a href="#L241">241</a>    local minCount = tonumber(versionMeta.boardPieceMinCount) or 0</span>
+<span id="L242" class="line"><a href="#L242">242</a>    local bonusCupCountRange = versionMeta.bonusCupCountRange or config.bonusCupCountRange</span>
+<span id="L243" class="line"><a href="#L243">243</a>    local cupCount = self:_getRandomClearRainCupCount(bonusCupCountRange)</span>
+<span id="L244" class="line"><a href="#L244">244</a>    local enabled = minCount &gt; 0 and cupCount &gt; 0</span>
+<span id="L245" class="line"><a href="#L245">245</a>    if self.printLog then</span>
+<span id="L246" class="line"><a href="#L246">246</a>        self:printLog(&quot;BONUS&quot;, true, &quot;clear rain config&quot;, {</span>
+<span id="L247" class="line"><a href="#L247">247</a>            enabled = enabled,</span>
+<span id="L248" class="line"><a href="#L248">248</a>            boardPieceMinCount = versionMeta.boardPieceMinCount,</span>
+<span id="L249" class="line"><a href="#L249">249</a>            versionBonusCupCountRange = versionMeta.bonusCupCountRange,</span>
+<span id="L250" class="line"><a href="#L250">250</a>            rootBonusCupCountRange = config.bonusCupCountRange,</span>
+<span id="L251" class="line"><a href="#L251">251</a>            bonusCupCountRange = bonusCupCountRange,</span>
+<span id="L252" class="line"><a href="#L252">252</a>            triggerCupCount = minCount,</span>
+<span id="L253" class="line"><a href="#L253">253</a>            cupCount = cupCount,</span>
+<span id="L254" class="line"><a href="#L254">254</a>        })</span>
+<span id="L255" class="line"><a href="#L255">255</a>    end</span>
+<span id="L256" class="line"><a href="#L256">256</a>    return {</span>
+<span id="L257" class="line"><a href="#L257">257</a>        enabled = enabled,</span>
+<span id="L258" class="line"><a href="#L258">258</a>        triggerCupCount = minCount,</span>
+<span id="L259" class="line"><a href="#L259">259</a>        cupCount = cupCount,</span>
+<span id="L260" class="line"><a href="#L260">260</a>        bonusCupCountRange = bonusCupCountRange,</span>
+<span id="L261" class="line"><a href="#L261">261</a>    }</span>
+<span id="L262" class="line"><a href="#L262">262</a>end</span>
+<span id="L263" class="line"><a href="#L263">263</a></span>
+<span id="L264" class="line"><a href="#L264">264</a>-- 按后端 bonusCupCountRange 生成本次清屏雨投放数量；配置缺失或非法时不投放。</span>
+<span id="L265" class="line"><a href="#L265">265</a>function Model:_getRandomClearRainCupCount(countRange)</span>
+<span id="L266" class="line"><a href="#L266">266</a>    if type(countRange) ~= &quot;table&quot; then return 0 end</span>
+<span id="L267" class="line"><a href="#L267">267</a></span>
+<span id="L268" class="line"><a href="#L268">268</a>    local minCount = tonumber(countRange[1])</span>
+<span id="L269" class="line"><a href="#L269">269</a>    local maxCount = tonumber(countRange[2])</span>
+<span id="L270" class="line"><a href="#L270">270</a>    if not minCount or not maxCount then return 0 end</span>
+<span id="L271" class="line"><a href="#L271">271</a></span>
+<span id="L272" class="line"><a href="#L272">272</a>    minCount = math.floor(minCount)</span>
+<span id="L273" class="line"><a href="#L273">273</a>    maxCount = math.floor(maxCount)</span>
+<span id="L274" class="line"><a href="#L274">274</a>    if minCount &gt; maxCount then</span>
+<span id="L275" class="line"><a href="#L275">275</a>        minCount, maxCount = maxCount, minCount</span>
+<span id="L276" class="line"><a href="#L276">276</a>    end</span>
+<span id="L277" class="line"><a href="#L277">277</a>    if maxCount &lt;= 0 then return 0 end</span>
+<span id="L278" class="line"><a href="#L278">278</a>    minCount = math.max(minCount, 0)</span>
+<span id="L279" class="line"><a href="#L279">279</a></span>
+<span id="L280" class="line"><a href="#L280">280</a>    return math.random(minCount, maxCount)</span>
+<span id="L281" class="line"><a href="#L281">281</a>end</span>
+<span id="L282" class="line"><a href="#L282">282</a></span>
+<span id="L283" class="line"><a href="#L283">283</a>-- 满额自动磁铁阈值来自后端 boardPieceMaxCount，达到后以 magnet(reason=full) 执行且不扣能量。</span>
+<span id="L284" class="line"><a href="#L284">284</a>function Model:getFullMagnetConfig()</span>
+<span id="L285" class="line"><a href="#L285">285</a>    local versionMeta = self:getCurrentVersionMeta() or {}</span>
+<span id="L286" class="line"><a href="#L286">286</a>    local maxCount = tonumber(versionMeta.boardPieceMaxCount) or 0</span>
+<span id="L287" class="line"><a href="#L287">287</a>    return {</span>
+<span id="L288" class="line"><a href="#L288">288</a>        enabled = maxCount &gt; 0,</span>
+<span id="L289" class="line"><a href="#L289">289</a>        triggerCupCount = maxCount,</span>
+<span id="L290" class="line"><a href="#L290">290</a>    }</span>
+<span id="L291" class="line"><a href="#L291">291</a>end</span>
+<span id="L292" class="line"><a href="#L292">292</a></span>
+<span id="L293" class="line"><a href="#L293">293</a>--------------------------------------------</span>
+<span id="L294" class="line"><a href="#L294">294</a>-----------下面是数据处理-------------</span>
+<span id="L295" class="line"><a href="#L295">295</a>--------------------------------------------</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>-- 当前活动期 ID，来自后端 ColorfulBump2026UserBean.periodId，用于区分周期数据。</span>
+<span id="L298" class="line"><a href="#L298">298</a>function Model:getPeriodId()</span>
+<span id="L299" class="line"><a href="#L299">299</a>    return self:getDataByKey(&quot;periodId&quot;, 0)</span>
+<span id="L300" class="line"><a href="#L300">300</a>end</span>
+<span id="L301" class="line"><a href="#L301">301</a></span>
+<span id="L302" class="line"><a href="#L302">302</a>-- 当前配置版本号，来自后端 ColorfulBump2026UserBean.configVersion，用于判断配置和用户数据是否同源。</span>
+<span id="L303" class="line"><a href="#L303">303</a>function Model:getConfigVersion()</span>
+<span id="L304" class="line"><a href="#L304">304</a>    return self:getDataByKey(&quot;configVersion&quot;, 0)</span>
+<span id="L305" class="line"><a href="#L305">305</a>end</span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>-- 是否处于正式游玩阶段；活动阶段以活动时间窗口为准，不依赖后端透传的固定字段。</span>
+<span id="L308" class="line"><a href="#L308">308</a>function Model:isMainPhase()</span>
+<span id="L309" class="line"><a href="#L309">309</a>    return self:isInMainTime()</span>
+<span id="L310" class="line"><a href="#L310">310</a>end</span>
+<span id="L311" class="line"><a href="#L311">311</a></span>
+<span id="L312" class="line"><a href="#L312">312</a>-- 是否处于领奖阶段；活动阶段以活动时间窗口为准，不依赖后端透传的固定字段。</span>
+<span id="L313" class="line"><a href="#L313">313</a>function Model:isRewardPhase()</span>
+<span id="L314" class="line"><a href="#L314">314</a>    return self:isInRewardTime()</span>
+<span id="L315" class="line"><a href="#L315">315</a>end</span>
+<span id="L316" class="line"><a href="#L316">316</a></span>
+<span id="L317" class="line"><a href="#L317">317</a>-- 当前可发射次数，来自后端 userData；发射、道具发放和协议回包成功后更新。</span>
+<span id="L318" class="line"><a href="#L318">318</a>function Model:getLaunchOpportunity()</span>
+<span id="L319" class="line"><a href="#L319">319</a>    return self:getDataByKey(&quot;launchOpportunity&quot;, 0)</span>
+<span id="L320" class="line"><a href="#L320">320</a>end</span>
+<span id="L321" class="line"><a href="#L321">321</a></span>
+<span id="L322" class="line"><a href="#L322">322</a>-- 写回可发射次数；只通过 setDataByKey 修改后端字段，避免绕开 Model 的存储收口。</span>
+<span id="L323" class="line"><a href="#L323">323</a>function Model:setLaunchOpportunity(value, needSave)</span>
+<span id="L324" class="line"><a href="#L324">324</a>    self:setDataByKey(&quot;launchOpportunity&quot;, tonumber(value) or 0, needSave)</span>
+<span id="L325" class="line"><a href="#L325">325</a>end</span>
+<span id="L326" class="line"><a href="#L326">326</a></span>
+<span id="L327" class="line"><a href="#L327">327</a>-- 累加可发射次数；用于服务端成功回包或本地已确认的同步结果回写。</span>
+<span id="L328" class="line"><a href="#L328">328</a>function Model:addLaunchOpportunity(delta)</span>
+<span id="L329" class="line"><a href="#L329">329</a>    self:addDataByKey(&quot;launchOpportunity&quot;, tonumber(delta) or 0)</span>
+<span id="L330" class="line"><a href="#L330">330</a>end</span>
+<span id="L331" class="line"><a href="#L331">331</a></span>
+<span id="L332" class="line"><a href="#L332">332</a>-- 当前能量值，来自后端 userData；磁铁次数会优先按能量消耗配置实时换算。</span>
+<span id="L333" class="line"><a href="#L333">333</a>function Model:getEnergy()</span>
+<span id="L334" class="line"><a href="#L334">334</a>    return self:getDataByKey(&quot;energy&quot;, 0)</span>
+<span id="L335" class="line"><a href="#L335">335</a>end</span>
+<span id="L336" class="line"><a href="#L336">336</a></span>
+<span id="L337" class="line"><a href="#L337">337</a>-- 写回能量值；协议成功后刷新本地后端字段。</span>
+<span id="L338" class="line"><a href="#L338">338</a>function Model:setEnergy(value, needSave)</span>
+<span id="L339" class="line"><a href="#L339">339</a>    self:setDataByKey(&quot;energy&quot;, tonumber(value) or 0, needSave)</span>
+<span id="L340" class="line"><a href="#L340">340</a>end</span>
+<span id="L341" class="line"><a href="#L341">341</a></span>
+<span id="L342" class="line"><a href="#L342">342</a>-- 累加能量值；用于合成、积分兑换等已确认结果。</span>
+<span id="L343" class="line"><a href="#L343">343</a>function Model:addEnergy(delta)</span>
+<span id="L344" class="line"><a href="#L344">344</a>    self:addDataByKey(&quot;energy&quot;, tonumber(delta) or 0)</span>
+<span id="L345" class="line"><a href="#L345">345</a>end</span>
+<span id="L346" class="line"><a href="#L346">346</a></span>
+<span id="L347" class="line"><a href="#L347">347</a>-- 当前 period 初始能量是否已领取；由 mainInfo.userBean.initialEnergyRewardClaimed 下发。</span>
+<span id="L348" class="line"><a href="#L348">348</a>function Model:isInitialEnergyRewardClaimed()</span>
+<span id="L349" class="line"><a href="#L349">349</a>    return self:getDataByKey(&quot;initialEnergyRewardClaimed&quot;, false) == true</span>
+<span id="L350" class="line"><a href="#L350">350</a>end</span>
+<span id="L351" class="line"><a href="#L351">351</a></span>
+<span id="L352" class="line"><a href="#L352">352</a>-- 写回当前 period 初始能量领取标记；领取协议成功后本地立即同步，避免重复请求。</span>
+<span id="L353" class="line"><a href="#L353">353</a>function Model:setInitialEnergyRewardClaimed(claimed, needSave)</span>
+<span id="L354" class="line"><a href="#L354">354</a>    self:setDataByKeyIgnoreNil(&quot;initialEnergyRewardClaimed&quot;, claimed == true, needSave)</span>
+<span id="L355" class="line"><a href="#L355">355</a>end</span>
+<span id="L356" class="line"><a href="#L356">356</a></span>
+<span id="L357" class="line"><a href="#L357">357</a>-- 每次磁铁消耗的能量，来自配置 energy.energyCost。</span>
+<span id="L358" class="line"><a href="#L358">358</a>function Model:getEnergyCost()</span>
+<span id="L359" class="line"><a href="#L359">359</a>    local energyMeta = (self:getCurrentVersionMeta() or {}).energyMeta or {}</span>
+<span id="L360" class="line"><a href="#L360">360</a>    return tonumber(energyMeta.energyCost) or 0</span>
+<span id="L361" class="line"><a href="#L361">361</a>end</span>
+<span id="L362" class="line"><a href="#L362">362</a></span>
+<span id="L363" class="line"><a href="#L363">363</a>-- 根据后端 comboEnergyMetas 区间配置计算当前连击应获得的能量。</span>
+<span id="L364" class="line"><a href="#L364">364</a>function Model:getEnergyByCombo(comboCount)</span>
+<span id="L365" class="line"><a href="#L365">365</a>    comboCount = tonumber(comboCount) or 0</span>
+<span id="L366" class="line"><a href="#L366">366</a>    for _, meta in ipairs((self:getCurrentVersionMeta() or {}).comboEnergyMetas or {}) do</span>
+<span id="L367" class="line"><a href="#L367">367</a>        local minCombo = tonumber(meta.minComboInclusive) or 0</span>
+<span id="L368" class="line"><a href="#L368">368</a>        local maxCombo = tonumber(meta.maxComboInclusive) or -1</span>
+<span id="L369" class="line"><a href="#L369">369</a>        if comboCount &gt;= minCombo and (maxCombo &lt; 0 or comboCount &lt;= maxCombo) then</span>
+<span id="L370" class="line"><a href="#L370">370</a>            return tonumber(meta.energy) or 0</span>
+<span id="L371" class="line"><a href="#L371">371</a>        end</span>
+<span id="L372" class="line"><a href="#L372">372</a>    end</span>
+<span id="L373" class="line"><a href="#L373">373</a>    return 0</span>
+<span id="L374" class="line"><a href="#L374">374</a>end</span>
+<span id="L375" class="line"><a href="#L375">375</a></span>
+<span id="L376" class="line"><a href="#L376">376</a>-- 当前可用磁铁次数；优先由能量和配置实时计算，配置缺失时回退后端字段。</span>
+<span id="L377" class="line"><a href="#L377">377</a>function Model:getMagnetUsableCount()</span>
+<span id="L378" class="line"><a href="#L378">378</a>    local energyCost = self:getEnergyCost()</span>
+<span id="L379" class="line"><a href="#L379">379</a>    if energyCost &gt; 0 then</span>
+<span id="L380" class="line"><a href="#L380">380</a>        return math.floor(self:getEnergy() / energyCost)</span>
+<span id="L381" class="line"><a href="#L381">381</a>    end</span>
+<span id="L382" class="line"><a href="#L382">382</a>    return self:getDataByKey(&quot;magnetUsableCount&quot;, 0)</span>
+<span id="L383" class="line"><a href="#L383">383</a>end</span>
+<span id="L384" class="line"><a href="#L384">384</a></span>
+<span id="L385" class="line"><a href="#L385">385</a>-- 当前积分，来自后端 userData；进度奖励和订单完成都以该值为准。</span>
+<span id="L386" class="line"><a href="#L386">386</a>function Model:getScore()</span>
+<span id="L387" class="line"><a href="#L387">387</a>    return self:getDataByKey(&quot;score&quot;, 0)</span>
+<span id="L388" class="line"><a href="#L388">388</a>end</span>
+<span id="L389" class="line"><a href="#L389">389</a></span>
+<span id="L390" class="line"><a href="#L390">390</a>-- 写回积分；协议成功后刷新本地后端字段。</span>
+<span id="L391" class="line"><a href="#L391">391</a>function Model:setScore(value, needSave)</span>
+<span id="L392" class="line"><a href="#L392">392</a>    self:setDataByKey(&quot;score&quot;, tonumber(value) or 0, needSave)</span>
+<span id="L393" class="line"><a href="#L393">393</a>end</span>
+<span id="L394" class="line"><a href="#L394">394</a></span>
+<span id="L395" class="line"><a href="#L395">395</a>-- 累加积分；用于本地操作同步成功后的权威结果落地。</span>
+<span id="L396" class="line"><a href="#L396">396</a>function Model:addScore(delta)</span>
+<span id="L397" class="line"><a href="#L397">397</a>    self:setScore((tonumber(self:getScore()) or 0) + (tonumber(delta) or 0), true)</span>
+<span id="L398" class="line"><a href="#L398">398</a>end</span>
+<span id="L399" class="line"><a href="#L399">399</a></span>
+<span id="L400" class="line"><a href="#L400">400</a>-- 当前订单队列，来自后端 userData；返回 clone，避免调用方直接改 Model 内部表。</span>
+<span id="L401" class="line"><a href="#L401">401</a>function Model:getOrderQueue()</span>
+<span id="L402" class="line"><a href="#L402">402</a>    return table.clone(self:getDataByKey(&quot;orderQueue&quot;, {}) or {})</span>
+<span id="L403" class="line"><a href="#L403">403</a>end</span>
+<span id="L404" class="line"><a href="#L404">404</a></span>
+<span id="L405" class="line"><a href="#L405">405</a>-- 写回订单队列；只在后端回包或同步成功确认新队列后调用。</span>
+<span id="L406" class="line"><a href="#L406">406</a>function Model:setOrderQueue(orderQueue, needSave)</span>
+<span id="L407" class="line"><a href="#L407">407</a>    self:setDataByKey(&quot;orderQueue&quot;, table.clone(orderQueue or {}), needSave)</span>
+<span id="L408" class="line"><a href="#L408">408</a>end</span>
+<span id="L409" class="line"><a href="#L409">409</a></span>
+<span id="L410" class="line"><a href="#L410">410</a>-- 当前订单目标等级，取订单队列首位。</span>
+<span id="L411" class="line"><a href="#L411">411</a>function Model:getCurrentOrderLevel()</span>
+<span id="L412" class="line"><a href="#L412">412</a>    local orderQueue = self:getOrderQueue()</span>
+<span id="L413" class="line"><a href="#L413">413</a>    return self:getOrderEntryLevel(orderQueue[1])</span>
+<span id="L414" class="line"><a href="#L414">414</a>end</span>
+<span id="L415" class="line"><a href="#L415">415</a></span>
+<span id="L416" class="line"><a href="#L416">416</a>-- 下一个订单目标等级，给 UI 预览和补队列逻辑使用。</span>
+<span id="L417" class="line"><a href="#L417">417</a>function Model:getNextOrderLevel()</span>
+<span id="L418" class="line"><a href="#L418">418</a>    local orderQueue = self:getOrderQueue()</span>
+<span id="L419" class="line"><a href="#L419">419</a>    return self:getOrderEntryLevel(orderQueue[2])</span>
+<span id="L420" class="line"><a href="#L420">420</a>end</span>
+<span id="L421" class="line"><a href="#L421">421</a></span>
+<span id="L422" class="line"><a href="#L422">422</a>-- 兼容旧的纯等级订单队列和新后端 OrderEntryBean。</span>
+<span id="L423" class="line"><a href="#L423">423</a>function Model:getOrderEntryLevel(entry)</span>
+<span id="L424" class="line"><a href="#L424">424</a>    if type(entry) == &quot;table&quot; then</span>
+<span id="L425" class="line"><a href="#L425">425</a>        return tonumber(entry.level)</span>
+<span id="L426" class="line"><a href="#L426">426</a>    end</span>
+<span id="L427" class="line"><a href="#L427">427</a>    return tonumber(entry)</span>
+<span id="L428" class="line"><a href="#L428">428</a>end</span>
+<span id="L429" class="line"><a href="#L429">429</a></span>
+<span id="L430" class="line"><a href="#L430">430</a>-- 当前棋盘快照，来自后端 userData.boardSnapshot；返回 clone，避免外部直接修改缓存。</span>
+<span id="L431" class="line"><a href="#L431">431</a>function Model:getBoardSnapshot()</span>
+<span id="L432" class="line"><a href="#L432">432</a>    return table.clone(self:getDataByKey(&quot;boardSnapshot&quot;, {}) or {})</span>
+<span id="L433" class="line"><a href="#L433">433</a>end</span>
+<span id="L434" class="line"><a href="#L434">434</a></span>
+<span id="L435" class="line"><a href="#L435">435</a>-- 写回棋盘快照；用于同步协议成功后保存服务端认可的棋盘状态。</span>
+<span id="L436" class="line"><a href="#L436">436</a>function Model:setBoardSnapshot(snapshot, needSave)</span>
+<span id="L437" class="line"><a href="#L437">437</a>    self:setDataByKey(&quot;boardSnapshot&quot;, table.clone(snapshot or {}), needSave)</span>
+<span id="L438" class="line"><a href="#L438">438</a>end</span>
+<span id="L439" class="line"><a href="#L439">439</a></span>
+<span id="L440" class="line"><a href="#L440">440</a>-- 当前待发射棋子，来自后端 boardSnapshot.nextCup；面板初始化必须读取该值，不本地重抽。</span>
+<span id="L441" class="line"><a href="#L441">441</a>function Model:getNextCup()</span>
+<span id="L442" class="line"><a href="#L442">442</a>    local snapshot = self:getBoardSnapshot()</span>
+<span id="L443" class="line"><a href="#L443">443</a>    return table.clone(snapshot.nextCup or {})</span>
+<span id="L444" class="line"><a href="#L444">444</a>end</span>
+<span id="L445" class="line"><a href="#L445">445</a></span>
+<span id="L446" class="line"><a href="#L446">446</a>-- 写回 boardSnapshot.nextCup；真实发射成功后生成的新 nextCup 要和 shoot op 及断面一致。</span>
+<span id="L447" class="line"><a href="#L447">447</a>function Model:setNextCup(nextCup, needSave)</span>
+<span id="L448" class="line"><a href="#L448">448</a>    local snapshot = self:getBoardSnapshot()</span>
+<span id="L449" class="line"><a href="#L449">449</a>    snapshot.nextCup = table.clone(nextCup or {})</span>
+<span id="L450" class="line"><a href="#L450">450</a>    self:setBoardSnapshot(snapshot, needSave)</span>
+<span id="L451" class="line"><a href="#L451">451</a>end</span>
+<span id="L452" class="line"><a href="#L452">452</a></span>
+<span id="L453" class="line"><a href="#L453">453</a>-- 最近一次服务端确认的操作序号，来自后端 userData.lastSeq。</span>
+<span id="L454" class="line"><a href="#L454">454</a>function Model:getLastSeq()</span>
+<span id="L455" class="line"><a href="#L455">455</a>    return self:getDataByKey(&quot;lastSeq&quot;, 0)</span>
+<span id="L456" class="line"><a href="#L456">456</a>end</span>
+<span id="L457" class="line"><a href="#L457">457</a></span>
+<span id="L458" class="line"><a href="#L458">458</a>-- 写回最近确认序号；操作队列同步成功后用于续传和去重。</span>
+<span id="L459" class="line"><a href="#L459">459</a>function Model:setLastSeq(lastSeq, needSave)</span>
+<span id="L460" class="line"><a href="#L460">460</a>    self:setDataByKey(&quot;lastSeq&quot;, tonumber(lastSeq) or 0, needSave)</span>
+<span id="L461" class="line"><a href="#L461">461</a>end</span>
+<span id="L462" class="line"><a href="#L462">462</a></span>
+<span id="L463" class="line"><a href="#L463">463</a>-- 服务端记录的最大棋子 ID；所有新增棋子都必须从 maxCupId + 1 继续。</span>
+<span id="L464" class="line"><a href="#L464">464</a>function Model:getMaxCupId()</span>
+<span id="L465" class="line"><a href="#L465">465</a>    return self:getDataByKey(&quot;maxCupId&quot;)</span>
+<span id="L466" class="line"><a href="#L466">466</a>end</span>
+<span id="L467" class="line"><a href="#L467">467</a></span>
+<span id="L468" class="line"><a href="#L468">468</a>-- 写回最大棋子 ID；Runtime 每新增一颗棋子后推进。</span>
+<span id="L469" class="line"><a href="#L469">469</a>function Model:setMaxCupId(maxCupId, needSave)</span>
+<span id="L470" class="line"><a href="#L470">470</a>    self:setDataByKey(&quot;maxCupId&quot;, tonumber(maxCupId) or 0, needSave)</span>
+<span id="L471" class="line"><a href="#L471">471</a>end</span>
+<span id="L472" class="line"><a href="#L472">472</a></span>
+<span id="L473" class="line"><a href="#L473">473</a>-- 已领取普通进度奖励节点 ID 列表；后端只返回 lastClaimedRewardIndex，这里为现有 UI 派生展示口径。</span>
+<span id="L474" class="line"><a href="#L474">474</a>function Model:getNormalRewardClaimedIds()</span>
+<span id="L475" class="line"><a href="#L475">475</a>    local lastClaimedIndex = tonumber(self:getDataByKey(&quot;lastClaimedRewardIndex&quot;, 0)) or 0</span>
+<span id="L476" class="line"><a href="#L476">476</a>    local ids = {}</span>
+<span id="L477" class="line"><a href="#L477">477</a>    local normalProgress = self:getNormalProgressConfig() or {}</span>
+<span id="L478" class="line"><a href="#L478">478</a>    for index, nodeCfg in ipairs(normalProgress) do</span>
+<span id="L479" class="line"><a href="#L479">479</a>        local rewardIndex = tonumber(nodeCfg.nodeId) or tonumber(nodeCfg.incrementScore) or 0</span>
+<span id="L480" class="line"><a href="#L480">480</a>        if rewardIndex &gt; 0 and index &lt;= lastClaimedIndex then</span>
+<span id="L481" class="line"><a href="#L481">481</a>            ids[#ids + 1] = rewardIndex</span>
+<span id="L482" class="line"><a href="#L482">482</a>        end</span>
+<span id="L483" class="line"><a href="#L483">483</a>    end</span>
+<span id="L484" class="line"><a href="#L484">484</a>    return ids</span>
+<span id="L485" class="line"><a href="#L485">485</a>end</span>
+<span id="L486" class="line"><a href="#L486">486</a></span>
+<span id="L487" class="line"><a href="#L487">487</a>-- 已领取无尽进度奖励索引列表；后端只返回 lastClaimedRewardIndex，这里为现有 UI 派生展示口径。</span>
+<span id="L488" class="line"><a href="#L488">488</a>function Model:getEndlessRewardClaimedIndexes()</span>
+<span id="L489" class="line"><a href="#L489">489</a>    local lastClaimedIndex = tonumber(self:getDataByKey(&quot;lastClaimedRewardIndex&quot;, 0)) or 0</span>
+<span id="L490" class="line"><a href="#L490">490</a>    local endlessClaimedCount = lastClaimedIndex - #(self:getNormalProgressConfig() or {})</span>
+<span id="L491" class="line"><a href="#L491">491</a>    local indexes = {}</span>
+<span id="L492" class="line"><a href="#L492">492</a>    for index = 1, math.max(endlessClaimedCount, 0) do</span>
+<span id="L493" class="line"><a href="#L493">493</a>        indexes[#indexes + 1] = index</span>
+<span id="L494" class="line"><a href="#L494">494</a>    end</span>
+<span id="L495" class="line"><a href="#L495">495</a>    return indexes</span>
+<span id="L496" class="line"><a href="#L496">496</a>end</span>
+<span id="L497" class="line"><a href="#L497">497</a></span>
+<span id="L498" class="line"><a href="#L498">498</a>-- 20% 加分 buff 到期时间，来自后端 userData；后端按字符串毫秒时间戳下发，Model 保持原值。</span>
+<span id="L499" class="line"><a href="#L499">499</a>function Model:getScoreBuff20EndTime()</span>
+<span id="L500" class="line"><a href="#L500">500</a>    return self:getDataByKey(&quot;scoreBuff20EndTime&quot;, &quot;0&quot;)</span>
+<span id="L501" class="line"><a href="#L501">501</a>end</span>
+<span id="L502" class="line"><a href="#L502">502</a></span>
+<span id="L503" class="line"><a href="#L503">503</a>-- 叠加 20% 加分 buff 时长；customGain 的 reward.num 语义为分钟，内部换算成毫秒结束时间。</span>
+<span id="L504" class="line"><a href="#L504">504</a>function Model:addScoreBuff20Time(minutes)</span>
+<span id="L505" class="line"><a href="#L505">505</a>    self:setDataByKey(&quot;scoreBuff20EndTime&quot;, self:_calcAddedBuffEndTime(self:getScoreBuff20EndTime(), minutes), true)</span>
+<span id="L506" class="line"><a href="#L506">506</a>end</span>
+<span id="L507" class="line"><a href="#L507">507</a></span>
+<span id="L508" class="line"><a href="#L508">508</a>-- 双倍收集物 buff 到期时间，来自后端 userData；后端按字符串毫秒时间戳下发，Model 保持原值。</span>
+<span id="L509" class="line"><a href="#L509">509</a>function Model:getDoubleCollectBuffEndTime()</span>
+<span id="L510" class="line"><a href="#L510">510</a>    return self:getDataByKey(&quot;doubleCollectBuffEndTime&quot;, &quot;0&quot;)</span>
+<span id="L511" class="line"><a href="#L511">511</a>end</span>
+<span id="L512" class="line"><a href="#L512">512</a></span>
+<span id="L513" class="line"><a href="#L513">513</a>-- 叠加双倍收集物 buff 时长；customGain 的 reward.num 语义为分钟，内部换算成毫秒结束时间。</span>
+<span id="L514" class="line"><a href="#L514">514</a>function Model:addDoubleCollectBuffTime(minutes)</span>
+<span id="L515" class="line"><a href="#L515">515</a>    self:setDataByKey(&quot;doubleCollectBuffEndTime&quot;, self:_calcAddedBuffEndTime(self:getDoubleCollectBuffEndTime(), minutes), true)</span>
+<span id="L516" class="line"><a href="#L516">516</a>end</span>
+<span id="L517" class="line"><a href="#L517">517</a></span>
+<span id="L518" class="line"><a href="#L518">518</a>-- 按当前过期时间叠加 buff 时长；未生效则从当前时间重新计算，保存形态保持后端字符串毫秒时间戳。</span>
+<span id="L519" class="line"><a href="#L519">519</a>function Model:_calcAddedBuffEndTime(currentEndTime, minutes)</span>
+<span id="L520" class="line"><a href="#L520">520</a>    local now = TimeKit:timeInMillis()</span>
+<span id="L521" class="line"><a href="#L521">521</a>    local endTime = tonumber(currentEndTime) or 0</span>
+<span id="L522" class="line"><a href="#L522">522</a>    local addMillis = (tonumber(minutes) or 0) * 60 * 1000</span>
+<span id="L523" class="line"><a href="#L523">523</a>    if now &lt; endTime then</span>
+<span id="L524" class="line"><a href="#L524">524</a>        return tostring(endTime + addMillis)</span>
+<span id="L525" class="line"><a href="#L525">525</a>    end</span>
+<span id="L526" class="line"><a href="#L526">526</a>    return tostring(now + addMillis)</span>
+<span id="L527" class="line"><a href="#L527">527</a>end</span>
+<span id="L528" class="line"><a href="#L528">528</a></span>
+<span id="L529" class="line"><a href="#L529">529</a>-- 判断当前是否有 20% 加分 buff；比较时局部转数字，不改变后端字符串字段形态。</span>
+<span id="L530" class="line"><a href="#L530">530</a>function Model:hasScoreBuff20(now)</span>
+<span id="L531" class="line"><a href="#L531">531</a>    now = now or TimeKit:timeInMillis()</span>
+<span id="L532" class="line"><a href="#L532">532</a>    return (tonumber(self:getScoreBuff20EndTime()) or 0) &gt; now</span>
+<span id="L533" class="line"><a href="#L533">533</a>end</span>
+<span id="L534" class="line"><a href="#L534">534</a></span>
+<span id="L535" class="line"><a href="#L535">535</a>-- 判断当前是否有双倍收集物 buff；比较时局部转数字，不改变后端字符串字段形态。</span>
+<span id="L536" class="line"><a href="#L536">536</a>function Model:hasDoubleCollectBuff(now)</span>
+<span id="L537" class="line"><a href="#L537">537</a>    now = now or TimeKit:timeInMillis()</span>
+<span id="L538" class="line"><a href="#L538">538</a>    return (tonumber(self:getDoubleCollectBuffEndTime()) or 0) &gt; now</span>
+<span id="L539" class="line"><a href="#L539">539</a>end</span>
+<span id="L540" class="line"><a href="#L540">540</a></span>
+<span id="L541" class="line"><a href="#L541">541</a>-- 是否存在可领取进度奖励，来自后端聚合标记；红点和领奖入口使用。</span>
+<span id="L542" class="line"><a href="#L542">542</a>function Model:hasClaimableReward()</span>
+<span id="L543" class="line"><a href="#L543">543</a>    return self:getDataByKey(&quot;hasClaimableReward&quot;, false) == true</span>
+<span id="L544" class="line"><a href="#L544">544</a>end</span>
+<span id="L545" class="line"><a href="#L545">545</a></span>
+<span id="L546" class="line"><a href="#L546">546</a>-- 写回可领奖标记；领奖协议成功或服务端同步刷新后调用。</span>
+<span id="L547" class="line"><a href="#L547">547</a>function Model:setHasClaimableReward(value, needSave)</span>
+<span id="L548" class="line"><a href="#L548">548</a>    self:setDataByKey(&quot;hasClaimableReward&quot;, value == true, needSave)</span>
+<span id="L549" class="line"><a href="#L549">549</a>end</span>
+<span id="L550" class="line"><a href="#L550">550</a></span>
+<span id="L551" class="line"><a href="#L551">551</a>-- 当前是否有可领取进度奖励；优先尊重后端聚合标记，缺失或未刷新时按本地分数与配置兜底计算。</span>
+<span id="L552" class="line"><a href="#L552">552</a>function Model:hasProgressRewardToClaim()</span>
+<span id="L553" class="line"><a href="#L553">553</a>    if self:hasClaimableReward() then</span>
+<span id="L554" class="line"><a href="#L554">554</a>        return true</span>
+<span id="L555" class="line"><a href="#L555">555</a>    end</span>
+<span id="L556" class="line"><a href="#L556">556</a>    return self:_hasNormalProgressRewardToClaim() or self:_hasEndlessProgressRewardToClaim()</span>
+<span id="L557" class="line"><a href="#L557">557</a>end</span>
+<span id="L558" class="line"><a href="#L558">558</a></span>
+<span id="L559" class="line"><a href="#L559">559</a>-- 普通进度奖励按累计阈值和全局已领游标判断。</span>
+<span id="L560" class="line"><a href="#L560">560</a>function Model:_hasNormalProgressRewardToClaim()</span>
+<span id="L561" class="line"><a href="#L561">561</a>    local score = tonumber(self:getScore()) or 0</span>
+<span id="L562" class="line"><a href="#L562">562</a>    local lastClaimedIndex = tonumber(self:getDataByKey(&quot;lastClaimedRewardIndex&quot;, 0)) or 0</span>
+<span id="L563" class="line"><a href="#L563">563</a>    for index, nodeCfg in ipairs(self:getNormalProgressConfig() or {}) do</span>
+<span id="L564" class="line"><a href="#L564">564</a>        if index &gt; lastClaimedIndex and score &gt;= (tonumber(nodeCfg.incrementScore) or 0) then</span>
+<span id="L565" class="line"><a href="#L565">565</a>            return true</span>
+<span id="L566" class="line"><a href="#L566">566</a>        end</span>
+<span id="L567" class="line"><a href="#L567">567</a>    end</span>
+<span id="L568" class="line"><a href="#L568">568</a>    return false</span>
+<span id="L569" class="line"><a href="#L569">569</a>end</span>
+<span id="L570" class="line"><a href="#L570">570</a></span>
+<span id="L571" class="line"><a href="#L571">571</a>-- 无尽进度奖励按普通进度结束后的循环节点数判断。</span>
+<span id="L572" class="line"><a href="#L572">572</a>function Model:_hasEndlessProgressRewardToClaim()</span>
+<span id="L573" class="line"><a href="#L573">573</a>    local normalCount = #(self:getNormalProgressConfig() or {})</span>
+<span id="L574" class="line"><a href="#L574">574</a>    local claimedEndlessCount = math.max(0, (tonumber(self:getDataByKey(&quot;lastClaimedRewardIndex&quot;, 0)) or 0) - normalCount)</span>
+<span id="L575" class="line"><a href="#L575">575</a>    local completedEndlessCount = self:_getCompletedEndlessRewardCount()</span>
+<span id="L576" class="line"><a href="#L576">576</a>    return completedEndlessCount &gt; claimedEndlessCount</span>
+<span id="L577" class="line"><a href="#L577">577</a>end</span>
+<span id="L578" class="line"><a href="#L578">578</a></span>
+<span id="L579" class="line"><a href="#L579">579</a>-- 根据当前总分计算已达成的无尽奖励节点数量。</span>
+<span id="L580" class="line"><a href="#L580">580</a>function Model:_getCompletedEndlessRewardCount()</span>
+<span id="L581" class="line"><a href="#L581">581</a>    local normalEndScore = self:_getNormalProgressEndScore()</span>
+<span id="L582" class="line"><a href="#L582">582</a>    local remainScore = (tonumber(self:getScore()) or 0) - normalEndScore</span>
+<span id="L583" class="line"><a href="#L583">583</a>    if remainScore &lt;= 0 then return 0 end</span>
+<span id="L584" class="line"><a href="#L584">584</a></span>
+<span id="L585" class="line"><a href="#L585">585</a>    local endlessList = self:getEndlessProgressConfig() or {}</span>
+<span id="L586" class="line"><a href="#L586">586</a>    if table.isEmpty(endlessList) then return 0 end</span>
+<span id="L587" class="line"><a href="#L587">587</a></span>
+<span id="L588" class="line"><a href="#L588">588</a>    local count = 0</span>
+<span id="L589" class="line"><a href="#L589">589</a>    while remainScore &gt; 0 do</span>
+<span id="L590" class="line"><a href="#L590">590</a>        local progressed = false</span>
+<span id="L591" class="line"><a href="#L591">591</a>        for _, nodeCfg in ipairs(endlessList) do</span>
+<span id="L592" class="line"><a href="#L592">592</a>            local needScore = tonumber(nodeCfg.incrementScore) or 0</span>
+<span id="L593" class="line"><a href="#L593">593</a>            if needScore &gt; 0 then</span>
+<span id="L594" class="line"><a href="#L594">594</a>                if remainScore &gt;= needScore then</span>
+<span id="L595" class="line"><a href="#L595">595</a>                    count = count + 1</span>
+<span id="L596" class="line"><a href="#L596">596</a>                    remainScore = remainScore - needScore</span>
+<span id="L597" class="line"><a href="#L597">597</a>                    progressed = true</span>
+<span id="L598" class="line"><a href="#L598">598</a>                else</span>
+<span id="L599" class="line"><a href="#L599">599</a>                    return count</span>
+<span id="L600" class="line"><a href="#L600">600</a>                end</span>
+<span id="L601" class="line"><a href="#L601">601</a>            end</span>
+<span id="L602" class="line"><a href="#L602">602</a>        end</span>
+<span id="L603" class="line"><a href="#L603">603</a>        if not progressed then return count end</span>
+<span id="L604" class="line"><a href="#L604">604</a>    end</span>
+<span id="L605" class="line"><a href="#L605">605</a>    return count</span>
+<span id="L606" class="line"><a href="#L606">606</a>end</span>
+<span id="L607" class="line"><a href="#L607">607</a></span>
+<span id="L608" class="line"><a href="#L608">608</a>-- 普通进度的最终累计分数，用于无尽奖励起点换算。</span>
+<span id="L609" class="line"><a href="#L609">609</a>function Model:_getNormalProgressEndScore()</span>
+<span id="L610" class="line"><a href="#L610">610</a>    local score = 0</span>
+<span id="L611" class="line"><a href="#L611">611</a>    for _, nodeCfg in ipairs(self:getNormalProgressConfig() or {}) do</span>
+<span id="L612" class="line"><a href="#L612">612</a>        score = math.max(score, tonumber(nodeCfg.incrementScore) or 0)</span>
+<span id="L613" class="line"><a href="#L613">613</a>    end</span>
+<span id="L614" class="line"><a href="#L614">614</a>    return score</span>
+<span id="L615" class="line"><a href="#L615">615</a>end</span>
+<span id="L616" class="line"><a href="#L616">616</a></span>
+<span id="L617" class="line"><a href="#L617">617</a>-- 获取杯子等级配置，直接来自后端 pieceMetas。</span>
+<span id="L618" class="line"><a href="#L618">618</a>function Model:getCupLevelConfig(level)</span>
+<span id="L619" class="line"><a href="#L619">619</a>    return self:getPieceMeta(level)</span>
+<span id="L620" class="line"><a href="#L620">620</a>end</span>
+<span id="L621" class="line"><a href="#L621">621</a></span>
+<span id="L622" class="line"><a href="#L622">622</a>-- 获取指定杯子等级订单积分，来自后端 PieceMeta.orderScore。</span>
+<span id="L623" class="line"><a href="#L623">623</a>function Model:getScoreByLevel(level)</span>
+<span id="L624" class="line"><a href="#L624">624</a>    return tonumber(self:getPieceMeta(level).orderScore) or 0</span>
+<span id="L625" class="line"><a href="#L625">625</a>end</span>
+<span id="L626" class="line"><a href="#L626">626</a></span>
+<span id="L627" class="line"><a href="#L627">627</a>-- 获取普通进度奖励配置；requiredScore 是后端增量，这里只为现有进度 UI 计算累计展示坐标。</span>
+<span id="L628" class="line"><a href="#L628">628</a>function Model:getNormalProgressConfig()</span>
+<span id="L629" class="line"><a href="#L629">629</a>    local ret = {}</span>
+<span id="L630" class="line"><a href="#L630">630</a>    local accumulatedScore = 0</span>
+<span id="L631" class="line"><a href="#L631">631</a>    for _, rewardMeta in ipairs((self:getCurrentVersionMeta() or {}).progressRewardMetas or {}) do</span>
+<span id="L632" class="line"><a href="#L632">632</a>        accumulatedScore = accumulatedScore + (tonumber(rewardMeta.requiredScore) or 0)</span>
+<span id="L633" class="line"><a href="#L633">633</a>        ret[#ret + 1] = {</span>
+<span id="L634" class="line"><a href="#L634">634</a>            nodeId = tonumber(rewardMeta.rewardId) or #ret + 1,</span>
+<span id="L635" class="line"><a href="#L635">635</a>            incrementScore = accumulatedScore,</span>
+<span id="L636" class="line"><a href="#L636">636</a>            rewardList = table.clone(rewardMeta.rewardItems or {}),</span>
+<span id="L637" class="line"><a href="#L637">637</a>        }</span>
+<span id="L638" class="line"><a href="#L638">638</a>    end</span>
+<span id="L639" class="line"><a href="#L639">639</a>    return ret</span>
+<span id="L640" class="line"><a href="#L640">640</a>end</span>
+<span id="L641" class="line"><a href="#L641">641</a></span>
+<span id="L642" class="line"><a href="#L642">642</a>-- 获取无尽进度奖励配置；无尽节点保持后端 requiredScore 的单段增量。</span>
+<span id="L643" class="line"><a href="#L643">643</a>function Model:getEndlessProgressConfig()</span>
+<span id="L644" class="line"><a href="#L644">644</a>    local ret = {}</span>
+<span id="L645" class="line"><a href="#L645">645</a>    for _, rewardMeta in ipairs((self:getCurrentVersionMeta() or {}).endlessRewardMetas or {}) do</span>
+<span id="L646" class="line"><a href="#L646">646</a>        ret[#ret + 1] = {</span>
+<span id="L647" class="line"><a href="#L647">647</a>            cycleId = tonumber(rewardMeta.rewardId) or #ret + 1,</span>
+<span id="L648" class="line"><a href="#L648">648</a>            incrementScore = tonumber(rewardMeta.requiredScore) or 0,</span>
+<span id="L649" class="line"><a href="#L649">649</a>            rewardList = table.clone(rewardMeta.rewardItems or {}),</span>
+<span id="L650" class="line"><a href="#L650">650</a>        }</span>
+<span id="L651" class="line"><a href="#L651">651</a>    end</span>
+<span id="L652" class="line"><a href="#L652">652</a>    return ret</span>
+<span id="L653" class="line"><a href="#L653">653</a>end</span>
+<span id="L654" class="line"><a href="#L654">654</a></span>
+<span id="L655" class="line"><a href="#L655">655</a>-- 获取同步配置段，包含批量上限和高等级即时同步阈值。</span>
+<span id="L656" class="line"><a href="#L656">656</a>function Model:getSyncConfig()</span>
+<span id="L657" class="line"><a href="#L657">657</a>    return {</span>
+<span id="L658" class="line"><a href="#L658">658</a>        maxBatchCount = tonumber(Config.Sync and Config.Sync.maxBatchCount) or 10,</span>
+<span id="L659" class="line"><a href="#L659">659</a>        highLevelSyncThreshold = tonumber((self:getCurrentVersionMeta() or {}).highLevelSyncThreshold) or 0,</span>
+<span id="L660" class="line"><a href="#L660">660</a>    }</span>
+<span id="L661" class="line"><a href="#L661">661</a>end</span>
+<span id="L662" class="line"><a href="#L662">662</a></span>
+<span id="L663" class="line"><a href="#L663">663</a>-- 获取高等级杯子即时同步阈值；达到该等级的关键操作需要更及时同步。</span>
+<span id="L664" class="line"><a href="#L664">664</a>function Model:getHighLevelSyncThreshold()</span>
+<span id="L665" class="line"><a href="#L665">665</a>    local syncConfig = self:getSyncConfig()</span>
+<span id="L666" class="line"><a href="#L666">666</a>    return tonumber(syncConfig.highLevelSyncThreshold) or 0</span>
+<span id="L667" class="line"><a href="#L667">667</a>end</span>
+<span id="L668" class="line"><a href="#L668">668</a></span>
+<span id="L669" class="line"><a href="#L669">669</a>return Model</span></pre></main></html>

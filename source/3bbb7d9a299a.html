@@ -1,0 +1,70 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/dailylevel/LocalPush.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="3bbb7d9a299a.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/dailylevel/LocalPush.lua</h1><p>SHA256 1e1719c116546023fbaf370b1bc9f82ff1819a8a87425ec89a5f31a0342db20c</p><pre><span id="L1" class="line"><a href="#L1">1</a>local LocalPush = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local MAIN_PUSH_TYPE = 71</span>
+<span id="L4" class="line"><a href="#L4">4</a>local AWARD_PUSH_TYPE = 72</span>
+<span id="L5" class="line"><a href="#L5">5</a>local PUSH_HOUR = 18</span>
+<span id="L6" class="line"><a href="#L6">6</a>local SECONDS_PER_HOUR = 3600</span>
+<span id="L7" class="line"><a href="#L7">7</a>local SECONDS_PER_DAY = 86400</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>-- 注册一条指定时间的本地推送，文案由 notification_v2 配置提供。</span>
+<span id="L10" class="line"><a href="#L10">10</a>local function addPush(pushType, timeStamp)</span>
+<span id="L11" class="line"><a href="#L11">11</a>    _G.amfTransaction(TransactionEvent.LOCALPUSH, {</span>
+<span id="L12" class="line"><a href="#L12">12</a>        action = &quot;add&quot;,</span>
+<span id="L13" class="line"><a href="#L13">13</a>        type = pushType,</span>
+<span id="L14" class="line"><a href="#L14">14</a>        timeStamp = timeStamp,</span>
+<span id="L15" class="line"><a href="#L15">15</a>    })</span>
+<span id="L16" class="line"><a href="#L16">16</a>end</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>-- 两个推送类型由每日夺宝独占，重新计算前先删除旧推送。</span>
+<span id="L19" class="line"><a href="#L19">19</a>function LocalPush:cancel()</span>
+<span id="L20" class="line"><a href="#L20">20</a>    if not LocalPushConst or EnvUtil:isMiniGame() then return end</span>
+<span id="L21" class="line"><a href="#L21">21</a>    for _, pushType in ipairs({MAIN_PUSH_TYPE, AWARD_PUSH_TYPE}) do</span>
+<span id="L22" class="line"><a href="#L22">22</a>        _G.amfTransaction(TransactionEvent.LOCALPUSH, {</span>
+<span id="L23" class="line"><a href="#L23">23</a>            action = &quot;remove&quot;,</span>
+<span id="L24" class="line"><a href="#L24">24</a>            type = pushType,</span>
+<span id="L25" class="line"><a href="#L25">25</a>        })</span>
+<span id="L26" class="line"><a href="#L26">26</a>    end</span>
+<span id="L27" class="line"><a href="#L27">27</a>end</span>
+<span id="L28" class="line"><a href="#L28">28</a></span>
+<span id="L29" class="line"><a href="#L29">29</a>function LocalPush:register(mgr)</span>
+<span id="L30" class="line"><a href="#L30">30</a>    if not LocalPushConst or EnvUtil:isMiniGame() then return end</span>
+<span id="L31" class="line"><a href="#L31">31</a>    -- 每次进入后台都以最新活动数据重建，避免保留已经失效或已领取的推送。</span>
+<span id="L32" class="line"><a href="#L32">32</a>    self:cancel()</span>
+<span id="L33" class="line"><a href="#L33">33</a></span>
+<span id="L34" class="line"><a href="#L34">34</a>    -- 活动时间由服务端以毫秒下发，本地推送接口使用秒。</span>
+<span id="L35" class="line"><a href="#L35">35</a>    local now = TimeKit:timeInSec()</span>
+<span id="L36" class="line"><a href="#L36">36</a>    local beginTime = TimeKit:tryConvertMsToSec(mgr:getDataValue(&quot;beginTime&quot;, 0))</span>
+<span id="L37" class="line"><a href="#L37">37</a>    local mainEndTime = TimeKit:tryConvertMsToSec(mgr:getDataValue(&quot;mainEndTime&quot;, 0))</span>
+<span id="L38" class="line"><a href="#L38">38</a>    local endTime = TimeKit:tryConvertMsToSec(mgr:getDataValue(&quot;endTime&quot;, 0))</span>
+<span id="L39" class="line"><a href="#L39">39</a>    if not beginTime or not mainEndTime or not endTime or now &gt;= endTime then return end</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>    -- 遍历正式期内从今天开始的每一天，只在周六、周日的 18:00 推送。</span>
+<span id="L42" class="line"><a href="#L42">42</a>    local todayStart = TimeKit:getDayStartTimeByTS(now)</span>
+<span id="L43" class="line"><a href="#L43">43</a>    local dayStart = TimeKit:getDayStartTimeByTS(math.max(now, beginTime))</span>
+<span id="L44" class="line"><a href="#L44">44</a>    while dayStart &lt; mainEndTime do</span>
+<span id="L45" class="line"><a href="#L45">45</a>        local pushTime = dayStart + PUSH_HOUR * SECONDS_PER_HOUR</span>
+<span id="L46" class="line"><a href="#L46">46</a>        -- 当天使用当前剩余次数判断；未来日期按跨天会刷新一次免费机会进行预测。</span>
+<span id="L47" class="line"><a href="#L47">47</a>        -- now &lt; beginTime 表示活动尚未开始，此时首日也应按未来日期处理。</span>
+<span id="L48" class="line"><a href="#L48">48</a>        local hasPlayCount = dayStart &gt; todayStart or now &lt; beginTime or mgr:getMsgNum() &gt; 0</span>
+<span id="L49" class="line"><a href="#L49">49</a>        -- 只添加尚未到达、且完整落在正式期内的周末 18:00 推送；18:00 后不补发当天推送。</span>
+<span id="L50" class="line"><a href="#L50">50</a>        if pushTime &gt; now and pushTime &gt;= beginTime and pushTime &lt; mainEndTime</span>
+<span id="L51" class="line"><a href="#L51">51</a>            and isWeekend(pushTime) and hasPlayCount then</span>
+<span id="L52" class="line"><a href="#L52">52</a>            addPush(MAIN_PUSH_TYPE, pushTime)</span>
+<span id="L53" class="line"><a href="#L53">53</a>        end</span>
+<span id="L54" class="line"><a href="#L54">54</a>        dayStart = dayStart + SECONDS_PER_DAY</span>
+<span id="L55" class="line"><a href="#L55">55</a>    end</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>    -- 不要求当前已经进入领奖期，按现有宝箱和奖券数据预测领奖期是否有奖可领。</span>
+<span id="L58" class="line"><a href="#L58">58</a>    if not mgr:canClaimAwardReward() then return end</span>
+<span id="L59" class="line"><a href="#L59">59</a>    -- 有奖可领时，为领奖期内每一天的 18:00 注册推送，已过 18:00 的当天不再补发。</span>
+<span id="L60" class="line"><a href="#L60">60</a>    dayStart = TimeKit:getDayStartTimeByTS(math.max(now, mainEndTime))</span>
+<span id="L61" class="line"><a href="#L61">61</a>    while dayStart &lt; endTime do</span>
+<span id="L62" class="line"><a href="#L62">62</a>        local pushTime = dayStart + PUSH_HOUR * SECONDS_PER_HOUR</span>
+<span id="L63" class="line"><a href="#L63">63</a>        if pushTime &gt; now and pushTime &gt;= mainEndTime and pushTime &lt; endTime then</span>
+<span id="L64" class="line"><a href="#L64">64</a>            addPush(AWARD_PUSH_TYPE, pushTime)</span>
+<span id="L65" class="line"><a href="#L65">65</a>        end</span>
+<span id="L66" class="line"><a href="#L66">66</a>        dayStart = dayStart + SECONDS_PER_DAY</span>
+<span id="L67" class="line"><a href="#L67">67</a>    end</span>
+<span id="L68" class="line"><a href="#L68">68</a>end</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>return LocalPush</span></pre></main></html>

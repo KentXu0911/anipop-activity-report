@@ -1,0 +1,101 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/luckybagparty/LuckyBagPartyLocalServer.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="f1f2aa1ada3a.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/luckybagparty/LuckyBagPartyLocalServer.lua</h1><p>SHA256 3322360ef179c697e4555f3d73d5f4a7b037fc54481d8b8093163c0dc470f9cf</p><pre><span id="L1" class="line"><a href="#L1">1</a>local ActivityName = &quot;LuckyBagParty&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local LocalServer = class(ActivityName .. &quot;LocalServer&quot;, AMFDataRef)</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>function LocalServer:__installPlugs()</span>
+<span id="L5" class="line"><a href="#L5">5</a>    self:installPlug(AMFDataPlugsType.STORAGE, {</span>
+<span id="L6" class="line"><a href="#L6">6</a>        fileName = ActivityName .. &quot;LocalServer&quot;,</span>
+<span id="L7" class="line"><a href="#L7">7</a>    }):as(&quot;db&quot;)</span>
+<span id="L8" class="line"><a href="#L8">8</a>end</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>function LocalServer:__declare()</span>
+<span id="L11" class="line"><a href="#L11">11</a>    self.data = {}</span>
+<span id="L12" class="line"><a href="#L12">12</a>    self.localConfig = {}</span>
+<span id="L13" class="line"><a href="#L13">13</a>end</span>
+<span id="L14" class="line"><a href="#L14">14</a></span>
+<span id="L15" class="line"><a href="#L15">15</a>function LocalServer:clearAll()</span>
+<span id="L16" class="line"><a href="#L16">16</a>    self:setValue(&quot;data&quot;, {})</span>
+<span id="L17" class="line"><a href="#L17">17</a>    self:setValue(&quot;localConfig&quot;, {})</span>
+<span id="L18" class="line"><a href="#L18">18</a>    self:flush()</span>
+<span id="L19" class="line"><a href="#L19">19</a>end</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>function LocalServer:fromServer(serverData,skipSaveLocal)</span>
+<span id="L22" class="line"><a href="#L22">22</a>	for k,v in pairs(serverData) do</span>
+<span id="L23" class="line"><a href="#L23">23</a>        if k == &quot;extra&quot; then</span>
+<span id="L24" class="line"><a href="#L24">24</a>            for kk,vv in pairs(v) do</span>
+<span id="L25" class="line"><a href="#L25">25</a>                self:setValue(&quot;data.&quot; .. kk, vv)</span>
+<span id="L26" class="line"><a href="#L26">26</a>            end</span>
+<span id="L27" class="line"><a href="#L27">27</a>        else</span>
+<span id="L28" class="line"><a href="#L28">28</a>            self:setValue(&quot;data.&quot; .. k, v)</span>
+<span id="L29" class="line"><a href="#L29">29</a>        end</span>
+<span id="L30" class="line"><a href="#L30">30</a>	end</span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>	if not skipSaveLocal then</span>
+<span id="L33" class="line"><a href="#L33">33</a>		self:flush()</span>
+<span id="L34" class="line"><a href="#L34">34</a>	end</span>
+<span id="L35" class="line"><a href="#L35">35</a>    -- self:showInfo()</span>
+<span id="L36" class="line"><a href="#L36">36</a>end</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>--判断数据是否准备就绪</span>
+<span id="L39" class="line"><a href="#L39">39</a>function LocalServer:isDataEnabled()</span>
+<span id="L40" class="line"><a href="#L40">40</a>    if not self.data then</span>
+<span id="L41" class="line"><a href="#L41">41</a>        return false</span>
+<span id="L42" class="line"><a href="#L42">42</a>    end</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>	if table.isEmpty(self.data) then</span>
+<span id="L45" class="line"><a href="#L45">45</a>        return false</span>
+<span id="L46" class="line"><a href="#L46">46</a>    end</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>	if not self:isActInMain() then</span>
+<span id="L49" class="line"><a href="#L49">49</a>		return false</span>
+<span id="L50" class="line"><a href="#L50">50</a>	end</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a>    return true</span>
+<span id="L53" class="line"><a href="#L53">53</a>end</span>
+<span id="L54" class="line"><a href="#L54">54</a></span>
+<span id="L55" class="line"><a href="#L55">55</a>function LocalServer:getFullData()</span>
+<span id="L56" class="line"><a href="#L56">56</a>    return self:getValue(&quot;data&quot;)</span>
+<span id="L57" class="line"><a href="#L57">57</a>end</span>
+<span id="L58" class="line"><a href="#L58">58</a></span>
+<span id="L59" class="line"><a href="#L59">59</a>function LocalServer:clearDataByKey(key,needSave)</span>
+<span id="L60" class="line"><a href="#L60">60</a>    self:setDataByKey(&quot;data.&quot; .. key,nil,needSave)</span>
+<span id="L61" class="line"><a href="#L61">61</a>end</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>--更新单个数据</span>
+<span id="L64" class="line"><a href="#L64">64</a>function LocalServer:setDataByKey(key,value,needSave,isNewkey)</span>
+<span id="L65" class="line"><a href="#L65">65</a>    if not key then</span>
+<span id="L66" class="line"><a href="#L66">66</a>        return</span>
+<span id="L67" class="line"><a href="#L67">67</a>    end</span>
+<span id="L68" class="line"><a href="#L68">68</a></span>
+<span id="L69" class="line"><a href="#L69">69</a>    self:setValue(&quot;data.&quot; .. key,value,needSave)</span>
+<span id="L70" class="line"><a href="#L70">70</a>end</span>
+<span id="L71" class="line"><a href="#L71">71</a></span>
+<span id="L72" class="line"><a href="#L72">72</a>--通过key获取data</span>
+<span id="L73" class="line"><a href="#L73">73</a>function LocalServer:getDataByKey(key,defaultValue)</span>
+<span id="L74" class="line"><a href="#L74">74</a>    return self:getValue(&quot;data.&quot; .. key) or defaultValue</span>
+<span id="L75" class="line"><a href="#L75">75</a>end</span>
+<span id="L76" class="line"><a href="#L76">76</a></span>
+<span id="L77" class="line"><a href="#L77">77</a>function LocalServer:getActMainBeginTime(  )</span>
+<span id="L78" class="line"><a href="#L78">78</a>    local beginTs = self:getDataByKey(&quot;beginTs&quot;, 0)</span>
+<span id="L79" class="line"><a href="#L79">79</a>	return math.floor(tonumber(beginTs) / 1000)</span>
+<span id="L80" class="line"><a href="#L80">80</a>end</span>
+<span id="L81" class="line"><a href="#L81">81</a></span>
+<span id="L82" class="line"><a href="#L82">82</a>function LocalServer:getActMainEndTime(  )</span>
+<span id="L83" class="line"><a href="#L83">83</a>    local endTs = self:getDataByKey(&quot;endTs&quot;, 0)</span>
+<span id="L84" class="line"><a href="#L84">84</a>	return math.floor(tonumber(endTs) / 1000)</span>
+<span id="L85" class="line"><a href="#L85">85</a>end</span>
+<span id="L86" class="line"><a href="#L86">86</a></span>
+<span id="L87" class="line"><a href="#L87">87</a>function LocalServer:getSourceVersion()</span>
+<span id="L88" class="line"><a href="#L88">88</a>    local clientVersion = self:getDataByKey(&quot;clientVersion&quot;, 0)</span>
+<span id="L89" class="line"><a href="#L89">89</a>    return tonumber(clientVersion) or 0</span>
+<span id="L90" class="line"><a href="#L90">90</a>end</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>function LocalServer:isActInMain( ... )</span>
+<span id="L93" class="line"><a href="#L93">93</a>	local now = TimeKit:timeInSec()</span>
+<span id="L94" class="line"><a href="#L94">94</a>	local beginTime = self:getActMainBeginTime()</span>
+<span id="L95" class="line"><a href="#L95">95</a>	local endTime = self:getActMainEndTime()</span>
+<span id="L96" class="line"><a href="#L96">96</a>    printx(33, &quot;beginTime&quot;, beginTime, &quot;endTime&quot;, endTime, &quot;now&quot;, now)</span>
+<span id="L97" class="line"><a href="#L97">97</a>	</span>
+<span id="L98" class="line"><a href="#L98">98</a>	return now &gt;= beginTime and now &lt;= endTime</span>
+<span id="L99" class="line"><a href="#L99">99</a>end</span>
+<span id="L100" class="line"><a href="#L100">100</a></span>
+<span id="L101" class="line"><a href="#L101">101</a>return LocalServer</span></pre></main></html>

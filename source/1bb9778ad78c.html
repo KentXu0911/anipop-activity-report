@@ -1,0 +1,138 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/dailylevel/config/Res.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="1bb9778ad78c.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/dailylevel/config/Res.lua</h1><p>SHA256 237a028dcb337244124cc6bdac30bae6c402815e29af8d0a836cd10157940f2d</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Res = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local RES_TOOT = &quot;amf/dailylevel/&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local function _getSpinePath(name)</span>
+<span id="L5" class="line"><a href="#L5">5</a>    return RES_TOOT..&quot;spine/&quot;..name</span>
+<span id="L6" class="line"><a href="#L6">6</a>end</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>local function _getTexturePath(name)</span>
+<span id="L9" class="line"><a href="#L9">9</a>    return RES_TOOT..&quot;texture/&quot;..name</span>
+<span id="L10" class="line"><a href="#L10">10</a>end</span>
+<span id="L11" class="line"><a href="#L11">11</a></span>
+<span id="L12" class="line"><a href="#L12">12</a>local function _getMusicPath(name)</span>
+<span id="L13" class="line"><a href="#L13">13</a>    return RES_TOOT..&quot;music/&quot;..name</span>
+<span id="L14" class="line"><a href="#L14">14</a>end</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>local function _getLoadingPath(name)</span>
+<span id="L17" class="line"><a href="#L17">17</a>    return RES_TOOT..&quot;loading/&quot;..name</span>
+<span id="L18" class="line"><a href="#L18">18</a>end</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>local function _getLoadingTexturePath(name)</span>
+<span id="L21" class="line"><a href="#L21">21</a>    return _getLoadingPath(&quot;texture/&quot;..name)</span>
+<span id="L22" class="line"><a href="#L22">22</a>end</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>local function _getLoadingSpinePath(name)</span>
+<span id="L25" class="line"><a href="#L25">25</a>    return _getLoadingPath(&quot;spine/&quot;..name)</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>local function _getIconSpinePath(name)</span>
+<span id="L29" class="line"><a href="#L29">29</a>    return RES_TOOT..&quot;icon/&quot;..name</span>
+<span id="L30" class="line"><a href="#L30">30</a>end</span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>Res.Spine = {</span>
+<span id="L33" class="line"><a href="#L33">33</a>    BOX_EFF_LVUP = _getSpinePath(&quot;box_eff_lvup.skel&quot;),</span>
+<span id="L34" class="line"><a href="#L34">34</a>    BOX = _getSpinePath(&quot;box.skel&quot;),</span>
+<span id="L35" class="line"><a href="#L35">35</a>    FX_BOX = _getSpinePath(&quot;fx_box.skel&quot;),</span>
+<span id="L36" class="line"><a href="#L36">36</a>    QUAN = _getSpinePath(&quot;quan.skel&quot;),</span>
+<span id="L37" class="line"><a href="#L37">37</a>    QUAN_GLOW = _getSpinePath(&quot;quan_glow.skel&quot;),</span>
+<span id="L38" class="line"><a href="#L38">38</a>    PRIZE_REWARD_VFX = _getSpinePath(&quot;jiangli_vfx.skel&quot;),</span>
+<span id="L39" class="line"><a href="#L39">39</a>    PRIZE_TICKET_CONVERT = _getSpinePath(&quot;zhuanhuan.skel&quot;),</span>
+<span id="L40" class="line"><a href="#L40">40</a>    PRIZE_FIREWORK = _getSpinePath(&quot;lihua.skel&quot;),</span>
+<span id="L41" class="line"><a href="#L41">41</a>    PRIZE_FIREWORK_FULL_SCREEN = _getSpinePath(&quot;lihua2.skel&quot;),</span>
+<span id="L42" class="line"><a href="#L42">42</a>    GEM_DOUBLE = _getSpinePath(&quot;gem_double.skel&quot;),</span>
+<span id="L43" class="line"><a href="#L43">43</a>    COLLECTION_GEM = _getSpinePath(&quot;born_baoshi_outside.skel&quot;),</span>
+<span id="L44" class="line"><a href="#L44">44</a>    MOLE_MAGE = _getSpinePath(&quot;MoleMage.skel&quot;),</span>
+<span id="L45" class="line"><a href="#L45">45</a>    NVWANGE = _getSpinePath(&quot;nvwang.skel&quot;),</span>
+<span id="L46" class="line"><a href="#L46">46</a>    WEEKEND_NVWANG = _getSpinePath(&quot;weekend/nvwang.skel&quot;),</span>
+<span id="L47" class="line"><a href="#L47">47</a>    CARD = _getSpinePath(&quot;card.skel&quot;),</span>
+<span id="L48" class="line"><a href="#L48">48</a>    NEW_ROUND_BANNER = _getSpinePath(&quot;banner.skel&quot;),</span>
+<span id="L49" class="line"><a href="#L49">49</a>    LOADING = _getLoadingSpinePath(&quot;loading.skel&quot;),</span>
+<span id="L50" class="line"><a href="#L50">50</a>    ICON_WEEKDAY = _getIconSpinePath(&quot;richang_old.skel&quot;),</span>
+<span id="L51" class="line"><a href="#L51">51</a>    ICON_WEEKEND = _getIconSpinePath(&quot;zhoumo_old.skel&quot;),</span>
+<span id="L52" class="line"><a href="#L52">52</a>    ICON_WEEKDAY_V2 = _getIconSpinePath(&quot;richang_new.skel&quot;),</span>
+<span id="L53" class="line"><a href="#L53">53</a>    ICON_WEEKEND_V2 = _getIconSpinePath(&quot;zhoumo_new.skel&quot;),</span>
+<span id="L54" class="line"><a href="#L54">54</a>}</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>Res.Texture = {</span>
+<span id="L57" class="line"><a href="#L57">57</a>    MAINBG = _getTexturePath(&quot;mainBg.png&quot;),</span>
+<span id="L58" class="line"><a href="#L58">58</a>    MAINBG_WEEKEND = _getTexturePath(&quot;mainBgWeekend.png&quot;),</span>
+<span id="L59" class="line"><a href="#L59">59</a>    WEEKEND_FRONT = _getTexturePath(&quot;weekendFront.png&quot;),</span>
+<span id="L60" class="line"><a href="#L60">60</a>    LOADING_ATLAS = _getLoadingTexturePath(&quot;DailyLevelLoading.plist&quot;),</span>
+<span id="L61" class="line"><a href="#L61">61</a>    ICON_WEEKDAY_MINIGAME = _getIconSpinePath(&quot;richang_minigame.png&quot;),</span>
+<span id="L62" class="line"><a href="#L62">62</a>    ICON_WEEKEND_MINIGAME = _getIconSpinePath(&quot;zhoumo_minigame.png&quot;),</span>
+<span id="L63" class="line"><a href="#L63">63</a>}</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>Res.SpriteFrame = {</span>
+<span id="L66" class="line"><a href="#L66">66</a>    LOADING_NORMAL_BG = &quot;MeiRiYiGuan/DailyLevelLoading/normalBg&quot;,</span>
+<span id="L67" class="line"><a href="#L67">67</a>    LOADING_NORMAL_DECO = &quot;MeiRiYiGuan/DailyLevelLoading/normalDeco&quot;,</span>
+<span id="L68" class="line"><a href="#L68">68</a>    LOADING_NORMAL_IMG = &quot;MeiRiYiGuan/DailyLevelLoading/normalImg&quot;,</span>
+<span id="L69" class="line"><a href="#L69">69</a>    LOADING_WEEKEND_BG = &quot;MeiRiYiGuan/DailyLevelLoading/weekEndBg&quot;,</span>
+<span id="L70" class="line"><a href="#L70">70</a>    LOADING_WEEKEND_DECO = &quot;MeiRiYiGuan/DailyLevelLoading/weekEndDeco&quot;,</span>
+<span id="L71" class="line"><a href="#L71">71</a>    LOADING_WEEKEND_IMG = &quot;MeiRiYiGuan/DailyLevelLoading/weekEndImg&quot;,</span>
+<span id="L72" class="line"><a href="#L72">72</a>}</span>
+<span id="L73" class="line"><a href="#L73">73</a></span>
+<span id="L74" class="line"><a href="#L74">74</a>Res.Music = {</span>
+<span id="L75" class="line"><a href="#L75">75</a>    PROGRESS_BOX_CLICK = _getMusicPath(&quot;progressBoxClick.mp3&quot;),</span>
+<span id="L76" class="line"><a href="#L76">76</a>    WEEK_TASK_BOX_CLICK = _getMusicPath(&quot;weekTaskBoxClick.mp3&quot;),</span>
+<span id="L77" class="line"><a href="#L77">77</a>    TREASURE_BOX_CLICK = _getMusicPath(&quot;treasureBoxClick.mp3&quot;),</span>
+<span id="L78" class="line"><a href="#L78">78</a>    TREASURE_BOX_OPEN = _getMusicPath(&quot;treasureBoxOpen.mp3&quot;),</span>
+<span id="L79" class="line"><a href="#L79">79</a>    TREASURE_BOX_REFRESH = _getMusicPath(&quot;treasureBoxRefresh.mp3&quot;),</span>
+<span id="L80" class="line"><a href="#L80">80</a>    PRIZE_TICKET_REVEAL = _getMusicPath(&quot;prizeTicketReveal.mp3&quot;),</span>
+<span id="L81" class="line"><a href="#L81">81</a>    PRIZE_FIREWORK = _getMusicPath(&quot;prizeFirework.mp3&quot;),</span>
+<span id="L82" class="line"><a href="#L82">82</a>    WEEKEND_CARNIVAL = _getMusicPath(&quot;weekendCarnival.mp3&quot;),</span>
+<span id="L83" class="line"><a href="#L83">83</a>}</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>function Res:getLoadingResList()</span>
+<span id="L86" class="line"><a href="#L86">86</a>    return {</span>
+<span id="L87" class="line"><a href="#L87">87</a>        Res.Texture.LOADING_ATLAS,</span>
+<span id="L88" class="line"><a href="#L88">88</a>        Res.Spine.LOADING,</span>
+<span id="L89" class="line"><a href="#L89">89</a>    }</span>
+<span id="L90" class="line"><a href="#L90">90</a>end</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>function Res:getIconResList()</span>
+<span id="L93" class="line"><a href="#L93">93</a>    return {</span>
+<span id="L94" class="line"><a href="#L94">94</a>        Res.Spine.ICON_WEEKDAY,</span>
+<span id="L95" class="line"><a href="#L95">95</a>        Res.Spine.ICON_WEEKEND,</span>
+<span id="L96" class="line"><a href="#L96">96</a>    }</span>
+<span id="L97" class="line"><a href="#L97">97</a>end</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>function Res:getV2IconResList()</span>
+<span id="L100" class="line"><a href="#L100">100</a>    if EnvUtil:isMiniGame() then</span>
+<span id="L101" class="line"><a href="#L101">101</a>        return {</span>
+<span id="L102" class="line"><a href="#L102">102</a>            Res.Texture.ICON_WEEKDAY_MINIGAME,</span>
+<span id="L103" class="line"><a href="#L103">103</a>            Res.Texture.ICON_WEEKEND_MINIGAME,</span>
+<span id="L104" class="line"><a href="#L104">104</a>        }</span>
+<span id="L105" class="line"><a href="#L105">105</a>    end</span>
+<span id="L106" class="line"><a href="#L106">106</a>    return {</span>
+<span id="L107" class="line"><a href="#L107">107</a>        Res.Spine.ICON_WEEKDAY_V2,</span>
+<span id="L108" class="line"><a href="#L108">108</a>        Res.Spine.ICON_WEEKEND_V2,</span>
+<span id="L109" class="line"><a href="#L109">109</a>    }</span>
+<span id="L110" class="line"><a href="#L110">110</a>end</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>function Res:getMainResList()</span>
+<span id="L113" class="line"><a href="#L113">113</a>    local appList = {</span>
+<span id="L114" class="line"><a href="#L114">114</a>        Res.Spine.BOX_EFF_LVUP,</span>
+<span id="L115" class="line"><a href="#L115">115</a>        Res.Spine.BOX,</span>
+<span id="L116" class="line"><a href="#L116">116</a>        Res.Spine.FX_BOX,</span>
+<span id="L117" class="line"><a href="#L117">117</a>        Res.Spine.QUAN,</span>
+<span id="L118" class="line"><a href="#L118">118</a>        Res.Spine.QUAN_GLOW,</span>
+<span id="L119" class="line"><a href="#L119">119</a>        Res.Spine.PRIZE_REWARD_VFX,</span>
+<span id="L120" class="line"><a href="#L120">120</a>        Res.Spine.PRIZE_TICKET_CONVERT,</span>
+<span id="L121" class="line"><a href="#L121">121</a>        Res.Spine.COLLECTION_GEM,</span>
+<span id="L122" class="line"><a href="#L122">122</a>        Res.Texture.MAINBG,</span>
+<span id="L123" class="line"><a href="#L123">123</a>        Res.Texture.MAINBG_WEEKEND,</span>
+<span id="L124" class="line"><a href="#L124">124</a>        Res.Texture.WEEKEND_FRONT,</span>
+<span id="L125" class="line"><a href="#L125">125</a>        Res.Spine.MOLE_MAGE,</span>
+<span id="L126" class="line"><a href="#L126">126</a>        Res.Spine.NVWANGE,</span>
+<span id="L127" class="line"><a href="#L127">127</a>        Res.Spine.WEEKEND_NVWANG,</span>
+<span id="L128" class="line"><a href="#L128">128</a>        Res.Spine.CARD,</span>
+<span id="L129" class="line"><a href="#L129">129</a>        Res.Music.PROGRESS_BOX_CLICK,</span>
+<span id="L130" class="line"><a href="#L130">130</a>        Res.Music.WEEK_TASK_BOX_CLICK,</span>
+<span id="L131" class="line"><a href="#L131">131</a>        Res.Music.TREASURE_BOX_CLICK,</span>
+<span id="L132" class="line"><a href="#L132">132</a>        Res.Music.TREASURE_BOX_OPEN,</span>
+<span id="L133" class="line"><a href="#L133">133</a>        Res.Music.TREASURE_BOX_REFRESH,</span>
+<span id="L134" class="line"><a href="#L134">134</a>    }</span>
+<span id="L135" class="line"><a href="#L135">135</a>    return {}, appList</span>
+<span id="L136" class="line"><a href="#L136">136</a>end</span>
+<span id="L137" class="line"><a href="#L137">137</a></span>
+<span id="L138" class="line"><a href="#L138">138</a>return Res</span></pre></main></html>

@@ -1,0 +1,749 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/fixbirdnest/FixBirdNestManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="224f86910332.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/fixbirdnest/FixBirdNestManager.lua</h1><p>SHA256 dd19951b874a680b05adbd1e4612ca3f179e519486c3db47269dabf16524ab30</p><pre><span id="L1" class="line"><a href="#L1">1</a>require &#x27;amf.feature.localactivity.fixbirdnest.config.FixBirdNestConst&#x27;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local PropEventCenter = require &quot;amf.middleware.prop.event.PropEventCenter&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local FixBirdNestLog = require &#x27;amf.feature.localactivity.fixbirdnest.FixBirdNestLog&#x27;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local FixBirdNestModel = require &#x27;amf.feature.localactivity.fixbirdnest.model.FixBirdNestModel&#x27;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local FixBirdNestDC = require &#x27;amf.feature.localactivity.fixbirdnest.dc.FixBirdNestDC&#x27;</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>local FixBirdNestManager = class(&quot;FixBirdNestManager&quot;)</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>function FixBirdNestManager:initialize()</span>
+<span id="L11" class="line"><a href="#L11">11</a>	_G.amfEC:registerFeature(self)</span>
+<span id="L12" class="line"><a href="#L12">12</a>    self.model = FixBirdNestModel:create()</span>
+<span id="L13" class="line"><a href="#L13">13</a>	self.dc = FixBirdNestDC.new()</span>
+<span id="L14" class="line"><a href="#L14">14</a>	self.dc:setMgr(self)</span>
+<span id="L15" class="line"><a href="#L15">15</a>	self.actId = _G.FixBirdNestConst.ACT_ID</span>
+<span id="L16" class="line"><a href="#L16">16</a>	ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)</span>
+<span id="L17" class="line"><a href="#L17">17</a>	PropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)</span>
+<span id="L18" class="line"><a href="#L18">18</a>end</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>function FixBirdNestManager:onActActInfoUpdate(event)</span>
+<span id="L21" class="line"><a href="#L21">21</a>	TimerUtil.addAlarm(function()</span>
+<span id="L22" class="line"><a href="#L22">22</a>		self:setBeforeProgress()</span>
+<span id="L23" class="line"><a href="#L23">23</a>	end, 0.1)</span>
+<span id="L24" class="line"><a href="#L24">24</a>end</span>
+<span id="L25" class="line"><a href="#L25">25</a></span>
+<span id="L26" class="line"><a href="#L26">26</a>function FixBirdNestManager:isEnabled()</span>
+<span id="L27" class="line"><a href="#L27">27</a>	if not self.model:isDataReady() then</span>
+<span id="L28" class="line"><a href="#L28">28</a>		return false</span>
+<span id="L29" class="line"><a href="#L29">29</a>	end</span>
+<span id="L30" class="line"><a href="#L30">30</a>	return true</span>
+<span id="L31" class="line"><a href="#L31">31</a>end</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>-- @override 是否在正式期内</span>
+<span id="L34" class="line"><a href="#L34">34</a>function FixBirdNestManager:isInActMainTime()</span>
+<span id="L35" class="line"><a href="#L35">35</a>	return self.model:isInActMainTime()</span>
+<span id="L36" class="line"><a href="#L36">36</a>end</span>
+<span id="L37" class="line"><a href="#L37">37</a>-- @override 是否在领奖期</span>
+<span id="L38" class="line"><a href="#L38">38</a>function FixBirdNestManager:isInAwardTime()</span>
+<span id="L39" class="line"><a href="#L39">39</a>	return self.model:isInAwardTime()</span>
+<span id="L40" class="line"><a href="#L40">40</a>end</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>function FixBirdNestManager:hasRewards()</span>
+<span id="L43" class="line"><a href="#L43">43</a>	if not self:isEnabled() then return end</span>
+<span id="L44" class="line"><a href="#L44">44</a>	local hasGroup = self.model:isCanGetGroupReward() and not self.model:isGotGroupReward()</span>
+<span id="L45" class="line"><a href="#L45">45</a>	local hasTaskReward = self.model:hasTaskReward()</span>
+<span id="L46" class="line"><a href="#L46">46</a>	return hasGroup or hasTaskReward</span>
+<span id="L47" class="line"><a href="#L47">47</a>end</span>
+<span id="L48" class="line"><a href="#L48">48</a></span>
+<span id="L49" class="line"><a href="#L49">49</a>function FixBirdNestManager:getTaskType()</span>
+<span id="L50" class="line"><a href="#L50">50</a>	if _G.amfBean(&quot;UserStateManager&quot;):isFMJ() then</span>
+<span id="L51" class="line"><a href="#L51">51</a>		return _G.FixBirdNestConst.TaskType.TOP</span>
+<span id="L52" class="line"><a href="#L52">52</a>	elseif _G.amfBean(&quot;UserStateManager&quot;):isColorfulStarFull() then</span>
+<span id="L53" class="line"><a href="#L53">53</a>		return _G.FixBirdNestConst.TaskType.SCORE</span>
+<span id="L54" class="line"><a href="#L54">54</a>	else</span>
+<span id="L55" class="line"><a href="#L55">55</a>		return _G.FixBirdNestConst.TaskType.COLOR</span>
+<span id="L56" class="line"><a href="#L56">56</a>	end</span>
+<span id="L57" class="line"><a href="#L57">57</a>end</span>
+<span id="L58" class="line"><a href="#L58">58</a></span>
+<span id="L59" class="line"><a href="#L59">59</a>-- 是否有引导标记</span>
+<span id="L60" class="line"><a href="#L60">60</a>function FixBirdNestManager:hasGuideIndex( index)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    local guideInfo = self.model:getGuideInfo()</span>
+<span id="L62" class="line"><a href="#L62">62</a>    for i,v in ipairs(guideInfo) do</span>
+<span id="L63" class="line"><a href="#L63">63</a>    	if v == index then</span>
+<span id="L64" class="line"><a href="#L64">64</a>    		return true</span>
+<span id="L65" class="line"><a href="#L65">65</a>    	end</span>
+<span id="L66" class="line"><a href="#L66">66</a>    end</span>
+<span id="L67" class="line"><a href="#L67">67</a>    return false</span>
+<span id="L68" class="line"><a href="#L68">68</a>end</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>function FixBirdNestManager:addGuideIndex( index )</span>
+<span id="L71" class="line"><a href="#L71">71</a>    local guideInfo = self.model:getGuideInfo()</span>
+<span id="L72" class="line"><a href="#L72">72</a>    table.insert(guideInfo, index)</span>
+<span id="L73" class="line"><a href="#L73">73</a>    self.model:setGuideInfo(guideInfo)</span>
+<span id="L74" class="line"><a href="#L74">74</a>	local SetActGuidFlag = require &quot;amf.middleware.activity.http.SetActGuidFlag&quot;</span>
+<span id="L75" class="line"><a href="#L75">75</a>	SetActGuidFlag:post({</span>
+<span id="L76" class="line"><a href="#L76">76</a>		actId = _G.FixBirdNestConst.ACT_ID,</span>
+<span id="L77" class="line"><a href="#L77">77</a>		index = index</span>
+<span id="L78" class="line"><a href="#L78">78</a>	})</span>
+<span id="L79" class="line"><a href="#L79">79</a>end</span>
+<span id="L80" class="line"><a href="#L80">80</a></span>
+<span id="L81" class="line"><a href="#L81">81</a>function FixBirdNestManager:getActInfo()</span>
+<span id="L82" class="line"><a href="#L82">82</a>	return _G.amfBean(&quot;ActivityMgr&quot;):getActInfo(_G.FixBirdNestConst.ACT_ID)</span>
+<span id="L83" class="line"><a href="#L83">83</a>end</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>-- 刷新接口</span>
+<span id="L86" class="line"><a href="#L86">86</a>function FixBirdNestManager:updateTipView(needProgress)</span>
+<span id="L87" class="line"><a href="#L87">87</a>	if needProgress == nil then</span>
+<span id="L88" class="line"><a href="#L88">88</a>		needProgress = false</span>
+<span id="L89" class="line"><a href="#L89">89</a>	end</span>
+<span id="L90" class="line"><a href="#L90">90</a>	local function setIconInfo(hasReward)</span>
+<span id="L91" class="line"><a href="#L91">91</a>		local actInfo = self:getActInfo()</span>
+<span id="L92" class="line"><a href="#L92">92</a>		if not actInfo then return end</span>
+<span id="L93" class="line"><a href="#L93">93</a>		actInfo.reward = hasReward</span>
+<span id="L94" class="line"><a href="#L94">94</a>		if needProgress then</span>
+<span id="L95" class="line"><a href="#L95">95</a>			local curTaskInfo = self.model:getCurTaskInfo()</span>
+<span id="L96" class="line"><a href="#L96">96</a>			actInfo.progress = curTaskInfo.progress</span>
+<span id="L97" class="line"><a href="#L97">97</a>			actInfo.maxProgress = curTaskInfo.target</span>
+<span id="L98" class="line"><a href="#L98">98</a>		end</span>
+<span id="L99" class="line"><a href="#L99">99</a>		ActivityEventCenter:dispatch(ActivityEvent.SET_ACT_INFO, actInfo)</span>
+<span id="L100" class="line"><a href="#L100">100</a>	end</span>
+<span id="L101" class="line"><a href="#L101">101</a>	if not self:isEnabled() then return end</span>
+<span id="L102" class="line"><a href="#L102">102</a>	local hasReward = self:hasRewards()</span>
+<span id="L103" class="line"><a href="#L103">103</a>	setIconInfo(hasReward)</span>
+<span id="L104" class="line"><a href="#L104">104</a>end</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>--------------------关卡内--------------------------------</span>
+<span id="L107" class="line"><a href="#L107">107</a>function FixBirdNestManager:isEnabledInLevel( ... )</span>
+<span id="L108" class="line"><a href="#L108">108</a>    -- do return true end</span>
+<span id="L109" class="line"><a href="#L109">109</a>	if not self:isEnabled() then</span>
+<span id="L110" class="line"><a href="#L110">110</a>    	return false</span>
+<span id="L111" class="line"><a href="#L111">111</a>    end</span>
+<span id="L112" class="line"><a href="#L112">112</a>    -- 主活动期可用</span>
+<span id="L113" class="line"><a href="#L113">113</a>    if not self:isInActMainTime() then</span>
+<span id="L114" class="line"><a href="#L114">114</a>    	return false</span>
+<span id="L115" class="line"><a href="#L115">115</a>    end</span>
+<span id="L116" class="line"><a href="#L116">116</a>    return true</span>
+<span id="L117" class="line"><a href="#L117">117</a>end</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>function FixBirdNestManager:isEnabledInLevel2()</span>
+<span id="L120" class="line"><a href="#L120">120</a>    -- 框架已经处理了分数buff的情况，不再需要单独处理</span>
+<span id="L121" class="line"><a href="#L121">121</a>    -- 为了行为树保留这个接口</span>
+<span id="L122" class="line"><a href="#L122">122</a>    return self:isEnabledInLevel()</span>
+<span id="L123" class="line"><a href="#L123">123</a>end</span>
+<span id="L124" class="line"><a href="#L124">124</a></span>
+<span id="L125" class="line"><a href="#L125">125</a>function FixBirdNestManager:canShowStartPanelLeftBottomView( runtime )</span>
+<span id="L126" class="line"><a href="#L126">126</a>    if not self:isEnabledInLevel() then return false end</span>
+<span id="L127" class="line"><a href="#L127">127</a>    if not runtime then return false end</span>
+<span id="L128" class="line"><a href="#L128">128</a>    if LevelSceneFunc:isFullLevelLib(runtime.levelScene) then</span>
+<span id="L129" class="line"><a href="#L129">129</a>        return false</span>
+<span id="L130" class="line"><a href="#L130">130</a>    end</span>
+<span id="L131" class="line"><a href="#L131">131</a></span>
+<span id="L132" class="line"><a href="#L132">132</a>    if runtime.levelType == 2 then</span>
+<span id="L133" class="line"><a href="#L133">133</a>        local userState = _G.amfBean(&quot;UserStateManager&quot;):getUserSegmentState()</span>
+<span id="L134" class="line"><a href="#L134">134</a>        if userState == _G.UserStateConst.UserSegmentState.FMJ then</span>
+<span id="L135" class="line"><a href="#L135">135</a>            local isTopLevel = runtime.levelId == _G.amfBean(&quot;LevelAreaManager&quot;):getTopLevelId() and not _G.amfBean(&quot;LevelAreaManager&quot;):hasPassedLevelEx(runtime.levelId)</span>
+<span id="L136" class="line"><a href="#L136">136</a>			if isTopLevel then return true, 1 end</span>
+<span id="L137" class="line"><a href="#L137">137</a>        elseif _G.amfBean(&quot;UserStateManager&quot;):isColorfulStarFull() then</span>
+<span id="L138" class="line"><a href="#L138">138</a>			-- 满彩，任意关都行</span>
+<span id="L139" class="line"><a href="#L139">139</a>			return true, 3</span>
+<span id="L140" class="line"><a href="#L140">140</a>		elseif not _G.amfBean(&quot;UserStateManager&quot;):isColorfulStarFull() then</span>
+<span id="L141" class="line"><a href="#L141">141</a>            --主线非全满。 补星。只能补彩星</span>
+<span id="L142" class="line"><a href="#L142">142</a>            local scoreOfLevel = _G.amfBean(&quot;LevelAreaManager&quot;):getUserScore(runtime.levelId)</span>
+<span id="L143" class="line"><a href="#L143">143</a>            local oldStar = scoreOfLevel and scoreOfLevel.star &gt; 0 and scoreOfLevel.star or 0</span>
+<span id="L144" class="line"><a href="#L144">144</a>            local levelFullStar = 4 --主线关一定是彩星</span>
+<span id="L145" class="line"><a href="#L145">145</a>            if oldStar &lt; levelFullStar and levelFullStar == 4 then</span>
+<span id="L146" class="line"><a href="#L146">146</a>                return true, 2</span>
+<span id="L147" class="line"><a href="#L147">147</a>            end</span>
+<span id="L148" class="line"><a href="#L148">148</a>        end</span>
+<span id="L149" class="line"><a href="#L149">149</a>    end</span>
+<span id="L150" class="line"><a href="#L150">150</a></span>
+<span id="L151" class="line"><a href="#L151">151</a>    return false</span>
+<span id="L152" class="line"><a href="#L152">152</a>end</span>
+<span id="L153" class="line"><a href="#L153">153</a></span>
+<span id="L154" class="line"><a href="#L154">154</a>function FixBirdNestManager:getLifeNum()</span>
+<span id="L155" class="line"><a href="#L155">155</a>	-- 获取当前生命</span>
+<span id="L156" class="line"><a href="#L156">156</a>	return self.model:getLifeNum()</span>
+<span id="L157" class="line"><a href="#L157">157</a>end</span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>function FixBirdNestManager:getRestProgress()</span>
+<span id="L160" class="line"><a href="#L160">160</a>	local curTaskInfo = self.model:getRealCurTaskInfo()</span>
+<span id="L161" class="line"><a href="#L161">161</a>	return curTaskInfo.target - curTaskInfo.progress</span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>function FixBirdNestManager:getTaskId()</span>
+<span id="L165" class="line"><a href="#L165">165</a>	local curTaskInfo = self.model:getRealCurTaskInfo()</span>
+<span id="L166" class="line"><a href="#L166">166</a>	return curTaskInfo.taskId</span>
+<span id="L167" class="line"><a href="#L167">167</a>end</span>
+<span id="L168" class="line"><a href="#L168">168</a></span>
+<span id="L169" class="line"><a href="#L169">169</a>function FixBirdNestManager:getUserCurProgress()</span>
+<span id="L170" class="line"><a href="#L170">170</a>	local curTaskInfo = self.model:getRealCurTaskInfo()</span>
+<span id="L171" class="line"><a href="#L171">171</a>	return curTaskInfo.progress or 0</span>
+<span id="L172" class="line"><a href="#L172">172</a>end</span>
+<span id="L173" class="line"><a href="#L173">173</a></span>
+<span id="L174" class="line"><a href="#L174">174</a>function FixBirdNestManager:isAllTaskFinish()</span>
+<span id="L175" class="line"><a href="#L175">175</a>	return self.model.isAllTaskFinish and self.model:isAllTaskFinish()</span>
+<span id="L176" class="line"><a href="#L176">176</a>end</span>
+<span id="L177" class="line"><a href="#L177">177</a></span>
+<span id="L178" class="line"><a href="#L178">178</a>function FixBirdNestManager:getCurAvailableBuffAndEndTime()</span>
+<span id="L179" class="line"><a href="#L179">179</a>    local scoreBuffRate = 0.3</span>
+<span id="L180" class="line"><a href="#L180">180</a>    local buffEndTime = math.floor(tonumber(self.model:getScoreBuffExpireTime()) / 1000) or 0</span>
+<span id="L181" class="line"><a href="#L181">181</a>    -- local buffEndTime = TimeKit:timeInSec() + 3600</span>
+<span id="L182" class="line"><a href="#L182">182</a>    return scoreBuffRate, buffEndTime</span>
+<span id="L183" class="line"><a href="#L183">183</a>end</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>function FixBirdNestManager:getSlpBottomData(runtime)</span>
+<span id="L186" class="line"><a href="#L186">186</a>    if not runtime then</span>
+<span id="L187" class="line"><a href="#L187">187</a>        return</span>
+<span id="L188" class="line"><a href="#L188">188</a>    end</span>
+<span id="L189" class="line"><a href="#L189">189</a></span>
+<span id="L190" class="line"><a href="#L190">190</a>    if not self:canShowStartPanelLeftBottomView(runtime) then</span>
+<span id="L191" class="line"><a href="#L191">191</a>        return</span>
+<span id="L192" class="line"><a href="#L192">192</a>    end</span>
+<span id="L193" class="line"><a href="#L193">193</a></span>
+<span id="L194" class="line"><a href="#L194">194</a>    local taskInfo = self.model:getRealCurTaskInfo()</span>
+<span id="L195" class="line"><a href="#L195">195</a>	if not taskInfo then return end</span>
+<span id="L196" class="line"><a href="#L196">196</a>	local lifeNum = self.model:getLifeNum()</span>
+<span id="L197" class="line"><a href="#L197">197</a></span>
+<span id="L198" class="line"><a href="#L198">198</a>    if taskInfo.progress == taskInfo.target then</span>
+<span id="L199" class="line"><a href="#L199">199</a>		local taskCount = self.model:getTaskCount()</span>
+<span id="L200" class="line"><a href="#L200">200</a>		local taskId = math.min(taskInfo.taskId + 1,taskCount)</span>
+<span id="L201" class="line"><a href="#L201">201</a>		taskInfo = self.model:getTaskInfoByIndex(taskId)</span>
+<span id="L202" class="line"><a href="#L202">202</a>		lifeNum = 3</span>
+<span id="L203" class="line"><a href="#L203">203</a>	end</span>
+<span id="L204" class="line"><a href="#L204">204</a></span>
+<span id="L205" class="line"><a href="#L205">205</a>    local isAllFinish = self.model:isAllTaskFinish()</span>
+<span id="L206" class="line"><a href="#L206">206</a>    local data = {</span>
+<span id="L207" class="line"><a href="#L207">207</a>        progress = taskInfo.progress,</span>
+<span id="L208" class="line"><a href="#L208">208</a>		target = taskInfo.target,</span>
+<span id="L209" class="line"><a href="#L209">209</a>        lifeNum = isAllFinish and 3 or lifeNum,</span>
+<span id="L210" class="line"><a href="#L210">210</a>        isAllFinish = isAllFinish,</span>
+<span id="L211" class="line"><a href="#L211">211</a>    }</span>
+<span id="L212" class="line"><a href="#L212">212</a>    -- local data = {</span>
+<span id="L213" class="line"><a href="#L213">213</a>    --     progress = 1,</span>
+<span id="L214" class="line"><a href="#L214">214</a>    --     target = 3,</span>
+<span id="L215" class="line"><a href="#L215">215</a>    --     lifeNum = 2,</span>
+<span id="L216" class="line"><a href="#L216">216</a>    --     isAllFinish = false</span>
+<span id="L217" class="line"><a href="#L217">217</a>    -- }</span>
+<span id="L218" class="line"><a href="#L218">218</a>    -- printx(15,&quot;===FixBirdNestManager:getSlpBottomData===&quot;,tts(data))</span>
+<span id="L219" class="line"><a href="#L219">219</a></span>
+<span id="L220" class="line"><a href="#L220">220</a>    return data</span>
+<span id="L221" class="line"><a href="#L221">221</a>end</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>function FixBirdNestManager:getPlpBottomData(runtime)</span>
+<span id="L224" class="line"><a href="#L224">224</a>    if not runtime then</span>
+<span id="L225" class="line"><a href="#L225">225</a>        return</span>
+<span id="L226" class="line"><a href="#L226">226</a>    end</span>
+<span id="L227" class="line"><a href="#L227">227</a>    -- 确认一下没触发活动能走到这吗</span>
+<span id="L228" class="line"><a href="#L228">228</a>    -- 确认了，必须走到活动框架过关</span>
+<span id="L229" class="line"><a href="#L229">229</a>    if not self:isEnabledInLevel() then</span>
+<span id="L230" class="line"><a href="#L230">230</a>        return</span>
+<span id="L231" class="line"><a href="#L231">231</a>    end</span>
+<span id="L232" class="line"><a href="#L232">232</a>    -- printx(15,&quot;self.canShowBottom&quot;,self.canShowBottom)</span>
+<span id="L233" class="line"><a href="#L233">233</a>    if not self.canShowBottom then return end</span>
+<span id="L234" class="line"><a href="#L234">234</a>	-- 是否上次就已经满了，那就不展示了</span>
+<span id="L235" class="line"><a href="#L235">235</a>	if self.alreadyAllFinish then return end</span>
+<span id="L236" class="line"><a href="#L236">236</a>	self.canShowBottom = false</span>
+<span id="L237" class="line"><a href="#L237">237</a></span>
+<span id="L238" class="line"><a href="#L238">238</a>	local recordInfo = table.clone(self.model:getRealCurTaskInfo())</span>
+<span id="L239" class="line"><a href="#L239">239</a>	-- UError(&quot;recordInfo&quot;,tts(recordInfo))</span>
+<span id="L240" class="line"><a href="#L240">240</a>	local curTaskInfo</span>
+<span id="L241" class="line"><a href="#L241">241</a>	if recordInfo.progress == 0 then</span>
+<span id="L242" class="line"><a href="#L242">242</a>		-- 成功过关了progress=0说明跨到下一个task了，往回退一个做展示</span>
+<span id="L243" class="line"><a href="#L243">243</a>		local nowTask = recordInfo.taskId</span>
+<span id="L244" class="line"><a href="#L244">244</a>		curTaskInfo = self.model:getTaskInfoByIndex(nowTask - 1)</span>
+<span id="L245" class="line"><a href="#L245">245</a>	else</span>
+<span id="L246" class="line"><a href="#L246">246</a>		curTaskInfo = recordInfo</span>
+<span id="L247" class="line"><a href="#L247">247</a>	end</span>
+<span id="L248" class="line"><a href="#L248">248</a>    </span>
+<span id="L249" class="line"><a href="#L249">249</a>	local taskId = curTaskInfo.taskId</span>
+<span id="L250" class="line"><a href="#L250">250</a>	curTaskInfo.progress = curTaskInfo.progress</span>
+<span id="L251" class="line"><a href="#L251">251</a>	local progress = curTaskInfo.progress</span>
+<span id="L252" class="line"><a href="#L252">252</a>	local target = curTaskInfo.target</span>
+<span id="L253" class="line"><a href="#L253">253</a>	-- if progress &gt;= target then</span>
+<span id="L254" class="line"><a href="#L254">254</a>	-- 	curTaskInfo.showFinished = true</span>
+<span id="L255" class="line"><a href="#L255">255</a>	-- end</span>
+<span id="L256" class="line"><a href="#L256">256</a>	-- UError(&quot;===========&quot;,tts(curTaskInfo))</span>
+<span id="L257" class="line"><a href="#L257">257</a>    local userState = self:getTaskType()</span>
+<span id="L258" class="line"><a href="#L258">258</a>	local count = target - progress</span>
+<span id="L259" class="line"><a href="#L259">259</a>	local resultStr = &quot;修复鸟窝&quot;..taskId..&quot;：&quot;</span>
+<span id="L260" class="line"><a href="#L260">260</a>	if userState == _G.FixBirdNestConst.TaskType.TOP then   -- 非满级</span>
+<span id="L261" class="line"><a href="#L261">261</a>		resultStr = resultStr ..&quot;再完成&quot; .. count .. &quot;关可领取小鸟的谢礼~&quot;</span>
+<span id="L262" class="line"><a href="#L262">262</a>	elseif userState == _G.FixBirdNestConst.TaskType.COLOR then  -- 非满彩</span>
+<span id="L263" class="line"><a href="#L263">263</a>		resultStr = resultStr..&quot;再成功补彩星&quot; .. count .. &quot;关可获得奖励~&quot;</span>
+<span id="L264" class="line"><a href="#L264">264</a>	else</span>
+<span id="L265" class="line"><a href="#L265">265</a>		resultStr = resultStr..&quot;再成功刷分&quot;..count..&quot;关可获得奖励~&quot;</span>
+<span id="L266" class="line"><a href="#L266">266</a>	end</span>
+<span id="L267" class="line"><a href="#L267">267</a>	if self.model:isAllTaskFinish() then</span>
+<span id="L268" class="line"><a href="#L268">268</a>		resultStr = &quot;恭喜您修复了全部鸟窝，快去领奖吧！&quot;</span>
+<span id="L269" class="line"><a href="#L269">269</a>	elseif progress == target then</span>
+<span id="L270" class="line"><a href="#L270">270</a>		resultStr = &quot;成功修复第&quot;..taskId..&quot;座鸟窝，快去领奖吧！&quot;</span>
+<span id="L271" class="line"><a href="#L271">271</a>	end</span>
+<span id="L272" class="line"><a href="#L272">272</a>    local lifeNum = self.model:getRecord(&quot;lastLifeNum&quot;) or self.model:getLifeNum()</span>
+<span id="L273" class="line"><a href="#L273">273</a>	lifeNum = math.clamp(lifeNum,1,3)</span>
+<span id="L274" class="line"><a href="#L274">274</a></span>
+<span id="L275" class="line"><a href="#L275">275</a>    local data = {</span>
+<span id="L276" class="line"><a href="#L276">276</a>        mainEndTime = self.model:getMainEndTime(),</span>
+<span id="L277" class="line"><a href="#L277">277</a>        curTaskInfo = curTaskInfo,</span>
+<span id="L278" class="line"><a href="#L278">278</a>        proTotal = self.model:getTotalLevelByTaskId(taskId) - target + progress,</span>
+<span id="L279" class="line"><a href="#L279">279</a>        subTitleStr = resultStr,</span>
+<span id="L280" class="line"><a href="#L280">280</a>        lifeNum = lifeNum,</span>
+<span id="L281" class="line"><a href="#L281">281</a>        userState = self:getTaskType(),</span>
+<span id="L282" class="line"><a href="#L282">282</a>        getTotalLevelByTaskId = function(taskId)</span>
+<span id="L283" class="line"><a href="#L283">283</a>            return self.model:getTotalLevelByTaskId(taskId)</span>
+<span id="L284" class="line"><a href="#L284">284</a>        end,</span>
+<span id="L285" class="line"><a href="#L285">285</a>        getTaskInfoByIndex = function(taskId)</span>
+<span id="L286" class="line"><a href="#L286">286</a>            return self.model:getTaskInfoByIndex(taskId)</span>
+<span id="L287" class="line"><a href="#L287">287</a>        end,</span>
+<span id="L288" class="line"><a href="#L288">288</a>        isFinishedTask = function(taskId)</span>
+<span id="L289" class="line"><a href="#L289">289</a>            return self.model:isFinishedTask(taskId)</span>
+<span id="L290" class="line"><a href="#L290">290</a>        end,</span>
+<span id="L291" class="line"><a href="#L291">291</a>        getRewardIcon = function(reward, needNum)</span>
+<span id="L292" class="line"><a href="#L292">292</a>			local reward = table.clone(reward)</span>
+<span id="L293" class="line"><a href="#L293">293</a>			reward.needNum = needNum</span>
+<span id="L294" class="line"><a href="#L294">294</a>            return GameItemCreator:getPropIcon(reward)</span>
+<span id="L295" class="line"><a href="#L295">295</a>        end,</span>
+<span id="L296" class="line"><a href="#L296">296</a>        isAllFinish = self.model:isAllTaskFinish(),</span>
+<span id="L297" class="line"><a href="#L297">297</a>    }</span>
+<span id="L298" class="line"><a href="#L298">298</a></span>
+<span id="L299" class="line"><a href="#L299">299</a>    return data</span>
+<span id="L300" class="line"><a href="#L300">300</a>end</span>
+<span id="L301" class="line"><a href="#L301">301</a></span>
+<span id="L302" class="line"><a href="#L302">302</a>function FixBirdNestManager:onActDcStageCommon(evt)</span>
+<span id="L303" class="line"><a href="#L303">303</a>    if not self:isEnabledInLevel() then return end</span>
+<span id="L304" class="line"><a href="#L304">304</a>    local dcInfo = evt:getData()</span>
+<span id="L305" class="line"><a href="#L305">305</a>    if not dcInfo then return end</span>
+<span id="L306" class="line"><a href="#L306">306</a>    if dcInfo.sub_category == &quot;start_show&quot; then</span>
+<span id="L307" class="line"><a href="#L307">307</a>	    local is_shed_tips = 0</span>
+<span id="L308" class="line"><a href="#L308">308</a>	    local lifeNum = self.model:getLifeNum()</span>
+<span id="L309" class="line"><a href="#L309">309</a>	    local curTaskInfo = self.model:getCurTaskInfo()</span>
+<span id="L310" class="line"><a href="#L310">310</a></span>
+<span id="L311" class="line"><a href="#L311">311</a>	    if lifeNum == 1 and (curTaskInfo.target - curTaskInfo.progress == 1) then</span>
+<span id="L312" class="line"><a href="#L312">312</a>	    	is_shed_tips = 1</span>
+<span id="L313" class="line"><a href="#L313">313</a>		end</span>
+<span id="L314" class="line"><a href="#L314">314</a>		dcInfo.is_shed_tips = is_shed_tips</span>
+<span id="L315" class="line"><a href="#L315">315</a>	elseif dcInfo.sub_category == &quot;start_click&quot; or dcInfo.sub_category == &quot;pass_click&quot; then</span>
+<span id="L316" class="line"><a href="#L316">316</a>		dcInfo.buildshed = self:getDcBuildShed()</span>
+<span id="L317" class="line"><a href="#L317">317</a>	end</span>
+<span id="L318" class="line"><a href="#L318">318</a>end</span>
+<span id="L319" class="line"><a href="#L319">319</a></span>
+<span id="L320" class="line"><a href="#L320">320</a>function FixBirdNestManager:getDcBuildShed()</span>
+<span id="L321" class="line"><a href="#L321">321</a>	local taskInfo = self.model:getCurTaskInfo()</span>
+<span id="L322" class="line"><a href="#L322">322</a>	if not taskInfo then return end</span>
+<span id="L323" class="line"><a href="#L323">323</a>	local tb = {</span>
+<span id="L324" class="line"><a href="#L324">324</a>		live_num = self.model:getLifeNum(),</span>
+<span id="L325" class="line"><a href="#L325">325</a>	    live_round = math.floor(self.model:getLostLives() / self.model:getMaxLife()),</span>
+<span id="L326" class="line"><a href="#L326">326</a>	    task = taskInfo.progress .. &quot;_&quot;.. taskInfo.target</span>
+<span id="L327" class="line"><a href="#L327">327</a>	}</span>
+<span id="L328" class="line"><a href="#L328">328</a>	local ret = mime.b64(table.serialize(tb))</span>
+<span id="L329" class="line"><a href="#L329">329</a>	return ret</span>
+<span id="L330" class="line"><a href="#L330">330</a>end</span>
+<span id="L331" class="line"><a href="#L331">331</a></span>
+<span id="L332" class="line"><a href="#L332">332</a></span>
+<span id="L333" class="line"><a href="#L333">333</a>---以下都是出关的接口，关卡内不维护，我直接粘过来了-------</span>
+<span id="L334" class="line"><a href="#L334">334</a>function FixBirdNestManager:recordLastData(curTaskInfo)</span>
+<span id="L335" class="line"><a href="#L335">335</a>	self.model:saveRecord(&quot;lastTaskId&quot;, curTaskInfo.taskId)</span>
+<span id="L336" class="line"><a href="#L336">336</a>	self.model:saveRecord(&quot;lastLifeNum&quot;, self.model:getLifeNum())</span>
+<span id="L337" class="line"><a href="#L337">337</a>	self.model:saveRecord(&quot;lastTarget&quot;, curTaskInfo.target)</span>
+<span id="L338" class="line"><a href="#L338">338</a>	self.model:saveRecord(&quot;lastProgress&quot;, curTaskInfo.progress)</span>
+<span id="L339" class="line"><a href="#L339">339</a>end</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>function FixBirdNestManager:onPassLevel(levelContext)</span>
+<span id="L342" class="line"><a href="#L342">342</a>	if not levelContext then return end</span>
+<span id="L343" class="line"><a href="#L343">343</a>	self.needRelife = false</span>
+<span id="L344" class="line"><a href="#L344">344</a>	self.pass_playId = levelContext.playId</span>
+<span id="L345" class="line"><a href="#L345">345</a>	-- 是否可以收集，关卡内发出来的</span>
+<span id="L346" class="line"><a href="#L346">346</a>	self.canShowBottom = levelContext.isPass</span>
+<span id="L347" class="line"><a href="#L347">347</a>	self.alreadyAllFinish = false</span>
+<span id="L348" class="line"><a href="#L348">348</a>	-- -- 所有任务完成就不处理</span>
+<span id="L349" class="line"><a href="#L349">349</a>	if self.model:isAllTaskFinish() then</span>
+<span id="L350" class="line"><a href="#L350">350</a>		self.alreadyAllFinish = true</span>
+<span id="L351" class="line"><a href="#L351">351</a>		return</span>
+<span id="L352" class="line"><a href="#L352">352</a>	end</span>
+<span id="L353" class="line"><a href="#L353">353</a>	local lastCurTask = self.model:getCurTaskInfo()</span>
+<span id="L354" class="line"><a href="#L354">354</a>	lastCurTask.showFinished = true</span>
+<span id="L355" class="line"><a href="#L355">355</a>	self.model:saveRecord(&quot;curTaskInLevel&quot;, lastCurTask)</span>
+<span id="L356" class="line"><a href="#L356">356</a>	self.levelPassed = true</span>
+<span id="L357" class="line"><a href="#L357">357</a>	local curTaskInfo = self.model:getRealCurTaskInfo()</span>
+<span id="L358" class="line"><a href="#L358">358</a>	local progress = curTaskInfo.progress</span>
+<span id="L359" class="line"><a href="#L359">359</a>	local targetProgress = progress + 1</span>
+<span id="L360" class="line"><a href="#L360">360</a>	local newTaskInfo = curTaskInfo</span>
+<span id="L361" class="line"><a href="#L361">361</a>	newTaskInfo.progress = targetProgress</span>
+<span id="L362" class="line"><a href="#L362">362</a>	if targetProgress &gt;= curTaskInfo.target then</span>
+<span id="L363" class="line"><a href="#L363">363</a>		local curLife = self.model:getLifeNum()</span>
+<span id="L364" class="line"><a href="#L364">364</a>		if curLife &lt; self.model:getMaxLife() then</span>
+<span id="L365" class="line"><a href="#L365">365</a>			self.needRelife = true</span>
+<span id="L366" class="line"><a href="#L366">366</a>		end</span>
+<span id="L367" class="line"><a href="#L367">367</a>		self.model:setLifeNum(self.model:getMaxLife())</span>
+<span id="L368" class="line"><a href="#L368">368</a>		self.model:resetCurTask(newTaskInfo)</span>
+<span id="L369" class="line"><a href="#L369">369</a>		self.model:addFinishedTasks(1)</span>
+<span id="L370" class="line"><a href="#L370">370</a>		self:tryGetMedal()</span>
+<span id="L371" class="line"><a href="#L371">371</a>		self.dc:dcTaskSuccess(curTaskInfo.taskId)</span>
+<span id="L372" class="line"><a href="#L372">372</a>	else</span>
+<span id="L373" class="line"><a href="#L373">373</a>		self.model:resetCurTask(newTaskInfo)</span>
+<span id="L374" class="line"><a href="#L374">374</a>	end</span>
+<span id="L375" class="line"><a href="#L375">375</a>	self:recordLastData(newTaskInfo)</span>
+<span id="L376" class="line"><a href="#L376">376</a>	self.model:saveRecord(&quot;lastProgress&quot;, progress)</span>
+<span id="L377" class="line"><a href="#L377">377</a>	self:setBeforeProgress()</span>
+<span id="L378" class="line"><a href="#L378">378</a>end</span>
+<span id="L379" class="line"><a href="#L379">379</a></span>
+<span id="L380" class="line"><a href="#L380">380</a>function FixBirdNestManager:onFailLevel(levelContext)</span>
+<span id="L381" class="line"><a href="#L381">381</a>	if not levelContext then return end</span>
+<span id="L382" class="line"><a href="#L382">382</a>	self.canShowBottom = false</span>
+<span id="L383" class="line"><a href="#L383">383</a>	self.needRelife = false</span>
+<span id="L384" class="line"><a href="#L384">384</a>	-- 所有任务完成就不处理</span>
+<span id="L385" class="line"><a href="#L385">385</a>	if self.model:isAllTaskFinish() then</span>
+<span id="L386" class="line"><a href="#L386">386</a>		return</span>
+<span id="L387" class="line"><a href="#L387">387</a>	end</span>
+<span id="L388" class="line"><a href="#L388">388</a>	self.levelFailed = true</span>
+<span id="L389" class="line"><a href="#L389">389</a>	local curTaskInfo = self.model:getRealCurTaskInfo()</span>
+<span id="L390" class="line"><a href="#L390">390</a>	self:recordLastData(curTaskInfo)</span>
+<span id="L391" class="line"><a href="#L391">391</a>	if curTaskInfo.progress == 0 then</span>
+<span id="L392" class="line"><a href="#L392">392</a>		return</span>
+<span id="L393" class="line"><a href="#L393">393</a>	end</span>
+<span id="L394" class="line"><a href="#L394">394</a>	self.model:addLifeNum(-1)</span>
+<span id="L395" class="line"><a href="#L395">395</a>	self.model:addLostLives(1)</span>
+<span id="L396" class="line"><a href="#L396">396</a>	-- 如果没命了要重置</span>
+<span id="L397" class="line"><a href="#L397">397</a>	if self.model:getLifeNum() &lt;= 0 then</span>
+<span id="L398" class="line"><a href="#L398">398</a>		self.model:setLifeNum(self.model:getMaxLife())</span>
+<span id="L399" class="line"><a href="#L399">399</a>		local newTaskInfo = curTaskInfo</span>
+<span id="L400" class="line"><a href="#L400">400</a>		newTaskInfo.progress = 0</span>
+<span id="L401" class="line"><a href="#L401">401</a>		self.model:resetCurTask(newTaskInfo)</span>
+<span id="L402" class="line"><a href="#L402">402</a>		self.failedTask = true</span>
+<span id="L403" class="line"><a href="#L403">403</a>	end</span>
+<span id="L404" class="line"><a href="#L404">404</a>	if levelContext.failReason == &quot;retry&quot; then</span>
+<span id="L405" class="line"><a href="#L405">405</a>		self:tryUpdateIcon()</span>
+<span id="L406" class="line"><a href="#L406">406</a>	end</span>
+<span id="L407" class="line"><a href="#L407">407</a>end</span>
+<span id="L408" class="line"><a href="#L408">408</a></span>
+<span id="L409" class="line"><a href="#L409">409</a>function FixBirdNestManager:tryGetMedal()</span>
+<span id="L410" class="line"><a href="#L410">410</a>	if not self:isEnabled() then return end</span>
+<span id="L411" class="line"><a href="#L411">411</a>	local medalId = self:getMedalId()</span>
+<span id="L412" class="line"><a href="#L412">412</a>	if medalId == 3 then return end</span>
+<span id="L413" class="line"><a href="#L413">413</a>	local medalTaskInfo = self.model:getMedalInfo(medalId + 1)</span>
+<span id="L414" class="line"><a href="#L414">414</a>	if self.model:getFinishedTasks() &gt;= medalTaskInfo.condition then</span>
+<span id="L415" class="line"><a href="#L415">415</a>		self.model:addMedalId(1)</span>
+<span id="L416" class="line"><a href="#L416">416</a>		local rewards = medalTaskInfo.rewards.list</span>
+<span id="L417" class="line"><a href="#L417">417</a>		_G.GainPropData:create()</span>
+<span id="L418" class="line"><a href="#L418">418</a>		  :setFeature(_G.FixBirdNestConst.DC_FEATURE)</span>
+<span id="L419" class="line"><a href="#L419">419</a>		  :setSource(&quot;piont_reward&quot;)</span>
+<span id="L420" class="line"><a href="#L420">420</a>		  :setProps(rewards)</span>
+<span id="L421" class="line"><a href="#L421">421</a>		  :execute()</span>
+<span id="L422" class="line"><a href="#L422">422</a>		local itemId = rewards and rewards[1] and rewards[1].itemId</span>
+<span id="L423" class="line"><a href="#L423">423</a>		self.dc:dcMedalReward(itemId)</span>
+<span id="L424" class="line"><a href="#L424">424</a>	end</span>
+<span id="L425" class="line"><a href="#L425">425</a>end</span>
+<span id="L426" class="line"><a href="#L426">426</a></span>
+<span id="L427" class="line"><a href="#L427">427</a>function FixBirdNestManager:onActBeforeStartLevel(event)</span>
+<span id="L428" class="line"><a href="#L428">428</a>	local data = event.data</span>
+<span id="L429" class="line"><a href="#L429">429</a>	if not data then return end</span>
+<span id="L430" class="line"><a href="#L430">430</a>	if data.levelType ~= 2 then return end</span>
+<span id="L431" class="line"><a href="#L431">431</a>	if LevelSceneFunc:isFullLevelLib(data.levelScene) then return false end</span>
+<span id="L432" class="line"><a href="#L432">432</a>	if not self:isEnabledInLevel() then return end</span>
+<span id="L433" class="line"><a href="#L433">433</a>	self:tryUpdateIcon()</span>
+<span id="L434" class="line"><a href="#L434">434</a>end</span>
+<span id="L435" class="line"><a href="#L435">435</a></span>
+<span id="L436" class="line"><a href="#L436">436</a>function FixBirdNestManager:isSupportShare()</span>
+<span id="L437" class="line"><a href="#L437">437</a>	if EnvUtil:isWindows() then</span>
+<span id="L438" class="line"><a href="#L438">438</a>		return true</span>
+<span id="L439" class="line"><a href="#L439">439</a>	end</span>
+<span id="L440" class="line"><a href="#L440">440</a>	if EnvUtil:isUnionMiniGame() then</span>
+<span id="L441" class="line"><a href="#L441">441</a>		return false</span>
+<span id="L442" class="line"><a href="#L442">442</a>	end</span>
+<span id="L443" class="line"><a href="#L443">443</a>	if EnvUtil:isMiniGame() then</span>
+<span id="L444" class="line"><a href="#L444">444</a>		return true</span>
+<span id="L445" class="line"><a href="#L445">445</a>	end</span>
+<span id="L446" class="line"><a href="#L446">446</a>	return false</span>
+<span id="L447" class="line"><a href="#L447">447</a>end</span>
+<span id="L448" class="line"><a href="#L448">448</a></span>
+<span id="L449" class="line"><a href="#L449">449</a>function FixBirdNestManager.getWXMiniShareImg(target, shareParam, callback)</span>
+<span id="L450" class="line"><a href="#L450">450</a>	local imgPath = &quot;fixbirdnest_share.jpg&quot;</span>
+<span id="L451" class="line"><a href="#L451">451</a>	safeRunCall(callback, imgPath)</span>
+<span id="L452" class="line"><a href="#L452">452</a>end</span>
+<span id="L453" class="line"><a href="#L453">453</a></span>
+<span id="L454" class="line"><a href="#L454">454</a>function FixBirdNestManager:setBeforeProgress()</span>
+<span id="L455" class="line"><a href="#L455">455</a>	local icon = _G.amfBean(&quot;IconManager&quot;):getIconByIconKey(tostring(_G.FixBirdNestConst.ACT_ID))</span>
+<span id="L456" class="line"><a href="#L456">456</a>	if icon and isSafeCocosObj(icon) and icon.setBeforeProgress then</span>
+<span id="L457" class="line"><a href="#L457">457</a>		icon:setBeforeProgress()</span>
+<span id="L458" class="line"><a href="#L458">458</a>	end</span>
+<span id="L459" class="line"><a href="#L459">459</a>end</span>
+<span id="L460" class="line"><a href="#L460">460</a></span>
+<span id="L461" class="line"><a href="#L461">461</a>function FixBirdNestManager:tryUpdateIcon()</span>
+<span id="L462" class="line"><a href="#L462">462</a>	if (self.model:getRecord(&quot;lastLifeNum&quot;) or -1) &lt;= 0 then</span>
+<span id="L463" class="line"><a href="#L463">463</a>		return</span>
+<span id="L464" class="line"><a href="#L464">464</a>	end</span>
+<span id="L465" class="line"><a href="#L465">465</a>	if self.levelPassed or self.levelFailed then</span>
+<span id="L466" class="line"><a href="#L466">466</a>		local context = {</span>
+<span id="L467" class="line"><a href="#L467">467</a>			lastTaskId = self.model:getRecord(&quot;lastTaskId&quot;) or -1,</span>
+<span id="L468" class="line"><a href="#L468">468</a>			lastLifeNum = self.model:getRecord(&quot;lastLifeNum&quot;) or 0,</span>
+<span id="L469" class="line"><a href="#L469">469</a>			lastTarget = self.model:getRecord(&quot;lastTarget&quot;) or 0,</span>
+<span id="L470" class="line"><a href="#L470">470</a>			lastProgress = self.model:getRecord(&quot;lastProgress&quot;) or 0,</span>
+<span id="L471" class="line"><a href="#L471">471</a>			failed = self.failedTask ,</span>
+<span id="L472" class="line"><a href="#L472">472</a>			needRelife = self.needRelife,</span>
+<span id="L473" class="line"><a href="#L473">473</a>			levelPassed = self.levelPassed,</span>
+<span id="L474" class="line"><a href="#L474">474</a>		}</span>
+<span id="L475" class="line"><a href="#L475">475</a>		local icon = _G.amfBean(&quot;IconManager&quot;):getIconByIconKey(tostring(_G.FixBirdNestConst.ACT_ID))</span>
+<span id="L476" class="line"><a href="#L476">476</a>		TimerUtil.addAlarm(function()</span>
+<span id="L477" class="line"><a href="#L477">477</a>			if icon and isSafeCocosObj(icon) then</span>
+<span id="L478" class="line"><a href="#L478">478</a>				self:setBeforeProgress()</span>
+<span id="L479" class="line"><a href="#L479">479</a>				icon:afterChange(context)</span>
+<span id="L480" class="line"><a href="#L480">480</a>			end</span>
+<span id="L481" class="line"><a href="#L481">481</a>		end, 1)</span>
+<span id="L482" class="line"><a href="#L482">482</a></span>
+<span id="L483" class="line"><a href="#L483">483</a>		self.levelPassed  = false</span>
+<span id="L484" class="line"><a href="#L484">484</a>		self.levelFailed  = false</span>
+<span id="L485" class="line"><a href="#L485">485</a>	else</span>
+<span id="L486" class="line"><a href="#L486">486</a>		--TimerUtil.addAlarm(function()</span>
+<span id="L487" class="line"><a href="#L487">487</a>		--	local icon = getIcon()</span>
+<span id="L488" class="line"><a href="#L488">488</a>		--	if icon and isSafeCocosObj(icon) then</span>
+<span id="L489" class="line"><a href="#L489">489</a>		--		--icon:checkTip()</span>
+<span id="L490" class="line"><a href="#L490">490</a>		--	end</span>
+<span id="L491" class="line"><a href="#L491">491</a>		--end, 1)</span>
+<span id="L492" class="line"><a href="#L492">492</a>	end</span>
+<span id="L493" class="line"><a href="#L493">493</a>	self.failedTask = false</span>
+<span id="L494" class="line"><a href="#L494">494</a>end</span>
+<span id="L495" class="line"><a href="#L495">495</a></span>
+<span id="L496" class="line"><a href="#L496">496</a>function FixBirdNestManager:onActEnterMainScene(evt)</span>
+<span id="L497" class="line"><a href="#L497">497</a>	local data = evt:getData()</span>
+<span id="L498" class="line"><a href="#L498">498</a>	if data and data.firstEnter then</span>
+<span id="L499" class="line"><a href="#L499">499</a>		return</span>
+<span id="L500" class="line"><a href="#L500">500</a>	end</span>
+<span id="L501" class="line"><a href="#L501">501</a>	self:tryUpdateIcon()</span>
+<span id="L502" class="line"><a href="#L502">502</a>end</span>
+<span id="L503" class="line"><a href="#L503">503</a></span>
+<span id="L504" class="line"><a href="#L504">504</a>-------------------关卡内over-----------------------------</span>
+<span id="L505" class="line"><a href="#L505">505</a></span>
+<span id="L506" class="line"><a href="#L506">506</a>function FixBirdNestManager:popEnoughPanel(callback)</span>
+<span id="L507" class="line"><a href="#L507">507</a>	local SecondPanelAVM = require &quot;amf.middleware.ui.kit.panel.second.SecondPanelAVM&quot;</span>
+<span id="L508" class="line"><a href="#L508">508</a>	local rewards = {</span>
+<span id="L509" class="line"><a href="#L509">509</a>		{</span>
+<span id="L510" class="line"><a href="#L510">510</a>			itemId = 0, </span>
+<span id="L511" class="line"><a href="#L511">511</a>			num = 1,</span>
+<span id="L512" class="line"><a href="#L512">512</a>			hideNum = true</span>
+<span id="L513" class="line"><a href="#L513">513</a>		}</span>
+<span id="L514" class="line"><a href="#L514">514</a>	}</span>
+<span id="L515" class="line"><a href="#L515">515</a></span>
+<span id="L516" class="line"><a href="#L516">516</a>    local textStruct = LabelStruct.new()</span>
+<span id="L517" class="line"><a href="#L517">517</a>    textStruct:setText(&quot;感谢您帮助无家可归的小鸟重筑温暖巢穴，这是来自森林的谢礼！&quot;)</span>
+<span id="L518" class="line"><a href="#L518">518</a>    textStruct:setLineSpace(10)</span>
+<span id="L519" class="line"><a href="#L519">519</a>    textStruct:setHorizontalAlignment(kCCTextAlignmentCenter)</span>
+<span id="L520" class="line"><a href="#L520">520</a></span>
+<span id="L521" class="line"><a href="#L521">521</a>	local vm</span>
+<span id="L522" class="line"><a href="#L522">522</a>    vm = SecondPanelAVM.Builder.new()</span>
+<span id="L523" class="line"><a href="#L523">523</a>        :setTitle(&quot;鸟窝修复完成！&quot;)</span>
+<span id="L524" class="line"><a href="#L524">524</a>        :setTextStruct(textStruct)</span>
+<span id="L525" class="line"><a href="#L525">525</a>        :setFly(false)</span>
+<span id="L526" class="line"><a href="#L526">526</a>        :setRewards(rewards, function(reward)</span>
+<span id="L527" class="line"><a href="#L527">527</a>			local box = AMFCompHelper:createBoxFen()</span>
+<span id="L528" class="line"><a href="#L528">528</a>			-- box.customOffX = -5</span>
+<span id="L529" class="line"><a href="#L529">529</a>			-- box.customOffY = -5</span>
+<span id="L530" class="line"><a href="#L530">530</a>			return box</span>
+<span id="L531" class="line"><a href="#L531">531</a>		end)</span>
+<span id="L532" class="line"><a href="#L532">532</a>        :setButtonsConfig({</span>
+<span id="L533" class="line"><a href="#L533">533</a>			{</span>
+<span id="L534" class="line"><a href="#L534">534</a>                str = &quot;去领奖&quot;,</span>
+<span id="L535" class="line"><a href="#L535">535</a>				widthMode = UIButtonConfig.Widths.kShort,</span>
+<span id="L536" class="line"><a href="#L536">536</a>				colorMode = UIButtonConfig.ColorMode.green,</span>
+<span id="L537" class="line"><a href="#L537">537</a>                touchFunc = function ( btn )</span>
+<span id="L538" class="line"><a href="#L538">538</a>                    _G.amfBean(&quot;AutoPopupMgr&quot;):resetPopup()</span>
+<span id="L539" class="line"><a href="#L539">539</a>                    self:openMainActivity(nil,{fromStage4 = true},true)</span>
+<span id="L540" class="line"><a href="#L540">540</a>                    if vm and not vm.isDisposed then</span>
+<span id="L541" class="line"><a href="#L541">541</a>                        vm:onCloseBtnTapped()</span>
+<span id="L542" class="line"><a href="#L542">542</a>                    end</span>
+<span id="L543" class="line"><a href="#L543">543</a>                end</span>
+<span id="L544" class="line"><a href="#L544">544</a>            },</span>
+<span id="L545" class="line"><a href="#L545">545</a>        })</span>
+<span id="L546" class="line"><a href="#L546">546</a>        :setCloseCallback(function()</span>
+<span id="L547" class="line"><a href="#L547">547</a>			safeRunCall(callback)</span>
+<span id="L548" class="line"><a href="#L548">548</a>        end)</span>
+<span id="L549" class="line"><a href="#L549">549</a>        :build()</span>
+<span id="L550" class="line"><a href="#L550">550</a>	self.model:saveRecord(&quot;hasPopEnoughPanel&quot;, true)</span>
+<span id="L551" class="line"><a href="#L551">551</a>    vm:popout()</span>
+<span id="L552" class="line"><a href="#L552">552</a>	return vm</span>
+<span id="L553" class="line"><a href="#L553">553</a>end</span>
+<span id="L554" class="line"><a href="#L554">554</a></span>
+<span id="L555" class="line"><a href="#L555">555</a>function FixBirdNestManager:getNameMedalEndTime( medalId )</span>
+<span id="L556" class="line"><a href="#L556">556</a>	-- 三个勋章的到期时间一致，默认用第一个1</span>
+<span id="L557" class="line"><a href="#L557">557</a>	medalId = medalId or NameMedalId.kFixBirdNest_2_1</span>
+<span id="L558" class="line"><a href="#L558">558</a>	local endTimeMs = _G.amfBean(&quot;PropManager&quot;):getDecoEndTimeMs(medalId)</span>
+<span id="L559" class="line"><a href="#L559">559</a>	if endTimeMs &lt;= 0 then</span>
+<span id="L560" class="line"><a href="#L560">560</a>		return tonumber(self.model:getMainEndTime())</span>
+<span id="L561" class="line"><a href="#L561">561</a>	end</span>
+<span id="L562" class="line"><a href="#L562">562</a>	return endTimeMs</span>
+<span id="L563" class="line"><a href="#L563">563</a>end</span>
+<span id="L564" class="line"><a href="#L564">564</a></span>
+<span id="L565" class="line"><a href="#L565">565</a>function FixBirdNestManager:getMedalId()</span>
+<span id="L566" class="line"><a href="#L566">566</a>	return self.model:getMedalId()</span>
+<span id="L567" class="line"><a href="#L567">567</a>end</span>
+<span id="L568" class="line"><a href="#L568">568</a></span>
+<span id="L569" class="line"><a href="#L569">569</a>function FixBirdNestManager:getMedalInfo( medalId )</span>
+<span id="L570" class="line"><a href="#L570">570</a>	return self.model:getMedalInfo(medalId)</span>
+<span id="L571" class="line"><a href="#L571">571</a>end</span>
+<span id="L572" class="line"><a href="#L572">572</a></span>
+<span id="L573" class="line"><a href="#L573">573</a>function FixBirdNestManager:getFinishedTasks()</span>
+<span id="L574" class="line"><a href="#L574">574</a>	return self.model:getFinishedTasks()</span>
+<span id="L575" class="line"><a href="#L575">575</a>end</span>
+<span id="L576" class="line"><a href="#L576">576</a></span>
+<span id="L577" class="line"><a href="#L577">577</a>-- 说明面板</span>
+<span id="L578" class="line"><a href="#L578">578</a>function FixBirdNestManager:showHelpView(closeCallback, params)</span>
+<span id="L579" class="line"><a href="#L579">579</a>	params = params or {}</span>
+<span id="L580" class="line"><a href="#L580">580</a>	local UserStateManager = _G.amfBean(&quot;UserStateManager&quot;)</span>
+<span id="L581" class="line"><a href="#L581">581</a>	local isFMJ = UserStateManager:isFMJ()</span>
+<span id="L582" class="line"><a href="#L582">582</a>	local panelPath</span>
+<span id="L583" class="line"><a href="#L583">583</a>	if isFMJ then</span>
+<span id="L584" class="line"><a href="#L584">584</a>		panelPath = &#x27;amf.feature.localactivity.fixbirdnest.view.panel.DescNotFullPanel&#x27;</span>
+<span id="L585" class="line"><a href="#L585">585</a>	else</span>
+<span id="L586" class="line"><a href="#L586">586</a>		panelPath = &#x27;amf.feature.localactivity.fixbirdnest.view.panel.DescFullPanel&#x27;</span>
+<span id="L587" class="line"><a href="#L587">587</a>	end</span>
+<span id="L588" class="line"><a href="#L588">588</a>	local DescPanelVM = require &#x27;amf.feature.localactivity.fixbirdnest.view.vm.DescPanelVM&#x27;</span>
+<span id="L589" class="line"><a href="#L589">589</a>	local vm = DescPanelVM.Builder.new()</span>
+<span id="L590" class="line"><a href="#L590">590</a>		:setCloseCallback(closeCallback)</span>
+<span id="L591" class="line"><a href="#L591">591</a>		:setDontAni(params.dontAni)</span>
+<span id="L592" class="line"><a href="#L592">592</a>		:setPanelPath(panelPath)</span>
+<span id="L593" class="line"><a href="#L593">593</a>		:build()</span>
+<span id="L594" class="line"><a href="#L594">594</a>	vm:popout()</span>
+<span id="L595" class="line"><a href="#L595">595</a>	return vm</span>
+<span id="L596" class="line"><a href="#L596">596</a>end</span>
+<span id="L597" class="line"><a href="#L597">597</a></span>
+<span id="L598" class="line"><a href="#L598">598</a>function FixBirdNestManager:popGiftPanel( closeCallback, userClick )</span>
+<span id="L599" class="line"><a href="#L599">599</a>	self.model:saveRecord(&quot;GiftPanel&quot;, true)</span>
+<span id="L600" class="line"><a href="#L600">600</a>	local GiftPanel = require_debug(&quot;amf.feature.localactivity.fixbirdnest.view.vm.GiftPanelVM&quot;)</span>
+<span id="L601" class="line"><a href="#L601">601</a>	local vm = GiftPanel.Builder.new()</span>
+<span id="L602" class="line"><a href="#L602">602</a>	:setCloseCallback(closeCallback)</span>
+<span id="L603" class="line"><a href="#L603">603</a>	:setUserClick(userClick)</span>
+<span id="L604" class="line"><a href="#L604">604</a>	:setGoodsIds(self.model:getGoodsList())</span>
+<span id="L605" class="line"><a href="#L605">605</a>	:setPayTagId(self.model:getPayTagId())</span>
+<span id="L606" class="line"><a href="#L606">606</a>	:setManager(self)</span>
+<span id="L607" class="line"><a href="#L607">607</a>	:setBDailyBought(self.model:isDailyBought())</span>
+<span id="L608" class="line"><a href="#L608">608</a>	:build()</span>
+<span id="L609" class="line"><a href="#L609">609</a></span>
+<span id="L610" class="line"><a href="#L610">610</a>	vm:popout()</span>
+<span id="L611" class="line"><a href="#L611">611</a>	return vm</span>
+<span id="L612" class="line"><a href="#L612">612</a>end</span>
+<span id="L613" class="line"><a href="#L613">613</a></span>
+<span id="L614" class="line"><a href="#L614">614</a>function FixBirdNestManager:getCurSaledNum(  )</span>
+<span id="L615" class="line"><a href="#L615">615</a>    local C = self.model:getConfigByName(&quot;rewardPkgIncrFuncC&quot;) or 100</span>
+<span id="L616" class="line"><a href="#L616">616</a>    local Y = self.model:getConfigByName(&quot;rewardPkgIncrFuncY&quot;) or 8234590</span>
+<span id="L617" class="line"><a href="#L617">617</a>    -- printx(16,&quot;C Y&quot;,C,Y)</span>
+<span id="L618" class="line"><a href="#L618">618</a></span>
+<span id="L619" class="line"><a href="#L619">619</a>    local beginTime = self.model:getMainBeginTime()</span>
+<span id="L620" class="line"><a href="#L620">620</a>    local endTime = self.model:getMainEndTime()</span>
+<span id="L621" class="line"><a href="#L621">621</a></span>
+<span id="L622" class="line"><a href="#L622">622</a>    local nowTime = TimeKit:timeInSec()</span>
+<span id="L623" class="line"><a href="#L623">623</a></span>
+<span id="L624" class="line"><a href="#L624">624</a></span>
+<span id="L625" class="line"><a href="#L625">625</a>    local a = 1/10000000</span>
+<span id="L626" class="line"><a href="#L626">626</a>    local x = math.floor((nowTime - beginTime) / 5 )</span>
+<span id="L627" class="line"><a href="#L627">627</a>    local c = C</span>
+<span id="L628" class="line"><a href="#L628">628</a></span>
+<span id="L629" class="line"><a href="#L629">629</a></span>
+<span id="L630" class="line"><a href="#L630">630</a></span>
+<span id="L631" class="line"><a href="#L631">631</a>    local y = 1/3 * a * math.pow(x,3) + 1/2 * a * math.pow(x,2)</span>
+<span id="L632" class="line"><a href="#L632">632</a></span>
+<span id="L633" class="line"><a href="#L633">633</a></span>
+<span id="L634" class="line"><a href="#L634">634</a>    local x0 = math.floor((endTime - beginTime) / 5 )</span>
+<span id="L635" class="line"><a href="#L635">635</a>    local y0 = 1/3 * a * math.pow(x0,3) + 1/2 * a * math.pow(x0,2)</span>
+<span id="L636" class="line"><a href="#L636">636</a></span>
+<span id="L637" class="line"><a href="#L637">637</a>    y = Y / y0 * y + C</span>
+<span id="L638" class="line"><a href="#L638">638</a></span>
+<span id="L639" class="line"><a href="#L639">639</a></span>
+<span id="L640" class="line"><a href="#L640">640</a>    return math.ceil(y)</span>
+<span id="L641" class="line"><a href="#L641">641</a>end</span>
+<span id="L642" class="line"><a href="#L642">642</a></span>
+<span id="L643" class="line"><a href="#L643">643</a>function FixBirdNestManager:formatSaledNum( num )</span>
+<span id="L644" class="line"><a href="#L644">644</a>    num = num or self:getCurSaledNum()</span>
+<span id="L645" class="line"><a href="#L645">645</a>    if num &gt; 10000 then</span>
+<span id="L646" class="line"><a href="#L646">646</a>        return math.floor(num/10000) .. &quot;万&quot;</span>
+<span id="L647" class="line"><a href="#L647">647</a>    else</span>
+<span id="L648" class="line"><a href="#L648">648</a>        return tostring(num)</span>
+<span id="L649" class="line"><a href="#L649">649</a>    end</span>
+<span id="L650" class="line"><a href="#L650">650</a>end</span>
+<span id="L651" class="line"><a href="#L651">651</a></span>
+<span id="L652" class="line"><a href="#L652">652</a>function FixBirdNestManager:checkGiftPanel()</span>
+<span id="L653" class="line"><a href="#L653">653</a>	if not self.model:getHasGift() then</span>
+<span id="L654" class="line"><a href="#L654">654</a>		return false</span>
+<span id="L655" class="line"><a href="#L655">655</a>	end</span>
+<span id="L656" class="line"><a href="#L656">656</a>	if self:ignoreForTopLevelPlayer() then return false end</span>
+<span id="L657" class="line"><a href="#L657">657</a>	-- body</span>
+<span id="L658" class="line"><a href="#L658">658</a>	-- printx(16,&quot;checkGiftPanel&quot;,self.defaultMap:getDay(&quot;GiftPanel&quot;,false) )</span>
+<span id="L659" class="line"><a href="#L659">659</a>	if not self:isInActMainTime() then return false end</span>
+<span id="L660" class="line"><a href="#L660">660</a></span>
+<span id="L661" class="line"><a href="#L661">661</a>	if self:skipAutoPopup() then return false end</span>
+<span id="L662" class="line"><a href="#L662">662</a></span>
+<span id="L663" class="line"><a href="#L663">663</a>	if self.model:getRecord(&quot;GiftPanel&quot;, true) then</span>
+<span id="L664" class="line"><a href="#L664">664</a>		return false</span>
+<span id="L665" class="line"><a href="#L665">665</a>	end</span>
+<span id="L666" class="line"><a href="#L666">666</a></span>
+<span id="L667" class="line"><a href="#L667">667</a>	if self:checkEnoughPanel() then</span>
+<span id="L668" class="line"><a href="#L668">668</a>		return false</span>
+<span id="L669" class="line"><a href="#L669">669</a>	end</span>
+<span id="L670" class="line"><a href="#L670">670</a></span>
+<span id="L671" class="line"><a href="#L671">671</a>	return true</span>
+<span id="L672" class="line"><a href="#L672">672</a>end</span>
+<span id="L673" class="line"><a href="#L673">673</a></span>
+<span id="L674" class="line"><a href="#L674">674</a>-- 满足条件的人屏蔽所有强弹</span>
+<span id="L675" class="line"><a href="#L675">675</a>function FixBirdNestManager:skipAutoPopup(  )</span>
+<span id="L676" class="line"><a href="#L676">676</a>	-- local inGroup = MaintenanceManager:getInstance():isEnabledInGroup(&quot;bird_riseup2&quot;, &quot;G1_activelimit&quot;)</span>
+<span id="L677" class="line"><a href="#L677">677</a>    local inPay = self.model:getPayTagId() &lt;= 2</span>
+<span id="L678" class="line"><a href="#L678">678</a>    local inLiveness = self.model:getLivenessTagId() &lt;= 4</span>
+<span id="L679" class="line"><a href="#L679">679</a>    return inPay and inLiveness</span>
+<span id="L680" class="line"><a href="#L680">680</a>end</span>
+<span id="L681" class="line"><a href="#L681">681</a></span>
+<span id="L682" class="line"><a href="#L682">682</a>function FixBirdNestManager:checkEnoughPanel( ... )</span>
+<span id="L683" class="line"><a href="#L683">683</a>	-- body</span>
+<span id="L684" class="line"><a href="#L684">684</a>	-- printx(16,&quot;checkEnoughPanel&quot;,self:isEnabled())</span>
+<span id="L685" class="line"><a href="#L685">685</a>	if self:ignoreForTopLevelPlayer() then return false end</span>
+<span id="L686" class="line"><a href="#L686">686</a>    if not self:isEnabled() then return false end</span>
+<span id="L687" class="line"><a href="#L687">687</a></span>
+<span id="L688" class="line"><a href="#L688">688</a>	if not self:isInActMainTime() then return false end</span>
+<span id="L689" class="line"><a href="#L689">689</a></span>
+<span id="L690" class="line"><a href="#L690">690</a>	if self:skipAutoPopup() then return false end</span>
+<span id="L691" class="line"><a href="#L691">691</a></span>
+<span id="L692" class="line"><a href="#L692">692</a>    local round = self.model:getRound()</span>
+<span id="L693" class="line"><a href="#L693">693</a>    local curTaskInfo = self.model:getCurTaskInfo()</span>
+<span id="L694" class="line"><a href="#L694">694</a>	-- printx(16,&quot;checkEnoughPanel&quot;,round,curTaskInfo.progress , curTaskInfo.target , curTaskInfo.taskId)</span>
+<span id="L695" class="line"><a href="#L695">695</a></span>
+<span id="L696" class="line"><a href="#L696">696</a>    if round == 1 and curTaskInfo.progress &lt; curTaskInfo.target and curTaskInfo.taskId == 1 then</span>
+<span id="L697" class="line"><a href="#L697">697</a>    	return false</span>
+<span id="L698" class="line"><a href="#L698">698</a>    end</span>
+<span id="L699" class="line"><a href="#L699">699</a></span>
+<span id="L700" class="line"><a href="#L700">700</a>    local taskInfo = self.model:getTaskInfoByIndex(1)</span>
+<span id="L701" class="line"><a href="#L701">701</a>	-- printx(16,&quot;checkEnoughPanel&quot;,tts(taskInfo))</span>
+<span id="L702" class="line"><a href="#L702">702</a></span>
+<span id="L703" class="line"><a href="#L703">703</a>    if taskInfo.reward then</span>
+<span id="L704" class="line"><a href="#L704">704</a>    	return false</span>
+<span id="L705" class="line"><a href="#L705">705</a>    end</span>
+<span id="L706" class="line"><a href="#L706">706</a>	-- printx(16,&quot;checkEnoughPanel&quot;,self.defaultMap:get(&quot;hasPopEnoughPanel&quot;,false))</span>
+<span id="L707" class="line"><a href="#L707">707</a>    if self.model:getRecord(&quot;hasPopEnoughPanel&quot;) then</span>
+<span id="L708" class="line"><a href="#L708">708</a>    	return false</span>
+<span id="L709" class="line"><a href="#L709">709</a>    end</span>
+<span id="L710" class="line"><a href="#L710">710</a></span>
+<span id="L711" class="line"><a href="#L711">711</a>    return true</span>
+<span id="L712" class="line"><a href="#L712">712</a>end</span>
+<span id="L713" class="line"><a href="#L713">713</a></span>
+<span id="L714" class="line"><a href="#L714">714</a>-- R1规则强弹主面板屏蔽</span>
+<span id="L715" class="line"><a href="#L715">715</a>function FixBirdNestManager:checkPopMainPanel(  )</span>
+<span id="L716" class="line"><a href="#L716">716</a>	if self:ignoreForTopLevelPlayer() then return false end</span>
+<span id="L717" class="line"><a href="#L717">717</a>	if self:skipAutoPopup() then return false end</span>
+<span id="L718" class="line"><a href="#L718">718</a>	return true</span>
+<span id="L719" class="line"><a href="#L719">719</a>end</span>
+<span id="L720" class="line"><a href="#L720">720</a></span>
+<span id="L721" class="line"><a href="#L721">721</a>-- 在新关开启的指定时间内（暂定4小时），玩家主线关满星前，闯头部新关不触发关卡内结算面板点叉的场景4强弹</span>
+<span id="L722" class="line"><a href="#L722">722</a>function FixBirdNestManager:ignoreForTopLevelPlayer()</span>
+<span id="L723" class="line"><a href="#L723">723</a>    local userState = _G.amfBean(&quot;UserStateManager&quot;):getUserSegmentState()</span>
+<span id="L724" class="line"><a href="#L724">724</a>    if userState == _G.UserStateConst.UserSegmentState.MHZC  then</span>
+<span id="L725" class="line"><a href="#L725">725</a>        return false</span>
+<span id="L726" class="line"><a href="#L726">726</a>    end</span>
+<span id="L727" class="line"><a href="#L727">727</a></span>
+<span id="L728" class="line"><a href="#L728">728</a>    if not _G.amfBean(&quot;LevelUnLockManager&quot;):isInNewLevelTime() then </span>
+<span id="L729" class="line"><a href="#L729">729</a>        return false</span>
+<span id="L730" class="line"><a href="#L730">730</a>    end</span>
+<span id="L731" class="line"><a href="#L731">731</a>    </span>
+<span id="L732" class="line"><a href="#L732">732</a>    return true</span>
+<span id="L733" class="line"><a href="#L733">733</a>end</span>
+<span id="L734" class="line"><a href="#L734">734</a></span>
+<span id="L735" class="line"><a href="#L735">735</a>---------------------------------- CUSTOM_GAIN ----------------------------------</span>
+<span id="L736" class="line"><a href="#L736">736</a></span>
+<span id="L737" class="line"><a href="#L737">737</a>function FixBirdNestManager:_onCustomGain(event)</span>
+<span id="L738" class="line"><a href="#L738">738</a>    local reward = event:getData()</span>
+<span id="L739" class="line"><a href="#L739">739</a>    if reward.itemId == _G.FixBirdNestConst.SCORE_BUFF_ID then</span>
+<span id="L740" class="line"><a href="#L740">740</a>        local curTime = TimeKit:time()</span>
+<span id="L741" class="line"><a href="#L741">741</a>        if tonumber(self.model:getScoreBuffExpireTime()) == 0 or</span>
+<span id="L742" class="line"><a href="#L742">742</a>                curTime &gt;= tonumber(self.model:getScoreBuffExpireTime()) then</span>
+<span id="L743" class="line"><a href="#L743">743</a>            self.model:setScoreBuffExpireTime(curTime)</span>
+<span id="L744" class="line"><a href="#L744">744</a>        end</span>
+<span id="L745" class="line"><a href="#L745">745</a>        self.model:addScoreBuffExpireTime(60 * 1000 * reward.num)</span>
+<span id="L746" class="line"><a href="#L746">746</a>    end</span>
+<span id="L747" class="line"><a href="#L747">747</a>end</span>
+<span id="L748" class="line"><a href="#L748">748</a></span>
+<span id="L749" class="line"><a href="#L749">749</a>return FixBirdNestManager</span></pre></main></html>

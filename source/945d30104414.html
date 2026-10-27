@@ -1,0 +1,98 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/pet/config/PetConfig.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="945d30104414.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/pet/config/PetConfig.lua</h1><p>SHA256 0b54d415d852590c500f464687d782ed4b4ae26cc3c2617ee6ef6f22ac1dc380</p><pre><span id="L1" class="line"><a href="#L1">1</a>local PetConfig = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>PetConfig.autoDownload = true</span>
+<span id="L4" class="line"><a href="#L4">4</a>PetConfig.downloadLabels = {</span>
+<span id="L5" class="line"><a href="#L5">5</a>    &quot;pet_in_package&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>}</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>-- TODO: 补充宠物活动客户端版本</span>
+<span id="L9" class="line"><a href="#L9">9</a>PetConfig.clientVersion = 5</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>PetConfig.openLevel = nil</span>
+<span id="L12" class="line"><a href="#L12">12</a>PetConfig.openPassLevel = nil</span>
+<span id="L13" class="line"><a href="#L13">13</a></span>
+<span id="L14" class="line"><a href="#L14">14</a>PetConfig.ACT_ID = 22009</span>
+<span id="L15" class="line"><a href="#L15">15</a>PetConfig.actId = PetConfig.ACT_ID</span>
+<span id="L16" class="line"><a href="#L16">16</a>PetConfig.DCFeature = &quot;pet&quot;</span>
+<span id="L17" class="line"><a href="#L17">17</a>PetConfig.dcFeature = PetConfig.DCFeature</span>
+<span id="L18" class="line"><a href="#L18">18</a>PetConfig.ACT_CH_NAME = &quot;小小萌伴&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a>PetConfig.actChName = PetConfig.ACT_CH_NAME</span>
+<span id="L20" class="line"><a href="#L20">20</a>PetConfig.infoPrefix = &quot;userInfo&quot;</span>
+<span id="L21" class="line"><a href="#L21">21</a>PetConfig.configPrefix = &quot;localConfig&quot;</span>
+<span id="L22" class="line"><a href="#L22">22</a>PetConfig.timePrefix = &quot;timeInfo&quot;</span>
+<span id="L23" class="line"><a href="#L23">23</a>PetConfig.ACT_NAME = &quot;pet&quot;</span>
+<span id="L24" class="line"><a href="#L24">24</a>PetConfig.LOCAL_PATH = &quot;amf.feature.localactivity.&quot; .. string.lower(PetConfig.ACT_NAME)</span>
+<span id="L25" class="line"><a href="#L25">25</a>PetConfig.ACT_SOURCE = &quot;pet/Config.lua&quot;</span>
+<span id="L26" class="line"><a href="#L26">26</a>PetConfig.actSource = PetConfig.ACT_SOURCE</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>PetConfig.IconMode = {</span>
+<span id="L29" class="line"><a href="#L29">29</a>    VineCorner = &quot;vineCorner&quot;,</span>
+<span id="L30" class="line"><a href="#L30">30</a>    LeftSidePool = &quot;leftSidePool&quot;,</span>
+<span id="L31" class="line"><a href="#L31">31</a>}</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a></span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>PetConfig.DecoPartType = {</span>
+<span id="L36" class="line"><a href="#L36">36</a>    Image = 1,</span>
+<span id="L37" class="line"><a href="#L37">37</a>    Accessory = 2,</span>
+<span id="L38" class="line"><a href="#L38">38</a>    Eye = 3,</span>
+<span id="L39" class="line"><a href="#L39">39</a>    Wing = 4,</span>
+<span id="L40" class="line"><a href="#L40">40</a>}</span>
+<span id="L41" class="line"><a href="#L41">41</a>PetConfig.petDecoProp = require &quot;amf.feature.localactivity.pet.config.PetDecoPropConfig&quot;</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>PetConfig.needLoadFiles = {</span>
+<span id="L44" class="line"><a href="#L44">44</a>    PetConfig.petDecoProp.atlas</span>
+<span id="L45" class="line"><a href="#L45">45</a>}</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>PetConfig.ServerPayloadSource = {</span>
+<span id="L48" class="line"><a href="#L48">48</a>    PET_ACTIVITY_INFO = &quot;petActivityInfo&quot;,</span>
+<span id="L49" class="line"><a href="#L49">49</a>    GET_ACT_INFO = &quot;getActInfo&quot;,</span>
+<span id="L50" class="line"><a href="#L50">50</a>}</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a>PetConfig.DeprecatedDataKey = {</span>
+<span id="L53" class="line"><a href="#L53">53</a>    WEARING_DECOS = &quot;wearingDecos&quot;,</span>
+<span id="L54" class="line"><a href="#L54">54</a>}</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>PetConfig.WingAutoPopCandidate = {</span>
+<span id="L57" class="line"><a href="#L57">57</a>    FIRST_ACTIVATION_GUIDE = &quot;first_activation_guide&quot;,</span>
+<span id="L58" class="line"><a href="#L58">58</a>    ACTIVATION_TRANSITION = &quot;activation_transition&quot;,</span>
+<span id="L59" class="line"><a href="#L59">59</a>    PENDING_ACTIVATION = &quot;pending_activation&quot;,</span>
+<span id="L60" class="line"><a href="#L60">60</a>}</span>
+<span id="L61" class="line"><a href="#L61">61</a></span>
+<span id="L62" class="line"><a href="#L62">62</a>PetConfig.WingDisplayMode = {</span>
+<span id="L63" class="line"><a href="#L63">63</a>    FIRST_ACTIVATION_GUIDE = &quot;first_activation_guide&quot;,</span>
+<span id="L64" class="line"><a href="#L64">64</a>    ACTIVATION_TRANSITION = &quot;activation_transition&quot;,</span>
+<span id="L65" class="line"><a href="#L65">65</a>    PENDING_ACTIVATION = &quot;pending_activation&quot;,</span>
+<span id="L66" class="line"><a href="#L66">66</a>}</span>
+<span id="L67" class="line"><a href="#L67">67</a></span>
+<span id="L68" class="line"><a href="#L68">68</a>PetConfig.WingAutoPop = {</span>
+<span id="L69" class="line"><a href="#L69">69</a>    GUIDE_ID = 6,</span>
+<span id="L70" class="line"><a href="#L70">70</a>    MAIN_PANEL_SHOWN_DAY_KEY = &quot;mainPanelShownServerDay&quot;,</span>
+<span id="L71" class="line"><a href="#L71">71</a>    PANEL_SHOWN_DAY_KEY = &quot;wingActivationTransitionServerDay&quot;,</span>
+<span id="L72" class="line"><a href="#L72">72</a>    DAILY_PROGRESS_ANIMATION_DAY_KEY = &quot;wingDailyProgressAnimationServerDay&quot;,</span>
+<span id="L73" class="line"><a href="#L73">73</a>    TARGET_PANEL = &quot;wing&quot;,</span>
+<span id="L74" class="line"><a href="#L74">74</a>    OPEN_REASON = &quot;auto_pop&quot;,</span>
+<span id="L75" class="line"><a href="#L75">75</a>}</span>
+<span id="L76" class="line"><a href="#L76">76</a></span>
+<span id="L77" class="line"><a href="#L77">77</a>PetConfig.WingSwitch = {</span>
+<span id="L78" class="line"><a href="#L78">78</a>    NAME = &quot;pet_wings_switch&quot;,</span>
+<span id="L79" class="line"><a href="#L79">79</a>    CLOSED_GROUP = &quot;OFF&quot;,</span>
+<span id="L80" class="line"><a href="#L80">80</a>}</span>
+<span id="L81" class="line"><a href="#L81">81</a></span>
+<span id="L82" class="line"><a href="#L82">82</a>PetConfig.defaultFeedMultipleList = {1, 5, 10}</span>
+<span id="L83" class="line"><a href="#L83">83</a>PetConfig.defaultFeedItemId = 187</span>
+<span id="L84" class="line"><a href="#L84">84</a>PetConfig.defaultPetId = 1</span>
+<span id="L85" class="line"><a href="#L85">85</a>PetConfig.defaultPetName = &quot;小小萌伴&quot;</span>
+<span id="L86" class="line"><a href="#L86">86</a>PetConfig.syncRequests = {}</span>
+<span id="L87" class="line"><a href="#L87">87</a>PetConfig.actSendRequestConfig = {}</span>
+<span id="L88" class="line"><a href="#L88">88</a></span>
+<span id="L89" class="line"><a href="#L89">89</a>PetConfig.bShowLog = true</span>
+<span id="L90" class="line"><a href="#L90">90</a></span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>function PetConfig:showLog(...)</span>
+<span id="L93" class="line"><a href="#L93">93</a>    if _G.isLocalDevelopMode and PetConfig.bShowLog then</span>
+<span id="L94" class="line"><a href="#L94">94</a>        printx(44, &quot;***宠物活动***&quot;, ...)</span>
+<span id="L95" class="line"><a href="#L95">95</a>    end</span>
+<span id="L96" class="line"><a href="#L96">96</a>end</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>return PetConfig</span></pre></main></html>

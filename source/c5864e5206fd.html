@@ -1,0 +1,1166 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/mergeevolution/model/MergeEvolutionModel.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="c5864e5206fd.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/mergeevolution/model/MergeEvolutionModel.lua</h1><p>SHA256 137f62de10ffce9057c806ecf9f054377b9200bcf0eab4884d3839f5b43fb5be</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureModel = require &quot;amf.middleware.activity.base.BaseFeatureModel&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local WeekTaskEventCenter = require &#x27;amf.feature.localactivity.weektask.event.WeekTaskEventCenter&#x27;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local Model = class(&quot;MergeEvolutionModel&quot;, BaseFeatureModel)</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>local flowerBoodHandStart = 20000</span>
+<span id="L6" class="line"><a href="#L6">6</a>local flowerBoodHandEnd = 29999</span>
+<span id="L7" class="line"><a href="#L7">7</a>local DEFAULT_FIRE_COUNT = 1</span>
+<span id="L8" class="line"><a href="#L8">8</a>local SHIP_NOTICE_SHOWN_KEY = &quot;shipNoticeShown&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>-- key 为后端 itemId，value 为前端 itemId。配置缺失时在这里补默认映射。</span>
+<span id="L10" class="line"><a href="#L10">10</a>local DEFAULT_ITEM_ID_MAP = {</span>
+<span id="L11" class="line"><a href="#L11">11</a>    [52945] = 80292,</span>
+<span id="L12" class="line"><a href="#L12">12</a>    [52946] = 80299,</span>
+<span id="L13" class="line"><a href="#L13">13</a>}</span>
+<span id="L14" class="line"><a href="#L14">14</a>local MOCK_GACHA_REWARD_POOL = {</span>
+<span id="L15" class="line"><a href="#L15">15</a>    { itemId = 10098, num = 1, rate = 0.2 },</span>
+<span id="L16" class="line"><a href="#L16">16</a>    { itemId = 14, num = 20, rate = 0.15 },</span>
+<span id="L17" class="line"><a href="#L17">17</a>    { itemId = 2, num = 1000, rate = 0.1 },</span>
+<span id="L18" class="line"><a href="#L18">18</a>    { itemId = 10004, num = 1, rate = 0.1 },</span>
+<span id="L19" class="line"><a href="#L19">19</a>    { itemId = 10005, num = 1, rate = 0.1 },</span>
+<span id="L20" class="line"><a href="#L20">20</a>    { itemId = 10007, num = 1, rate = 0.08 },</span>
+<span id="L21" class="line"><a href="#L21">21</a>    { itemId = 80292, num = 1, rate = 0.08 },</span>
+<span id="L22" class="line"><a href="#L22">22</a>    { itemId = 80299, num = 1, rate = 0.05 },</span>
+<span id="L23" class="line"><a href="#L23">23</a>    { itemId = 10059, num = 1, rate = 0.04 },</span>
+<span id="L24" class="line"><a href="#L24">24</a>    { itemId = 10063, num = 1, rate = 0.04 },</span>
+<span id="L25" class="line"><a href="#L25">25</a>    { itemId = 10069, num = 1, rate = 0.03 },</span>
+<span id="L26" class="line"><a href="#L26">26</a>    { itemId = 10099, num = 1, rate = 0.03 },</span>
+<span id="L27" class="line"><a href="#L27">27</a>}</span>
+<span id="L28" class="line"><a href="#L28">28</a>local LotteryRegisterState = {</span>
+<span id="L29" class="line"><a href="#L29">29</a>    NONE = 0,</span>
+<span id="L30" class="line"><a href="#L30">30</a>    PENDING = 1,</span>
+<span id="L31" class="line"><a href="#L31">31</a>    COMPLETED = 2,</span>
+<span id="L32" class="line"><a href="#L32">32</a>}</span>
+<span id="L33" class="line"><a href="#L33">33</a>local LotteryEntryState = {</span>
+<span id="L34" class="line"><a href="#L34">34</a>    UNAVAILABLE = &quot;unavailable&quot;,</span>
+<span id="L35" class="line"><a href="#L35">35</a>    READY = &quot;ready&quot;,</span>
+<span id="L36" class="line"><a href="#L36">36</a>    DRAWN = &quot;drawn&quot;,</span>
+<span id="L37" class="line"><a href="#L37">37</a>    ADDRESS_PENDING = &quot;address_pending&quot;,</span>
+<span id="L38" class="line"><a href="#L38">38</a>    ADDRESS_COMPLETED = &quot;address_completed&quot;,</span>
+<span id="L39" class="line"><a href="#L39">39</a>}</span>
+<span id="L40" class="line"><a href="#L40">40</a>local TARGET_LAUNCHER_MULTIPLE_RULES = {</span>
+<span id="L41" class="line"><a href="#L41">41</a>    [4] = {</span>
+<span id="L42" class="line"><a href="#L42">42</a>        chessLv = 3,</span>
+<span id="L43" class="line"><a href="#L43">43</a>        fireCount = 6,</span>
+<span id="L44" class="line"><a href="#L44">44</a>    },</span>
+<span id="L45" class="line"><a href="#L45">45</a>    [8] = {</span>
+<span id="L46" class="line"><a href="#L46">46</a>        chessLv = 4,</span>
+<span id="L47" class="line"><a href="#L47">47</a>        fireCount = 3,</span>
+<span id="L48" class="line"><a href="#L48">48</a>    },</span>
+<span id="L49" class="line"><a href="#L49">49</a>}</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>function Model:__installPlugs()</span>
+<span id="L52" class="line"><a href="#L52">52</a>    self:installPlug(AMFDataPlugsType.STORAGE, {</span>
+<span id="L53" class="line"><a href="#L53">53</a>        fileName = &quot;MergeEvolutionModel&quot;</span>
+<span id="L54" class="line"><a href="#L54">54</a>    }):as(&quot;db&quot;)</span>
+<span id="L55" class="line"><a href="#L55">55</a>    self:installPlug(AMFDataPlugsType.SYNC, {</span>
+<span id="L56" class="line"><a href="#L56">56</a>        requests = {</span>
+<span id="L57" class="line"><a href="#L57">57</a>            packagepull =&#x27;amf.feature.localactivity.mergeevolution.http.RequestMergeEvolutionPackagePull&#x27;,</span>
+<span id="L58" class="line"><a href="#L58">58</a>            activityaction =&#x27;amf.feature.localactivity.mergeevolution.http.RequestActivityAction&#x27;,</span>
+<span id="L59" class="line"><a href="#L59">59</a>        }</span>
+<span id="L60" class="line"><a href="#L60">60</a>    })</span>
+<span id="L61" class="line"><a href="#L61">61</a>end</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>function Model:_getConstPath()</span>
+<span id="L64" class="line"><a href="#L64">64</a>	return &quot;amf.feature.localactivity.mergeevolution.const.MergeEvolutionConst&quot;</span>
+<span id="L65" class="line"><a href="#L65">65</a>end</span>
+<span id="L66" class="line"><a href="#L66">66</a></span>
+<span id="L67" class="line"><a href="#L67">67</a>function Model:__declare()</span>
+<span id="L68" class="line"><a href="#L68">68</a>    self.userInfo = {}</span>
+<span id="L69" class="line"><a href="#L69">69</a>    self.localConfig = {}</span>
+<span id="L70" class="line"><a href="#L70">70</a>    self.packageInfo = {}</span>
+<span id="L71" class="line"><a href="#L71">71</a>    self.clientMd5 = &quot;&quot;</span>
+<span id="L72" class="line"><a href="#L72">72</a>    self.timeInfo = {}</span>
+<span id="L73" class="line"><a href="#L73">73</a>    self.dayPopGift = nil</span>
+<span id="L74" class="line"><a href="#L74">74</a>    -- localKey</span>
+<span id="L75" class="line"><a href="#L75">75</a>    self.firstOpenMain = false</span>
+<span id="L76" class="line"><a href="#L76">76</a>    self.dailyOpenMain = false</span>
+<span id="L77" class="line"><a href="#L77">77</a>    self.yinLiuPopCnt = 0</span>
+<span id="L78" class="line"><a href="#L78">78</a>    self.dailyPopGift = false</span>
+<span id="L79" class="line"><a href="#L79">79</a>    self.iconTip_1 = false</span>
+<span id="L80" class="line"><a href="#L80">80</a>    self.iconTip_2 = false</span>
+<span id="L81" class="line"><a href="#L81">81</a>    self.iconTip_3 = false</span>
+<span id="L82" class="line"><a href="#L82">82</a>    self.beforeBattlePass = 0</span>
+<span id="L83" class="line"><a href="#L83">83</a>    self.NotShowToday = false</span>
+<span id="L84" class="line"><a href="#L84">84</a>    self.todayCostEnergy = 0</span>
+<span id="L85" class="line"><a href="#L85">85</a>    self.bpTipIndex = 0</span>
+<span id="L86" class="line"><a href="#L86">86</a>    self.dcQualify = false</span>
+<span id="L87" class="line"><a href="#L87">87</a>    self.dcJoin = false</span>
+<span id="L88" class="line"><a href="#L88">88</a>    self.firstBattlePassReward = false</span>
+<span id="L89" class="line"><a href="#L89">89</a>    self.maxShowTipMultiple = 0</span>
+<span id="L90" class="line"><a href="#L90">90</a>    self.longPressGuideShownPeriodId = 0</span>
+<span id="L91" class="line"><a href="#L91">91</a>    self.lotteryStateVersion = 0</span>
+<span id="L92" class="line"><a href="#L92">92</a>    self.lotteryRequestSeq = 0</span>
+<span id="L93" class="line"><a href="#L93">93</a>    self.lotteryPendingRequestToken = 0</span>
+<span id="L94" class="line"><a href="#L94">94</a>    self.gachaResultShownRequestPending = false</span>
+<span id="L95" class="line"><a href="#L95">95</a>    self.shipNoticeShown = {}</span>
+<span id="L96" class="line"><a href="#L96">96</a>end</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>function Model:_prepareLotteryUserInfo(userInfo)</span>
+<span id="L99" class="line"><a href="#L99">99</a>    if not userInfo or userInfo.registerState == nil then</span>
+<span id="L100" class="line"><a href="#L100">100</a>        return userInfo</span>
+<span id="L101" class="line"><a href="#L101">101</a>    end</span>
+<span id="L102" class="line"><a href="#L102">102</a></span>
+<span id="L103" class="line"><a href="#L103">103</a>    local registerState = tonumber(userInfo.registerState)</span>
+<span id="L104" class="line"><a href="#L104">104</a>    local isInvalid = registerState == nil</span>
+<span id="L105" class="line"><a href="#L105">105</a>        or registerState &lt; LotteryRegisterState.NONE</span>
+<span id="L106" class="line"><a href="#L106">106</a>        or registerState &gt; LotteryRegisterState.COMPLETED</span>
+<span id="L107" class="line"><a href="#L107">107</a>    if not isInvalid then</span>
+<span id="L108" class="line"><a href="#L108">108</a>        return userInfo</span>
+<span id="L109" class="line"><a href="#L109">109</a>    end</span>
+<span id="L110" class="line"><a href="#L110">110</a></span>
+<span id="L111" class="line"><a href="#L111">111</a>    local prepared = table.clone(userInfo)</span>
+<span id="L112" class="line"><a href="#L112">112</a>    prepared.registerState = self:getRegisterState()</span>
+<span id="L113" class="line"><a href="#L113">113</a>    return prepared</span>
+<span id="L114" class="line"><a href="#L114">114</a>end</span>
+<span id="L115" class="line"><a href="#L115">115</a></span>
+<span id="L116" class="line"><a href="#L116">116</a>function Model:fromServer(data)</span>
+<span id="L117" class="line"><a href="#L117">117</a>    for k, v in pairs(data) do</span>
+<span id="L118" class="line"><a href="#L118">118</a>        if k == &quot;userInfo&quot; then</span>
+<span id="L119" class="line"><a href="#L119">119</a>            v = self:_prepareLotteryUserInfo(v)</span>
+<span id="L120" class="line"><a href="#L120">120</a>        end</span>
+<span id="L121" class="line"><a href="#L121">121</a>        self:setValue(k, v)</span>
+<span id="L122" class="line"><a href="#L122">122</a>    end</span>
+<span id="L123" class="line"><a href="#L123">123</a></span>
+<span id="L124" class="line"><a href="#L124">124</a>    local gachaResult = self:getDataByKey(&quot;gachaResult&quot;)</span>
+<span id="L125" class="line"><a href="#L125">125</a>    if gachaResult then</span>
+<span id="L126" class="line"><a href="#L126">126</a>        self:setDataByKey(&quot;gachaResult&quot;, self:convertServerReward(gachaResult))</span>
+<span id="L127" class="line"><a href="#L127">127</a>    end</span>
+<span id="L128" class="line"><a href="#L128">128</a></span>
+<span id="L129" class="line"><a href="#L129">129</a>    -- printx(36, tts(self.userInfo), tts(self.localConfig))</span>
+<span id="L130" class="line"><a href="#L130">130</a>end</span>
+<span id="L131" class="line"><a href="#L131">131</a></span>
+<span id="L132" class="line"><a href="#L132">132</a>function Model:clearData()</span>
+<span id="L133" class="line"><a href="#L133">133</a>    if not self:isDataEnabled() then return end</span>
+<span id="L134" class="line"><a href="#L134">134</a>    local buff20EndTs = self:getDataByKey(&quot;buff20EndTs&quot;) or 0</span>
+<span id="L135" class="line"><a href="#L135">135</a>    local buff50EndTs = self:getDataByKey(&quot;buff50EndTs&quot;) or 0</span>
+<span id="L136" class="line"><a href="#L136">136</a>    local maxShowTipMultiple = self:getValue(&quot;maxShowTipMultiple&quot;) or 0</span>
+<span id="L137" class="line"><a href="#L137">137</a>    local longPressGuideShownPeriodId = self:getValue(&quot;longPressGuideShownPeriodId&quot;) or 0</span>
+<span id="L138" class="line"><a href="#L138">138</a>    BaseFeatureModel.clearData(self)</span>
+<span id="L139" class="line"><a href="#L139">139</a>    self:setDataByKey(&quot;buff20EndTs&quot;, buff20EndTs)</span>
+<span id="L140" class="line"><a href="#L140">140</a>    self:setDataByKey(&quot;buff50EndTs&quot;, buff50EndTs)</span>
+<span id="L141" class="line"><a href="#L141">141</a>    self:setValue(&quot;maxShowTipMultiple&quot;, maxShowTipMultiple)</span>
+<span id="L142" class="line"><a href="#L142">142</a>    self:setValue(&quot;longPressGuideShownPeriodId&quot;, longPressGuideShownPeriodId)</span>
+<span id="L143" class="line"><a href="#L143">143</a>end</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>function Model:getConfigByKey(key, default)</span>
+<span id="L146" class="line"><a href="#L146">146</a>    local ret = BaseFeatureModel.getConfigByKey(self, key, default)</span>
+<span id="L147" class="line"><a href="#L147">147</a>    if type(ret) == &quot;table&quot; then</span>
+<span id="L148" class="line"><a href="#L148">148</a>        return table.clone(ret)</span>
+<span id="L149" class="line"><a href="#L149">149</a>    end</span>
+<span id="L150" class="line"><a href="#L150">150</a>    return ret</span>
+<span id="L151" class="line"><a href="#L151">151</a>end</span>
+<span id="L152" class="line"><a href="#L152">152</a></span>
+<span id="L153" class="line"><a href="#L153">153</a>function Model:getItemIdMap()</span>
+<span id="L154" class="line"><a href="#L154">154</a>    local metas = self:getConfigByKey(&quot;idMapMetas&quot;, {})</span>
+<span id="L155" class="line"><a href="#L155">155</a>    if table.isEmpty(metas) then</span>
+<span id="L156" class="line"><a href="#L156">156</a>        return DEFAULT_ITEM_ID_MAP</span>
+<span id="L157" class="line"><a href="#L157">157</a>    end</span>
+<span id="L158" class="line"><a href="#L158">158</a>    local result = {}</span>
+<span id="L159" class="line"><a href="#L159">159</a>    for key, meta in pairs(metas) do</span>
+<span id="L160" class="line"><a href="#L160">160</a>        if type(meta) == &quot;table&quot; then</span>
+<span id="L161" class="line"><a href="#L161">161</a>            local serverItemId = tonumber(meta.serverItemId)</span>
+<span id="L162" class="line"><a href="#L162">162</a>            local clientItemId = tonumber(meta.clientItemId)</span>
+<span id="L163" class="line"><a href="#L163">163</a>            if serverItemId and clientItemId then</span>
+<span id="L164" class="line"><a href="#L164">164</a>                result[serverItemId] = clientItemId</span>
+<span id="L165" class="line"><a href="#L165">165</a>            end</span>
+<span id="L166" class="line"><a href="#L166">166</a>        else</span>
+<span id="L167" class="line"><a href="#L167">167</a>            local serverItemId = tonumber(key)</span>
+<span id="L168" class="line"><a href="#L168">168</a>            local clientItemId = tonumber(meta)</span>
+<span id="L169" class="line"><a href="#L169">169</a>            if serverItemId and clientItemId then</span>
+<span id="L170" class="line"><a href="#L170">170</a>                result[serverItemId] = clientItemId</span>
+<span id="L171" class="line"><a href="#L171">171</a>            end</span>
+<span id="L172" class="line"><a href="#L172">172</a>        end</span>
+<span id="L173" class="line"><a href="#L173">173</a>    end</span>
+<span id="L174" class="line"><a href="#L174">174</a>    return result</span>
+<span id="L175" class="line"><a href="#L175">175</a>end</span>
+<span id="L176" class="line"><a href="#L176">176</a></span>
+<span id="L177" class="line"><a href="#L177">177</a>function Model:convertServerItemId(itemId)</span>
+<span id="L178" class="line"><a href="#L178">178</a>    local serverItemId = tonumber(itemId)</span>
+<span id="L179" class="line"><a href="#L179">179</a>    if not serverItemId then</span>
+<span id="L180" class="line"><a href="#L180">180</a>        return itemId</span>
+<span id="L181" class="line"><a href="#L181">181</a>    end</span>
+<span id="L182" class="line"><a href="#L182">182</a>    return self:getItemIdMap()[serverItemId] or itemId</span>
+<span id="L183" class="line"><a href="#L183">183</a>end</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>function Model:convertServerReward(reward)</span>
+<span id="L186" class="line"><a href="#L186">186</a>    if not reward then</span>
+<span id="L187" class="line"><a href="#L187">187</a>        return reward</span>
+<span id="L188" class="line"><a href="#L188">188</a>    end</span>
+<span id="L189" class="line"><a href="#L189">189</a></span>
+<span id="L190" class="line"><a href="#L190">190</a>    local result = table.clone(reward)</span>
+<span id="L191" class="line"><a href="#L191">191</a>    result.itemId = self:convertServerItemId(result.itemId)</span>
+<span id="L192" class="line"><a href="#L192">192</a>    return result</span>
+<span id="L193" class="line"><a href="#L193">193</a>end</span>
+<span id="L194" class="line"><a href="#L194">194</a></span>
+<span id="L195" class="line"><a href="#L195">195</a>function Model:convertServerRewards(rewards)</span>
+<span id="L196" class="line"><a href="#L196">196</a>    local result = {}</span>
+<span id="L197" class="line"><a href="#L197">197</a>    for _, reward in ipairs(rewards or {}) do</span>
+<span id="L198" class="line"><a href="#L198">198</a>        result[#result + 1] = self:convertServerReward(reward)</span>
+<span id="L199" class="line"><a href="#L199">199</a>    end</span>
+<span id="L200" class="line"><a href="#L200">200</a>    return result</span>
+<span id="L201" class="line"><a href="#L201">201</a>end</span>
+<span id="L202" class="line"><a href="#L202">202</a></span>
+<span id="L203" class="line"><a href="#L203">203</a>local function areRewardsEqual(left, right)</span>
+<span id="L204" class="line"><a href="#L204">204</a>    if left == right then</span>
+<span id="L205" class="line"><a href="#L205">205</a>        return true</span>
+<span id="L206" class="line"><a href="#L206">206</a>    end</span>
+<span id="L207" class="line"><a href="#L207">207</a>    if not left or not right then</span>
+<span id="L208" class="line"><a href="#L208">208</a>        return false</span>
+<span id="L209" class="line"><a href="#L209">209</a>    end</span>
+<span id="L210" class="line"><a href="#L210">210</a>    return left.itemId == right.itemId and left.num == right.num</span>
+<span id="L211" class="line"><a href="#L211">211</a>end</span>
+<span id="L212" class="line"><a href="#L212">212</a></span>
+<span id="L213" class="line"><a href="#L213">213</a>local function areRewardPoolsEqual(left, right)</span>
+<span id="L214" class="line"><a href="#L214">214</a>    if left == right then</span>
+<span id="L215" class="line"><a href="#L215">215</a>        return true</span>
+<span id="L216" class="line"><a href="#L216">216</a>    end</span>
+<span id="L217" class="line"><a href="#L217">217</a>    if not left or not right or #left ~= #right then</span>
+<span id="L218" class="line"><a href="#L218">218</a>        return false</span>
+<span id="L219" class="line"><a href="#L219">219</a>    end</span>
+<span id="L220" class="line"><a href="#L220">220</a>    for index, reward in ipairs(left) do</span>
+<span id="L221" class="line"><a href="#L221">221</a>        local other = right[index]</span>
+<span id="L222" class="line"><a href="#L222">222</a>        if not other</span>
+<span id="L223" class="line"><a href="#L223">223</a>            or reward.itemId ~= other.itemId</span>
+<span id="L224" class="line"><a href="#L224">224</a>            or reward.num ~= other.num</span>
+<span id="L225" class="line"><a href="#L225">225</a>            or reward.rate ~= other.rate</span>
+<span id="L226" class="line"><a href="#L226">226</a>        then</span>
+<span id="L227" class="line"><a href="#L227">227</a>            return false</span>
+<span id="L228" class="line"><a href="#L228">228</a>        end</span>
+<span id="L229" class="line"><a href="#L229">229</a>    end</span>
+<span id="L230" class="line"><a href="#L230">230</a>    return true</span>
+<span id="L231" class="line"><a href="#L231">231</a>end</span>
+<span id="L232" class="line"><a href="#L232">232</a></span>
+<span id="L233" class="line"><a href="#L233">233</a>function Model:_increaseLotteryStateVersion()</span>
+<span id="L234" class="line"><a href="#L234">234</a>    local version = self:getValue(&quot;lotteryStateVersion&quot;) or 0</span>
+<span id="L235" class="line"><a href="#L235">235</a>    version = version + 1</span>
+<span id="L236" class="line"><a href="#L236">236</a>    self:setValue(&quot;lotteryStateVersion&quot;, version)</span>
+<span id="L237" class="line"><a href="#L237">237</a>    return version</span>
+<span id="L238" class="line"><a href="#L238">238</a>end</span>
+<span id="L239" class="line"><a href="#L239">239</a></span>
+<span id="L240" class="line"><a href="#L240">240</a>function Model:getLotteryStateVersion()</span>
+<span id="L241" class="line"><a href="#L241">241</a>    return self:getValue(&quot;lotteryStateVersion&quot;) or 0</span>
+<span id="L242" class="line"><a href="#L242">242</a>end</span>
+<span id="L243" class="line"><a href="#L243">243</a></span>
+<span id="L244" class="line"><a href="#L244">244</a>function Model:beginLotteryRequest()</span>
+<span id="L245" class="line"><a href="#L245">245</a>    if self:hasPendingLotteryRequest() then</span>
+<span id="L246" class="line"><a href="#L246">246</a>        return nil</span>
+<span id="L247" class="line"><a href="#L247">247</a>    end</span>
+<span id="L248" class="line"><a href="#L248">248</a>    local requestSeq = (self:getValue(&quot;lotteryRequestSeq&quot;) or 0) + 1</span>
+<span id="L249" class="line"><a href="#L249">249</a>    self:setValue(&quot;lotteryRequestSeq&quot;, requestSeq)</span>
+<span id="L250" class="line"><a href="#L250">250</a>    self:setValue(&quot;lotteryPendingRequestToken&quot;, requestSeq)</span>
+<span id="L251" class="line"><a href="#L251">251</a>    return requestSeq</span>
+<span id="L252" class="line"><a href="#L252">252</a>end</span>
+<span id="L253" class="line"><a href="#L253">253</a></span>
+<span id="L254" class="line"><a href="#L254">254</a>function Model:finishLotteryRequest(requestToken)</span>
+<span id="L255" class="line"><a href="#L255">255</a>    if requestToken ~= self:getValue(&quot;lotteryPendingRequestToken&quot;) then</span>
+<span id="L256" class="line"><a href="#L256">256</a>        return false</span>
+<span id="L257" class="line"><a href="#L257">257</a>    end</span>
+<span id="L258" class="line"><a href="#L258">258</a>    self:setValue(&quot;lotteryPendingRequestToken&quot;, 0)</span>
+<span id="L259" class="line"><a href="#L259">259</a>    return true</span>
+<span id="L260" class="line"><a href="#L260">260</a>end</span>
+<span id="L261" class="line"><a href="#L261">261</a></span>
+<span id="L262" class="line"><a href="#L262">262</a>function Model:invalidateLotteryRequest()</span>
+<span id="L263" class="line"><a href="#L263">263</a>    self:setValue(&quot;lotteryPendingRequestToken&quot;, 0)</span>
+<span id="L264" class="line"><a href="#L264">264</a>    self:setValue(&quot;gachaResultShownRequestPending&quot;, false)</span>
+<span id="L265" class="line"><a href="#L265">265</a>end</span>
+<span id="L266" class="line"><a href="#L266">266</a></span>
+<span id="L267" class="line"><a href="#L267">267</a>function Model:hasPendingLotteryRequest()</span>
+<span id="L268" class="line"><a href="#L268">268</a>    return (self:getValue(&quot;lotteryPendingRequestToken&quot;) or 0) &gt; 0</span>
+<span id="L269" class="line"><a href="#L269">269</a>end</span>
+<span id="L270" class="line"><a href="#L270">270</a></span>
+<span id="L271" class="line"><a href="#L271">271</a>function Model:beginGachaResultShownRequest()</span>
+<span id="L272" class="line"><a href="#L272">272</a>    if not self:hasUnreadGachaResult() or self:getValue(&quot;gachaResultShownRequestPending&quot;) then</span>
+<span id="L273" class="line"><a href="#L273">273</a>        return false</span>
+<span id="L274" class="line"><a href="#L274">274</a>    end</span>
+<span id="L275" class="line"><a href="#L275">275</a>    self:setValue(&quot;gachaResultShownRequestPending&quot;, true)</span>
+<span id="L276" class="line"><a href="#L276">276</a>    return true</span>
+<span id="L277" class="line"><a href="#L277">277</a>end</span>
+<span id="L278" class="line"><a href="#L278">278</a></span>
+<span id="L279" class="line"><a href="#L279">279</a>function Model:finishGachaResultShownRequest()</span>
+<span id="L280" class="line"><a href="#L280">280</a>    self:setValue(&quot;gachaResultShownRequestPending&quot;, false)</span>
+<span id="L281" class="line"><a href="#L281">281</a>end</span>
+<span id="L282" class="line"><a href="#L282">282</a></span>
+<span id="L283" class="line"><a href="#L283">283</a>function Model:getGachaResult()</span>
+<span id="L284" class="line"><a href="#L284">284</a>    local reward = self:getDataByKey(&quot;gachaResult&quot;)</span>
+<span id="L285" class="line"><a href="#L285">285</a>    return reward and table.clone(reward) or nil</span>
+<span id="L286" class="line"><a href="#L286">286</a>end</span>
+<span id="L287" class="line"><a href="#L287">287</a></span>
+<span id="L288" class="line"><a href="#L288">288</a>function Model:getRegisterState()</span>
+<span id="L289" class="line"><a href="#L289">289</a>    return tonumber(self:getDataByKey(&quot;registerState&quot;, LotteryRegisterState.NONE))</span>
+<span id="L290" class="line"><a href="#L290">290</a>        or LotteryRegisterState.NONE</span>
+<span id="L291" class="line"><a href="#L291">291</a>end</span>
+<span id="L292" class="line"><a href="#L292">292</a></span>
+<span id="L293" class="line"><a href="#L293">293</a>function Model:hasShownGachaResult()</span>
+<span id="L294" class="line"><a href="#L294">294</a>    return self:getDataByKey(&quot;gachaResultShow&quot;, false) == true</span>
+<span id="L295" class="line"><a href="#L295">295</a>end</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>function Model:hasUnreadGachaResult()</span>
+<span id="L298" class="line"><a href="#L298">298</a>    return self:getGachaResult() ~= nil and not self:hasShownGachaResult()</span>
+<span id="L299" class="line"><a href="#L299">299</a>end</span>
+<span id="L300" class="line"><a href="#L300">300</a></span>
+<span id="L301" class="line"><a href="#L301">301</a>function Model:getMockGachaRewardPool()</span>
+<span id="L302" class="line"><a href="#L302">302</a>    return table.clone(MOCK_GACHA_REWARD_POOL)</span>
+<span id="L303" class="line"><a href="#L303">303</a>end</span>
+<span id="L304" class="line"><a href="#L304">304</a></span>
+<span id="L305" class="line"><a href="#L305">305</a>function Model:getGachaRewardPool()</span>
+<span id="L306" class="line"><a href="#L306">306</a>    local rewardPool = self:getConfigByKey(&quot;gachaRewardPool&quot;, {})</span>
+<span id="L307" class="line"><a href="#L307">307</a>    return self:convertServerRewards(rewardPool )</span>
+<span id="L308" class="line"><a href="#L308">308</a>end</span>
+<span id="L309" class="line"><a href="#L309">309</a></span>
+<span id="L310" class="line"><a href="#L310">310</a>function Model:hasGachaRewardPool()</span>
+<span id="L311" class="line"><a href="#L311">311</a>    return not table.isEmpty(self:getGachaRewardPool())</span>
+<span id="L312" class="line"><a href="#L312">312</a>end</span>
+<span id="L313" class="line"><a href="#L313">313</a></span>
+<span id="L314" class="line"><a href="#L314">314</a>function Model:getLotterySnapshot()</span>
+<span id="L315" class="line"><a href="#L315">315</a>    return {</span>
+<span id="L316" class="line"><a href="#L316">316</a>        gachaResult = self:getGachaResult(),</span>
+<span id="L317" class="line"><a href="#L317">317</a>        registerState = self:getRegisterState(),</span>
+<span id="L318" class="line"><a href="#L318">318</a>        gachaResultShow = self:hasShownGachaResult(),</span>
+<span id="L319" class="line"><a href="#L319">319</a>        gachaRewardPool = self:getGachaRewardPool(),</span>
+<span id="L320" class="line"><a href="#L320">320</a>        shipNoticeShown = self:hasShownShipNotice(),</span>
+<span id="L321" class="line"><a href="#L321">321</a>    }</span>
+<span id="L322" class="line"><a href="#L322">322</a>end</span>
+<span id="L323" class="line"><a href="#L323">323</a></span>
+<span id="L324" class="line"><a href="#L324">324</a>function Model:commitLotterySnapshot(previous)</span>
+<span id="L325" class="line"><a href="#L325">325</a>    previous = previous or {}</span>
+<span id="L326" class="line"><a href="#L326">326</a>    local current = self:getLotterySnapshot()</span>
+<span id="L327" class="line"><a href="#L327">327</a>    local changedKeys = {}</span>
+<span id="L328" class="line"><a href="#L328">328</a>    if not areRewardsEqual(previous.gachaResult, current.gachaResult) then</span>
+<span id="L329" class="line"><a href="#L329">329</a>        changedKeys[#changedKeys + 1] = &quot;gachaResult&quot;</span>
+<span id="L330" class="line"><a href="#L330">330</a>    end</span>
+<span id="L331" class="line"><a href="#L331">331</a>    if previous.registerState ~= current.registerState then</span>
+<span id="L332" class="line"><a href="#L332">332</a>        changedKeys[#changedKeys + 1] = &quot;registerState&quot;</span>
+<span id="L333" class="line"><a href="#L333">333</a>    end</span>
+<span id="L334" class="line"><a href="#L334">334</a>    if previous.gachaResultShow ~= current.gachaResultShow then</span>
+<span id="L335" class="line"><a href="#L335">335</a>        changedKeys[#changedKeys + 1] = &quot;gachaResultShow&quot;</span>
+<span id="L336" class="line"><a href="#L336">336</a>    end</span>
+<span id="L337" class="line"><a href="#L337">337</a>    if not areRewardPoolsEqual(previous.gachaRewardPool, current.gachaRewardPool) then</span>
+<span id="L338" class="line"><a href="#L338">338</a>        changedKeys[#changedKeys + 1] = &quot;gachaRewardPool&quot;</span>
+<span id="L339" class="line"><a href="#L339">339</a>    end</span>
+<span id="L340" class="line"><a href="#L340">340</a>    if previous.shipNoticeShown ~= current.shipNoticeShown then</span>
+<span id="L341" class="line"><a href="#L341">341</a>        changedKeys[#changedKeys + 1] = &quot;shipNoticeShown&quot;</span>
+<span id="L342" class="line"><a href="#L342">342</a>    end</span>
+<span id="L343" class="line"><a href="#L343">343</a>    if #changedKeys &gt; 0 then</span>
+<span id="L344" class="line"><a href="#L344">344</a>        self:_increaseLotteryStateVersion()</span>
+<span id="L345" class="line"><a href="#L345">345</a>    end</span>
+<span id="L346" class="line"><a href="#L346">346</a>    return changedKeys</span>
+<span id="L347" class="line"><a href="#L347">347</a>end</span>
+<span id="L348" class="line"><a href="#L348">348</a></span>
+<span id="L349" class="line"><a href="#L349">349</a>function Model:applyGachaReward(reward)</span>
+<span id="L350" class="line"><a href="#L350">350</a>    if not reward then</span>
+<span id="L351" class="line"><a href="#L351">351</a>        return {}</span>
+<span id="L352" class="line"><a href="#L352">352</a>    end</span>
+<span id="L353" class="line"><a href="#L353">353</a></span>
+<span id="L354" class="line"><a href="#L354">354</a>    local changedKeys = {}</span>
+<span id="L355" class="line"><a href="#L355">355</a>    if not areRewardsEqual(self:getGachaResult(), reward) then</span>
+<span id="L356" class="line"><a href="#L356">356</a>        self:setDataByKey(&quot;gachaResult&quot;, table.clone(reward))</span>
+<span id="L357" class="line"><a href="#L357">357</a>        changedKeys[#changedKeys + 1] = &quot;gachaResult&quot;</span>
+<span id="L358" class="line"><a href="#L358">358</a>    end</span>
+<span id="L359" class="line"><a href="#L359">359</a>    if self:hasShownGachaResult() then</span>
+<span id="L360" class="line"><a href="#L360">360</a>        self:setDataByKey(&quot;gachaResultShow&quot;, false)</span>
+<span id="L361" class="line"><a href="#L361">361</a>        changedKeys[#changedKeys + 1] = &quot;gachaResultShow&quot;</span>
+<span id="L362" class="line"><a href="#L362">362</a>    end</span>
+<span id="L363" class="line"><a href="#L363">363</a>    if #changedKeys &gt; 0 then</span>
+<span id="L364" class="line"><a href="#L364">364</a>        self:_increaseLotteryStateVersion()</span>
+<span id="L365" class="line"><a href="#L365">365</a>    end</span>
+<span id="L366" class="line"><a href="#L366">366</a>    return changedKeys</span>
+<span id="L367" class="line"><a href="#L367">367</a>end</span>
+<span id="L368" class="line"><a href="#L368">368</a></span>
+<span id="L369" class="line"><a href="#L369">369</a>function Model:updateRegisterState(registerState)</span>
+<span id="L370" class="line"><a href="#L370">370</a>    registerState = tonumber(registerState)</span>
+<span id="L371" class="line"><a href="#L371">371</a>    if registerState == nil</span>
+<span id="L372" class="line"><a href="#L372">372</a>        or registerState &lt; LotteryRegisterState.NONE</span>
+<span id="L373" class="line"><a href="#L373">373</a>        or registerState &gt; LotteryRegisterState.COMPLETED</span>
+<span id="L374" class="line"><a href="#L374">374</a>        or registerState &lt; self:getRegisterState()</span>
+<span id="L375" class="line"><a href="#L375">375</a>    then</span>
+<span id="L376" class="line"><a href="#L376">376</a>        return {}, false</span>
+<span id="L377" class="line"><a href="#L377">377</a>    end</span>
+<span id="L378" class="line"><a href="#L378">378</a>    if registerState == self:getRegisterState() then</span>
+<span id="L379" class="line"><a href="#L379">379</a>        return {}, true</span>
+<span id="L380" class="line"><a href="#L380">380</a>    end</span>
+<span id="L381" class="line"><a href="#L381">381</a></span>
+<span id="L382" class="line"><a href="#L382">382</a>    self:setDataByKey(&quot;registerState&quot;, registerState)</span>
+<span id="L383" class="line"><a href="#L383">383</a>    self:_increaseLotteryStateVersion()</span>
+<span id="L384" class="line"><a href="#L384">384</a>    return { &quot;registerState&quot; }, true</span>
+<span id="L385" class="line"><a href="#L385">385</a>end</span>
+<span id="L386" class="line"><a href="#L386">386</a></span>
+<span id="L387" class="line"><a href="#L387">387</a>function Model:applyServerRegisterState(registerState)</span>
+<span id="L388" class="line"><a href="#L388">388</a>    registerState = tonumber(registerState)</span>
+<span id="L389" class="line"><a href="#L389">389</a>    if registerState == nil</span>
+<span id="L390" class="line"><a href="#L390">390</a>        or registerState &lt; LotteryRegisterState.NONE</span>
+<span id="L391" class="line"><a href="#L391">391</a>        or registerState &gt; LotteryRegisterState.COMPLETED</span>
+<span id="L392" class="line"><a href="#L392">392</a>    then</span>
+<span id="L393" class="line"><a href="#L393">393</a>        return {}, false</span>
+<span id="L394" class="line"><a href="#L394">394</a>    end</span>
+<span id="L395" class="line"><a href="#L395">395</a>    if registerState == self:getRegisterState() then</span>
+<span id="L396" class="line"><a href="#L396">396</a>        return {}, true</span>
+<span id="L397" class="line"><a href="#L397">397</a>    end</span>
+<span id="L398" class="line"><a href="#L398">398</a></span>
+<span id="L399" class="line"><a href="#L399">399</a>    self:setDataByKey(&quot;registerState&quot;, registerState)</span>
+<span id="L400" class="line"><a href="#L400">400</a>    self:_increaseLotteryStateVersion()</span>
+<span id="L401" class="line"><a href="#L401">401</a>    return { &quot;registerState&quot; }, true</span>
+<span id="L402" class="line"><a href="#L402">402</a>end</span>
+<span id="L403" class="line"><a href="#L403">403</a></span>
+<span id="L404" class="line"><a href="#L404">404</a>function Model:markGachaResultShown()</span>
+<span id="L405" class="line"><a href="#L405">405</a>    if not self:getGachaResult() or self:hasShownGachaResult() then</span>
+<span id="L406" class="line"><a href="#L406">406</a>        return {}</span>
+<span id="L407" class="line"><a href="#L407">407</a>    end</span>
+<span id="L408" class="line"><a href="#L408">408</a>    self:setDataByKey(&quot;gachaResultShow&quot;, true)</span>
+<span id="L409" class="line"><a href="#L409">409</a>    self:_increaseLotteryStateVersion()</span>
+<span id="L410" class="line"><a href="#L410">410</a>    return { &quot;gachaResultShow&quot; }</span>
+<span id="L411" class="line"><a href="#L411">411</a>end</span>
+<span id="L412" class="line"><a href="#L412">412</a></span>
+<span id="L413" class="line"><a href="#L413">413</a>function Model:hasShownShipNotice()</span>
+<span id="L414" class="line"><a href="#L414">414</a>    local shownPeriods = self:getDataByKey(SHIP_NOTICE_SHOWN_KEY, {})</span>
+<span id="L415" class="line"><a href="#L415">415</a>    if type(shownPeriods) ~= &quot;table&quot; then</span>
+<span id="L416" class="line"><a href="#L416">416</a>        return false</span>
+<span id="L417" class="line"><a href="#L417">417</a>    end</span>
+<span id="L418" class="line"><a href="#L418">418</a>    return shownPeriods[tostring(self:getPeriodId())] == true</span>
+<span id="L419" class="line"><a href="#L419">419</a>end</span>
+<span id="L420" class="line"><a href="#L420">420</a></span>
+<span id="L421" class="line"><a href="#L421">421</a>function Model:markShipNoticeShown()</span>
+<span id="L422" class="line"><a href="#L422">422</a>    if self:hasShownShipNotice() then</span>
+<span id="L423" class="line"><a href="#L423">423</a>        return {}</span>
+<span id="L424" class="line"><a href="#L424">424</a>    end</span>
+<span id="L425" class="line"><a href="#L425">425</a>    local shownPeriods = self:getDataByKey(SHIP_NOTICE_SHOWN_KEY, {})</span>
+<span id="L426" class="line"><a href="#L426">426</a>    if type(shownPeriods) ~= &quot;table&quot; then</span>
+<span id="L427" class="line"><a href="#L427">427</a>        shownPeriods = {}</span>
+<span id="L428" class="line"><a href="#L428">428</a>    else</span>
+<span id="L429" class="line"><a href="#L429">429</a>        shownPeriods = table.clone(shownPeriods)</span>
+<span id="L430" class="line"><a href="#L430">430</a>    end</span>
+<span id="L431" class="line"><a href="#L431">431</a>    shownPeriods[tostring(self:getPeriodId())] = true</span>
+<span id="L432" class="line"><a href="#L432">432</a>    self:setDataByKey(SHIP_NOTICE_SHOWN_KEY, shownPeriods, true)</span>
+<span id="L433" class="line"><a href="#L433">433</a>    self:_increaseLotteryStateVersion()</span>
+<span id="L434" class="line"><a href="#L434">434</a>    return { &quot;shipNoticeShown&quot; }</span>
+<span id="L435" class="line"><a href="#L435">435</a>end</span>
+<span id="L436" class="line"><a href="#L436">436</a></span>
+<span id="L437" class="line"><a href="#L437">437</a>function Model:getLotteryEntryState(isMainTime, isFinished)</span>
+<span id="L438" class="line"><a href="#L438">438</a>    local registerState = self:getRegisterState()</span>
+<span id="L439" class="line"><a href="#L439">439</a>    local state = LotteryEntryState.UNAVAILABLE</span>
+<span id="L440" class="line"><a href="#L440">440</a>    if self:isDataEnabled() and self:hasGachaRewardPool() then</span>
+<span id="L441" class="line"><a href="#L441">441</a>        if registerState == LotteryRegisterState.PENDING then</span>
+<span id="L442" class="line"><a href="#L442">442</a>            state = LotteryEntryState.ADDRESS_PENDING</span>
+<span id="L443" class="line"><a href="#L443">443</a>        elseif registerState == LotteryRegisterState.COMPLETED then</span>
+<span id="L444" class="line"><a href="#L444">444</a>            state = LotteryEntryState.ADDRESS_COMPLETED</span>
+<span id="L445" class="line"><a href="#L445">445</a>        elseif self:getGachaResult() then</span>
+<span id="L446" class="line"><a href="#L446">446</a>            state = LotteryEntryState.DRAWN</span>
+<span id="L447" class="line"><a href="#L447">447</a>        else</span>
+<span id="L448" class="line"><a href="#L448">448</a>            state = LotteryEntryState.READY</span>
+<span id="L449" class="line"><a href="#L449">449</a>        end</span>
+<span id="L450" class="line"><a href="#L450">450</a>    end</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>    isMainTime = self:isInMainTime()</span>
+<span id="L453" class="line"><a href="#L453">453</a>    isFinished = self:getGotFinalReward()</span>
+<span id="L454" class="line"><a href="#L454">454</a>    printx(44, &quot;canDraw isFinished&quot;, isFinished)</span>
+<span id="L455" class="line"><a href="#L455">455</a></span>
+<span id="L456" class="line"><a href="#L456">456</a>    local canDraw = state == LotteryEntryState.READY</span>
+<span id="L457" class="line"><a href="#L457">457</a>        and isMainTime</span>
+<span id="L458" class="line"><a href="#L458">458</a>        and isFinished</span>
+<span id="L459" class="line"><a href="#L459">459</a>    local redDotType</span>
+<span id="L460" class="line"><a href="#L460">460</a>    if canDraw then</span>
+<span id="L461" class="line"><a href="#L461">461</a>        redDotType = &quot;reward&quot;</span>
+<span id="L462" class="line"><a href="#L462">462</a>    elseif state == LotteryEntryState.ADDRESS_PENDING then</span>
+<span id="L463" class="line"><a href="#L463">463</a>        redDotType = &quot;normal&quot;</span>
+<span id="L464" class="line"><a href="#L464">464</a>    end</span>
+<span id="L465" class="line"><a href="#L465">465</a>    return {</span>
+<span id="L466" class="line"><a href="#L466">466</a>        state = state,</span>
+<span id="L467" class="line"><a href="#L467">467</a>        canDraw = canDraw,</span>
+<span id="L468" class="line"><a href="#L468">468</a>        redDotType = redDotType,</span>
+<span id="L469" class="line"><a href="#L469">469</a>        shouldShowRedDot = redDotType == &quot;reward&quot;,</span>
+<span id="L470" class="line"><a href="#L470">470</a>        shouldShowNormalRedDot = redDotType == &quot;normal&quot;,</span>
+<span id="L471" class="line"><a href="#L471">471</a>        hasUnreadResult = self:hasUnreadGachaResult(),</span>
+<span id="L472" class="line"><a href="#L472">472</a>        registerState = registerState,</span>
+<span id="L473" class="line"><a href="#L473">473</a>        addressMode = registerState == LotteryRegisterState.COMPLETED and &quot;edit&quot; or &quot;create&quot;,</span>
+<span id="L474" class="line"><a href="#L474">474</a>        stateVersion = self:getLotteryStateVersion(),</span>
+<span id="L475" class="line"><a href="#L475">475</a>    }</span>
+<span id="L476" class="line"><a href="#L476">476</a>end</span>
+<span id="L477" class="line"><a href="#L477">477</a></span>
+<span id="L478" class="line"><a href="#L478">478</a></span>
+<span id="L479" class="line"><a href="#L479">479</a>function Model:setGuide( index )</span>
+<span id="L480" class="line"><a href="#L480">480</a>	local guideInfo = self:getDataByKey(&quot;guides&quot;, {})</span>
+<span id="L481" class="line"><a href="#L481">481</a>	table.insert(guideInfo, index)</span>
+<span id="L482" class="line"><a href="#L482">482</a>	self:setDataByKey(&quot;guides&quot;, guideInfo)</span>
+<span id="L483" class="line"><a href="#L483">483</a>end</span>
+<span id="L484" class="line"><a href="#L484">484</a></span>
+<span id="L485" class="line"><a href="#L485">485</a>function Model:hasGuide( index )</span>
+<span id="L486" class="line"><a href="#L486">486</a>	local guideInfo = self:getDataByKey(&quot;guides&quot;, {}, false)</span>
+<span id="L487" class="line"><a href="#L487">487</a>	return table.find(guideInfo, function ( v )</span>
+<span id="L488" class="line"><a href="#L488">488</a>		return v == index</span>
+<span id="L489" class="line"><a href="#L489">489</a>	end)</span>
+<span id="L490" class="line"><a href="#L490">490</a>end</span>
+<span id="L491" class="line"><a href="#L491">491</a></span>
+<span id="L492" class="line"><a href="#L492">492</a>function Model:getBeginTime()</span>
+<span id="L493" class="line"><a href="#L493">493</a>    local key = self:_getTimeKey(&quot;beginTime&quot;)</span>
+<span id="L494" class="line"><a href="#L494">494</a>    return math.floor((self:getValue(key) or 0) / 1000)</span>
+<span id="L495" class="line"><a href="#L495">495</a>end</span>
+<span id="L496" class="line"><a href="#L496">496</a></span>
+<span id="L497" class="line"><a href="#L497">497</a>function Model:getMainBeginTime()</span>
+<span id="L498" class="line"><a href="#L498">498</a>    local key = self:_getTimeKey(&quot;mainBeginTime&quot;)</span>
+<span id="L499" class="line"><a href="#L499">499</a>    return math.floor((self:getValue(key) or 0) / 1000)</span>
+<span id="L500" class="line"><a href="#L500">500</a>end</span>
+<span id="L501" class="line"><a href="#L501">501</a></span>
+<span id="L502" class="line"><a href="#L502">502</a>function Model:getEndTime()</span>
+<span id="L503" class="line"><a href="#L503">503</a>    local key = self:_getTimeKey(&quot;endTime&quot;)</span>
+<span id="L504" class="line"><a href="#L504">504</a>    return math.floor((self:getValue(key) or 0) / 1000)</span>
+<span id="L505" class="line"><a href="#L505">505</a>end</span>
+<span id="L506" class="line"><a href="#L506">506</a></span>
+<span id="L507" class="line"><a href="#L507">507</a>function Model:getMainEndTime()</span>
+<span id="L508" class="line"><a href="#L508">508</a>    local key = self:_getTimeKey(&quot;mainEndTime&quot;)</span>
+<span id="L509" class="line"><a href="#L509">509</a>    return math.floor((self:getValue(key) or 0) / 1000)</span>
+<span id="L510" class="line"><a href="#L510">510</a>end</span>
+<span id="L511" class="line"><a href="#L511">511</a></span>
+<span id="L512" class="line"><a href="#L512">512</a>function Model:updateTimeInfo(time)</span>
+<span id="L513" class="line"><a href="#L513">513</a>    self:setValue(&quot;timeInfo&quot;, time)</span>
+<span id="L514" class="line"><a href="#L514">514</a>end</span>
+<span id="L515" class="line"><a href="#L515">515</a></span>
+<span id="L516" class="line"><a href="#L516">516</a>function Model:isDataEnabled()</span>
+<span id="L517" class="line"><a href="#L517">517</a>    local localConfig = self:getValue(&quot;localConfig&quot;)</span>
+<span id="L518" class="line"><a href="#L518">518</a>    if not localConfig or table.isEmpty(localConfig) then</span>
+<span id="L519" class="line"><a href="#L519">519</a>        return false</span>
+<span id="L520" class="line"><a href="#L520">520</a>    end</span>
+<span id="L521" class="line"><a href="#L521">521</a></span>
+<span id="L522" class="line"><a href="#L522">522</a>    local userInfo = self:getValue(&quot;userInfo&quot;)</span>
+<span id="L523" class="line"><a href="#L523">523</a>	if not userInfo or not userInfo.mapData then</span>
+<span id="L524" class="line"><a href="#L524">524</a>        return false</span>
+<span id="L525" class="line"><a href="#L525">525</a>    end</span>
+<span id="L526" class="line"><a href="#L526">526</a></span>
+<span id="L527" class="line"><a href="#L527">527</a>    return true</span>
+<span id="L528" class="line"><a href="#L528">528</a>end</span>
+<span id="L529" class="line"><a href="#L529">529</a></span>
+<span id="L530" class="line"><a href="#L530">530</a>function Model:getClientMd5()</span>
+<span id="L531" class="line"><a href="#L531">531</a>    return self:getValue(&quot;clientMd5&quot;) or &quot;&quot;</span>
+<span id="L532" class="line"><a href="#L532">532</a>end</span>
+<span id="L533" class="line"><a href="#L533">533</a></span>
+<span id="L534" class="line"><a href="#L534">534</a>function Model:passDayRefreshData()</span>
+<span id="L535" class="line"><a href="#L535">535</a>    local packageId = self:getPackageIdByType(&quot;FLOW&quot;)</span>
+<span id="L536" class="line"><a href="#L536">536</a>    if packageId then</span>
+<span id="L537" class="line"><a href="#L537">537</a>        self:setDisplayablePackagesById(packageId, nil)</span>
+<span id="L538" class="line"><a href="#L538">538</a>    end</span>
+<span id="L539" class="line"><a href="#L539">539</a>    self:setTodayCostEnergy(0)</span>
+<span id="L540" class="line"><a href="#L540">540</a>end</span>
+<span id="L541" class="line"><a href="#L541">541</a></span>
+<span id="L542" class="line"><a href="#L542">542</a>function Model:getPeriodId()</span>
+<span id="L543" class="line"><a href="#L543">543</a>    return self:getDataByKey(&quot;periodId&quot;, 0)</span>
+<span id="L544" class="line"><a href="#L544">544</a>end</span>
+<span id="L545" class="line"><a href="#L545">545</a></span>
+<span id="L546" class="line"><a href="#L546">546</a>function Model:setPeriodId(id)</span>
+<span id="L547" class="line"><a href="#L547">547</a>    self:setDataByKey(&quot;periodId&quot;, id)</span>
+<span id="L548" class="line"><a href="#L548">548</a>end</span>
+<span id="L549" class="line"><a href="#L549">549</a></span>
+<span id="L550" class="line"><a href="#L550">550</a>function Model:getMapData()</span>
+<span id="L551" class="line"><a href="#L551">551</a>    return self:getDataByKey(&quot;mapData&quot;, {})</span>
+<span id="L552" class="line"><a href="#L552">552</a>end</span>
+<span id="L553" class="line"><a href="#L553">553</a></span>
+<span id="L554" class="line"><a href="#L554">554</a>function Model:setMapData(data)</span>
+<span id="L555" class="line"><a href="#L555">555</a>    self:setDataByKey(&quot;mapData&quot;, data)</span>
+<span id="L556" class="line"><a href="#L556">556</a>end</span>
+<span id="L557" class="line"><a href="#L557">557</a></span>
+<span id="L558" class="line"><a href="#L558">558</a>function Model:getMapStage()</span>
+<span id="L559" class="line"><a href="#L559">559</a>    return self:getDataByKey(&quot;mapData.step&quot;, 0)</span>
+<span id="L560" class="line"><a href="#L560">560</a>end</span>
+<span id="L561" class="line"><a href="#L561">561</a></span>
+<span id="L562" class="line"><a href="#L562">562</a>function Model:getMapId()</span>
+<span id="L563" class="line"><a href="#L563">563</a>    return self:getDataByKey(&quot;mapData.curMapId&quot;, 0)</span>
+<span id="L564" class="line"><a href="#L564">564</a>end</span>
+<span id="L565" class="line"><a href="#L565">565</a></span>
+<span id="L566" class="line"><a href="#L566">566</a>function Model:getMapStatus()</span>
+<span id="L567" class="line"><a href="#L567">567</a>    return self:getDataByKey(&quot;mapData.mapStatus&quot;, 0)</span>
+<span id="L568" class="line"><a href="#L568">568</a>end</span>
+<span id="L569" class="line"><a href="#L569">569</a></span>
+<span id="L570" class="line"><a href="#L570">570</a>function Model:setMapStatus(status)</span>
+<span id="L571" class="line"><a href="#L571">571</a>    self:setDataByKey(&quot;mapData.mapStatus&quot;, status)</span>
+<span id="L572" class="line"><a href="#L572">572</a>end</span>
+<span id="L573" class="line"><a href="#L573">573</a></span>
+<span id="L574" class="line"><a href="#L574">574</a>function Model:getTodayCostEnergy()</span>
+<span id="L575" class="line"><a href="#L575">575</a>    return self:getFlagFromLocalByKey(&quot;todayCostEnergy&quot;,true) or 0</span>
+<span id="L576" class="line"><a href="#L576">576</a>end</span>
+<span id="L577" class="line"><a href="#L577">577</a></span>
+<span id="L578" class="line"><a href="#L578">578</a>function Model:setTodayCostEnergy(num)</span>
+<span id="L579" class="line"><a href="#L579">579</a>    self:saveFlagToLocalByKey(&quot;todayCostEnergy&quot;,true, num)</span>
+<span id="L580" class="line"><a href="#L580">580</a>end</span>
+<span id="L581" class="line"><a href="#L581">581</a></span>
+<span id="L582" class="line"><a href="#L582">582</a>function Model:getCellStatus()</span>
+<span id="L583" class="line"><a href="#L583">583</a>    return self:getDataByKey(&quot;mapData.cells&quot;, {})</span>
+<span id="L584" class="line"><a href="#L584">584</a>end</span>
+<span id="L585" class="line"><a href="#L585">585</a></span>
+<span id="L586" class="line"><a href="#L586">586</a>function Model:setCellStatusMap(data)</span>
+<span id="L587" class="line"><a href="#L587">587</a>    self:setDataByKey(&quot;mapData.cells&quot;, data)</span>
+<span id="L588" class="line"><a href="#L588">588</a>end</span>
+<span id="L589" class="line"><a href="#L589">589</a></span>
+<span id="L590" class="line"><a href="#L590">590</a>function Model:getStoreChessList()</span>
+<span id="L591" class="line"><a href="#L591">591</a>    return self:getDataByKey(&quot;mapData.storedChesses&quot;, {})</span>
+<span id="L592" class="line"><a href="#L592">592</a>end</span>
+<span id="L593" class="line"><a href="#L593">593</a></span>
+<span id="L594" class="line"><a href="#L594">594</a>function Model:popStoreChessList(clear)</span>
+<span id="L595" class="line"><a href="#L595">595</a>    local list = self:getDataByKey(&quot;mapData.storedChesses&quot;, {})</span>
+<span id="L596" class="line"><a href="#L596">596</a>    local last = list[#list]</span>
+<span id="L597" class="line"><a href="#L597">597</a>    list[#list] = nil</span>
+<span id="L598" class="line"><a href="#L598">598</a>    self:setDataByKey(&quot;mapData.storedChesses&quot;, {})</span>
+<span id="L599" class="line"><a href="#L599">599</a>    return last</span>
+<span id="L600" class="line"><a href="#L600">600</a>end</span>
+<span id="L601" class="line"><a href="#L601">601</a></span>
+<span id="L602" class="line"><a href="#L602">602</a>function Model:getHandBookData()</span>
+<span id="L603" class="line"><a href="#L603">603</a>    local finished = table.clone(self:getDataByKey(&quot;finishedBookIds&quot;, {}))</span>
+<span id="L604" class="line"><a href="#L604">604</a>    local reward = self:getDataByKey(&quot;rewardBookIds&quot;, {})</span>
+<span id="L605" class="line"><a href="#L605">605</a>    return finished, reward</span>
+<span id="L606" class="line"><a href="#L606">606</a>end</span>
+<span id="L607" class="line"><a href="#L607">607</a></span>
+<span id="L608" class="line"><a href="#L608">608</a>local function handBookIdIsFlowerType(id)</span>
+<span id="L609" class="line"><a href="#L609">609</a>    --判断是否是花的图鉴， AI求放过</span>
+<span id="L610" class="line"><a href="#L610">610</a>    if id &gt;= flowerBoodHandStart and id &lt;= flowerBoodHandEnd then</span>
+<span id="L611" class="line"><a href="#L611">611</a>        return true</span>
+<span id="L612" class="line"><a href="#L612">612</a>    end</span>
+<span id="L613" class="line"><a href="#L613">613</a>    return false</span>
+<span id="L614" class="line"><a href="#L614">614</a>end</span>
+<span id="L615" class="line"><a href="#L615">615</a></span>
+<span id="L616" class="line"><a href="#L616">616</a>function Model:addHandBookFinish(ids)</span>
+<span id="L617" class="line"><a href="#L617">617</a>    local finished = self:getDataByKey(&quot;finishedBookIds&quot;, {})</span>
+<span id="L618" class="line"><a href="#L618">618</a>    local bAdd = false</span>
+<span id="L619" class="line"><a href="#L619">619</a>    for _, id in ipairs(ids) do</span>
+<span id="L620" class="line"><a href="#L620">620</a>        if not table.includes(finished, id) then</span>
+<span id="L621" class="line"><a href="#L621">621</a>            finished[#finished + 1] = id</span>
+<span id="L622" class="line"><a href="#L622">622</a>            bAdd = true</span>
+<span id="L623" class="line"><a href="#L623">623</a></span>
+<span id="L624" class="line"><a href="#L624">624</a>            self:dcHandbookUnlock(id)</span>
+<span id="L625" class="line"><a href="#L625">625</a></span>
+<span id="L626" class="line"><a href="#L626">626</a>            if handBookIdIsFlowerType(id) then</span>
+<span id="L627" class="line"><a href="#L627">627</a>                WeekTaskEventCenter:dispatch(_G.WeekTaskEvent.ACT_TASK_COMPLETE, { type=_G.WeekTaskType.LITTLE_MERGE_UNLOCK_HANDBOOK, num=1})</span>
+<span id="L628" class="line"><a href="#L628">628</a>            end</span>
+<span id="L629" class="line"><a href="#L629">629</a>        end</span>
+<span id="L630" class="line"><a href="#L630">630</a>    end</span>
+<span id="L631" class="line"><a href="#L631">631</a></span>
+<span id="L632" class="line"><a href="#L632">632</a>    if bAdd then</span>
+<span id="L633" class="line"><a href="#L633">633</a>        self:setDataByKey(&quot;finishedBookIds&quot;, finished)</span>
+<span id="L634" class="line"><a href="#L634">634</a>    end</span>
+<span id="L635" class="line"><a href="#L635">635</a>end</span>
+<span id="L636" class="line"><a href="#L636">636</a></span>
+<span id="L637" class="line"><a href="#L637">637</a>function Model:dcHandbookUnlock(chessId)</span>
+<span id="L638" class="line"><a href="#L638">638</a>    local feature = self:getConst().dcFeature</span>
+<span id="L639" class="line"><a href="#L639">639</a>    local source = &quot;handbook_unlock&quot;</span>
+<span id="L640" class="line"><a href="#L640">640</a>    DcUtil:UserTrack({</span>
+<span id="L641" class="line"><a href="#L641">641</a>        category = feature,</span>
+<span id="L642" class="line"><a href="#L642">642</a>        sub_category = source,</span>
+<span id="L643" class="line"><a href="#L643">643</a>    })</span>
+<span id="L644" class="line"><a href="#L644">644</a></span>
+<span id="L645" class="line"><a href="#L645">645</a>    local GainPropLogic = require &quot;amf.middleware.prop.propchange.logic.GainPropLogic&quot;</span>
+<span id="L646" class="line"><a href="#L646">646</a>    local dcGain = _G.DcDataCommon:create()</span>
+<span id="L647" class="line"><a href="#L647">647</a>    dcGain:setGainProp({</span>
+<span id="L648" class="line"><a href="#L648">648</a>        itemId = chessId,</span>
+<span id="L649" class="line"><a href="#L649">649</a>        num = 1,</span>
+<span id="L650" class="line"><a href="#L650">650</a>    })</span>
+<span id="L651" class="line"><a href="#L651">651</a>    dcGain:setFeature(feature)</span>
+<span id="L652" class="line"><a href="#L652">652</a>        :setSource(source)</span>
+<span id="L653" class="line"><a href="#L653">653</a>    dcGain._extraMap = {</span>
+<span id="L654" class="line"><a href="#L654">654</a>        item_name = &quot;棋子&quot; .. chessId,</span>
+<span id="L655" class="line"><a href="#L655">655</a>    }</span>
+<span id="L656" class="line"><a href="#L656">656</a></span>
+<span id="L657" class="line"><a href="#L657">657</a>    dcGain:execute()</span>
+<span id="L658" class="line"><a href="#L658">658</a>end</span>
+<span id="L659" class="line"><a href="#L659">659</a></span>
+<span id="L660" class="line"><a href="#L660">660</a>function Model:addHandBookReward(id)</span>
+<span id="L661" class="line"><a href="#L661">661</a>    local reward = self:getDataByKey(&quot;rewardBookIds&quot;, {})</span>
+<span id="L662" class="line"><a href="#L662">662</a>    if table.includes(reward, id) then return end</span>
+<span id="L663" class="line"><a href="#L663">663</a></span>
+<span id="L664" class="line"><a href="#L664">664</a>    table.insert(reward, id)</span>
+<span id="L665" class="line"><a href="#L665">665</a>    self:setDataByKey(&quot;rewardBookIds&quot;, reward)</span>
+<span id="L666" class="line"><a href="#L666">666</a>end</span>
+<span id="L667" class="line"><a href="#L667">667</a></span>
+<span id="L668" class="line"><a href="#L668">668</a>function Model:hasHandBookReward()</span>
+<span id="L669" class="line"><a href="#L669">669</a>    local finished = self:getDataByKey(&quot;finishedBookIds&quot;, {})</span>
+<span id="L670" class="line"><a href="#L670">670</a>    local reward = self:getDataByKey(&quot;rewardBookIds&quot;, {})</span>
+<span id="L671" class="line"><a href="#L671">671</a>    return table.length(finished) &gt; table.length(reward)</span>
+<span id="L672" class="line"><a href="#L672">672</a>end</span>
+<span id="L673" class="line"><a href="#L673">673</a></span>
+<span id="L674" class="line"><a href="#L674">674</a>function Model:addScoreBuff(type, minute)</span>
+<span id="L675" class="line"><a href="#L675">675</a>    local key = type == 1 and &quot;buff20EndTs&quot; or &quot;buff50EndTs&quot;</span>
+<span id="L676" class="line"><a href="#L676">676</a>    local time = tonumber(self:getDataByKey(key, 0))</span>
+<span id="L677" class="line"><a href="#L677">677</a>    time = math.max(TimeKit:timeInMillis(), time)</span>
+<span id="L678" class="line"><a href="#L678">678</a>    time = time + minute * 60000</span>
+<span id="L679" class="line"><a href="#L679">679</a>    self:setDataByKey(key, time)</span>
+<span id="L680" class="line"><a href="#L680">680</a>end</span>
+<span id="L681" class="line"><a href="#L681">681</a></span>
+<span id="L682" class="line"><a href="#L682">682</a>function Model:getScoreBuff(type)</span>
+<span id="L683" class="line"><a href="#L683">683</a>    local key = type == 1 and &quot;buff20EndTs&quot; or &quot;buff50EndTs&quot;</span>
+<span id="L684" class="line"><a href="#L684">684</a>    return math.floor(tonumber(self:getDataByKey(key) or 0) / 1000)</span>
+<span id="L685" class="line"><a href="#L685">685</a>end</span>
+<span id="L686" class="line"><a href="#L686">686</a></span>
+<span id="L687" class="line"><a href="#L687">687</a>function Model:setbuff20EndTs(time)</span>
+<span id="L688" class="line"><a href="#L688">688</a>    self:setDataByKey(&quot;buff20EndTs&quot;, time)</span>
+<span id="L689" class="line"><a href="#L689">689</a>end</span>
+<span id="L690" class="line"><a href="#L690">690</a></span>
+<span id="L691" class="line"><a href="#L691">691</a>function Model:setbuff50EndTs(time)</span>
+<span id="L692" class="line"><a href="#L692">692</a>    self:setDataByKey(&quot;buff50EndTs&quot;, time)</span>
+<span id="L693" class="line"><a href="#L693">693</a>end</span>
+<span id="L694" class="line"><a href="#L694">694</a></span>
+<span id="L695" class="line"><a href="#L695">695</a>function Model:getCollectionNum()</span>
+<span id="L696" class="line"><a href="#L696">696</a>    return self:getDataByKey(&quot;leftEnergy&quot;, 0)</span>
+<span id="L697" class="line"><a href="#L697">697</a>end</span>
+<span id="L698" class="line"><a href="#L698">698</a></span>
+<span id="L699" class="line"><a href="#L699">699</a>function Model:setCollectionNum(num)</span>
+<span id="L700" class="line"><a href="#L700">700</a>    self:setDataByKey(&quot;leftEnergy&quot;, num)</span>
+<span id="L701" class="line"><a href="#L701">701</a>end</span>
+<span id="L702" class="line"><a href="#L702">702</a></span>
+<span id="L703" class="line"><a href="#L703">703</a>function Model:setMaxShowTipMultiple(multiple)</span>
+<span id="L704" class="line"><a href="#L704">704</a>    self:setValue(&quot;maxShowTipMultiple&quot;, multiple)</span>
+<span id="L705" class="line"><a href="#L705">705</a>end</span>
+<span id="L706" class="line"><a href="#L706">706</a></span>
+<span id="L707" class="line"><a href="#L707">707</a>function Model:getMaxShowTipMultiple(multiple)</span>
+<span id="L708" class="line"><a href="#L708">708</a>    return self:getValue(&quot;maxShowTipMultiple&quot;) or 0</span>
+<span id="L709" class="line"><a href="#L709">709</a>end</span>
+<span id="L710" class="line"><a href="#L710">710</a></span>
+<span id="L711" class="line"><a href="#L711">711</a>function Model:setLongPressGuideShownPeriodId(periodId)</span>
+<span id="L712" class="line"><a href="#L712">712</a>    self:setValue(&quot;longPressGuideShownPeriodId&quot;, tonumber(periodId) or 0)</span>
+<span id="L713" class="line"><a href="#L713">713</a>end</span>
+<span id="L714" class="line"><a href="#L714">714</a></span>
+<span id="L715" class="line"><a href="#L715">715</a>function Model:getLongPressGuideShownPeriodId()</span>
+<span id="L716" class="line"><a href="#L716">716</a>    return tonumber(self:getValue(&quot;longPressGuideShownPeriodId&quot;)) or 0</span>
+<span id="L717" class="line"><a href="#L717">717</a>end</span>
+<span id="L718" class="line"><a href="#L718">718</a></span>
+<span id="L719" class="line"><a href="#L719">719</a>function Model:addCollectionNum(num)</span>
+<span id="L720" class="line"><a href="#L720">720</a>    if num &lt; 0 then</span>
+<span id="L721" class="line"><a href="#L721">721</a>        local cost = self:getTodayCostEnergy()</span>
+<span id="L722" class="line"><a href="#L722">722</a>        self:setTodayCostEnergy(cost - num)</span>
+<span id="L723" class="line"><a href="#L723">723</a>    end</span>
+<span id="L724" class="line"><a href="#L724">724</a></span>
+<span id="L725" class="line"><a href="#L725">725</a>    self:setDataByKey(&quot;leftEnergy&quot;, self:getCollectionNum() + num)</span>
+<span id="L726" class="line"><a href="#L726">726</a>end</span>
+<span id="L727" class="line"><a href="#L727">727</a></span>
+<span id="L728" class="line"><a href="#L728">728</a>function Model:getGotFinalReward()</span>
+<span id="L729" class="line"><a href="#L729">729</a>    return self:getDataByKey(&quot;gotFinalReward&quot;, false)</span>
+<span id="L730" class="line"><a href="#L730">730</a>end</span>
+<span id="L731" class="line"><a href="#L731">731</a></span>
+<span id="L732" class="line"><a href="#L732">732</a>function Model:setGotFinalReward()</span>
+<span id="L733" class="line"><a href="#L733">733</a>    self:setDataByKey(&quot;gotFinalReward&quot;, true)</span>
+<span id="L734" class="line"><a href="#L734">734</a>end</span>
+<span id="L735" class="line"><a href="#L735">735</a></span>
+<span id="L736" class="line"><a href="#L736">736</a>function Model:getMaxProgressId()</span>
+<span id="L737" class="line"><a href="#L737">737</a>    return self:getDataByKey(&quot;maxProgressId&quot;, 0)</span>
+<span id="L738" class="line"><a href="#L738">738</a>end</span>
+<span id="L739" class="line"><a href="#L739">739</a></span>
+<span id="L740" class="line"><a href="#L740">740</a>function Model:setMaxProgressId(id)</span>
+<span id="L741" class="line"><a href="#L741">741</a>    self:setDataByKey(&quot;maxProgressId&quot;, id)</span>
+<span id="L742" class="line"><a href="#L742">742</a>end</span>
+<span id="L743" class="line"><a href="#L743">743</a></span>
+<span id="L744" class="line"><a href="#L744">744</a>function Model:getTodayBuyEnergyTimes()</span>
+<span id="L745" class="line"><a href="#L745">745</a>    return self:getDataByKey(&quot;todayBuyEnergyTimes&quot;, 0)</span>
+<span id="L746" class="line"><a href="#L746">746</a>end</span>
+<span id="L747" class="line"><a href="#L747">747</a></span>
+<span id="L748" class="line"><a href="#L748">748</a>function Model:addTodayBuyEnergyTimes()</span>
+<span id="L749" class="line"><a href="#L749">749</a>    self:setDataByKey(&quot;todayBuyEnergyTimes&quot;, self:getTodayBuyEnergyTimes() + 1)</span>
+<span id="L750" class="line"><a href="#L750">750</a>end</span>
+<span id="L751" class="line"><a href="#L751">751</a></span>
+<span id="L752" class="line"><a href="#L752">752</a>function Model:getConvert()</span>
+<span id="L753" class="line"><a href="#L753">753</a>    return self:getDataByKey(&quot;leftEnergy&quot;, 0) &gt; 0</span>
+<span id="L754" class="line"><a href="#L754">754</a>end</span>
+<span id="L755" class="line"><a href="#L755">755</a></span>
+<span id="L756" class="line"><a href="#L756">756</a>function Model:setConvert()</span>
+<span id="L757" class="line"><a href="#L757">757</a>    self:setDataByKey(&quot;leftEnergy&quot;, 0)</span>
+<span id="L758" class="line"><a href="#L758">758</a>end</span>
+<span id="L759" class="line"><a href="#L759">759</a></span>
+<span id="L760" class="line"><a href="#L760">760</a>function Model:clearGetRewards(type)</span>
+<span id="L761" class="line"><a href="#L761">761</a>    if type == 1 then</span>
+<span id="L762" class="line"><a href="#L762">762</a>        self:clearMapReward()</span>
+<span id="L763" class="line"><a href="#L763">763</a>    else</span>
+<span id="L764" class="line"><a href="#L764">764</a>        self:clearBattlePassReward()</span>
+<span id="L765" class="line"><a href="#L765">765</a>    end</span>
+<span id="L766" class="line"><a href="#L766">766</a>end</span>
+<span id="L767" class="line"><a href="#L767">767</a></span>
+<span id="L768" class="line"><a href="#L768">768</a>function Model:hasMapReward()</span>
+<span id="L769" class="line"><a href="#L769">769</a>    local status = self:getMapStatus()</span>
+<span id="L770" class="line"><a href="#L770">770</a>    if status == self:getConst().MapStatus.FINISHED then</span>
+<span id="L771" class="line"><a href="#L771">771</a>        local maxStage = self:getStageCount()</span>
+<span id="L772" class="line"><a href="#L772">772</a>        local stage = self:getMapStage()</span>
+<span id="L773" class="line"><a href="#L773">773</a>        if stage &lt; maxStage then return false end</span>
+<span id="L774" class="line"><a href="#L774">774</a>        return not self:getGotFinalReward()</span>
+<span id="L775" class="line"><a href="#L775">775</a>    elseif status == self:getConst().MapStatus.LOCK then</span>
+<span id="L776" class="line"><a href="#L776">776</a>        local chessId = self:getStepUnlockChessId()</span>
+<span id="L777" class="line"><a href="#L777">777</a>        local finished = self:getDataByKey(&quot;finishedBookIds&quot;, {})</span>
+<span id="L778" class="line"><a href="#L778">778</a></span>
+<span id="L779" class="line"><a href="#L779">779</a>        return table.indexOf(finished, chessId)</span>
+<span id="L780" class="line"><a href="#L780">780</a>    end</span>
+<span id="L781" class="line"><a href="#L781">781</a></span>
+<span id="L782" class="line"><a href="#L782">782</a>    return false</span>
+<span id="L783" class="line"><a href="#L783">783</a>end</span>
+<span id="L784" class="line"><a href="#L784">784</a></span>
+<span id="L785" class="line"><a href="#L785">785</a>function Model:clearMapReward()</span>
+<span id="L786" class="line"><a href="#L786">786</a>    if self:hasMapReward() then</span>
+<span id="L787" class="line"><a href="#L787">787</a>        self:setMapStatus(self:getConst().MapStatus.FINISHED)</span>
+<span id="L788" class="line"><a href="#L788">788</a>    end</span>
+<span id="L789" class="line"><a href="#L789">789</a>end</span>
+<span id="L790" class="line"><a href="#L790">790</a></span>
+<span id="L791" class="line"><a href="#L791">791</a>function Model:getStepMeta(step)</span>
+<span id="L792" class="line"><a href="#L792">792</a>    step = step or self:getMapStage()</span>
+<span id="L793" class="line"><a href="#L793">793</a>    local meta = self:getConfigByKey(&quot;stepMeta&quot;, {})</span>
+<span id="L794" class="line"><a href="#L794">794</a>    return meta[step] or meta[#meta]</span>
+<span id="L795" class="line"><a href="#L795">795</a>end</span>
+<span id="L796" class="line"><a href="#L796">796</a></span>
+<span id="L797" class="line"><a href="#L797">797</a>function Model:getFinalRewards()</span>
+<span id="L798" class="line"><a href="#L798">798</a>    return self:getConfigByKey(&quot;finalRewards&quot;, {})</span>
+<span id="L799" class="line"><a href="#L799">799</a>end</span>
+<span id="L800" class="line"><a href="#L800">800</a></span>
+<span id="L801" class="line"><a href="#L801">801</a>function Model:getStepRewards(step)</span>
+<span id="L802" class="line"><a href="#L802">802</a>    local meta = self:getStepMeta(step)</span>
+<span id="L803" class="line"><a href="#L803">803</a>    return meta.rewardItems or {}</span>
+<span id="L804" class="line"><a href="#L804">804</a>end</span>
+<span id="L805" class="line"><a href="#L805">805</a></span>
+<span id="L806" class="line"><a href="#L806">806</a>function Model:getStageCount()</span>
+<span id="L807" class="line"><a href="#L807">807</a>    return #self:getConfigByKey(&quot;stepMeta&quot;, {})</span>
+<span id="L808" class="line"><a href="#L808">808</a>end</span>
+<span id="L809" class="line"><a href="#L809">809</a></span>
+<span id="L810" class="line"><a href="#L810">810</a>function Model:getStepUnlockChessId(step)</span>
+<span id="L811" class="line"><a href="#L811">811</a>    local meta = self:getStepMeta(step)</span>
+<span id="L812" class="line"><a href="#L812">812</a>    return meta.needChessId or 20001</span>
+<span id="L813" class="line"><a href="#L813">813</a>end</span>
+<span id="L814" class="line"><a href="#L814">814</a></span>
+<span id="L815" class="line"><a href="#L815">815</a>function Model:setNotShowToday(value)</span>
+<span id="L816" class="line"><a href="#L816">816</a>    self:saveFlagToLocalByKey(&quot;NotShowToday&quot;,true,value)</span>
+<span id="L817" class="line"><a href="#L817">817</a>end</span>
+<span id="L818" class="line"><a href="#L818">818</a></span>
+<span id="L819" class="line"><a href="#L819">819</a>function Model:getNotShowToday()</span>
+<span id="L820" class="line"><a href="#L820">820</a>    return self:getFlagFromLocalByKey(&quot;NotShowToday&quot;, true)</span>
+<span id="L821" class="line"><a href="#L821">821</a>end</span>
+<span id="L822" class="line"><a href="#L822">822</a></span>
+<span id="L823" class="line"><a href="#L823">823</a>-- BattlePass</span>
+<span id="L824" class="line"><a href="#L824">824</a>function Model:getBattlePass()</span>
+<span id="L825" class="line"><a href="#L825">825</a>    return self:getDataByKey(&quot;battlePass&quot;, {})</span>
+<span id="L826" class="line"><a href="#L826">826</a>end</span>
+<span id="L827" class="line"><a href="#L827">827</a></span>
+<span id="L828" class="line"><a href="#L828">828</a>function Model:setBattlePass(data)</span>
+<span id="L829" class="line"><a href="#L829">829</a>    self:setDataByKey(&quot;battlePass&quot;, data)</span>
+<span id="L830" class="line"><a href="#L830">830</a>end</span>
+<span id="L831" class="line"><a href="#L831">831</a></span>
+<span id="L832" class="line"><a href="#L832">832</a></span>
+<span id="L833" class="line"><a href="#L833">833</a>function Model:getBattlePassData(id)</span>
+<span id="L834" class="line"><a href="#L834">834</a>    local cfg = self:getConfigByKey(&quot;battlePass&quot;, {})</span>
+<span id="L835" class="line"><a href="#L835">835</a>    local idcfg = cfg[id]</span>
+<span id="L836" class="line"><a href="#L836">836</a>    return idcfg or {}</span>
+<span id="L837" class="line"><a href="#L837">837</a>end</span>
+<span id="L838" class="line"><a href="#L838">838</a></span>
+<span id="L839" class="line"><a href="#L839">839</a>---BattlePass的总数</span>
+<span id="L840" class="line"><a href="#L840">840</a>function Model:getBattlePassSum()</span>
+<span id="L841" class="line"><a href="#L841">841</a>    local cfg = self:getConfigByKey(&quot;battlePass&quot;, {})</span>
+<span id="L842" class="line"><a href="#L842">842</a>    return #cfg</span>
+<span id="L843" class="line"><a href="#L843">843</a>end</span>
+<span id="L844" class="line"><a href="#L844">844</a></span>
+<span id="L845" class="line"><a href="#L845">845</a>function Model:hasBattlePassReward()</span>
+<span id="L846" class="line"><a href="#L846">846</a>    local value = self:getBattlePassValue()</span>
+<span id="L847" class="line"><a href="#L847">847</a>    local hasVip = self:getBattlePassVip()</span>
+<span id="L848" class="line"><a href="#L848">848</a>    local vipGot = self:getBattlePassRewardsId(true)</span>
+<span id="L849" class="line"><a href="#L849">849</a>    local freeGot = self:getBattlePassRewardsId(false)</span>
+<span id="L850" class="line"><a href="#L850">850</a>    local cfg = self:getConfigByKey(&quot;battlePass&quot;, {})</span>
+<span id="L851" class="line"><a href="#L851">851</a></span>
+<span id="L852" class="line"><a href="#L852">852</a>    local canGetFree = {}</span>
+<span id="L853" class="line"><a href="#L853">853</a>    local canGetVip = {}</span>
+<span id="L854" class="line"><a href="#L854">854</a></span>
+<span id="L855" class="line"><a href="#L855">855</a>    for id, rewardCfg in ipairs(cfg) do</span>
+<span id="L856" class="line"><a href="#L856">856</a>        local need = rewardCfg.need or 0</span>
+<span id="L857" class="line"><a href="#L857">857</a>        local meetNeed = value &gt;= need</span>
+<span id="L858" class="line"><a href="#L858">858</a></span>
+<span id="L859" class="line"><a href="#L859">859</a>        if meetNeed then</span>
+<span id="L860" class="line"><a href="#L860">860</a>            if not freeGot[id] then</span>
+<span id="L861" class="line"><a href="#L861">861</a>                table.insert(canGetFree, id)</span>
+<span id="L862" class="line"><a href="#L862">862</a>            end</span>
+<span id="L863" class="line"><a href="#L863">863</a></span>
+<span id="L864" class="line"><a href="#L864">864</a>            if hasVip and not vipGot[id] then</span>
+<span id="L865" class="line"><a href="#L865">865</a>                table.insert(canGetVip, id)</span>
+<span id="L866" class="line"><a href="#L866">866</a>            end</span>
+<span id="L867" class="line"><a href="#L867">867</a>        end</span>
+<span id="L868" class="line"><a href="#L868">868</a>    end</span>
+<span id="L869" class="line"><a href="#L869">869</a></span>
+<span id="L870" class="line"><a href="#L870">870</a>    local hasReward = (#canGetFree &gt; 0) or (#canGetVip &gt; 0)</span>
+<span id="L871" class="line"><a href="#L871">871</a>    return hasReward, canGetFree, canGetVip</span>
+<span id="L872" class="line"><a href="#L872">872</a>end</span>
+<span id="L873" class="line"><a href="#L873">873</a></span>
+<span id="L874" class="line"><a href="#L874">874</a>function Model:clearBattlePassReward()</span>
+<span id="L875" class="line"><a href="#L875">875</a>    local hasReward, canGetFree, canGetVip = self:hasBattlePassReward()</span>
+<span id="L876" class="line"><a href="#L876">876</a></span>
+<span id="L877" class="line"><a href="#L877">877</a>    if not table.isEmpty(canGetFree) then</span>
+<span id="L878" class="line"><a href="#L878">878</a>        local ids = self:getDataByKey(&quot;battlePass.freeAlreadyGotIds&quot;, {})</span>
+<span id="L879" class="line"><a href="#L879">879</a>        for _, v in ipairs(canGetFree) do</span>
+<span id="L880" class="line"><a href="#L880">880</a>            table.insert(ids, v)</span>
+<span id="L881" class="line"><a href="#L881">881</a>        end</span>
+<span id="L882" class="line"><a href="#L882">882</a>        self:setDataByKey(&quot;battlePass.freeAlreadyGotIds&quot;, ids)</span>
+<span id="L883" class="line"><a href="#L883">883</a>    end</span>
+<span id="L884" class="line"><a href="#L884">884</a></span>
+<span id="L885" class="line"><a href="#L885">885</a>    if not table.isEmpty(canGetVip) then</span>
+<span id="L886" class="line"><a href="#L886">886</a>        local ids = self:getDataByKey(&quot;battlePass.vipAlreadyGotIds&quot;, {})</span>
+<span id="L887" class="line"><a href="#L887">887</a>        for _, v in ipairs(canGetVip) do</span>
+<span id="L888" class="line"><a href="#L888">888</a>            table.insert(ids, v)</span>
+<span id="L889" class="line"><a href="#L889">889</a>        end</span>
+<span id="L890" class="line"><a href="#L890">890</a>        self:setDataByKey(&quot;battlePass.vipAlreadyGotIds&quot;, ids)</span>
+<span id="L891" class="line"><a href="#L891">891</a>    end</span>
+<span id="L892" class="line"><a href="#L892">892</a>end</span>
+<span id="L893" class="line"><a href="#L893">893</a></span>
+<span id="L894" class="line"><a href="#L894">894</a>function Model:getBattlePassValue()</span>
+<span id="L895" class="line"><a href="#L895">895</a>    return self:getDataByKey(&quot;battlePass.value&quot;, 0)</span>
+<span id="L896" class="line"><a href="#L896">896</a>end</span>
+<span id="L897" class="line"><a href="#L897">897</a></span>
+<span id="L898" class="line"><a href="#L898">898</a>function Model:addBattlePassValue(value)</span>
+<span id="L899" class="line"><a href="#L899">899</a>    local curValue = self:getBattlePassValue()</span>
+<span id="L900" class="line"><a href="#L900">900</a>    self:setDataByKey(&quot;battlePass.value&quot;, curValue + value)</span>
+<span id="L901" class="line"><a href="#L901">901</a>end</span>
+<span id="L902" class="line"><a href="#L902">902</a></span>
+<span id="L903" class="line"><a href="#L903">903</a>function Model:getBattlePassVip()</span>
+<span id="L904" class="line"><a href="#L904">904</a>    return self:getDataByKey(&quot;battlePass.hasVip&quot;, false)</span>
+<span id="L905" class="line"><a href="#L905">905</a>end</span>
+<span id="L906" class="line"><a href="#L906">906</a></span>
+<span id="L907" class="line"><a href="#L907">907</a>function Model:setBattlePassVip()</span>
+<span id="L908" class="line"><a href="#L908">908</a>    self:setDataByKey(&quot;battlePass.hasVip&quot;, true)</span>
+<span id="L909" class="line"><a href="#L909">909</a>end</span>
+<span id="L910" class="line"><a href="#L910">910</a></span>
+<span id="L911" class="line"><a href="#L911">911</a>function Model:getBattlePassRewardsId(bVip)</span>
+<span id="L912" class="line"><a href="#L912">912</a>    local key = bVip and &quot;battlePass.vipAlreadyGotIds&quot; or &quot;battlePass.freeAlreadyGotIds&quot;</span>
+<span id="L913" class="line"><a href="#L913">913</a>    return self:getDataByKey(key, {})</span>
+<span id="L914" class="line"><a href="#L914">914</a>end</span>
+<span id="L915" class="line"><a href="#L915">915</a></span>
+<span id="L916" class="line"><a href="#L916">916</a>function Model:addBattlePassRewardsId(bVip, id)</span>
+<span id="L917" class="line"><a href="#L917">917</a>    local key = bVip and &quot;battlePass.vipAlreadyGotIds&quot; or &quot;battlePass.freeAlreadyGotIds&quot;</span>
+<span id="L918" class="line"><a href="#L918">918</a>    local ids = self:getDataByKey(key, {})</span>
+<span id="L919" class="line"><a href="#L919">919</a>    table.insert(ids, id)</span>
+<span id="L920" class="line"><a href="#L920">920</a>    self:setDataByKey(key, ids)</span>
+<span id="L921" class="line"><a href="#L921">921</a>end</span>
+<span id="L922" class="line"><a href="#L922">922</a></span>
+<span id="L923" class="line"><a href="#L923">923</a>-- 棋子配置</span>
+<span id="L924" class="line"><a href="#L924">924</a>function Model:getChessTypeMetas()</span>
+<span id="L925" class="line"><a href="#L925">925</a>    return self:getConfigByKey(&quot;chessTypeMetas&quot;, {})</span>
+<span id="L926" class="line"><a href="#L926">926</a>end</span>
+<span id="L927" class="line"><a href="#L927">927</a></span>
+<span id="L928" class="line"><a href="#L928">928</a>function Model:getChessTypeById(id)</span>
+<span id="L929" class="line"><a href="#L929">929</a>    local metas = self:getChessTypeMetas()</span>
+<span id="L930" class="line"><a href="#L930">930</a>    for _, meta in ipairs(metas) do</span>
+<span id="L931" class="line"><a href="#L931">931</a>        for _, v in ipairs(meta.chessMetas) do</span>
+<span id="L932" class="line"><a href="#L932">932</a>            if v.chessId == id then</span>
+<span id="L933" class="line"><a href="#L933">933</a>                return v</span>
+<span id="L934" class="line"><a href="#L934">934</a>            end</span>
+<span id="L935" class="line"><a href="#L935">935</a>        end</span>
+<span id="L936" class="line"><a href="#L936">936</a>    end</span>
+<span id="L937" class="line"><a href="#L937">937</a>end</span>
+<span id="L938" class="line"><a href="#L938">938</a></span>
+<span id="L939" class="line"><a href="#L939">939</a>function Model:getChessTypeMap()</span>
+<span id="L940" class="line"><a href="#L940">940</a>    local ret = {}</span>
+<span id="L941" class="line"><a href="#L941">941</a>    local metas = self:getChessTypeMetas()</span>
+<span id="L942" class="line"><a href="#L942">942</a>    for _, meta in ipairs(metas) do</span>
+<span id="L943" class="line"><a href="#L943">943</a>        for _, v in ipairs(meta.chessMetas) do</span>
+<span id="L944" class="line"><a href="#L944">944</a>            ret[v.chessId] = table.merge(v, {type = meta.chessType})</span>
+<span id="L945" class="line"><a href="#L945">945</a>        end</span>
+<span id="L946" class="line"><a href="#L946">946</a>    end</span>
+<span id="L947" class="line"><a href="#L947">947</a>    return ret</span>
+<span id="L948" class="line"><a href="#L948">948</a>end</span>
+<span id="L949" class="line"><a href="#L949">949</a></span>
+<span id="L950" class="line"><a href="#L950">950</a>function Model:getMainChessIdByLv(chessLv)</span>
+<span id="L951" class="line"><a href="#L951">951</a>    chessLv = tonumber(chessLv)</span>
+<span id="L952" class="line"><a href="#L952">952</a>    if not chessLv then return nil end</span>
+<span id="L953" class="line"><a href="#L953">953</a></span>
+<span id="L954" class="line"><a href="#L954">954</a>    local metas = self:getChessTypeMetas()</span>
+<span id="L955" class="line"><a href="#L955">955</a>    local mainType = metas[2] or {}</span>
+<span id="L956" class="line"><a href="#L956">956</a>    for _, meta in ipairs(mainType.chessMetas or {}) do</span>
+<span id="L957" class="line"><a href="#L957">957</a>        if tonumber(meta.chessLv) == chessLv then</span>
+<span id="L958" class="line"><a href="#L958">958</a>            return meta.chessId</span>
+<span id="L959" class="line"><a href="#L959">959</a>        end</span>
+<span id="L960" class="line"><a href="#L960">960</a>    end</span>
+<span id="L961" class="line"><a href="#L961">961</a>    return nil</span>
+<span id="L962" class="line"><a href="#L962">962</a>end</span>
+<span id="L963" class="line"><a href="#L963">963</a></span>
+<span id="L964" class="line"><a href="#L964">964</a>function Model:getLaunchBattlePassValue(multiple)</span>
+<span id="L965" class="line"><a href="#L965">965</a>    multiple = tonumber(multiple) or 1</span>
+<span id="L966" class="line"><a href="#L966">966</a>    local multipleSendMeta = self:getMultipleChessConfig()</span>
+<span id="L967" class="line"><a href="#L967">967</a>    for _, v in ipairs(multipleSendMeta) do</span>
+<span id="L968" class="line"><a href="#L968">968</a>        if v.multiple == multiple then return v.incrValue end</span>
+<span id="L969" class="line"><a href="#L969">969</a>    end</span>
+<span id="L970" class="line"><a href="#L970">970</a>    return 0</span>
+<span id="L971" class="line"><a href="#L971">971</a>end</span>
+<span id="L972" class="line"><a href="#L972">972</a></span>
+<span id="L973" class="line"><a href="#L973">973</a>function Model:getUnlockNeedChessIdTable()</span>
+<span id="L974" class="line"><a href="#L974">974</a>    local multipleSendMeta = self:getMultipleChessConfig()</span>
+<span id="L975" class="line"><a href="#L975">975</a>    local chessIdTable = {}</span>
+<span id="L976" class="line"><a href="#L976">976</a>    for _, v in ipairs(multipleSendMeta) do</span>
+<span id="L977" class="line"><a href="#L977">977</a>        chessIdTable[v.multiple] = v.unlockNeedChessId</span>
+<span id="L978" class="line"><a href="#L978">978</a>    end</span>
+<span id="L979" class="line"><a href="#L979">979</a>    return chessIdTable</span>
+<span id="L980" class="line"><a href="#L980">980</a>end</span>
+<span id="L981" class="line"><a href="#L981">981</a></span>
+<span id="L982" class="line"><a href="#L982">982</a>-- 主题配置</span>
+<span id="L983" class="line"><a href="#L983">983</a>function Model:getThemeConfig()</span>
+<span id="L984" class="line"><a href="#L984">984</a>    return self:getConfigByKey(&quot;theme&quot;, {})</span>
+<span id="L985" class="line"><a href="#L985">985</a>end</span>
+<span id="L986" class="line"><a href="#L986">986</a></span>
+<span id="L987" class="line"><a href="#L987">987</a>function Model:getSkin()</span>
+<span id="L988" class="line"><a href="#L988">988</a>    local config = self:getThemeConfig()</span>
+<span id="L989" class="line"><a href="#L989">989</a>    return config.resource</span>
+<span id="L990" class="line"><a href="#L990">990</a>end</span>
+<span id="L991" class="line"><a href="#L991">991</a></span>
+<span id="L992" class="line"><a href="#L992">992</a>function Model:getThemeName()</span>
+<span id="L993" class="line"><a href="#L993">993</a>    local config = self:getThemeConfig()</span>
+<span id="L994" class="line"><a href="#L994">994</a>    return config.name</span>
+<span id="L995" class="line"><a href="#L995">995</a>end</span>
+<span id="L996" class="line"><a href="#L996">996</a></span>
+<span id="L997" class="line"><a href="#L997">997</a>-- IconTip</span>
+<span id="L998" class="line"><a href="#L998">998</a>function Model:getPopTipTime(index)</span>
+<span id="L999" class="line"><a href="#L999">999</a>    local key = &quot;iconTip_&quot; .. index</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>    return self:getFlagFromLocalByKeyInt(key, true)</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>end</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a></span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>function Model:addPopTipTime(index, num)</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>    num = num or 1</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>    local key = &quot;iconTip_&quot; .. index</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>    local oriNum = self:getFlagFromLocalByKeyInt(key, true)</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>    self:saveFlagToLocalByKeyInt(key, true, oriNum + num)</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>end</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a></span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>function Model:getCanPopTipTime(index)</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>    if index == 1 then</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>        return self:getConfigByKey(&quot;dailyIconTipsLimit&quot;, 2)</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a>    elseif index == 3 then</span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>        return self:getConfigByKey(&quot;dailyIconPopLimit&quot;, 2)</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>    end</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a></span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>    return 0</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>end</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a></span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>function Model:getCanPopTipLimit()</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>    local meta = self:getStepMeta()</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>    return meta.iconPopWhenLeftEnergyOver or 20</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>end</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a></span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>function Model:requestPackagepull(params)</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>    return self.syncPlug:requestPackagepull(params)</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>end</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a></span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>function Model:requestActivityAction(params)</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>    return self.syncPlug:requestActivityaction(params)</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>end</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>-- function Model:onResponsePackagesPull()</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>    </span>
+<span id="L1034" class="line"><a href="#L1034">1034</a>-- end</span>
+<span id="L1035" class="line"><a href="#L1035">1035</a></span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>--获得礼包信息</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>function Model:getGiftPackages()</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>    return self:getDataByKey(&quot;packageInfo&quot;, {})</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>end</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a></span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>--现实可见礼包</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>function Model:getDisplayablePackages()</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>    return self:getDataByKey(&quot;packageInfo.displayablePackages&quot;) or {}</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>end</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a></span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>function Model:getPackageMetas()</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>    return self:getDataByKey(&quot;packageInfo.packageMetas&quot;, {})</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>end</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a></span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>function Model:getModuleExtraMap()</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>    return self:getDataByKey(&quot;packageInfo.moduleExtraMap&quot;, {})</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>end</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a></span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>function Model:getPackageIdByType(type)</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>    local packs = self:getDisplayablePackages()</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>    -- printx(41,&quot;djaosjd&quot;,tts(packs))</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>    for i, v in pairs(packs) do</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>        if v.extra then</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>            local dic = table.deserialize(v.extra)</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>            -- printx(41,&quot;djaosjd&quot;,tts(dic))</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>            if dic.type == type then</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>                return v.packageId</span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>            end</span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>        end</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>    end</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>    return nil</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a>end</span>
+<span id="L1068" class="line"><a href="#L1068">1068</a></span>
+<span id="L1069" class="line"><a href="#L1069">1069</a>function Model:setDisplayablePackagesById(id, value)</span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>    local packs = self:getDisplayablePackages()</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>    for i, v in pairs(packs) do</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>        if v.packageId == id then</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a>            packs[i] = value</span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>            return true</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>        end</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>    end</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>    return false</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>end</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a></span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>function Model:setDisplayablePackages(packages)</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>    self:setDataByKey(&quot;packageInfo&quot;,packages)</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>end</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a></span>
+<span id="L1084" class="line"><a href="#L1084">1084</a>function Model:getExtraOfGoodsById(id)</span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>    local packs = self:getDisplayablePackages()</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>    -- printx(41,&quot;djaosjd&quot;,tts(packs))</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>    for i, v in pairs(packs) do</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>        if v.packageId == id then</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a>            return table.deserialize(v.extra)</span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>        end</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a>    end</span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>    return nil</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>end</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a></span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>function Model:getMultiple()</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a>    return self:getDataByKey(&quot;multiple&quot;, 1)</span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>end</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a></span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>function Model:setMultiple(value)</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>    self:setDataByKey(&quot;multiple&quot;, value)</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>end</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a></span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>function Model:getBoxLv(step)</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a>    local meta = self:getStepMeta(step)</span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>    return meta.treasureChestChessId or 50001</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>end</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a></span>
+<span id="L1108" class="line"><a href="#L1108">1108</a>function Model:getCanShowDoubleChessId()</span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>    return self:getConfigByKey(&quot;canDoubleChessId&quot;, 20011)</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>end</span>
+<span id="L1111" class="line"><a href="#L1111">1111</a></span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>function Model:getMultipleChessConfig()</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a>    -- return {</span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>    --     {costEnergy = 1, genChessId = 20001, incrValue = 0, multiple = 1, unlockNeedChessId = 0},</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a>    --     {costEnergy = 2, genChessId = 20003, incrValue = 1, multiple = 2, unlockNeedChessId = 20007},</span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>    --     {costEnergy = 4, genChessId = 20004, incrValue = 3, multiple = 4, unlockNeedChessId = 20011},</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a>    --     {costEnergy = 8, genChessId = 20005, incrValue = 7, multiple = 8, unlockNeedChessId = 20014},</span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>    -- }</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>    return self:getConfigByKey(&quot;multipleSendMetas&quot;, {})</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a>end</span>
+<span id="L1121" class="line"><a href="#L1121">1121</a></span>
+<span id="L1122" class="line"><a href="#L1122">1122</a>function Model:getMultipleLaunchConfig()</span>
+<span id="L1123" class="line"><a href="#L1123">1123</a>    local multipleSendMeta = self:getMultipleChessConfig()</span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>    local chessIdTable = {}</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>    for _, v in ipairs(multipleSendMeta) do</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a>        local multiple = tonumber(v.multiple) or 1</span>
+<span id="L1127" class="line"><a href="#L1127">1127</a>        local fireCount = tonumber(v.fireCount or v.count or v.num) or DEFAULT_FIRE_COUNT</span>
+<span id="L1128" class="line"><a href="#L1128">1128</a>        local launchConfig = {{ chessId = v.genChessId, weight = 1 }}</span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>        local launcherRule = TARGET_LAUNCHER_MULTIPLE_RULES[multiple]</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>        launchConfig.fireCount = fireCount</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>        launchConfig.count = fireCount</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a>        launchConfig.costEnergy = tonumber(v.costEnergy) or multiple</span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>        launchConfig.incrValue = tonumber(v.incrValue) or 0</span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>        launchConfig.multiple = multiple</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a>        if launcherRule then</span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>            launchConfig.launcherFireCount = launcherRule.fireCount</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>            launchConfig.launcherFireConfig = {{</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>                chessId = self:getMainChessIdByLv(launcherRule.chessLv) or v.genChessId,</span>
+<span id="L1139" class="line"><a href="#L1139">1139</a>                weight = 1,</span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>            }}</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>        else</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a>            launchConfig.launcherFireCount = fireCount</span>
+<span id="L1143" class="line"><a href="#L1143">1143</a>            launchConfig.launcherFireConfig = {{ chessId = v.genChessId, weight = 1 }}</span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>        end</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a>        chessIdTable[multiple] = launchConfig</span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>    end</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a>    return chessIdTable</span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>end</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a></span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>function Model:getMaxStageOpLimit()</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>    return self:getConfigByKey(&quot;offlineRequestLimitCount&quot;, 10)</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>end</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a></span>
+<span id="L1154" class="line"><a href="#L1154">1154</a>function Model:getMergeOnlineLevel()</span>
+<span id="L1155" class="line"><a href="#L1155">1155</a>    return self:getConfigByKey(&quot;lvLimit&quot;, 5)</span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>end</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a></span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>function Model:isFinish()</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a>    local maxStage = self:getStageCount()</span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>    local stage = self:getMapStage()</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a>    if stage &lt; maxStage then return false end</span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>    local status = self:getMapStatus()</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a>    return status == self:getConst().MapStatus.MOSAIC</span>
+<span id="L1164" class="line"><a href="#L1164">1164</a>end</span>
+<span id="L1165" class="line"><a href="#L1165">1165</a></span>
+<span id="L1166" class="line"><a href="#L1166">1166</a>return Model</span></pre></main></html>

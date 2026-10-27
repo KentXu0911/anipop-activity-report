@@ -1,0 +1,1362 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ubf/old/gamePlay/userTags/UserTagModel.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="9741d99e0d8c.lua" download>下载Lua原文</a></p><h1>ubf/old/gamePlay/userTags/UserTagModel.lua</h1><p>SHA256 f2ffb4abe1e769deae0ae443b65d66d96803f8cfe2e4133abd28e78482b8327d</p><pre><span id="L1" class="line"><a href="#L1">1</a>local log = nil</span>
+<span id="L2" class="line"><a href="#L2">2</a>--</span>
+<span id="L3" class="line"><a href="#L3">3</a>--</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a></span>
+<span id="L6" class="line"><a href="#L6">6</a>UserTagModel = class()</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>UserTagDCSource = {</span>
+<span id="L9" class="line"><a href="#L9">9</a>	</span>
+<span id="L10" class="line"><a href="#L10">10</a>	kLaunch = 1 ,</span>
+<span id="L11" class="line"><a href="#L11">11</a>	kHome = 2 ,</span>
+<span id="L12" class="line"><a href="#L12">12</a>	kPassLevel = 3 ,</span>
+<span id="L13" class="line"><a href="#L13">13</a>	kStartLevel = 4 ,</span>
+<span id="L14" class="line"><a href="#L14">14</a>	kEndLevel = 5 ,</span>
+<span id="L15" class="line"><a href="#L15">15</a>}</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a>UserTagGroupKey = {</span>
+<span id="L18" class="line"><a href="#L18">18</a>	kUserTag = &quot;userTag&quot; ,</span>
+<span id="L19" class="line"><a href="#L19">19</a>	kDifficultyTag = &quot;difficultyTag&quot; ,</span>
+<span id="L20" class="line"><a href="#L20">20</a>	kPayTag = &quot;payTag&quot; ,</span>
+<span id="L21" class="line"><a href="#L21">21</a>	kSocialTag = &quot;socialTag&quot; ,</span>
+<span id="L22" class="line"><a href="#L22">22</a>	kLevelTag = &quot;levelTag&quot; ,</span>
+<span id="L23" class="line"><a href="#L23">23</a>	kPropTag = &quot;propTag&quot; ,</span>
+<span id="L24" class="line"><a href="#L24">24</a>}</span>
+<span id="L25" class="line"><a href="#L25">25</a></span>
+<span id="L26" class="line"><a href="#L26">26</a>GetUserTagReturnType = {</span>
+<span id="L27" class="line"><a href="#L27">27</a>	kSuccess = 0 ,</span>
+<span id="L28" class="line"><a href="#L28">28</a>	kFailByTime = 1 ,</span>
+<span id="L29" class="line"><a href="#L29">29</a>	kFailByTopLevel = 2 ,</span>
+<span id="L30" class="line"><a href="#L30">30</a>}</span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>UserTagGroupKeyIndex = {</span>
+<span id="L33" class="line"><a href="#L33">33</a>	[1] = UserTagGroupKey.kUserTag ,</span>
+<span id="L34" class="line"><a href="#L34">34</a>	[2] = UserTagGroupKey.kDifficultyTag ,</span>
+<span id="L35" class="line"><a href="#L35">35</a>	[3] = UserTagGroupKey.kPayTag ,</span>
+<span id="L36" class="line"><a href="#L36">36</a>	[4] = UserTagGroupKey.kSocialTag ,</span>
+<span id="L37" class="line"><a href="#L37">37</a>	[5] = UserTagGroupKey.kLevelTag ,</span>
+<span id="L38" class="line"><a href="#L38">38</a>	[6] = UserTagGroupKey.kPropTag ,</span>
+<span id="L39" class="line"><a href="#L39">39</a>}</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>UserTagGroupNameToIndexMap = {}</span>
+<span id="L42" class="line"><a href="#L42">42</a>for k,v in ipairs(UserTagGroupKeyIndex) do</span>
+<span id="L43" class="line"><a href="#L43">43</a>	UserTagGroupNameToIndexMap[v] = k</span>
+<span id="L44" class="line"><a href="#L44">44</a>end</span>
+<span id="L45" class="line"><a href="#L45">45</a></span>
+<span id="L46" class="line"><a href="#L46">46</a>UserTagNameKey = {}</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>UserTagNameKey[UserTagGroupKey.kUserTag] = {</span>
+<span id="L49" class="line"><a href="#L49">49</a>	</span>
+<span id="L50" class="line"><a href="#L50">50</a>	kActivation = &quot;activationTag&quot; ,--用户活跃属性</span>
+<span id="L51" class="line"><a href="#L51">51</a>	kWorkingWeekendDay = &quot;workingWeekendDayTag&quot; ,--工作日or休息日活跃偏好  </span>
+<span id="L52" class="line"><a href="#L52">52</a>	kActivePeriodOnDay = &quot;activePeriodOnDayTag&quot; ,--当天活跃时间段偏好</span>
+<span id="L53" class="line"><a href="#L53">53</a>	kLoginFrequency = &quot;loginFrequencyTag&quot; ,--登录频次</span>
+<span id="L54" class="line"><a href="#L54">54</a>	kLiveness = &quot;livenessTag&quot; ,--暂时不用</span>
+<span id="L55" class="line"><a href="#L55">55</a>	kBiLivenessTag = &quot;biLivenessTag&quot; ,--场景升降调整 用户活跃标签</span>
+<span id="L56" class="line"><a href="#L56">56</a>}</span>
+<span id="L57" class="line"><a href="#L57">57</a></span>
+<span id="L58" class="line"><a href="#L58">58</a>UserTagNameKey[UserTagGroupKey.kDifficultyTag] = {</span>
+<span id="L59" class="line"><a href="#L59">59</a>	</span>
+<span id="L60" class="line"><a href="#L60">60</a>	kTopLevelDiff = &quot;topLevelDiffTag&quot; ,--当前toplevel的难度阶级</span>
+<span id="L61" class="line"><a href="#L61">61</a>	kTopLevelDiffPosition = &quot;topLevelDiffPositionTag&quot; ,--单关难度分位</span>
+<span id="L62" class="line"><a href="#L62">62</a>	kContinuousDiff = &quot;continuousDiffTag&quot; ,--连续5关实际难度</span>
+<span id="L63" class="line"><a href="#L63">63</a>	kLogicalFailsCounts = &quot;logicalFailCounts&quot; ,--逻辑失败</span>
+<span id="L64" class="line"><a href="#L64">64</a>}</span>
+<span id="L65" class="line"><a href="#L65">65</a></span>
+<span id="L66" class="line"><a href="#L66">66</a>UserTagNameKey[UserTagGroupKey.kPayTag] = {</span>
+<span id="L67" class="line"><a href="#L67">67</a>	</span>
+<span id="L68" class="line"><a href="#L68">68</a>	kLastWeekPay = &quot;lastWeekPayTag&quot; ,	--近一周内付费</span>
+<span id="L69" class="line"><a href="#L69">69</a>	kLastMonthPay = &quot;lastMonthPayTag&quot; ,	--近一个月内付费</span>
+<span id="L70" class="line"><a href="#L70">70</a>	kHistoryPay = &quot;historyPayTag&quot; ,		--历史总付费</span>
+<span id="L71" class="line"><a href="#L71">71</a>	kAllPay = &quot;allPayTag&quot; ,				--场景升降调整 累计付费标签</span>
+<span id="L72" class="line"><a href="#L72">72</a>	kLast60DayPay = &quot;last60DayPayTag&quot; ,	--场景升降调整 60天内付费标签</span>
+<span id="L73" class="line"><a href="#L73">73</a>	kLastLogin60DayPay = &quot;lastLogin60DayPay&quot; ,	--上回登录时付费</span>
+<span id="L74" class="line"><a href="#L74">74</a>}</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>UserTagNameKey[UserTagGroupKey.kSocialTag] = {</span>
+<span id="L77" class="line"><a href="#L77">77</a>	</span>
+<span id="L78" class="line"><a href="#L78">78</a>	kFriendCount = &quot;friendCountTag&quot; ,--游戏内好友数</span>
+<span id="L79" class="line"><a href="#L79">79</a>	kFriendInteraction = &quot;friendInteractionTag&quot; ,--游戏内好友互动情况</span>
+<span id="L80" class="line"><a href="#L80">80</a>}</span>
+<span id="L81" class="line"><a href="#L81">81</a></span>
+<span id="L82" class="line"><a href="#L82">82</a>UserTagNameKey[UserTagGroupKey.kLevelTag] = {</span>
+<span id="L83" class="line"><a href="#L83">83</a>	</span>
+<span id="L84" class="line"><a href="#L84">84</a>	kLevelPosition = &quot;levelPositionTag&quot; ,				--打关进度</span>
+<span id="L85" class="line"><a href="#L85">85</a>	kLevelUp = &quot;levelUpTag&quot; ,							--打关升级速度</span>
+<span id="L86" class="line"><a href="#L86">86</a>	kStarProportion = &quot;starProportionTag&quot; ,				--星星数占比</span>
+<span id="L87" class="line"><a href="#L87">87</a>	kPlayLevelPreference = &quot;playLevelPreferenceTag&quot; ,	--闯关类型偏好</span>
+<span id="L88" class="line"><a href="#L88">88</a>	-- kLevelPlayFrequency = &quot;levelPlayFrequencyTag&quot; ,		--场景升降调整 闯关频率标签</span>
+<span id="L89" class="line"><a href="#L89">89</a>	-- kLevelPass = &quot;levelPassTag&quot; ,						--场景升降调整 过关能力标签</span>
+<span id="L90" class="line"><a href="#L90">90</a>}</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>UserTagNameKey[UserTagGroupKey.kPropTag] = {</span>
+<span id="L93" class="line"><a href="#L93">93</a>	</span>
+<span id="L94" class="line"><a href="#L94">94</a>	kUsePropFrequency = &quot;usePropFrequencyTag&quot; ,--各种道具的使用频率</span>
+<span id="L95" class="line"><a href="#L95">95</a>}</span>
+<span id="L96" class="line"><a href="#L96">96</a></span>
+<span id="L97" class="line"><a href="#L97">97</a>UserTagNameKeyToGroupMap = {}</span>
+<span id="L98" class="line"><a href="#L98">98</a>UserTagNameKeyFullMap = {}</span>
+<span id="L99" class="line"><a href="#L99">99</a></span>
+<span id="L100" class="line"><a href="#L100">100</a>DefaultUserTagDurationTime = 3600 * 24</span>
+<span id="L101" class="line"><a href="#L101">101</a>DefaultUserTagTopLevelIdLength = 1</span>
+<span id="L102" class="line"><a href="#L102">102</a>DefaultUserTagUpdateDelayAtHomeScene = 3600 * 6</span>
+<span id="L103" class="line"><a href="#L103">103</a>--DefaultUserTagUpdateDelayAtHomeScene = 60</span>
+<span id="L104" class="line"><a href="#L104">104</a></span>
+<span id="L105" class="line"><a href="#L105">105</a>for k,v in pairs(UserTagNameKey) do</span>
+<span id="L106" class="line"><a href="#L106">106</a>	for k2,v2 in pairs(v) do</span>
+<span id="L107" class="line"><a href="#L107">107</a>		UserTagNameKeyToGroupMap[v2] = tostring(k)</span>
+<span id="L108" class="line"><a href="#L108">108</a>		UserTagNameKeyFullMap[k2] = tostring(v2)</span>
+<span id="L109" class="line"><a href="#L109">109</a>	end</span>
+<span id="L110" class="line"><a href="#L110">110</a>end</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>UserTagNameKeyToTagIdMap = {</span>
+<span id="L113" class="line"><a href="#L113">113</a>	--UserTag</span>
+<span id="L114" class="line"><a href="#L114">114</a>	[UserTagNameKeyFullMap.kActivation] = 10100 ,--用户活跃属性</span>
+<span id="L115" class="line"><a href="#L115">115</a>	[UserTagNameKeyFullMap.kWorkingWeekendDay] = 10200 ,--工作日or休息日活跃偏好</span>
+<span id="L116" class="line"><a href="#L116">116</a>	[UserTagNameKeyFullMap.kActivePeriodOnDay] = 10300 ,--当天活跃时间段偏好</span>
+<span id="L117" class="line"><a href="#L117">117</a>	[UserTagNameKeyFullMap.kLoginFrequency] = 10400 ,--登录频次</span>
+<span id="L118" class="line"><a href="#L118">118</a>		-- 后端用的是kLiveness</span>
+<span id="L119" class="line"><a href="#L119">119</a>	[UserTagNameKeyFullMap.kLiveness] = 10500 ,--暂不使用</span>
+<span id="L120" class="line"><a href="#L120">120</a>	[UserTagNameKeyFullMap.kBiLivenessTag] = 10600 ,--场景升降调整 用户活跃标签</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>	--DifficultyTag</span>
+<span id="L123" class="line"><a href="#L123">123</a>	[UserTagNameKeyFullMap.kTopLevelDiff] = 20100 ,--当前toplevel的难度阶级</span>
+<span id="L124" class="line"><a href="#L124">124</a>	[UserTagNameKeyFullMap.kTopLevelDiffPosition] = 20200 ,--单关难度分位</span>
+<span id="L125" class="line"><a href="#L125">125</a>	[UserTagNameKeyFullMap.kContinuousDiff] = 20300 ,--连续5关实际难度</span>
+<span id="L126" class="line"><a href="#L126">126</a></span>
+<span id="L127" class="line"><a href="#L127">127</a>	--PayTag</span>
+<span id="L128" class="line"><a href="#L128">128</a>	[UserTagNameKeyFullMap.kLastWeekPay] = 30100 ,--近一周内付费</span>
+<span id="L129" class="line"><a href="#L129">129</a>	[UserTagNameKeyFullMap.kLastMonthPay] = 30200 ,--近一个月内付费</span>
+<span id="L130" class="line"><a href="#L130">130</a>	[UserTagNameKeyFullMap.kHistoryPay] = 30300 ,--历史总付费</span>
+<span id="L131" class="line"><a href="#L131">131</a>	[UserTagNameKeyFullMap.kAllPay] = 30400 ,--场景升降调整 累计付费标签</span>
+<span id="L132" class="line"><a href="#L132">132</a>	[UserTagNameKeyFullMap.kLast60DayPay] = 30500 ,--场景升降调整 60天内付费标签</span>
+<span id="L133" class="line"><a href="#L133">133</a></span>
+<span id="L134" class="line"><a href="#L134">134</a>	--SocialTag</span>
+<span id="L135" class="line"><a href="#L135">135</a>	[UserTagNameKeyFullMap.kFriendCount] = 40100 ,--游戏内好友数</span>
+<span id="L136" class="line"><a href="#L136">136</a>	[UserTagNameKeyFullMap.kFriendInteraction] = 40200 ,--游戏内好友互动情况</span>
+<span id="L137" class="line"><a href="#L137">137</a></span>
+<span id="L138" class="line"><a href="#L138">138</a>	--LevelTag</span>
+<span id="L139" class="line"><a href="#L139">139</a>	[UserTagNameKeyFullMap.kLevelPosition] = 50100 ,--打关进度</span>
+<span id="L140" class="line"><a href="#L140">140</a>	[UserTagNameKeyFullMap.kLevelUp] = 50200 ,--打关升级速度</span>
+<span id="L141" class="line"><a href="#L141">141</a>	[UserTagNameKeyFullMap.kStarProportion] = 50300 ,--星星数占比</span>
+<span id="L142" class="line"><a href="#L142">142</a>	[UserTagNameKeyFullMap.kPlayLevelPreference] = 50400 ,--闯关类型偏好</span>
+<span id="L143" class="line"><a href="#L143">143</a>	-- [UserTagNameKeyFullMap.kLevelPlayFrequency] = 50500 ,--场景升降调整 闯关频率标签</span>
+<span id="L144" class="line"><a href="#L144">144</a>	-- [UserTagNameKeyFullMap.kLevelPass] = 50600 ,--场景升降调整 过关能力标签</span>
+<span id="L145" class="line"><a href="#L145">145</a></span>
+<span id="L146" class="line"><a href="#L146">146</a>	--PropTag</span>
+<span id="L147" class="line"><a href="#L147">147</a>	[UserTagNameKeyFullMap.kUsePropFrequency] = 60100 ,--各种道具的使用频率</span>
+<span id="L148" class="line"><a href="#L148">148</a>}</span>
+<span id="L149" class="line"><a href="#L149">149</a></span>
+<span id="L150" class="line"><a href="#L150">150</a>UserTagIdToNameKeyMap = {}</span>
+<span id="L151" class="line"><a href="#L151">151</a>for k,v in pairs(UserTagNameKeyToTagIdMap) do</span>
+<span id="L152" class="line"><a href="#L152">152</a>	UserTagIdToNameKeyMap[v] = k</span>
+<span id="L153" class="line"><a href="#L153">153</a>end</span>
+<span id="L154" class="line"><a href="#L154">154</a></span>
+<span id="L155" class="line"><a href="#L155">155</a>UserTagValueMap = {</span>
+<span id="L156" class="line"><a href="#L156">156</a>	</span>
+<span id="L157" class="line"><a href="#L157">157</a>	[UserTagNameKeyFullMap.kActivation] = {</span>
+<span id="L158" class="line"><a href="#L158">158</a>		kNone = 0 ,</span>
+<span id="L159" class="line"><a href="#L159">159</a>		kWillLose = 1 ,</span>
+<span id="L160" class="line"><a href="#L160">160</a>		kReturnBack = 2 ,</span>
+<span id="L161" class="line"><a href="#L161">161</a>		kNewAdd = 3 ,</span>
+<span id="L162" class="line"><a href="#L162">162</a>		kNormalActive = 4 ,</span>
+<span id="L163" class="line"><a href="#L163">163</a>		kHighlyActive = 5 ,</span>
+<span id="L164" class="line"><a href="#L164">164</a>	} ,</span>
+<span id="L165" class="line"><a href="#L165">165</a></span>
+<span id="L166" class="line"><a href="#L166">166</a>	[UserTagNameKeyFullMap.kWorkingWeekendDay] = {</span>
+<span id="L167" class="line"><a href="#L167">167</a>		kWorkingDay = 1 ,</span>
+<span id="L168" class="line"><a href="#L168">168</a>		kWeekendDay = 2 ,</span>
+<span id="L169" class="line"><a href="#L169">169</a>		kIncludingBoth = 3 ,</span>
+<span id="L170" class="line"><a href="#L170">170</a>		kNotIncludedBoth = 4 ,</span>
+<span id="L171" class="line"><a href="#L171">171</a>	} ,</span>
+<span id="L172" class="line"><a href="#L172">172</a></span>
+<span id="L173" class="line"><a href="#L173">173</a>	[UserTagNameKeyFullMap.kActivePeriodOnDay] = {</span>
+<span id="L174" class="line"><a href="#L174">174</a>		kAM = 1 ,</span>
+<span id="L175" class="line"><a href="#L175">175</a>		kPM = 2 ,</span>
+<span id="L176" class="line"><a href="#L176">176</a>		kNight = 3 ,</span>
+<span id="L177" class="line"><a href="#L177">177</a>	} ,</span>
+<span id="L178" class="line"><a href="#L178">178</a></span>
+<span id="L179" class="line"><a href="#L179">179</a>	[UserTagNameKeyFullMap.kLoginFrequency] = {</span>
+<span id="L180" class="line"><a href="#L180">180</a>		kHigh = 1 ,</span>
+<span id="L181" class="line"><a href="#L181">181</a>		kNormal = 2 ,</span>
+<span id="L182" class="line"><a href="#L182">182</a>		kLow = 3 ,</span>
+<span id="L183" class="line"><a href="#L183">183</a>	} ,</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>	[UserTagNameKeyFullMap.kLiveness] = {</span>
+<span id="L186" class="line"><a href="#L186">186</a>		kNone = 0 ,</span>
+<span id="L187" class="line"><a href="#L187">187</a>		kNewUser = 1 ,</span>
+<span id="L188" class="line"><a href="#L188">188</a>		kReturnUser = 2 ,</span>
+<span id="L189" class="line"><a href="#L189">189</a>		kLowUser = 3 ,</span>
+<span id="L190" class="line"><a href="#L190">190</a>		kMiddleLowUser = 4 ,</span>
+<span id="L191" class="line"><a href="#L191">191</a>		kMiddleUser = 5 ,</span>
+<span id="L192" class="line"><a href="#L192">192</a>		kMiddleHighUser = 6 ,</span>
+<span id="L193" class="line"><a href="#L193">193</a>		kHighUser = 7 ,</span>
+<span id="L194" class="line"><a href="#L194">194</a>	} ,</span>
+<span id="L195" class="line"><a href="#L195">195</a></span>
+<span id="L196" class="line"><a href="#L196">196</a>	[UserTagNameKeyFullMap.kBiLivenessTag] = {</span>
+<span id="L197" class="line"><a href="#L197">197</a>		kNone = 0 ,</span>
+<span id="L198" class="line"><a href="#L198">198</a>		kNewUser = 1 ,</span>
+<span id="L199" class="line"><a href="#L199">199</a>		kReturnUser = 2 ,</span>
+<span id="L200" class="line"><a href="#L200">200</a>		kLowUser = 3 ,</span>
+<span id="L201" class="line"><a href="#L201">201</a>		kMiddleLowUser = 4 ,</span>
+<span id="L202" class="line"><a href="#L202">202</a>		kMiddleUser = 5 ,</span>
+<span id="L203" class="line"><a href="#L203">203</a>		kMiddleHighUser = 6 ,</span>
+<span id="L204" class="line"><a href="#L204">204</a>		kHighUser = 7 ,</span>
+<span id="L205" class="line"><a href="#L205">205</a>	} ,</span>
+<span id="L206" class="line"><a href="#L206">206</a></span>
+<span id="L207" class="line"><a href="#L207">207</a>	[UserTagNameKeyFullMap.kTopLevelDiff] = {</span>
+<span id="L208" class="line"><a href="#L208">208</a>		kNone = 0 ,</span>
+<span id="L209" class="line"><a href="#L209">209</a>		kHighDiff1 = 1 ,</span>
+<span id="L210" class="line"><a href="#L210">210</a>		kHighDiff2 = 2 ,</span>
+<span id="L211" class="line"><a href="#L211">211</a>		kHighDiff3 = 3 ,</span>
+<span id="L212" class="line"><a href="#L212">212</a>		kHighDiff4 = 4 ,</span>
+<span id="L213" class="line"><a href="#L213">213</a>		kHighDiff5 = 5 ,</span>
+<span id="L214" class="line"><a href="#L214">214</a>		kLowDiff1 = 10 ,</span>
+<span id="L215" class="line"><a href="#L215">215</a>		kNormalDiff = 11 ,</span>
+<span id="L216" class="line"><a href="#L216">216</a>	} ,</span>
+<span id="L217" class="line"><a href="#L217">217</a></span>
+<span id="L218" class="line"><a href="#L218">218</a>	[UserTagNameKeyFullMap.kTopLevelDiffPosition] = {</span>
+<span id="L219" class="line"><a href="#L219">219</a>		kPoor = 1 ,</span>
+<span id="L220" class="line"><a href="#L220">220</a>		kNormal = 2 ,</span>
+<span id="L221" class="line"><a href="#L221">221</a>		kGood = 3 ,</span>
+<span id="L222" class="line"><a href="#L222">222</a>	},</span>
+<span id="L223" class="line"><a href="#L223">223</a></span>
+<span id="L224" class="line"><a href="#L224">224</a>	[UserTagNameKeyFullMap.kContinuousDiff] = {</span>
+<span id="L225" class="line"><a href="#L225">225</a>		kLow = 1 ,</span>
+<span id="L226" class="line"><a href="#L226">226</a>		kNormal = 2 ,</span>
+<span id="L227" class="line"><a href="#L227">227</a>		kHigh = 3 ,</span>
+<span id="L228" class="line"><a href="#L228">228</a>	},</span>
+<span id="L229" class="line"><a href="#L229">229</a></span>
+<span id="L230" class="line"><a href="#L230">230</a>	[UserTagNameKeyFullMap.kLastWeekPay] = {</span>
+<span id="L231" class="line"><a href="#L231">231</a>		kNone = 0 ,</span>
+<span id="L232" class="line"><a href="#L232">232</a>		kHigh = 1 ,</span>
+<span id="L233" class="line"><a href="#L233">233</a>		kNormal = 2 ,</span>
+<span id="L234" class="line"><a href="#L234">234</a>		kLow = 3 ,</span>
+<span id="L235" class="line"><a href="#L235">235</a>		kNoPay = 4 ,</span>
+<span id="L236" class="line"><a href="#L236">236</a>	},</span>
+<span id="L237" class="line"><a href="#L237">237</a></span>
+<span id="L238" class="line"><a href="#L238">238</a>	[UserTagNameKeyFullMap.kAllPay] = {</span>
+<span id="L239" class="line"><a href="#L239">239</a>		kNone = 0 ,</span>
+<span id="L240" class="line"><a href="#L240">240</a>		kLow= 1 ,</span>
+<span id="L241" class="line"><a href="#L241">241</a>		kMiddleLow = 2 ,</span>
+<span id="L242" class="line"><a href="#L242">242</a>		kMiddle = 3 ,</span>
+<span id="L243" class="line"><a href="#L243">243</a>		kMiddleHigh = 4 ,</span>
+<span id="L244" class="line"><a href="#L244">244</a>		kHigh = 5 ,</span>
+<span id="L245" class="line"><a href="#L245">245</a>	},</span>
+<span id="L246" class="line"><a href="#L246">246</a></span>
+<span id="L247" class="line"><a href="#L247">247</a>	[UserTagNameKeyFullMap.kLast60DayPay] = {</span>
+<span id="L248" class="line"><a href="#L248">248</a>		kNone = 0 ,</span>
+<span id="L249" class="line"><a href="#L249">249</a>		kHigh = 1 ,</span>
+<span id="L250" class="line"><a href="#L250">250</a>		kMiddleHigh = 2 ,</span>
+<span id="L251" class="line"><a href="#L251">251</a>		kMiddleLow = 3 ,</span>
+<span id="L252" class="line"><a href="#L252">252</a>		kLow = 4 ,</span>
+<span id="L253" class="line"><a href="#L253">253</a>		kZero= 5 ,</span>
+<span id="L254" class="line"><a href="#L254">254</a>	},</span>
+<span id="L255" class="line"><a href="#L255">255</a></span>
+<span id="L256" class="line"><a href="#L256">256</a>	[UserTagNameKeyFullMap.kLevelUp] = {</span>
+<span id="L257" class="line"><a href="#L257">257</a>		kNone = 0 ,</span>
+<span id="L258" class="line"><a href="#L258">258</a>		kLow = 1 ,</span>
+<span id="L259" class="line"><a href="#L259">259</a>		kNormal = 2,</span>
+<span id="L260" class="line"><a href="#L260">260</a>		kHigh = 3 ,</span>
+<span id="L261" class="line"><a href="#L261">261</a>	},</span>
+<span id="L262" class="line"><a href="#L262">262</a>}</span>
+<span id="L263" class="line"><a href="#L263">263</a></span>
+<span id="L264" class="line"><a href="#L264">264</a></span>
+<span id="L265" class="line"><a href="#L265">265</a>local __instance = nil</span>
+<span id="L266" class="line"><a href="#L266">266</a></span>
+<span id="L267" class="line"><a href="#L267">267</a>local localDataTarVer = 3</span>
+<span id="L268" class="line"><a href="#L268">268</a>local localLevelDataTarVer = 4</span>
+<span id="L269" class="line"><a href="#L269">269</a></span>
+<span id="L270" class="line"><a href="#L270">270</a>local localDataKey = &quot;LDA&quot;</span>
+<span id="L271" class="line"><a href="#L271">271</a>local localLevelDataKey = &quot;LDUserTagLevelData&quot;</span>
+<span id="L272" class="line"><a href="#L272">272</a></span>
+<span id="L273" class="line"><a href="#L273">273</a>local topLevelIdSuffix = &quot;TopLevelId&quot;</span>
+<span id="L274" class="line"><a href="#L274">274</a>local topLevelIdLengthSuffix = &quot;TopLevelIdLength&quot;</span>
+<span id="L275" class="line"><a href="#L275">275</a>local updateTimeSuffix = &quot;UpdateTime&quot;</span>
+<span id="L276" class="line"><a href="#L276">276</a>local endTimeSuffix = &quot;EndTime&quot;</span>
+<span id="L277" class="line"><a href="#L277">277</a>local changeTimeSuffix = &quot;ChangeTime&quot;</span>
+<span id="L278" class="line"><a href="#L278">278</a>local startTimeSuffix = &quot;StartTime&quot;</span>
+<span id="L279" class="line"><a href="#L279">279</a></span>
+<span id="L280" class="line"><a href="#L280">280</a>function UserTagModel:getTopLevelIdSuffix()</span>
+<span id="L281" class="line"><a href="#L281">281</a>	return topLevelIdSuffix</span>
+<span id="L282" class="line"><a href="#L282">282</a>end</span>
+<span id="L283" class="line"><a href="#L283">283</a></span>
+<span id="L284" class="line"><a href="#L284">284</a></span>
+<span id="L285" class="line"><a href="#L285">285</a>local function getCurrUid()</span>
+<span id="L286" class="line"><a href="#L286">286</a>	return UserManager:getInstance():getUID() or &quot;12345&quot;</span>
+<span id="L287" class="line"><a href="#L287">287</a>end</span>
+<span id="L288" class="line"><a href="#L288">288</a></span>
+<span id="L289" class="line"><a href="#L289">289</a>local function getLocalFilePath()</span>
+<span id="L290" class="line"><a href="#L290">290</a>	return localDataKey .. &quot;_&quot; .. tostring(getCurrUid()) .. &quot;.ds&quot;</span>
+<span id="L291" class="line"><a href="#L291">291</a>end</span>
+<span id="L292" class="line"><a href="#L292">292</a></span>
+<span id="L293" class="line"><a href="#L293">293</a>local function getLocalLevelDataFilePath()</span>
+<span id="L294" class="line"><a href="#L294">294</a>	return localLevelDataKey .. &quot;_&quot; .. tostring(getCurrUid()) .. &quot;.ds&quot;</span>
+<span id="L295" class="line"><a href="#L295">295</a>end</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>function UserTagModel:getInstance()</span>
+<span id="L298" class="line"><a href="#L298">298</a>	if not __instance then</span>
+<span id="L299" class="line"><a href="#L299">299</a>		__instance = UserTagModel.new()</span>
+<span id="L300" class="line"><a href="#L300">300</a>		__instance:init()</span>
+<span id="L301" class="line"><a href="#L301">301</a>	end</span>
+<span id="L302" class="line"><a href="#L302">302</a>	return __instance</span>
+<span id="L303" class="line"><a href="#L303">303</a>end</span>
+<span id="L304" class="line"><a href="#L304">304</a></span>
+<span id="L305" class="line"><a href="#L305">305</a>function UserTagModel:init()</span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>	if not self.localData then</span>
+<span id="L308" class="line"><a href="#L308">308</a>		local localData = Localhost:readFromStorage( getLocalFilePath() )</span>
+<span id="L309" class="line"><a href="#L309">309</a>		--local localData = Localhost:readFileData( getLocalFilePath() )</span>
+<span id="L310" class="line"><a href="#L310">310</a>		</span>
+<span id="L311" class="line"><a href="#L311">311</a>		if not localData or localData.ver ~= localDataTarVer then</span>
+<span id="L312" class="line"><a href="#L312">312</a>			localData = self:getDefaultData()</span>
+<span id="L313" class="line"><a href="#L313">313</a>		end</span>
+<span id="L314" class="line"><a href="#L314">314</a></span>
+<span id="L315" class="line"><a href="#L315">315</a>		self.localData = localData</span>
+<span id="L316" class="line"><a href="#L316">316</a>	end</span>
+<span id="L317" class="line"><a href="#L317">317</a></span>
+<span id="L318" class="line"><a href="#L318">318</a>	if not self.localLevelData then</span>
+<span id="L319" class="line"><a href="#L319">319</a>		local localLevelData = Localhost:readFromStorage( getLocalLevelDataFilePath() )</span>
+<span id="L320" class="line"><a href="#L320">320</a>		if not localLevelData or localLevelData.ver ~= localLevelDataTarVer then</span>
+<span id="L321" class="line"><a href="#L321">321</a>			localLevelData = self:getDefaultLevelData()</span>
+<span id="L322" class="line"><a href="#L322">322</a>		end</span>
+<span id="L323" class="line"><a href="#L323">323</a></span>
+<span id="L324" class="line"><a href="#L324">324</a>		self.localLevelData = localLevelData</span>
+<span id="L325" class="line"><a href="#L325">325</a>	end</span>
+<span id="L326" class="line"><a href="#L326">326</a>	</span>
+<span id="L327" class="line"><a href="#L327">327</a>	self.staticMetaConfig = {}</span>
+<span id="L328" class="line"><a href="#L328">328</a>end</span>
+<span id="L329" class="line"><a href="#L329">329</a></span>
+<span id="L330" class="line"><a href="#L330">330</a>function UserTagModel:getDefaultLevelData()</span>
+<span id="L331" class="line"><a href="#L331">331</a>	local localLevelData = {}</span>
+<span id="L332" class="line"><a href="#L332">332</a></span>
+<span id="L333" class="line"><a href="#L333">333</a>	localLevelData.ver = localLevelDataTarVer</span>
+<span id="L334" class="line"><a href="#L334">334</a></span>
+<span id="L335" class="line"><a href="#L335">335</a>	localLevelData.startLevelTotalLog = {}</span>
+<span id="L336" class="line"><a href="#L336">336</a>	localLevelData.endLevelTotalLog = {}</span>
+<span id="L337" class="line"><a href="#L337">337</a></span>
+<span id="L338" class="line"><a href="#L338">338</a>	localLevelData.startLevelDailyLog = {}</span>
+<span id="L339" class="line"><a href="#L339">339</a>	localLevelData.endLevelDailyLog = {}</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>	localLevelData.levelTagInfo = {}</span>
+<span id="L342" class="line"><a href="#L342">342</a>	localLevelData.activityDays = {}</span>
+<span id="L343" class="line"><a href="#L343">343</a></span>
+<span id="L344" class="line"><a href="#L344">344</a>	localLevelData.levelPlayCountMap = {}</span>
+<span id="L345" class="line"><a href="#L345">345</a>	localLevelData.levelPlayCountTodayMap = {}</span>
+<span id="L346" class="line"><a href="#L346">346</a></span>
+<span id="L347" class="line"><a href="#L347">347</a>	return localLevelData</span>
+<span id="L348" class="line"><a href="#L348">348</a>end</span>
+<span id="L349" class="line"><a href="#L349">349</a></span>
+<span id="L350" class="line"><a href="#L350">350</a>function UserTagModel:getDefaultData()</span>
+<span id="L351" class="line"><a href="#L351">351</a>	local localData = {}</span>
+<span id="L352" class="line"><a href="#L352">352</a></span>
+<span id="L353" class="line"><a href="#L353">353</a>	localData.ver = localDataTarVer</span>
+<span id="L354" class="line"><a href="#L354">354</a></span>
+<span id="L355" class="line"><a href="#L355">355</a>	localData.defaultTagEndTime = 0</span>
+<span id="L356" class="line"><a href="#L356">356</a>	localData.defaultTagChangeTime = 0</span>
+<span id="L357" class="line"><a href="#L357">357</a>	localData.defaultTagStartTime = 0</span>
+<span id="L358" class="line"><a href="#L358">358</a>	localData.defaultTagTopLevelId = 0</span>
+<span id="L359" class="line"><a href="#L359">359</a></span>
+<span id="L360" class="line"><a href="#L360">360</a>	for k,v in pairs( UserTagNameKey ) do</span>
+<span id="L361" class="line"><a href="#L361">361</a></span>
+<span id="L362" class="line"><a href="#L362">362</a>		localData[tostring(k)] = {}</span>
+<span id="L363" class="line"><a href="#L363">363</a>		local tags = v</span>
+<span id="L364" class="line"><a href="#L364">364</a>		local currData = localData[tostring(k)]</span>
+<span id="L365" class="line"><a href="#L365">365</a></span>
+<span id="L366" class="line"><a href="#L366">366</a>		for k2,v2 in pairs(tags) do</span>
+<span id="L367" class="line"><a href="#L367">367</a></span>
+<span id="L368" class="line"><a href="#L368">368</a>			if v2 == tags.kUsePropFrequency then</span>
+<span id="L369" class="line"><a href="#L369">369</a>				currData[tostring(v2)] = {}</span>
+<span id="L370" class="line"><a href="#L370">370</a>			else</span>
+<span id="L371" class="line"><a href="#L371">371</a>				currData[tostring(v2)] = 0</span>
+<span id="L372" class="line"><a href="#L372">372</a>			end</span>
+<span id="L373" class="line"><a href="#L373">373</a>			currData[tostring(v2) .. topLevelIdSuffix] = 0</span>
+<span id="L374" class="line"><a href="#L374">374</a>			currData[tostring(v2) .. topLevelIdLengthSuffix] = 0</span>
+<span id="L375" class="line"><a href="#L375">375</a>			currData[tostring(v2) .. updateTimeSuffix] = 0</span>
+<span id="L376" class="line"><a href="#L376">376</a>		end</span>
+<span id="L377" class="line"><a href="#L377">377</a>	end</span>
+<span id="L378" class="line"><a href="#L378">378</a></span>
+<span id="L379" class="line"><a href="#L379">379</a>	localData.localUpdateTimes = {}</span>
+<span id="L380" class="line"><a href="#L380">380</a></span>
+<span id="L381" class="line"><a href="#L381">381</a>	return localData</span>
+<span id="L382" class="line"><a href="#L382">382</a>end</span>
+<span id="L383" class="line"><a href="#L383">383</a></span>
+<span id="L384" class="line"><a href="#L384">384</a>function UserTagModel:getLocalLevelData()</span>
+<span id="L385" class="line"><a href="#L385">385</a>	return self.localLevelData</span>
+<span id="L386" class="line"><a href="#L386">386</a>end</span>
+<span id="L387" class="line"><a href="#L387">387</a></span>
+<span id="L388" class="line"><a href="#L388">388</a>function UserTagModel:getLocalLevelDailyLog( dataType , day , createIfNil )</span>
+<span id="L389" class="line"><a href="#L389">389</a>	if dataType then</span>
+<span id="L390" class="line"><a href="#L390">390</a></span>
+<span id="L391" class="line"><a href="#L391">391</a>		local nowtime = Localhost:timeInSec()</span>
+<span id="L392" class="line"><a href="#L392">392</a>		local nowtimeDay = math.floor( nowtime / (3600 * 24) )</span>
+<span id="L393" class="line"><a href="#L393">393</a></span>
+<span id="L394" class="line"><a href="#L394">394</a>		if not day then day = nowtimeDay end</span>
+<span id="L395" class="line"><a href="#L395">395</a></span>
+<span id="L396" class="line"><a href="#L396">396</a>		local dailyLogData = nil </span>
+<span id="L397" class="line"><a href="#L397">397</a>		</span>
+<span id="L398" class="line"><a href="#L398">398</a>		if createIfNil and not self.localLevelData[ dataType .. &quot;DailyLog&quot;][&quot;d&quot; .. tostring(day)] then</span>
+<span id="L399" class="line"><a href="#L399">399</a>			dailyLogData = {}</span>
+<span id="L400" class="line"><a href="#L400">400</a>			self.localLevelData[ dataType .. &quot;DailyLog&quot;][&quot;d&quot; .. tostring(day)] = dailyLogData</span>
+<span id="L401" class="line"><a href="#L401">401</a>		end</span>
+<span id="L402" class="line"><a href="#L402">402</a></span>
+<span id="L403" class="line"><a href="#L403">403</a>		dailyLogData = self.localLevelData[ dataType .. &quot;DailyLog&quot;][&quot;d&quot; .. tostring(day)]</span>
+<span id="L404" class="line"><a href="#L404">404</a></span>
+<span id="L405" class="line"><a href="#L405">405</a>		return dailyLogData</span>
+<span id="L406" class="line"><a href="#L406">406</a>	end</span>
+<span id="L407" class="line"><a href="#L407">407</a>end</span>
+<span id="L408" class="line"><a href="#L408">408</a></span>
+<span id="L409" class="line"><a href="#L409">409</a>function UserTagModel:clearLocalEndLevelDailyDataByDay( day )</span>
+<span id="L410" class="line"><a href="#L410">410</a>	self.localLevelData.endLevelDailyLog[&quot;d&quot; .. tostring( day )] = nil</span>
+<span id="L411" class="line"><a href="#L411">411</a>end</span>
+<span id="L412" class="line"><a href="#L412">412</a></span>
+<span id="L413" class="line"><a href="#L413">413</a>function UserTagModel:clearLocalEndLevelDailyDataBeforDay( day )</span>
+<span id="L414" class="line"><a href="#L414">414</a>	if self.localLevelData and self.localLevelData.endLevelDailyLog then</span>
+<span id="L415" class="line"><a href="#L415">415</a></span>
+<span id="L416" class="line"><a href="#L416">416</a>		local _map = {}</span>
+<span id="L417" class="line"><a href="#L417">417</a>		local _needRemoveKeys = {}</span>
+<span id="L418" class="line"><a href="#L418">418</a></span>
+<span id="L419" class="line"><a href="#L419">419</a>		for k,v in pairs( self.localLevelData.endLevelDailyLog ) do</span>
+<span id="L420" class="line"><a href="#L420">420</a>			local _day = tonumber( string.sub( k , 2 ) )</span>
+<span id="L421" class="line"><a href="#L421">421</a>			if _day and _day &lt;= day then</span>
+<span id="L422" class="line"><a href="#L422">422</a>				table.insert( _needRemoveKeys , k )</span>
+<span id="L423" class="line"><a href="#L423">423</a>			end</span>
+<span id="L424" class="line"><a href="#L424">424</a>		end</span>
+<span id="L425" class="line"><a href="#L425">425</a></span>
+<span id="L426" class="line"><a href="#L426">426</a>		for k2,v2 in ipairs( _needRemoveKeys ) do</span>
+<span id="L427" class="line"><a href="#L427">427</a>			self.localLevelData.endLevelDailyLog[k2] = nil</span>
+<span id="L428" class="line"><a href="#L428">428</a>		end</span>
+<span id="L429" class="line"><a href="#L429">429</a>	end</span>
+<span id="L430" class="line"><a href="#L430">430</a>end</span>
+<span id="L431" class="line"><a href="#L431">431</a></span>
+<span id="L432" class="line"><a href="#L432">432</a>function UserTagModel:getLocalStartLevelDailyDataList( day , createIfNil )</span>
+<span id="L433" class="line"><a href="#L433">433</a>	return self:getLocalLevelDailyLog(&quot;startLevel&quot; , day , createIfNil)</span>
+<span id="L434" class="line"><a href="#L434">434</a>end</span>
+<span id="L435" class="line"><a href="#L435">435</a></span>
+<span id="L436" class="line"><a href="#L436">436</a>function UserTagModel:getLocalEndLevelDailyDataList( day , createIfNil )</span>
+<span id="L437" class="line"><a href="#L437">437</a>	return self:getLocalLevelDailyLog(&quot;endLevel&quot; , day , createIfNil)</span>
+<span id="L438" class="line"><a href="#L438">438</a>end</span>
+<span id="L439" class="line"><a href="#L439">439</a></span>
+<span id="L440" class="line"><a href="#L440">440</a>function UserTagModel:getTagLocalUpdateTime(tagGroup)</span>
+<span id="L441" class="line"><a href="#L441">441</a>	if self.localData and self.localData.localUpdateTimes and self.localData.localUpdateTimes[tagGroup] then</span>
+<span id="L442" class="line"><a href="#L442">442</a>		return self.localData.localUpdateTimes[tagGroup]</span>
+<span id="L443" class="line"><a href="#L443">443</a>	end</span>
+<span id="L444" class="line"><a href="#L444">444</a>	return 0</span>
+<span id="L445" class="line"><a href="#L445">445</a>end</span>
+<span id="L446" class="line"><a href="#L446">446</a></span>
+<span id="L447" class="line"><a href="#L447">447</a>function UserTagModel:updateTags( resp , source )</span>
+<span id="L448" class="line"><a href="#L448">448</a></span>
+<span id="L449" class="line"><a href="#L449">449</a>	local userData = UserManager:getInstance():getUserRef()</span>
+<span id="L450" class="line"><a href="#L450">450</a>	local topLevel = userData:getTopLevelId()</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>	local userTag = resp.userTag</span>
+<span id="L453" class="line"><a href="#L453">453</a>	local difficultyTag = resp.difficultyTag</span>
+<span id="L454" class="line"><a href="#L454">454</a>	local payTag = resp.payTag</span>
+<span id="L455" class="line"><a href="#L455">455</a>	local socialTag = resp.socialTag</span>
+<span id="L456" class="line"><a href="#L456">456</a>	local levelTag = resp.levelTag</span>
+<span id="L457" class="line"><a href="#L457">457</a>	local propTag = resp.propTag</span>
+<span id="L458" class="line"><a href="#L458">458</a></span>
+<span id="L459" class="line"><a href="#L459">459</a>	if source == UserTagDCSource.kLaunch then</span>
+<span id="L460" class="line"><a href="#L460">460</a>		if resp.defaultTagStartTime then</span>
+<span id="L461" class="line"><a href="#L461">461</a>			self.localData.defaultTagStartTime = math.floor( tonumber( resp.defaultTagStartTime ) / 1000 )</span>
+<span id="L462" class="line"><a href="#L462">462</a>		else</span>
+<span id="L463" class="line"><a href="#L463">463</a>			self.localData.defaultTagStartTime = 0</span>
+<span id="L464" class="line"><a href="#L464">464</a>		end</span>
+<span id="L465" class="line"><a href="#L465">465</a>		self.localData.defaultTagEndTime = self.localData.defaultTagStartTime + DefaultUserTagDurationTime</span>
+<span id="L466" class="line"><a href="#L466">466</a>		self.localData.defaultTagTopLevelId = resp.defaultTagTopLevelId or 0</span>
+<span id="L467" class="line"><a href="#L467">467</a>	end</span>
+<span id="L468" class="line"><a href="#L468">468</a></span>
+<span id="L469" class="line"><a href="#L469">469</a>	if userTag then self:updateTag( UserTagGroupKey.kUserTag , userTag , source ) end</span>
+<span id="L470" class="line"><a href="#L470">470</a>	if difficultyTag then self:updateTag( UserTagGroupKey.kDifficultyTag , difficultyTag , source ) end</span>
+<span id="L471" class="line"><a href="#L471">471</a>	if payTag then self:updateTag( UserTagGroupKey.kPayTag , payTag , source ) end</span>
+<span id="L472" class="line"><a href="#L472">472</a>	if socialTag then self:updateTag( UserTagGroupKey.kSocialTag , socialTag , source ) end</span>
+<span id="L473" class="line"><a href="#L473">473</a>	if levelTag then self:updateTag( UserTagGroupKey.kLevelTag , levelTag , source ) end</span>
+<span id="L474" class="line"><a href="#L474">474</a>	if propTag then self:updateTag( UserTagGroupKey.kPropTag , propTag , source ) end</span>
+<span id="L475" class="line"><a href="#L475">475</a></span>
+<span id="L476" class="line"><a href="#L476">476</a>	-- printx( 1 , &quot;UserTagModel:updateTags  ---------- self.localData = \n&quot; , table.tostring(self.localData) )</span>
+<span id="L477" class="line"><a href="#L477">477</a></span>
+<span id="L478" class="line"><a href="#L478">478</a>	self:flushDcLog( source , self.localData.defaultTagTopLevelId or 0 )</span>
+<span id="L479" class="line"><a href="#L479">479</a></span>
+<span id="L480" class="line"><a href="#L480">480</a>	self:flushLocalData()</span>
+<span id="L481" class="line"><a href="#L481">481</a>end</span>
+<span id="L482" class="line"><a href="#L482">482</a></span>
+<span id="L483" class="line"><a href="#L483">483</a>function UserTagModel:flushLocalData()</span>
+<span id="L484" class="line"><a href="#L484">484</a>	if self.localData then</span>
+<span id="L485" class="line"><a href="#L485">485</a>		Localhost:writeToStorage(self.localData, getLocalFilePath() )</span>
+<span id="L486" class="line"><a href="#L486">486</a>		--Localhost:writeToFile( getLocalFilePath() , self.localData )</span>
+<span id="L487" class="line"><a href="#L487">487</a>	end</span>
+<span id="L488" class="line"><a href="#L488">488</a>end</span>
+<span id="L489" class="line"><a href="#L489">489</a></span>
+<span id="L490" class="line"><a href="#L490">490</a>function UserTagModel:flushLocalLevelData()</span>
+<span id="L491" class="line"><a href="#L491">491</a>	if self.localLevelData then</span>
+<span id="L492" class="line"><a href="#L492">492</a>		Localhost:writeToStorage(self.localLevelData, getLocalLevelDataFilePath() )</span>
+<span id="L493" class="line"><a href="#L493">493</a>	end</span>
+<span id="L494" class="line"><a href="#L494">494</a>end</span>
+<span id="L495" class="line"><a href="#L495">495</a></span>
+<span id="L496" class="line"><a href="#L496">496</a>function UserTagModel:__updateTagsByTagBean( typeGroup , nameKey , tagBean , defaultDataType )</span>
+<span id="L497" class="line"><a href="#L497">497</a></span>
+<span id="L498" class="line"><a href="#L498">498</a>	local localData = self.localData</span>
+<span id="L499" class="line"><a href="#L499">499</a></span>
+<span id="L500" class="line"><a href="#L500">500</a>	if defaultDataType == &quot;table&quot; then</span>
+<span id="L501" class="line"><a href="#L501">501</a>		localData[typeGroup][nameKey] = tagBean[nameKey] or {}</span>
+<span id="L502" class="line"><a href="#L502">502</a>	elseif defaultDataType == &quot;number&quot; then</span>
+<span id="L503" class="line"><a href="#L503">503</a>		localData[typeGroup][nameKey] = tonumber(tagBean[nameKey] or 0)</span>
+<span id="L504" class="line"><a href="#L504">504</a>	else</span>
+<span id="L505" class="line"><a href="#L505">505</a>		localData[typeGroup][nameKey] = tonumber(tagBean[nameKey] or 0)</span>
+<span id="L506" class="line"><a href="#L506">506</a>	end</span>
+<span id="L507" class="line"><a href="#L507">507</a>	</span>
+<span id="L508" class="line"><a href="#L508">508</a></span>
+<span id="L509" class="line"><a href="#L509">509</a>	local tagtopLevelId = tagBean[nameKey .. topLevelIdSuffix]</span>
+<span id="L510" class="line"><a href="#L510">510</a>	if tagtopLevelId and tonumber(tagtopLevelId) ~= 0 then</span>
+<span id="L511" class="line"><a href="#L511">511</a>		localData[typeGroup][nameKey .. topLevelIdSuffix] = tonumber(tagtopLevelId)</span>
+<span id="L512" class="line"><a href="#L512">512</a>	else</span>
+<span id="L513" class="line"><a href="#L513">513</a>		localData[typeGroup][nameKey .. topLevelIdSuffix] = tonumber( self.localData.defaultTagTopLevelId )</span>
+<span id="L514" class="line"><a href="#L514">514</a>	end</span>
+<span id="L515" class="line"><a href="#L515">515</a></span>
+<span id="L516" class="line"><a href="#L516">516</a>	local tagchangeTime = tagBean[nameKey .. changeTimeSuffix]</span>
+<span id="L517" class="line"><a href="#L517">517</a>	if tagchangeTime and tonumber(tagchangeTime) ~= 0 then</span>
+<span id="L518" class="line"><a href="#L518">518</a>		localData[typeGroup][nameKey .. changeTimeSuffix] = tonumber(tagchangeTime)</span>
+<span id="L519" class="line"><a href="#L519">519</a>	else</span>
+<span id="L520" class="line"><a href="#L520">520</a>		localData[typeGroup][nameKey .. changeTimeSuffix] = 0</span>
+<span id="L521" class="line"><a href="#L521">521</a>	end</span>
+<span id="L522" class="line"><a href="#L522">522</a></span>
+<span id="L523" class="line"><a href="#L523">523</a>	local tagstartTime = tagBean[nameKey .. startTimeSuffix]</span>
+<span id="L524" class="line"><a href="#L524">524</a>	if tagstartTime and tonumber(tagstartTime) ~= 0 then</span>
+<span id="L525" class="line"><a href="#L525">525</a>		localData[typeGroup][nameKey .. startTimeSuffix] = tonumber(tagstartTime)</span>
+<span id="L526" class="line"><a href="#L526">526</a>	else</span>
+<span id="L527" class="line"><a href="#L527">527</a>		localData[typeGroup][nameKey .. startTimeSuffix] = 0</span>
+<span id="L528" class="line"><a href="#L528">528</a>	end</span>
+<span id="L529" class="line"><a href="#L529">529</a></span>
+<span id="L530" class="line"><a href="#L530">530</a>	</span>
+<span id="L531" class="line"><a href="#L531">531</a>	</span>
+<span id="L532" class="line"><a href="#L532">532</a></span>
+<span id="L533" class="line"><a href="#L533">533</a>	local updateTime = 0</span>
+<span id="L534" class="line"><a href="#L534">534</a>	if localData.localUpdateTimes and localData.localUpdateTimes[typeGroup] then</span>
+<span id="L535" class="line"><a href="#L535">535</a>		updateTime = localData.localUpdateTimes[typeGroup]</span>
+<span id="L536" class="line"><a href="#L536">536</a>	end</span>
+<span id="L537" class="line"><a href="#L537">537</a></span>
+<span id="L538" class="line"><a href="#L538">538</a></span>
+<span id="L539" class="line"><a href="#L539">539</a>	if updateTime and tonumber(updateTime) ~= 0 then</span>
+<span id="L540" class="line"><a href="#L540">540</a>		localData[typeGroup][nameKey .. updateTimeSuffix] = updateTime</span>
+<span id="L541" class="line"><a href="#L541">541</a>	else</span>
+<span id="L542" class="line"><a href="#L542">542</a>		localData[typeGroup][nameKey .. updateTimeSuffix] = Localhost:timeInSec()</span>
+<span id="L543" class="line"><a href="#L543">543</a>	end</span>
+<span id="L544" class="line"><a href="#L544">544</a></span>
+<span id="L545" class="line"><a href="#L545">545</a></span>
+<span id="L546" class="line"><a href="#L546">546</a>	local tagValue = localData[typeGroup][nameKey]</span>
+<span id="L547" class="line"><a href="#L547">547</a>	if type(tagValue) ~= &quot;number&quot; then tagValue = 0 end</span>
+<span id="L548" class="line"><a href="#L548">548</a></span>
+<span id="L549" class="line"><a href="#L549">549</a>	local staticMetaConfig = self:getUserTagStaticConfig(nameKey)</span>
+<span id="L550" class="line"><a href="#L550">550</a></span>
+<span id="L551" class="line"><a href="#L551">551</a>	-- if nameKey == UserTagNameKeyFullMap.kActivation then</span>
+<span id="L552" class="line"><a href="#L552">552</a>	-- 	printx( 1 , &quot;UserTagModel:__updateTagsByTagBean  nameKey = &quot; , nameKey , &quot;staticMetaConfig =&quot; , table.tostring(staticMetaConfig) )</span>
+<span id="L553" class="line"><a href="#L553">553</a>	-- end</span>
+<span id="L554" class="line"><a href="#L554">554</a>	</span>
+<span id="L555" class="line"><a href="#L555">555</a></span>
+<span id="L556" class="line"><a href="#L556">556</a>	if staticMetaConfig then</span>
+<span id="L557" class="line"><a href="#L557">557</a></span>
+<span id="L558" class="line"><a href="#L558">558</a>		if staticMetaConfig.topLevelLength then</span>
+<span id="L559" class="line"><a href="#L559">559</a>			local topLevelLength = 0</span>
+<span id="L560" class="line"><a href="#L560">560</a>			if type( staticMetaConfig.topLevelLength ) == &quot;number&quot; or type( staticMetaConfig.topLevelLength ) == &quot;string&quot;  then</span>
+<span id="L561" class="line"><a href="#L561">561</a>				topLevelLength = tonumber(staticMetaConfig.topLevelLength)</span>
+<span id="L562" class="line"><a href="#L562">562</a>			elseif type( staticMetaConfig.topLevelLength ) == &quot;table&quot; then</span>
+<span id="L563" class="line"><a href="#L563">563</a>				topLevelLength = tonumber(staticMetaConfig.topLevelLength[tostring(tagValue)])</span>
+<span id="L564" class="line"><a href="#L564">564</a>			end</span>
+<span id="L565" class="line"><a href="#L565">565</a></span>
+<span id="L566" class="line"><a href="#L566">566</a>			if not topLevelLength then topLevelLength = 0 end</span>
+<span id="L567" class="line"><a href="#L567">567</a></span>
+<span id="L568" class="line"><a href="#L568">568</a>			if topLevelLength == 0 then</span>
+<span id="L569" class="line"><a href="#L569">569</a>				localData[typeGroup][nameKey .. topLevelIdLengthSuffix] = tonumber( DefaultUserTagTopLevelIdLength )</span>
+<span id="L570" class="line"><a href="#L570">570</a>			elseif topLevelLength &gt; 0 then</span>
+<span id="L571" class="line"><a href="#L571">571</a>				localData[typeGroup][nameKey .. topLevelIdLengthSuffix] = tonumber(topLevelLength)</span>
+<span id="L572" class="line"><a href="#L572">572</a>			else</span>
+<span id="L573" class="line"><a href="#L573">573</a>				localData[typeGroup][nameKey .. topLevelIdLengthSuffix] = -1</span>
+<span id="L574" class="line"><a href="#L574">574</a>			end</span>
+<span id="L575" class="line"><a href="#L575">575</a>		end</span>
+<span id="L576" class="line"><a href="#L576">576</a></span>
+<span id="L577" class="line"><a href="#L577">577</a>		if staticMetaConfig.durationTime then</span>
+<span id="L578" class="line"><a href="#L578">578</a>			local durationTime = 0</span>
+<span id="L579" class="line"><a href="#L579">579</a>			if type( staticMetaConfig.durationTime ) == &quot;number&quot; or type( staticMetaConfig.durationTime ) == &quot;string&quot; then</span>
+<span id="L580" class="line"><a href="#L580">580</a>				durationTime = tonumber(staticMetaConfig.durationTime)</span>
+<span id="L581" class="line"><a href="#L581">581</a>			elseif type( staticMetaConfig.durationTime ) == &quot;table&quot; then</span>
+<span id="L582" class="line"><a href="#L582">582</a>				durationTime = tonumber(staticMetaConfig.durationTime[tostring(tagValue)])</span>
+<span id="L583" class="line"><a href="#L583">583</a>			end</span>
+<span id="L584" class="line"><a href="#L584">584</a></span>
+<span id="L585" class="line"><a href="#L585">585</a>			if not durationTime then durationTime = 0 end</span>
+<span id="L586" class="line"><a href="#L586">586</a></span>
+<span id="L587" class="line"><a href="#L587">587</a>			if durationTime == 0 then</span>
+<span id="L588" class="line"><a href="#L588">588</a>				localData[typeGroup][nameKey .. endTimeSuffix] = localData[typeGroup][nameKey .. updateTimeSuffix] + tonumber( DefaultUserTagDurationTime )</span>
+<span id="L589" class="line"><a href="#L589">589</a>			elseif durationTime &gt; 0 then</span>
+<span id="L590" class="line"><a href="#L590">590</a>				localData[typeGroup][nameKey .. endTimeSuffix] = localData[typeGroup][nameKey .. updateTimeSuffix] + tonumber(durationTime)</span>
+<span id="L591" class="line"><a href="#L591">591</a>			else</span>
+<span id="L592" class="line"><a href="#L592">592</a>				localData[typeGroup][nameKey .. endTimeSuffix] = -1</span>
+<span id="L593" class="line"><a href="#L593">593</a>			end</span>
+<span id="L594" class="line"><a href="#L594">594</a>		end</span>
+<span id="L595" class="line"><a href="#L595">595</a>	else</span>
+<span id="L596" class="line"><a href="#L596">596</a>		localData[typeGroup][nameKey .. topLevelIdLengthSuffix] = tonumber( DefaultUserTagTopLevelIdLength )</span>
+<span id="L597" class="line"><a href="#L597">597</a>		localData[typeGroup][nameKey .. endTimeSuffix] = tonumber( self.localData.defaultTagEndTime )</span>
+<span id="L598" class="line"><a href="#L598">598</a>	end</span>
+<span id="L599" class="line"><a href="#L599">599</a></span>
+<span id="L600" class="line"><a href="#L600">600</a>	--[[</span>
+<span id="L601" class="line"><a href="#L601">601</a>	local topLevelIdLength = tagBean[nameKey .. topLevelIdLengthSuffix]</span>
+<span id="L602" class="line"><a href="#L602">602</a>	if topLevelIdLength and tonumber(topLevelIdLength) ~= 0 then</span>
+<span id="L603" class="line"><a href="#L603">603</a>		localData[typeGroup][nameKey .. topLevelIdLengthSuffix] = tonumber(topLevelIdLength)</span>
+<span id="L604" class="line"><a href="#L604">604</a>	else</span>
+<span id="L605" class="line"><a href="#L605">605</a>		localData[typeGroup][nameKey .. topLevelIdLengthSuffix] = tonumber( self.localData.defaultTagTopLevelIdLength )</span>
+<span id="L606" class="line"><a href="#L606">606</a>	end</span>
+<span id="L607" class="line"><a href="#L607">607</a>	]]</span>
+<span id="L608" class="line"><a href="#L608">608</a></span>
+<span id="L609" class="line"><a href="#L609">609</a>	--[[</span>
+<span id="L610" class="line"><a href="#L610">610</a>	local endTime = tagBean[nameKey .. updateTimeSuffix]</span>
+<span id="L611" class="line"><a href="#L611">611</a>	if endTime and tonumber(endTime) ~= 0 then</span>
+<span id="L612" class="line"><a href="#L612">612</a>		localData[typeGroup][nameKey .. updateTimeSuffix] = math.floor( tonumber(endTime) / 1000 )</span>
+<span id="L613" class="line"><a href="#L613">613</a>	else</span>
+<span id="L614" class="line"><a href="#L614">614</a>		localData[typeGroup][nameKey .. updateTimeSuffix] = tonumber( self.localData.defaultTagEndTime )</span>
+<span id="L615" class="line"><a href="#L615">615</a>	end</span>
+<span id="L616" class="line"><a href="#L616">616</a>	]]</span>
+<span id="L617" class="line"><a href="#L617">617</a>end</span>
+<span id="L618" class="line"><a href="#L618">618</a></span>
+<span id="L619" class="line"><a href="#L619">619</a>function UserTagModel:updateTagsByTagBean( tagGroup , tagBean )</span>
+<span id="L620" class="line"><a href="#L620">620</a></span>
+<span id="L621" class="line"><a href="#L621">621</a>	local localData = self.localData</span>
+<span id="L622" class="line"><a href="#L622">622</a>	if not localData or not UserTagNameKey[tagGroup] or not localData[tagGroup] then return end</span>
+<span id="L623" class="line"><a href="#L623">623</a></span>
+<span id="L624" class="line"><a href="#L624">624</a>	local topLevelFailCountsUpdateFlag = false</span>
+<span id="L625" class="line"><a href="#L625">625</a>	local topLevelLogicalFailCountsUpdateFlag = false</span>
+<span id="L626" class="line"><a href="#L626">626</a>	local topLevelPropUsedCountsUpdateFlag = false</span>
+<span id="L627" class="line"><a href="#L627">627</a></span>
+<span id="L628" class="line"><a href="#L628">628</a>	for k,v in pairs(UserTagNameKey[tagGroup]) do</span>
+<span id="L629" class="line"><a href="#L629">629</a>		</span>
+<span id="L630" class="line"><a href="#L630">630</a>		local doupdate = false</span>
+<span id="L631" class="line"><a href="#L631">631</a></span>
+<span id="L632" class="line"><a href="#L632">632</a>		if tagBean.onlyUpdateThisTag and tagBean.onlyUpdateThisTag == tostring(v) then</span>
+<span id="L633" class="line"><a href="#L633">633</a>			doupdate = true</span>
+<span id="L634" class="line"><a href="#L634">634</a>		else</span>
+<span id="L635" class="line"><a href="#L635">635</a>			doupdate = true</span>
+<span id="L636" class="line"><a href="#L636">636</a>		end</span>
+<span id="L637" class="line"><a href="#L637">637</a></span>
+<span id="L638" class="line"><a href="#L638">638</a>		if doupdate then</span>
+<span id="L639" class="line"><a href="#L639">639</a>			if tagGroup == UserTagGroupKey.kPropTag then</span>
+<span id="L640" class="line"><a href="#L640">640</a></span>
+<span id="L641" class="line"><a href="#L641">641</a>				if tostring(v) == UserTagNameKeyFullMap.kUsePropFrequency then</span>
+<span id="L642" class="line"><a href="#L642">642</a>					self:__updateTagsByTagBean( tagGroup , tostring(v) , tagBean , &quot;table&quot;)</span>
+<span id="L643" class="line"><a href="#L643">643</a>				else</span>
+<span id="L644" class="line"><a href="#L644">644</a>					self:__updateTagsByTagBean( tagGroup , tostring(v) , tagBean , &quot;number&quot;)</span>
+<span id="L645" class="line"><a href="#L645">645</a>				end</span>
+<span id="L646" class="line"><a href="#L646">646</a></span>
+<span id="L647" class="line"><a href="#L647">647</a>				if not topLevelPropUsedCountsUpdateFlag and tagBean.topLevelPropUsedCount and tagBean.topLevelPropUsedCount &gt; 0 then</span>
+<span id="L648" class="line"><a href="#L648">648</a>					topLevelPropUsedCountsUpdateFlag = true</span>
+<span id="L649" class="line"><a href="#L649">649</a>					self:updateTopLevelPropUsedCount( tagBean.topLevelPropUsedCount )</span>
+<span id="L650" class="line"><a href="#L650">650</a>				end</span>
+<span id="L651" class="line"><a href="#L651">651</a></span>
+<span id="L652" class="line"><a href="#L652">652</a>				</span>
+<span id="L653" class="line"><a href="#L653">653</a>			elseif tagGroup == UserTagGroupKey.kDifficultyTag then</span>
+<span id="L654" class="line"><a href="#L654">654</a>				local dataType = &quot;number&quot;</span>
+<span id="L655" class="line"><a href="#L655">655</a>				if v == UserTagNameKey[tagGroup].kLogicalFailsCounts then</span>
+<span id="L656" class="line"><a href="#L656">656</a>					dataType = &quot;table&quot;</span>
+<span id="L657" class="line"><a href="#L657">657</a>				end</span>
+<span id="L658" class="line"><a href="#L658">658</a>				self:__updateTagsByTagBean( tagGroup , tostring(v) , tagBean , dataType)</span>
+<span id="L659" class="line"><a href="#L659">659</a></span>
+<span id="L660" class="line"><a href="#L660">660</a>				if not topLevelLogicalFailCountsUpdateFlag and tagBean.logicalFailCounts and #tagBean.logicalFailCounts &gt; 0 then</span>
+<span id="L661" class="line"><a href="#L661">661</a></span>
+<span id="L662" class="line"><a href="#L662">662</a>					topLevelLogicalFailCountsUpdateFlag = true</span>
+<span id="L663" class="line"><a href="#L663">663</a></span>
+<span id="L664" class="line"><a href="#L664">664</a>					local userData = UserManager:getInstance():getUserRef()</span>
+<span id="L665" class="line"><a href="#L665">665</a>					local topLevel = userData:getTopLevelId()</span>
+<span id="L666" class="line"><a href="#L666">666</a></span>
+<span id="L667" class="line"><a href="#L667">667</a>					if not self.localData.difficultyTag.topLevelLogicalFailCounts then</span>
+<span id="L668" class="line"><a href="#L668">668</a>						self.localData.difficultyTag.topLevelLogicalFailCounts = self.localData.difficultyTag.topLevelFailCounts or 0</span>
+<span id="L669" class="line"><a href="#L669">669</a>					end</span>
+<span id="L670" class="line"><a href="#L670">670</a></span>
+<span id="L671" class="line"><a href="#L671">671</a>					for i = 1 , #tagBean.logicalFailCounts do</span>
+<span id="L672" class="line"><a href="#L672">672</a>						local d = tagBean.logicalFailCounts[i]</span>
+<span id="L673" class="line"><a href="#L673">673</a>						if d.first == topLevel then</span>
+<span id="L674" class="line"><a href="#L674">674</a>							--self.localData.difficultyTag.topLevelLogicalFailCounts = d.second or 0</span>
+<span id="L675" class="line"><a href="#L675">675</a>							self:updateTopLevelLogicalFailCounts( d.second or 0 )</span>
+<span id="L676" class="line"><a href="#L676">676</a>							break</span>
+<span id="L677" class="line"><a href="#L677">677</a>						end</span>
+<span id="L678" class="line"><a href="#L678">678</a>					end</span>
+<span id="L679" class="line"><a href="#L679">679</a></span>
+<span id="L680" class="line"><a href="#L680">680</a>					-- if not self.localData.difficultyTag.noBuffLogicalFailCounts then</span>
+<span id="L681" class="line"><a href="#L681">681</a>					-- 	self.localData.difficultyTag.noBuffLogicalFailCounts = self.localData.difficultyTag.topLevelLogicalFailCounts or 0</span>
+<span id="L682" class="line"><a href="#L682">682</a>					-- end</span>
+<span id="L683" class="line"><a href="#L683">683</a></span>
+<span id="L684" class="line"><a href="#L684">684</a>					if tagBean.noBuffLogicalFailCounts and #tagBean.noBuffLogicalFailCounts &gt; 0 then </span>
+<span id="L685" class="line"><a href="#L685">685</a>						for i = 1 , #tagBean.noBuffLogicalFailCounts do</span>
+<span id="L686" class="line"><a href="#L686">686</a>							local d = tagBean.noBuffLogicalFailCounts[i]</span>
+<span id="L687" class="line"><a href="#L687">687</a>							if d.first == topLevel then</span>
+<span id="L688" class="line"><a href="#L688">688</a>								self:updateNoBuffLogicalFailCounts( d.second or 0 )</span>
+<span id="L689" class="line"><a href="#L689">689</a>								break</span>
+<span id="L690" class="line"><a href="#L690">690</a>							end</span>
+<span id="L691" class="line"><a href="#L691">691</a>						end</span>
+<span id="L692" class="line"><a href="#L692">692</a>					end</span>
+<span id="L693" class="line"><a href="#L693">693</a></span>
+<span id="L694" class="line"><a href="#L694">694</a>				end</span>
+<span id="L695" class="line"><a href="#L695">695</a></span>
+<span id="L696" class="line"><a href="#L696">696</a>				--注意，顺序敏感，opLevelFailCounts的解析必须在topLevelLogicalFailCounts之后</span>
+<span id="L697" class="line"><a href="#L697">697</a>				if not topLevelFailCountsUpdateFlag and tagBean.failCounts and #tagBean.failCounts &gt; 0 then</span>
+<span id="L698" class="line"><a href="#L698">698</a></span>
+<span id="L699" class="line"><a href="#L699">699</a>					topLevelFailCountsUpdateFlag = true</span>
+<span id="L700" class="line"><a href="#L700">700</a></span>
+<span id="L701" class="line"><a href="#L701">701</a>					local userData = UserManager:getInstance():getUserRef()</span>
+<span id="L702" class="line"><a href="#L702">702</a>					local topLevel = userData:getTopLevelId()</span>
+<span id="L703" class="line"><a href="#L703">703</a></span>
+<span id="L704" class="line"><a href="#L704">704</a>					if not self.localData.difficultyTag.topLevelFailCounts then</span>
+<span id="L705" class="line"><a href="#L705">705</a>						self.localData.difficultyTag.topLevelFailCounts = 0</span>
+<span id="L706" class="line"><a href="#L706">706</a>					end</span>
+<span id="L707" class="line"><a href="#L707">707</a></span>
+<span id="L708" class="line"><a href="#L708">708</a>					for i = 1 , #tagBean.failCounts do</span>
+<span id="L709" class="line"><a href="#L709">709</a>						local d = tagBean.failCounts[i]</span>
+<span id="L710" class="line"><a href="#L710">710</a>						if d.first == topLevel then</span>
+<span id="L711" class="line"><a href="#L711">711</a>							--self.localData.difficultyTag.topLevelFailCounts = d.second or 0</span>
+<span id="L712" class="line"><a href="#L712">712</a>							self:updateTopLevelFailCounts( d.second or 0 )</span>
+<span id="L713" class="line"><a href="#L713">713</a>							break</span>
+<span id="L714" class="line"><a href="#L714">714</a>						end</span>
+<span id="L715" class="line"><a href="#L715">715</a>					end</span>
+<span id="L716" class="line"><a href="#L716">716</a>				end</span>
+<span id="L717" class="line"><a href="#L717">717</a>				</span>
+<span id="L718" class="line"><a href="#L718">718</a>			elseif tagGroup == UserTagGroupKey.kPayTag then</span>
+<span id="L719" class="line"><a href="#L719">719</a>				self:__updateTagsByTagBean( tagGroup , tostring(v) , tagBean , &quot;number&quot;)</span>
+<span id="L720" class="line"><a href="#L720">720</a>				if tagBean.last28DayAmount then</span>
+<span id="L721" class="line"><a href="#L721">721</a>					self:setLast28DayPayAmount(tonumber(tagBean.last28DayAmount))</span>
+<span id="L722" class="line"><a href="#L722">722</a>				else</span>
+<span id="L723" class="line"><a href="#L723">723</a>					self:setLast28DayPayAmount( 0 )</span>
+<span id="L724" class="line"><a href="#L724">724</a>				end</span>
+<span id="L725" class="line"><a href="#L725">725</a></span>
+<span id="L726" class="line"><a href="#L726">726</a>				if tagBean.allAmount then</span>
+<span id="L727" class="line"><a href="#L727">727</a>					self:setTotalPayAmount(tonumber(tagBean.allAmount))</span>
+<span id="L728" class="line"><a href="#L728">728</a>				else</span>
+<span id="L729" class="line"><a href="#L729">729</a>					self:setTotalPayAmount( 0 )</span>
+<span id="L730" class="line"><a href="#L730">730</a>				end</span>
+<span id="L731" class="line"><a href="#L731">731</a></span>
+<span id="L732" class="line"><a href="#L732">732</a>				if tagBean.last60DayAmount then</span>
+<span id="L733" class="line"><a href="#L733">733</a>					self:setLast60DayPayAmount(tonumber(tagBean.last60DayAmount))</span>
+<span id="L734" class="line"><a href="#L734">734</a>				else</span>
+<span id="L735" class="line"><a href="#L735">735</a>					self:setLast60DayPayAmount( 0 )</span>
+<span id="L736" class="line"><a href="#L736">736</a>				end</span>
+<span id="L737" class="line"><a href="#L737">737</a></span>
+<span id="L738" class="line"><a href="#L738">738</a>				-- AMF已经不需要该逻辑</span>
+<span id="L739" class="line"><a href="#L739">739</a>			else</span>
+<span id="L740" class="line"><a href="#L740">740</a>				self:__updateTagsByTagBean( tagGroup , tostring(v) , tagBean , &quot;number&quot;)</span>
+<span id="L741" class="line"><a href="#L741">741</a>			end</span>
+<span id="L742" class="line"><a href="#L742">742</a>		end</span>
+<span id="L743" class="line"><a href="#L743">743</a>	end</span>
+<span id="L744" class="line"><a href="#L744">744</a>end</span>
+<span id="L745" class="line"><a href="#L745">745</a></span>
+<span id="L746" class="line"><a href="#L746">746</a>function UserTagModel:getTop3LevelContinueFails()</span>
+<span id="L747" class="line"><a href="#L747">747</a>	if not self.localData then</span>
+<span id="L748" class="line"><a href="#L748">748</a>		return</span>
+<span id="L749" class="line"><a href="#L749">749</a>	end</span>
+<span id="L750" class="line"><a href="#L750">750</a>	local logicalFailCounts = self.localData.difficultyTag and self.localData.difficultyTag.logicalFailCounts</span>
+<span id="L751" class="line"><a href="#L751">751</a>	if not logicalFailCounts or type(logicalFailCounts) ~= &quot;table&quot; then</span>
+<span id="L752" class="line"><a href="#L752">752</a>		return</span>
+<span id="L753" class="line"><a href="#L753">753</a>	end</span>
+<span id="L754" class="line"><a href="#L754">754</a>	</span>
+<span id="L755" class="line"><a href="#L755">755</a>	local list,map = {},{}</span>
+<span id="L756" class="line"><a href="#L756">756</a>	for i = 1 , #logicalFailCounts do</span>
+<span id="L757" class="line"><a href="#L757">757</a>		local d = logicalFailCounts[i]</span>
+<span id="L758" class="line"><a href="#L758">758</a>		-- table.insert(list,d.first)</span>
+<span id="L759" class="line"><a href="#L759">759</a>		map[d.first] = d.second</span>
+<span id="L760" class="line"><a href="#L760">760</a>	end</span>
+<span id="L761" class="line"><a href="#L761">761</a>	-- table.sort(list)</span>
+<span id="L762" class="line"><a href="#L762">762</a>	</span>
+<span id="L763" class="line"><a href="#L763">763</a>	local topLevel = UserManager:getInstance():getUserRef():getTopLevelId()</span>
+<span id="L764" class="line"><a href="#L764">764</a>	local result = math.min(map[topLevel] or 0,map[topLevel-1] or 0,map[topLevel-2] or 0)</span>
+<span id="L765" class="line"><a href="#L765">765</a>	-- if log then log(&quot;getTop3LevelContinueFails()&quot;,result,tts(map)) end</span>
+<span id="L766" class="line"><a href="#L766">766</a>	return result</span>
+<span id="L767" class="line"><a href="#L767">767</a>end</span>
+<span id="L768" class="line"><a href="#L768">768</a></span>
+<span id="L769" class="line"><a href="#L769">769</a>function UserTagModel:getTagValueString( tagValue )</span>
+<span id="L770" class="line"><a href="#L770">770</a>	if type(tagValue) == &quot;table&quot; then</span>
+<span id="L771" class="line"><a href="#L771">771</a></span>
+<span id="L772" class="line"><a href="#L772">772</a>		local tagStr = &quot;&quot;</span>
+<span id="L773" class="line"><a href="#L773">773</a>		for k,v in pairs(tagValue) do</span>
+<span id="L774" class="line"><a href="#L774">774</a>			tagStr = tagStr .. tostring(v.first) .. &quot;_&quot; .. tostring(v.second) .. &quot;;&quot;</span>
+<span id="L775" class="line"><a href="#L775">775</a>		end</span>
+<span id="L776" class="line"><a href="#L776">776</a>		return tagStr</span>
+<span id="L777" class="line"><a href="#L777">777</a>	else</span>
+<span id="L778" class="line"><a href="#L778">778</a>		return tostring(tagValue)</span>
+<span id="L779" class="line"><a href="#L779">779</a>	end</span>
+<span id="L780" class="line"><a href="#L780">780</a>end</span>
+<span id="L781" class="line"><a href="#L781">781</a></span>
+<span id="L782" class="line"><a href="#L782">782</a>function UserTagModel:updateTag( tagGroup , tagBean , source )</span>
+<span id="L783" class="line"><a href="#L783">783</a>	local localData = self.localData</span>
+<span id="L784" class="line"><a href="#L784">784</a></span>
+<span id="L785" class="line"><a href="#L785">785</a>	if tagGroup and tagBean then</span>
+<span id="L786" class="line"><a href="#L786">786</a></span>
+<span id="L787" class="line"><a href="#L787">787</a>		if not localData.localUpdateTimes then localData.localUpdateTimes = {} end</span>
+<span id="L788" class="line"><a href="#L788">788</a>		localData.localUpdateTimes[tagGroup] = Localhost:timeInSec()</span>
+<span id="L789" class="line"><a href="#L789">789</a></span>
+<span id="L790" class="line"><a href="#L790">790</a>		local oldTagValueMap = {}</span>
+<span id="L791" class="line"><a href="#L791">791</a></span>
+<span id="L792" class="line"><a href="#L792">792</a>		for k,v in pairs(UserTagNameKey[tagGroup]) do</span>
+<span id="L793" class="line"><a href="#L793">793</a>			oldTagValueMap[tostring(v)] = self:getTagValueString( localData[tagGroup][tostring(v)] )</span>
+<span id="L794" class="line"><a href="#L794">794</a>		end</span>
+<span id="L795" class="line"><a href="#L795">795</a></span>
+<span id="L796" class="line"><a href="#L796">796</a>		self:updateTagsByTagBean( tagGroup , tagBean )</span>
+<span id="L797" class="line"><a href="#L797">797</a></span>
+<span id="L798" class="line"><a href="#L798">798</a>		for k,v in pairs(UserTagNameKey[tagGroup]) do</span>
+<span id="L799" class="line"><a href="#L799">799</a></span>
+<span id="L800" class="line"><a href="#L800">800</a>			local nameKey = tostring(v)</span>
+<span id="L801" class="line"><a href="#L801">801</a>			local staticMetaConfig = self:getUserTagStaticConfig( nameKey )</span>
+<span id="L802" class="line"><a href="#L802">802</a></span>
+<span id="L803" class="line"><a href="#L803">803</a>			if staticMetaConfig and staticMetaConfig.dcStrategy then</span>
+<span id="L804" class="line"><a href="#L804">804</a>				if tonumber(staticMetaConfig.dcStrategy[ tostring(source) ]) == 1 then</span>
+<span id="L805" class="line"><a href="#L805">805</a>					--不需要数据有变化才打点</span>
+<span id="L806" class="line"><a href="#L806">806</a>					self:addDcDatas( nameKey , self:getTagValueString( localData[tagGroup][nameKey] ) )</span>
+<span id="L807" class="line"><a href="#L807">807</a>				elseif tonumber(staticMetaConfig.dcStrategy[ tostring(source) ]) == 2 then</span>
+<span id="L808" class="line"><a href="#L808">808</a>					--需要数据变化就打点</span>
+<span id="L809" class="line"><a href="#L809">809</a>					local currTagValue = self:getTagValueString( localData[tagGroup][nameKey] )</span>
+<span id="L810" class="line"><a href="#L810">810</a>					if currTagValue ~= oldTagValueMap[nameKey] then</span>
+<span id="L811" class="line"><a href="#L811">811</a>						self:addDcDatas( nameKey , currTagValue , oldTagValueMap[nameKey] )</span>
+<span id="L812" class="line"><a href="#L812">812</a>					end</span>
+<span id="L813" class="line"><a href="#L813">813</a>				end</span>
+<span id="L814" class="line"><a href="#L814">814</a>			end</span>
+<span id="L815" class="line"><a href="#L815">815</a>		end</span>
+<span id="L816" class="line"><a href="#L816">816</a>	end</span>
+<span id="L817" class="line"><a href="#L817">817</a>end</span>
+<span id="L818" class="line"><a href="#L818">818</a></span>
+<span id="L819" class="line"><a href="#L819">819</a>function UserTagModel:encodeTagToString(bySeries)</span>
+<span id="L820" class="line"><a href="#L820">820</a>	local str = nil</span>
+<span id="L821" class="line"><a href="#L821">821</a>	if self.localData then</span>
+<span id="L822" class="line"><a href="#L822">822</a>		str = &quot;&quot;</span>
+<span id="L823" class="line"><a href="#L823">823</a>		for k,v in pairs( UserTagNameKeyToTagIdMap ) do</span>
+<span id="L824" class="line"><a href="#L824">824</a>			local namekey = k</span>
+<span id="L825" class="line"><a href="#L825">825</a>			local tagId = v</span>
+<span id="L826" class="line"><a href="#L826">826</a></span>
+<span id="L827" class="line"><a href="#L827">827</a>			local tag = &quot;nil&quot;</span>
+<span id="L828" class="line"><a href="#L828">828</a>			if bySeries then</span>
+<span id="L829" class="line"><a href="#L829">829</a>				tag = self:getTagValueString( self:getUserTagBySeries(namekey) )</span>
+<span id="L830" class="line"><a href="#L830">830</a>			else</span>
+<span id="L831" class="line"><a href="#L831">831</a>				tag = self:getTagValueString( self:getUserTag(namekey) )</span>
+<span id="L832" class="line"><a href="#L832">832</a>			end</span>
+<span id="L833" class="line"><a href="#L833">833</a></span>
+<span id="L834" class="line"><a href="#L834">834</a>			if str == &quot;&quot; then</span>
+<span id="L835" class="line"><a href="#L835">835</a>				str = tostring(tagId) .. &quot;-&quot; .. tostring(tag)</span>
+<span id="L836" class="line"><a href="#L836">836</a>			else</span>
+<span id="L837" class="line"><a href="#L837">837</a>				str = str .. &quot;~&quot; .. tostring(tagId) .. &quot;-&quot; .. tostring(tag)</span>
+<span id="L838" class="line"><a href="#L838">838</a>			end</span>
+<span id="L839" class="line"><a href="#L839">839</a>		end</span>
+<span id="L840" class="line"><a href="#L840">840</a>	end</span>
+<span id="L841" class="line"><a href="#L841">841</a></span>
+<span id="L842" class="line"><a href="#L842">842</a>	return str</span>
+<span id="L843" class="line"><a href="#L843">843</a>end</span>
+<span id="L844" class="line"><a href="#L844">844</a></span>
+<span id="L845" class="line"><a href="#L845">845</a>--[[</span>
+<span id="L846" class="line"><a href="#L846">846</a>function UserTagModel:updateUserTag( userTag , source )</span>
+<span id="L847" class="line"><a href="#L847">847</a></span>
+<span id="L848" class="line"><a href="#L848">848</a>	local localData = self.localData</span>
+<span id="L849" class="line"><a href="#L849">849</a></span>
+<span id="L850" class="line"><a href="#L850">850</a>	if userTag then</span>
+<span id="L851" class="line"><a href="#L851">851</a></span>
+<span id="L852" class="line"><a href="#L852">852</a>		local oldActivationTag = localData.userTag.activationTag</span>
+<span id="L853" class="line"><a href="#L853">853</a>		local oldWorkingWeekendDayTag = localData.userTag.workingWeekendDayTag</span>
+<span id="L854" class="line"><a href="#L854">854</a>		local oldActivePeriodOnDayTag = localData.userTag.activePeriodOnDayTag</span>
+<span id="L855" class="line"><a href="#L855">855</a>		local oldLoginFrequencyTag = localData.userTag.loginFrequencyTag</span>
+<span id="L856" class="line"><a href="#L856">856</a></span>
+<span id="L857" class="line"><a href="#L857">857</a>		self:updateTagsByTagBean( UserTagGroupKey.kUserTag , userTag )</span>
+<span id="L858" class="line"><a href="#L858">858</a></span>
+<span id="L859" class="line"><a href="#L859">859</a>		local needDCLog = true</span>
+<span id="L860" class="line"><a href="#L860">860</a>		if source == UserTagDCSource.kHome then</span>
+<span id="L861" class="line"><a href="#L861">861</a>			needDCLog = false</span>
+<span id="L862" class="line"><a href="#L862">862</a>		end</span>
+<span id="L863" class="line"><a href="#L863">863</a></span>
+<span id="L864" class="line"><a href="#L864">864</a>		local staticMetaConfig = self:getUserTagStaticConfig( UserTagGroupKey.kUserTag )</span>
+<span id="L865" class="line"><a href="#L865">865</a>		if staticMetaConfig.needDcLog then</span>
+<span id="L866" class="line"><a href="#L866">866</a>			if tonumber(staticMetaConfig.needDcLog[ source ]) == 1 then</span>
+<span id="L867" class="line"><a href="#L867">867</a>				--需要数据有变化才打点</span>
+<span id="L868" class="line"><a href="#L868">868</a>			elseif tonumber(staticMetaConfig.needDcLog[ source ]) == 2 then</span>
+<span id="L869" class="line"><a href="#L869">869</a>				--不需要数据变化就打点</span>
+<span id="L870" class="line"><a href="#L870">870</a>			end</span>
+<span id="L871" class="line"><a href="#L871">871</a>		end</span>
+<span id="L872" class="line"><a href="#L872">872</a></span>
+<span id="L873" class="line"><a href="#L873">873</a>		if needDCLog </span>
+<span id="L874" class="line"><a href="#L874">874</a>			or oldActivationTag ~= tonumber(userTag.activationTag) </span>
+<span id="L875" class="line"><a href="#L875">875</a>			or oldWorkingWeekendDayTag ~= tonumber(userTag.workingWeekendDayTag)</span>
+<span id="L876" class="line"><a href="#L876">876</a>			or oldActivePeriodOnDayTag ~= tonumber(userTag.activePeriodOnDayTag)</span>
+<span id="L877" class="line"><a href="#L877">877</a>			or oldLoginFrequencyTag ~= tonumber(userTag.loginFrequencyTag) then</span>
+<span id="L878" class="line"><a href="#L878">878</a></span>
+<span id="L879" class="line"><a href="#L879">879</a>			DcUtil:UseTagLog( </span>
+<span id="L880" class="line"><a href="#L880">880</a>				source,</span>
+<span id="L881" class="line"><a href="#L881">881</a>				localData.userTag.activationTag , </span>
+<span id="L882" class="line"><a href="#L882">882</a>				localData.userTag.activationTagTopLevelId , </span>
+<span id="L883" class="line"><a href="#L883">883</a>				localData.userTag.activationTagEndTime , </span>
+<span id="L884" class="line"><a href="#L884">884</a>				tostring(oldActivationTag) .. &quot;_&quot; .. tostring(localData.userTag.activationTag) )</span>
+<span id="L885" class="line"><a href="#L885">885</a>		end</span>
+<span id="L886" class="line"><a href="#L886">886</a>	end</span>
+<span id="L887" class="line"><a href="#L887">887</a>end</span>
+<span id="L888" class="line"><a href="#L888">888</a>]]</span>
+<span id="L889" class="line"><a href="#L889">889</a></span>
+<span id="L890" class="line"><a href="#L890">890</a>--[[</span>
+<span id="L891" class="line"><a href="#L891">891</a>function UserTagModel:updatePayTag( payTag , source )</span>
+<span id="L892" class="line"><a href="#L892">892</a></span>
+<span id="L893" class="line"><a href="#L893">893</a>	if payTag then</span>
+<span id="L894" class="line"><a href="#L894">894</a></span>
+<span id="L895" class="line"><a href="#L895">895</a>		self:updateTagsByTagBean( UserTagGroupKey.kPayTag , payTag )</span>
+<span id="L896" class="line"><a href="#L896">896</a></span>
+<span id="L897" class="line"><a href="#L897">897</a>	end</span>
+<span id="L898" class="line"><a href="#L898">898</a></span>
+<span id="L899" class="line"><a href="#L899">899</a>	local needDCLog = true</span>
+<span id="L900" class="line"><a href="#L900">900</a>	if source ~= UserTagDCSource.kLaunch then</span>
+<span id="L901" class="line"><a href="#L901">901</a>		needDCLog = false</span>
+<span id="L902" class="line"><a href="#L902">902</a>	end</span>
+<span id="L903" class="line"><a href="#L903">903</a></span>
+<span id="L904" class="line"><a href="#L904">904</a>	if needDCLog then</span>
+<span id="L905" class="line"><a href="#L905">905</a>			</span>
+<span id="L906" class="line"><a href="#L906">906</a>	end</span>
+<span id="L907" class="line"><a href="#L907">907</a>end</span>
+<span id="L908" class="line"><a href="#L908">908</a>]]</span>
+<span id="L909" class="line"><a href="#L909">909</a></span>
+<span id="L910" class="line"><a href="#L910">910</a>--[[</span>
+<span id="L911" class="line"><a href="#L911">911</a>function UserTagModel:updateSocialTag( socialTag , source )</span>
+<span id="L912" class="line"><a href="#L912">912</a></span>
+<span id="L913" class="line"><a href="#L913">913</a>	if socialTag then</span>
+<span id="L914" class="line"><a href="#L914">914</a>		self:updateTagsByTagBean( UserTagGroupKey.kSocialTag , socialTag )</span>
+<span id="L915" class="line"><a href="#L915">915</a>	end</span>
+<span id="L916" class="line"><a href="#L916">916</a></span>
+<span id="L917" class="line"><a href="#L917">917</a>	local needDCLog = true</span>
+<span id="L918" class="line"><a href="#L918">918</a>	if source ~= UserTagDCSource.kLaunch then</span>
+<span id="L919" class="line"><a href="#L919">919</a>		needDCLog = false</span>
+<span id="L920" class="line"><a href="#L920">920</a>	end</span>
+<span id="L921" class="line"><a href="#L921">921</a></span>
+<span id="L922" class="line"><a href="#L922">922</a>	if needDCLog then</span>
+<span id="L923" class="line"><a href="#L923">923</a>	end</span>
+<span id="L924" class="line"><a href="#L924">924</a>end</span>
+<span id="L925" class="line"><a href="#L925">925</a>]]</span>
+<span id="L926" class="line"><a href="#L926">926</a></span>
+<span id="L927" class="line"><a href="#L927">927</a>--[[</span>
+<span id="L928" class="line"><a href="#L928">928</a>function UserTagModel:updateLevelTag( levelTag , source )</span>
+<span id="L929" class="line"><a href="#L929">929</a></span>
+<span id="L930" class="line"><a href="#L930">930</a>	local localData = self.localData</span>
+<span id="L931" class="line"><a href="#L931">931</a></span>
+<span id="L932" class="line"><a href="#L932">932</a>	if levelTag then</span>
+<span id="L933" class="line"><a href="#L933">933</a></span>
+<span id="L934" class="line"><a href="#L934">934</a>		local oldLevelPositionTag = localData.userTag.levelPositionTag</span>
+<span id="L935" class="line"><a href="#L935">935</a>		local oldLevelUpTag = localData.userTag.levelUpTag</span>
+<span id="L936" class="line"><a href="#L936">936</a></span>
+<span id="L937" class="line"><a href="#L937">937</a>		self:updateTagsByTagBean( UserTagGroupKey.kLevelTag , levelTag )</span>
+<span id="L938" class="line"><a href="#L938">938</a></span>
+<span id="L939" class="line"><a href="#L939">939</a>		local needDCLog = true</span>
+<span id="L940" class="line"><a href="#L940">940</a>		if source ~= UserTagDCSource.kLaunch then</span>
+<span id="L941" class="line"><a href="#L941">941</a>			needDCLog = false</span>
+<span id="L942" class="line"><a href="#L942">942</a>		end</span>
+<span id="L943" class="line"><a href="#L943">943</a>		</span>
+<span id="L944" class="line"><a href="#L944">944</a>		if needDCLog or oldLevelPositionTag ~= tonumber(userTag.levelPositionTag) then</span>
+<span id="L945" class="line"><a href="#L945">945</a>			DcUtil:LevelPositionTagLog( </span>
+<span id="L946" class="line"><a href="#L946">946</a>				source,</span>
+<span id="L947" class="line"><a href="#L947">947</a>				localData.userTag.levelPositionTag,</span>
+<span id="L948" class="line"><a href="#L948">948</a>				localData.userTag.levelPositionTagEndTime )</span>
+<span id="L949" class="line"><a href="#L949">949</a>		end</span>
+<span id="L950" class="line"><a href="#L950">950</a>		</span>
+<span id="L951" class="line"><a href="#L951">951</a>		if needDCLog or oldLevelUpTag ~= tonumber(userTag.levelUpTag) then</span>
+<span id="L952" class="line"><a href="#L952">952</a>			DcUtil:LevelUpTagLog( </span>
+<span id="L953" class="line"><a href="#L953">953</a>				source,</span>
+<span id="L954" class="line"><a href="#L954">954</a>				localData.userTag.levelUpTag ,</span>
+<span id="L955" class="line"><a href="#L955">955</a>				tostring(oldLevelUpTag) .. &quot;_&quot; .. tostring(localData.userTag.levelUpTag) ,</span>
+<span id="L956" class="line"><a href="#L956">956</a>				localData.userTag.levelUpTagEndTime )</span>
+<span id="L957" class="line"><a href="#L957">957</a>		end</span>
+<span id="L958" class="line"><a href="#L958">958</a>		</span>
+<span id="L959" class="line"><a href="#L959">959</a>	end</span>
+<span id="L960" class="line"><a href="#L960">960</a></span>
+<span id="L961" class="line"><a href="#L961">961</a>end</span>
+<span id="L962" class="line"><a href="#L962">962</a>]]</span>
+<span id="L963" class="line"><a href="#L963">963</a></span>
+<span id="L964" class="line"><a href="#L964">964</a>--[[</span>
+<span id="L965" class="line"><a href="#L965">965</a>function UserTagModel:updatePropTag( propTag , source )</span>
+<span id="L966" class="line"><a href="#L966">966</a></span>
+<span id="L967" class="line"><a href="#L967">967</a>	local localData = self.localData</span>
+<span id="L968" class="line"><a href="#L968">968</a></span>
+<span id="L969" class="line"><a href="#L969">969</a>	if propTag then</span>
+<span id="L970" class="line"><a href="#L970">970</a></span>
+<span id="L971" class="line"><a href="#L971">971</a>		self:updateTagsByTagBean( UserTagGroupKey.kPropTag , propTag )</span>
+<span id="L972" class="line"><a href="#L972">972</a></span>
+<span id="L973" class="line"><a href="#L973">973</a>		local needDCLog = true</span>
+<span id="L974" class="line"><a href="#L974">974</a>		if source ~= UserTagDCSource.kLaunch then</span>
+<span id="L975" class="line"><a href="#L975">975</a>			needDCLog = false</span>
+<span id="L976" class="line"><a href="#L976">976</a>		end</span>
+<span id="L977" class="line"><a href="#L977">977</a>		</span>
+<span id="L978" class="line"><a href="#L978">978</a>		if needDCLog then</span>
+<span id="L979" class="line"><a href="#L979">979</a>			DcUtil:ItemTagLog( </span>
+<span id="L980" class="line"><a href="#L980">980</a>				source,</span>
+<span id="L981" class="line"><a href="#L981">981</a>				localData.userTag.propTag )</span>
+<span id="L982" class="line"><a href="#L982">982</a>		end</span>
+<span id="L983" class="line"><a href="#L983">983</a>		</span>
+<span id="L984" class="line"><a href="#L984">984</a>	end</span>
+<span id="L985" class="line"><a href="#L985">985</a>end</span>
+<span id="L986" class="line"><a href="#L986">986</a>]]</span>
+<span id="L987" class="line"><a href="#L987">987</a></span>
+<span id="L988" class="line"><a href="#L988">988</a>----------------------------------------------------------------------------------------</span>
+<span id="L989" class="line"><a href="#L989">989</a></span>
+<span id="L990" class="line"><a href="#L990">990</a>--获取用户当前的某个标签,自动校验过期时间和topLevel</span>
+<span id="L991" class="line"><a href="#L991">991</a>--nameKey in global table : UserTagNameKey</span>
+<span id="L992" class="line"><a href="#L992">992</a>function UserTagModel:getUserTag( nameKey )</span>
+<span id="L993" class="line"><a href="#L993">993</a>	-- RemoteDebug:uploadLog(&quot;getUserTag&quot;, &quot;UserTagModel:getUserTag&quot; , nameKey)</span>
+<span id="L994" class="line"><a href="#L994">994</a></span>
+<span id="L995" class="line"><a href="#L995">995</a>	if not nameKey or type(nameKey) ~= &quot;string&quot; then return nil end</span>
+<span id="L996" class="line"><a href="#L996">996</a></span>
+<span id="L997" class="line"><a href="#L997">997</a>	local resultValue = nil</span>
+<span id="L998" class="line"><a href="#L998">998</a></span>
+<span id="L999" class="line"><a href="#L999">999</a>	if self.localData then</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>		local tagGroup = UserTagNameKeyToGroupMap[nameKey]</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a></span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>		if tagGroup and self.localData[tagGroup] and self.localData[tagGroup][nameKey] then</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>			local tagBean = self.localData[tagGroup]</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>			local tagValue = tagBean[nameKey]</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>			local tagTopLevelId = tonumber( tagBean[nameKey .. topLevelIdSuffix] )</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>			local tagTopLevelIdLength = tonumber( tagBean[nameKey .. topLevelIdLengthSuffix] )</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>			local tagEndTime = tonumber( tagBean[nameKey .. endTimeSuffix] )</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a></span>
+<span id="L1009" class="line"><a href="#L1009">1009</a></span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>			-- RemoteDebug:uploadLog(&quot;getUserTag&quot;, &quot;tagValue&quot; , tagValue , &quot;tagTopLevelId&quot; , tagTopLevelId , &quot;tagTopLevelIdLength&quot; , tagTopLevelIdLength , &quot;tagEndTime&quot; , tagEndTime )</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a></span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>			--判断topLevel是否合法</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a>			if tagTopLevelId and tagTopLevelIdLength and tonumber(tagTopLevelId) ~= 0 and tonumber(tagTopLevelIdLength) ~= 0 then</span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>				local userData = UserManager:getInstance():getUserRef()</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>				local topLevel = userData:getTopLevelId()</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a></span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>				if topLevel &lt; tagTopLevelId or topLevel &gt; tonumber(tagTopLevelId + tagTopLevelIdLength - 1) then</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>					if type(tagValue) == &quot;table&quot; then</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a>						-- RemoteDebug:uploadLog(&quot;getUserTag&quot;, &quot;return 1&quot; , nameKey)</span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>						return nil , GetUserTagReturnType.kFailByTopLevel</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>					else</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>						-- RemoteDebug:uploadLog(&quot;getUserTag&quot;, &quot;return 2&quot; , nameKey)</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>						return 0 , GetUserTagReturnType.kFailByTopLevel</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>					end</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>				end</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>			end</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a></span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>			--判断过期时间是否合法</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>			if tagEndTime and tonumber(tagEndTime) ~= 0 then</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>				if tagEndTime &lt; Localhost:timeInSec() then</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>					if type(tagValue) == &quot;table&quot; then</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>						-- RemoteDebug:uploadLog(&quot;getUserTag&quot;, &quot;return 3&quot; , nameKey)</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>						return nil , GetUserTagReturnType.kFailByTime</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a>					else</span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>						-- RemoteDebug:uploadLog(&quot;getUserTag&quot;, &quot;return 4&quot; , nameKey)</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>						return 0 , GetUserTagReturnType.kFailByTime</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>					end</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>				end</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>			end</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a></span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>			resultValue = tagValue</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>		end</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>	end</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>	-- RemoteDebug:uploadLog(&quot;getUserTag&quot;, &quot;return kSuccess  resultValue &quot; , resultValue , &quot;nameKey&quot; , nameKey)</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>	return resultValue , GetUserTagReturnType.kSuccess</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>end</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a></span>
+<span id="L1048" class="line"><a href="#L1048">1048</a></span>
+<span id="L1049" class="line"><a href="#L1049">1049</a>--获取用户当前标签的值，以及其附加参数，且不做任何本地校验（即返回原始后端的值）</span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>--将根据nameKey，同时返回nameKey，nameKey+topLevelIdSuffix，nameKey+topLevelIdLengthSuffix，nameKey+updateTimeSuffix</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>--nameKey in global table : UserTagNameKey</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>function UserTagModel:getUserTagBySeries( nameKey )</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a></span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>	if not nameKey or type(nameKey) ~= &quot;string&quot; then return nil end</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a></span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>	if self.localData then</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>		local tagGroup = UserTagNameKeyToGroupMap[nameKey]</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a></span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>		if tagGroup and self.localData[tagGroup] and self.localData[tagGroup][nameKey] then</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>			local tagBean = self.localData[tagGroup]</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>			local tagValue = tagBean[nameKey]</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>			local tagTopLevelId = tonumber( tagBean[nameKey .. topLevelIdSuffix] )</span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>			local tagTopLevelIdLength = tonumber( tagBean[nameKey .. topLevelIdLengthSuffix] )</span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>			local tagEndTime = tonumber( tagBean[nameKey .. endTimeSuffix] )</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>			local tagUpdateTime = tonumber( tagBean[nameKey .. updateTimeSuffix] )</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>			local tagChangeTime = tonumber( tagBean[nameKey .. changeTimeSuffix] )</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a>			local tagStartTime = tonumber( tagBean[nameKey .. startTimeSuffix] )</span>
+<span id="L1068" class="line"><a href="#L1068">1068</a></span>
+<span id="L1069" class="line"><a href="#L1069">1069</a>			return tagValue , tagTopLevelId , tagTopLevelIdLength , tagEndTime , tagUpdateTime , tagStartTime , tagChangeTime</span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>		end</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>	end</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>end</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a></span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>function UserTagModel:getTopLevelFailCounts()</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>	if self.localData and self.localData.difficultyTag then</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>		return self.localData.difficultyTag.topLevelFailCounts or 0</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>	end</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>end</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a></span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>function UserTagModel:updateTopLevelFailCounts( failCounts )</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>	if self.localData and self.localData.difficultyTag then</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a></span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>		if not self.localData.difficultyTag.topLevelFailCounts then</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a>			self.localData.difficultyTag.topLevelFailCounts = 0</span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>		end </span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>		</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>		if tonumber(failCounts) ~= 0 then</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>			if tonumber( self.localData.difficultyTag.topLevelFailCounts ) &lt; tonumber(failCounts) then</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a>				self.localData.difficultyTag.topLevelFailCounts = failCounts</span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>			end</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a>		else</span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>			self.localData.difficultyTag.topLevelFailCounts = 0</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>		end</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>		</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>		self:flushLocalData()</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a>	end</span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>end</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a></span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>function UserTagModel:getTopLevelLogicalFailCounts()</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>	if self.localData and self.localData.difficultyTag then</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>		return self.localData.difficultyTag.topLevelLogicalFailCounts or 0</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a>	end</span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>end</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a></span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>function UserTagModel:getNoBuffLogicalFailCounts()</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>	if self.localData and self.localData.difficultyTag then</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>		return self.localData.difficultyTag.noBuffLogicalFailCounts or 0</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a>	end</span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>end</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a></span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>function UserTagModel:updateTopLevelLogicalFailCounts( failCounts )</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>	if self.localData and self.localData.difficultyTag then	</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a></span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>		if not self.localData.difficultyTag.topLevelLogicalFailCounts then</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a>			self.localData.difficultyTag.topLevelLogicalFailCounts = 0</span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>		end </span>
+<span id="L1117" class="line"><a href="#L1117">1117</a></span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>		-- RemoteDebug:uploadLogWithTag( &quot;TTT&quot; , &quot;UserTagModel:updateTopLevelLogicalFailCounts  new&quot; , failCounts , &quot;old&quot; ,  self.localData.difficultyTag.topLevelLogicalFailCounts )</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>		-- RemoteDebug:uploadLogWithTag( &quot;TTT&quot; , &quot;UserTagModel:updateTopLevelLogicalFailCounts  at&quot; , debug.traceback() )</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a>		if tonumber(failCounts) ~= 0 then</span>
+<span id="L1121" class="line"><a href="#L1121">1121</a>			if tonumber( self.localData.difficultyTag.topLevelLogicalFailCounts ) &lt; tonumber(failCounts) then</span>
+<span id="L1122" class="line"><a href="#L1122">1122</a>				self.localData.difficultyTag.topLevelLogicalFailCounts = failCounts</span>
+<span id="L1123" class="line"><a href="#L1123">1123</a>			end</span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>		else</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>			self.localData.difficultyTag.topLevelLogicalFailCounts = 0</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a>		end</span>
+<span id="L1127" class="line"><a href="#L1127">1127</a></span>
+<span id="L1128" class="line"><a href="#L1128">1128</a>		self:flushLocalData()</span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>	end</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>end</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a></span>
+<span id="L1132" class="line"><a href="#L1132">1132</a>function UserTagModel:updateNoBuffLogicalFailCounts( failCounts )</span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>	-- printx(15,&quot;UserTagModel:updateNoBuffLogicalFailCounts&quot;)</span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>	if self.localData and self.localData.difficultyTag then	</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a></span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>		if not self.localData.difficultyTag.noBuffLogicalFailCounts then</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>			self.localData.difficultyTag.noBuffLogicalFailCounts = 0</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>		end </span>
+<span id="L1139" class="line"><a href="#L1139">1139</a></span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>		if tonumber(failCounts) ~= 0 then</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>			if tonumber( self.localData.difficultyTag.noBuffLogicalFailCounts ) &lt; tonumber(failCounts) then</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a>				self.localData.difficultyTag.noBuffLogicalFailCounts = failCounts</span>
+<span id="L1143" class="line"><a href="#L1143">1143</a>			end</span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>		else</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a>			self.localData.difficultyTag.noBuffLogicalFailCounts = 0</span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>		end</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a></span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>		-- printx(15,&quot;UserTagModel:updateNoBuffLogicalFailCounts2222:&quot;,self.localData.difficultyTag.noBuffLogicalFailCounts)</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>		</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>		self:flushLocalData()</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>	end</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>end</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a></span>
+<span id="L1154" class="line"><a href="#L1154">1154</a></span>
+<span id="L1155" class="line"><a href="#L1155">1155</a></span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>function UserTagModel:getTopLevelPropUsedCount()</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a></span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>	local tagkey = UserTagGroupKey.kLevelTag</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a></span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>	if self.localData and self.localData[tagkey] then</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a>		return self.localData[tagkey].topLevelPropUsedCount or 0</span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>	end</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a></span>
+<span id="L1164" class="line"><a href="#L1164">1164</a>	return 0</span>
+<span id="L1165" class="line"><a href="#L1165">1165</a>end</span>
+<span id="L1166" class="line"><a href="#L1166">1166</a></span>
+<span id="L1167" class="line"><a href="#L1167">1167</a>function UserTagModel:updateTopLevelPropUsedCount( count )</span>
+<span id="L1168" class="line"><a href="#L1168">1168</a></span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>	local tagkey = UserTagGroupKey.kLevelTag</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a>	if self.localData and self.localData[tagkey] then</span>
+<span id="L1171" class="line"><a href="#L1171">1171</a></span>
+<span id="L1172" class="line"><a href="#L1172">1172</a>		if not self.localData[tagkey].topLevelPropUsedCount then</span>
+<span id="L1173" class="line"><a href="#L1173">1173</a>			self.localData[tagkey].topLevelPropUsedCount = 0</span>
+<span id="L1174" class="line"><a href="#L1174">1174</a>		end </span>
+<span id="L1175" class="line"><a href="#L1175">1175</a>		</span>
+<span id="L1176" class="line"><a href="#L1176">1176</a>		if tonumber(count) ~= 0 then</span>
+<span id="L1177" class="line"><a href="#L1177">1177</a>			if tonumber( self.localData[tagkey].topLevelPropUsedCount ) &lt; tonumber(count) then</span>
+<span id="L1178" class="line"><a href="#L1178">1178</a>				self.localData[tagkey].topLevelPropUsedCount = count</span>
+<span id="L1179" class="line"><a href="#L1179">1179</a>			end</span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>		else</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a>			self.localData[tagkey].topLevelPropUsedCount = 0</span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>		end</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a>		</span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>		self:flushLocalData()</span>
+<span id="L1185" class="line"><a href="#L1185">1185</a>	end</span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>end</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a></span>
+<span id="L1188" class="line"><a href="#L1188">1188</a></span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>function UserTagModel:setLast60DayPayAmount( count )</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a>	local tagkey = UserTagGroupKey.kPayTag</span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>	if self.localData and self.localData[tagkey] then</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a>		self.localData[tagkey].last60DayPayAmount = count or 0</span>
+<span id="L1193" class="line"><a href="#L1193">1193</a>		self:flushLocalData()</span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>	end</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>end</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a></span>
+<span id="L1197" class="line"><a href="#L1197">1197</a>function UserTagModel:getLast60DayPayAmount()</span>
+<span id="L1198" class="line"><a href="#L1198">1198</a>	local tagkey = UserTagGroupKey.kPayTag</span>
+<span id="L1199" class="line"><a href="#L1199">1199</a>	if self.localData and self.localData[tagkey] then</span>
+<span id="L1200" class="line"><a href="#L1200">1200</a>		return self.localData[tagkey].last60DayPayAmount or 0</span>
+<span id="L1201" class="line"><a href="#L1201">1201</a>	end</span>
+<span id="L1202" class="line"><a href="#L1202">1202</a>	return 0</span>
+<span id="L1203" class="line"><a href="#L1203">1203</a>end</span>
+<span id="L1204" class="line"><a href="#L1204">1204</a></span>
+<span id="L1205" class="line"><a href="#L1205">1205</a>function UserTagModel:setLast28DayPayAmount( count )</span>
+<span id="L1206" class="line"><a href="#L1206">1206</a>	local tagkey = UserTagGroupKey.kPayTag</span>
+<span id="L1207" class="line"><a href="#L1207">1207</a>	if self.localData and self.localData[tagkey] then</span>
+<span id="L1208" class="line"><a href="#L1208">1208</a>		self.localData[tagkey].last28DayAmount = count or 0</span>
+<span id="L1209" class="line"><a href="#L1209">1209</a>		self:flushLocalData()</span>
+<span id="L1210" class="line"><a href="#L1210">1210</a>	end</span>
+<span id="L1211" class="line"><a href="#L1211">1211</a>end</span>
+<span id="L1212" class="line"><a href="#L1212">1212</a></span>
+<span id="L1213" class="line"><a href="#L1213">1213</a>function UserTagModel:getLast28DayPayAmount()</span>
+<span id="L1214" class="line"><a href="#L1214">1214</a>	local tagkey = UserTagGroupKey.kPayTag</span>
+<span id="L1215" class="line"><a href="#L1215">1215</a>	if self.localData and self.localData[tagkey] then</span>
+<span id="L1216" class="line"><a href="#L1216">1216</a>		return self.localData[tagkey].last28DayAmount or 0</span>
+<span id="L1217" class="line"><a href="#L1217">1217</a>	end</span>
+<span id="L1218" class="line"><a href="#L1218">1218</a>	return 0</span>
+<span id="L1219" class="line"><a href="#L1219">1219</a>end</span>
+<span id="L1220" class="line"><a href="#L1220">1220</a></span>
+<span id="L1221" class="line"><a href="#L1221">1221</a>function UserTagModel:setTotalPayAmount( count )</span>
+<span id="L1222" class="line"><a href="#L1222">1222</a>	local tagkey = UserTagGroupKey.kPayTag</span>
+<span id="L1223" class="line"><a href="#L1223">1223</a>	if self.localData and self.localData[tagkey] then</span>
+<span id="L1224" class="line"><a href="#L1224">1224</a>		self.localData[tagkey].allAmount = count or 0</span>
+<span id="L1225" class="line"><a href="#L1225">1225</a>		self:flushLocalData()</span>
+<span id="L1226" class="line"><a href="#L1226">1226</a>	end</span>
+<span id="L1227" class="line"><a href="#L1227">1227</a>end</span>
+<span id="L1228" class="line"><a href="#L1228">1228</a></span>
+<span id="L1229" class="line"><a href="#L1229">1229</a>function UserTagModel:getTotalPayAmount()</span>
+<span id="L1230" class="line"><a href="#L1230">1230</a>	local tagkey = UserTagGroupKey.kPayTag</span>
+<span id="L1231" class="line"><a href="#L1231">1231</a>	if self.localData and self.localData[tagkey] then</span>
+<span id="L1232" class="line"><a href="#L1232">1232</a>		return self.localData[tagkey].allAmount or 0</span>
+<span id="L1233" class="line"><a href="#L1233">1233</a>	end</span>
+<span id="L1234" class="line"><a href="#L1234">1234</a>	return 0</span>
+<span id="L1235" class="line"><a href="#L1235">1235</a>end</span>
+<span id="L1236" class="line"><a href="#L1236">1236</a></span>
+<span id="L1237" class="line"><a href="#L1237">1237</a>function UserTagModel:getLastLogin60DayPay()</span>
+<span id="L1238" class="line"><a href="#L1238">1238</a>	local tagkey = UserTagGroupKey.kPayTag</span>
+<span id="L1239" class="line"><a href="#L1239">1239</a>	if self.localData and self.localData[tagkey] then</span>
+<span id="L1240" class="line"><a href="#L1240">1240</a>		return self.localData[tagkey].kLastLogin60DayPay or 0</span>
+<span id="L1241" class="line"><a href="#L1241">1241</a>	end</span>
+<span id="L1242" class="line"><a href="#L1242">1242</a>	return 0</span>
+<span id="L1243" class="line"><a href="#L1243">1243</a>end</span>
+<span id="L1244" class="line"><a href="#L1244">1244</a></span>
+<span id="L1245" class="line"><a href="#L1245">1245</a>----------------------------------------------------------------------------------------</span>
+<span id="L1246" class="line"><a href="#L1246">1246</a></span>
+<span id="L1247" class="line"><a href="#L1247">1247</a></span>
+<span id="L1248" class="line"><a href="#L1248">1248</a>function UserTagModel:getUserTagStaticConfig( nameKey )</span>
+<span id="L1249" class="line"><a href="#L1249">1249</a></span>
+<span id="L1250" class="line"><a href="#L1250">1250</a>	if self.staticMetaConfig[tostring(nameKey)] then</span>
+<span id="L1251" class="line"><a href="#L1251">1251</a>		return self.staticMetaConfig[tostring(nameKey)]</span>
+<span id="L1252" class="line"><a href="#L1252">1252</a>	end</span>
+<span id="L1253" class="line"><a href="#L1253">1253</a></span>
+<span id="L1254" class="line"><a href="#L1254">1254</a>	local metaConfig</span>
+<span id="L1255" class="line"><a href="#L1255">1255</a>		metaConfig = _G.amfBean(&quot;MetaManager&quot;):getUserTagConfig( nameKey )</span>
+<span id="L1256" class="line"><a href="#L1256">1256</a>	self.staticMetaConfig[tostring(nameKey)] = metaConfig</span>
+<span id="L1257" class="line"><a href="#L1257">1257</a></span>
+<span id="L1258" class="line"><a href="#L1258">1258</a>	-- printx( 1 , &quot;UserTagModel:getUserTagStaticConfig  nameKey = &quot; , nameKey , &quot;metaConfig.tagName =&quot; , metaConfig.tagName )</span>
+<span id="L1259" class="line"><a href="#L1259">1259</a>	</span>
+<span id="L1260" class="line"><a href="#L1260">1260</a>	if nameKey == UserTagNameKeyFullMap.kActivation then -- for group test</span>
+<span id="L1261" class="line"><a href="#L1261">1261</a></span>
+<span id="L1262" class="line"><a href="#L1262">1262</a>		local function activityEnabled()</span>
+<span id="L1263" class="line"><a href="#L1263">1263</a></span>
+<span id="L1264" class="line"><a href="#L1264">1264</a>			return false</span>
+<span id="L1265" class="line"><a href="#L1265">1265</a>		end</span>
+<span id="L1266" class="line"><a href="#L1266">1266</a></span>
+<span id="L1267" class="line"><a href="#L1267">1267</a>		local uid = UserManager:getInstance():getUID() or &quot;12345&quot;</span>
+<span id="L1268" class="line"><a href="#L1268">1268</a>		local tagValue = UserTagValueMap[UserTagNameKeyFullMap.kActivation]</span>
+<span id="L1269" class="line"><a href="#L1269">1269</a></span>
+<span id="L1270" class="line"><a href="#L1270">1270</a></span>
+<span id="L1271" class="line"><a href="#L1271">1271</a>		if activityEnabled() and type(metaConfig.topLevelLength) == &quot;table&quot; then</span>
+<span id="L1272" class="line"><a href="#L1272">1272</a>			metaConfig.topLevelLength[tostring(tagValue.kReturnBack)] = 9999</span>
+<span id="L1273" class="line"><a href="#L1273">1273</a>		end</span>
+<span id="L1274" class="line"><a href="#L1274">1274</a>		</span>
+<span id="L1275" class="line"><a href="#L1275">1275</a>		-- if MaintenanceManager:getInstance():isEnabledInGroup(&quot;ReturnUsersRetentionTest&quot; , &quot;N51&quot; , uid)</span>
+<span id="L1276" class="line"><a href="#L1276">1276</a>		-- 	or MaintenanceManager:getInstance():isEnabledInGroup(&quot;ReturnUsersRetentionTest&quot; , &quot;N52&quot; , uid) then</span>
+<span id="L1277" class="line"><a href="#L1277">1277</a></span>
+<span id="L1278" class="line"><a href="#L1278">1278</a>		-- 	if activityEnabled() and type(metaConfig.topLevelLength) == &quot;table&quot; then</span>
+<span id="L1279" class="line"><a href="#L1279">1279</a>		-- 		metaConfig.topLevelLength[tostring(tagValue.kReturnBack)] = 9999</span>
+<span id="L1280" class="line"><a href="#L1280">1280</a>		-- 	end</span>
+<span id="L1281" class="line"><a href="#L1281">1281</a></span>
+<span id="L1282" class="line"><a href="#L1282">1282</a>		-- 	-- if type(metaConfig.durationTime) == &quot;table&quot; then</span>
+<span id="L1283" class="line"><a href="#L1283">1283</a>		-- 	-- 	metaConfig.durationTime[tostring(tagValue.kReturnBack)] = fixDurationTime</span>
+<span id="L1284" class="line"><a href="#L1284">1284</a>		-- 	-- end</span>
+<span id="L1285" class="line"><a href="#L1285">1285</a></span>
+<span id="L1286" class="line"><a href="#L1286">1286</a>		-- elseif MaintenanceManager:getInstance():isEnabledInGroup(&quot;ReturnUsersRetentionTest&quot; , &quot;N61&quot; , uid)</span>
+<span id="L1287" class="line"><a href="#L1287">1287</a>		-- 	or MaintenanceManager:getInstance():isEnabledInGroup(&quot;ReturnUsersRetentionTest&quot; , &quot;N62&quot; , uid) then</span>
+<span id="L1288" class="line"><a href="#L1288">1288</a>			</span>
+<span id="L1289" class="line"><a href="#L1289">1289</a>		-- 	if activityEnabled() and type(metaConfig.topLevelLength) == &quot;table&quot; then</span>
+<span id="L1290" class="line"><a href="#L1290">1290</a>		-- 		metaConfig.topLevelLength[tostring(tagValue.kReturnBack)] = 25</span>
+<span id="L1291" class="line"><a href="#L1291">1291</a>		-- 	end</span>
+<span id="L1292" class="line"><a href="#L1292">1292</a></span>
+<span id="L1293" class="line"><a href="#L1293">1293</a>		-- 	-- if type(metaConfig.durationTime) == &quot;table&quot; then</span>
+<span id="L1294" class="line"><a href="#L1294">1294</a>		-- 	-- 	metaConfig.durationTime[tostring(tagValue.kReturnBack)] = fixDurationTime</span>
+<span id="L1295" class="line"><a href="#L1295">1295</a>		-- 	-- end</span>
+<span id="L1296" class="line"><a href="#L1296">1296</a>		-- end</span>
+<span id="L1297" class="line"><a href="#L1297">1297</a>	end</span>
+<span id="L1298" class="line"><a href="#L1298">1298</a></span>
+<span id="L1299" class="line"><a href="#L1299">1299</a>	return metaConfig</span>
+<span id="L1300" class="line"><a href="#L1300">1300</a>end</span>
+<span id="L1301" class="line"><a href="#L1301">1301</a></span>
+<span id="L1302" class="line"><a href="#L1302">1302</a>function UserTagModel:refreshDifficultyTag( levelId , callback , source , notSyncLoad)</span>
+<span id="L1303" class="line"><a href="#L1303">1303</a></span>
+<span id="L1304" class="line"><a href="#L1304">1304</a>	notSyncLoad = true --已废弃，使用SyncManager.getInstance():addAfterSyncHttp来控制</span>
+<span id="L1305" class="line"><a href="#L1305">1305</a></span>
+<span id="L1306" class="line"><a href="#L1306">1306</a>	if not self.localData or not self.localData.difficultyTag or not self.localData.difficultyTag.topLevelDiffTagTopLevelId then </span>
+<span id="L1307" class="line"><a href="#L1307">1307</a>		if callback then callback(false) end</span>
+<span id="L1308" class="line"><a href="#L1308">1308</a>		return</span>
+<span id="L1309" class="line"><a href="#L1309">1309</a>	end</span>
+<span id="L1310" class="line"><a href="#L1310">1310</a></span>
+<span id="L1311" class="line"><a href="#L1311">1311</a>	if tonumber(levelId) &lt; tonumber(self.localData.difficultyTag.topLevelDiffTagTopLevelId) then</span>
+<span id="L1312" class="line"><a href="#L1312">1312</a>		if callback then callback(false) end</span>
+<span id="L1313" class="line"><a href="#L1313">1313</a>		return</span>
+<span id="L1314" class="line"><a href="#L1314">1314</a>	end</span>
+<span id="L1315" class="line"><a href="#L1315">1315</a></span>
+<span id="L1316" class="line"><a href="#L1316">1316</a>	local function afterSyncHttpCallback( result , datas )</span>
+<span id="L1317" class="line"><a href="#L1317">1317</a>		if result then</span>
+<span id="L1318" class="line"><a href="#L1318">1318</a>			local resp = datas</span>
+<span id="L1319" class="line"><a href="#L1319">1319</a></span>
+<span id="L1320" class="line"><a href="#L1320">1320</a>			local difficultyTag = resp.difficultyTag</span>
+<span id="L1321" class="line"><a href="#L1321">1321</a></span>
+<span id="L1322" class="line"><a href="#L1322">1322</a>			if difficultyTag then</span>
+<span id="L1323" class="line"><a href="#L1323">1323</a>				self:updateTag( UserTagGroupKey.kDifficultyTag , difficultyTag , source )</span>
+<span id="L1324" class="line"><a href="#L1324">1324</a>				self:flushDcLog()</span>
+<span id="L1325" class="line"><a href="#L1325">1325</a>				self:flushLocalData()</span>
+<span id="L1326" class="line"><a href="#L1326">1326</a>			end</span>
+<span id="L1327" class="line"><a href="#L1327">1327</a>		end</span>
+<span id="L1328" class="line"><a href="#L1328">1328</a>	end</span>
+<span id="L1329" class="line"><a href="#L1329">1329</a></span>
+<span id="L1330" class="line"><a href="#L1330">1330</a>	SyncManager.getInstance():addAfterSyncHttp( &quot;getDifficultyTag&quot; , {} , afterSyncHttpCallback , {allowMergers = true} )</span>
+<span id="L1331" class="line"><a href="#L1331">1331</a>end</span>
+<span id="L1332" class="line"><a href="#L1332">1332</a></span>
+<span id="L1333" class="line"><a href="#L1333">1333</a>function UserTagModel:getTagIdByNameKey( nameKey )</span>
+<span id="L1334" class="line"><a href="#L1334">1334</a>	return UserTagNameKeyToTagIdMap[nameKey]</span>
+<span id="L1335" class="line"><a href="#L1335">1335</a>end</span>
+<span id="L1336" class="line"><a href="#L1336">1336</a></span>
+<span id="L1337" class="line"><a href="#L1337">1337</a>function UserTagModel:getTagGroupByNameKey( nameKey )</span>
+<span id="L1338" class="line"><a href="#L1338">1338</a></span>
+<span id="L1339" class="line"><a href="#L1339">1339</a>end</span>
+<span id="L1340" class="line"><a href="#L1340">1340</a></span>
+<span id="L1341" class="line"><a href="#L1341">1341</a>function UserTagModel:addDcDatas( nameKey , newTagValue , oldTagValue )</span>
+<span id="L1342" class="line"><a href="#L1342">1342</a>	if not self.dcDatas then</span>
+<span id="L1343" class="line"><a href="#L1343">1343</a>		self.dcDatas = {}</span>
+<span id="L1344" class="line"><a href="#L1344">1344</a>	end</span>
+<span id="L1345" class="line"><a href="#L1345">1345</a></span>
+<span id="L1346" class="line"><a href="#L1346">1346</a>	local tagId = self:getTagIdByNameKey(nameKey)</span>
+<span id="L1347" class="line"><a href="#L1347">1347</a></span>
+<span id="L1348" class="line"><a href="#L1348">1348</a>	self.dcDatas[&quot;t&quot; .. tostring(tagId)] = newTagValue</span>
+<span id="L1349" class="line"><a href="#L1349">1349</a></span>
+<span id="L1350" class="line"><a href="#L1350">1350</a>	if oldTagValue then</span>
+<span id="L1351" class="line"><a href="#L1351">1351</a>		self.dcDatas[&quot;t&quot; .. tostring(tonumber(tagId + 1))] = oldTagValue</span>
+<span id="L1352" class="line"><a href="#L1352">1352</a>	end</span>
+<span id="L1353" class="line"><a href="#L1353">1353</a>end</span>
+<span id="L1354" class="line"><a href="#L1354">1354</a></span>
+<span id="L1355" class="line"><a href="#L1355">1355</a>function UserTagModel:flushDcLog( source , tagTopLevelId )</span>
+<span id="L1356" class="line"><a href="#L1356">1356</a>	if self.dcDatas then</span>
+<span id="L1357" class="line"><a href="#L1357">1357</a></span>
+<span id="L1358" class="line"><a href="#L1358">1358</a>		DcUtil:UpdateUseTag( source , tagTopLevelId , self.dcDatas )</span>
+<span id="L1359" class="line"><a href="#L1359">1359</a></span>
+<span id="L1360" class="line"><a href="#L1360">1360</a>		self.dcDatas = nil</span>
+<span id="L1361" class="line"><a href="#L1361">1361</a>	end</span>
+<span id="L1362" class="line"><a href="#L1362">1362</a>end</span></pre></main></html>

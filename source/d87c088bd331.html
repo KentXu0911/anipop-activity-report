@@ -1,0 +1,346 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/luckydelivery/view/LuckyDeliveryCardRewardPanel.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="d87c088bd331.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/luckydelivery/view/LuckyDeliveryCardRewardPanel.lua</h1><p>SHA256 7082a71b9752444c62eea2041a9a1b46f79fbd797fb75bdaebe870185246abe1</p><pre><span id="L1" class="line"><a href="#L1">1</a>---@class LuckyDeliveryCardRewardPanel : AMFBasePanel</span>
+<span id="L2" class="line"><a href="#L2">2</a>local LuckyDeliveryCardRewardPanel = class(&quot;LuckyDeliveryCardRewardPanel&quot;, AMFBasePanel)</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>local ActionUtil = require &quot;amf.middleware.ui.util.ActionUtil&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local OpenCardAnimConfig = require &quot;amf.feature.localactivity.collectcard.view.opencardanim.OpenCardAnimConfig&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local OpenCardAnimModel = require &quot;amf.feature.localactivity.collectcard.view.opencardanim.OpenCardAnimModel&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local OpenCardUIBuilder = require &quot;amf.feature.localactivity.collectcard.view.opencardanim.OpenCardUIBuilder&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>local CardAnimator = require &quot;amf.feature.localactivity.collectcard.view.opencardanim.CardAnimator&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>local OpenCardAnimController = require &quot;amf.feature.localactivity.collectcard.view.opencardanim.OpenCardAnimController&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>local BASE_CARD_SCALE = 0.5</span>
+<span id="L12" class="line"><a href="#L12">12</a>local MAX_CARD_NUM = 9</span>
+<span id="L13" class="line"><a href="#L13">13</a></span>
+<span id="L14" class="line"><a href="#L14">14</a>local function sortNodesByLayout(nodes)</span>
+<span id="L15" class="line"><a href="#L15">15</a>    table.sort(nodes, function(a, b)</span>
+<span id="L16" class="line"><a href="#L16">16</a>        local ay, by = a:getPositionY(), b:getPositionY()</span>
+<span id="L17" class="line"><a href="#L17">17</a>        if math.abs(ay - by) &gt; 1 then</span>
+<span id="L18" class="line"><a href="#L18">18</a>            return ay &gt; by</span>
+<span id="L19" class="line"><a href="#L19">19</a>        end</span>
+<span id="L20" class="line"><a href="#L20">20</a>        return a:getPositionX() &lt; b:getPositionX()</span>
+<span id="L21" class="line"><a href="#L21">21</a>    end)</span>
+<span id="L22" class="line"><a href="#L22">22</a>end</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>function LuckyDeliveryCardRewardPanel:getUIInfo()</span>
+<span id="L25" class="line"><a href="#L25">25</a>    return &quot;amf.feature.localactivity.luckydelivery.view.uisource.LuckyDeliveryCardRewardPanel_UI&quot;, { &quot;noBubbleNode&quot;, &quot;withBubbleNode&quot; }</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>function LuckyDeliveryCardRewardPanel:getAssetsList()</span>
+<span id="L29" class="line"><a href="#L29">29</a>    local resList = {}</span>
+<span id="L30" class="line"><a href="#L30">30</a>    local mgr = _G.amfBean(&quot;CollectCardManager&quot;)</span>
+<span id="L31" class="line"><a href="#L31">31</a>    local const = mgr:getConst()</span>
+<span id="L32" class="line"><a href="#L32">32</a>    resList = table.union(resList, mgr:getCardUIResource() or {})</span>
+<span id="L33" class="line"><a href="#L33">33</a>    resList = table.union(resList, mgr:getAlbumResource() or {})</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>    for _, key in ipairs({&quot;NewCardSpine&quot;, &quot;StarSpine&quot;, &quot;IconFeedbackSpine&quot;}) do</span>
+<span id="L36" class="line"><a href="#L36">36</a>        table.insert(resList, OpenCardAnimConfig.ResPath[key])</span>
+<span id="L37" class="line"><a href="#L37">37</a>    end</span>
+<span id="L38" class="line"><a href="#L38">38</a>    if mgr:isCollectCardSwapEnabled() then</span>
+<span id="L39" class="line"><a href="#L39">39</a>        table.insert(resList, &quot;amf/activity/collectcard/texture/CollectCardMainEntryBar.plist&quot;)</span>
+<span id="L40" class="line"><a href="#L40">40</a>    else</span>
+<span id="L41" class="line"><a href="#L41">41</a>        table.insert(resList, OpenCardAnimConfig.ResPath.StarShopBg)</span>
+<span id="L42" class="line"><a href="#L42">42</a>        table.insert(resList, OpenCardAnimConfig.ResPath.StarShopIcon)</span>
+<span id="L43" class="line"><a href="#L43">43</a>    end</span>
+<span id="L44" class="line"><a href="#L44">44</a></span>
+<span id="L45" class="line"><a href="#L45">45</a>    for _, sound in ipairs({</span>
+<span id="L46" class="line"><a href="#L46">46</a>        const.Sound.MOVE_NEW_CARD_1,</span>
+<span id="L47" class="line"><a href="#L47">47</a>        const.Sound.MOVE_REPEAT_CARD,</span>
+<span id="L48" class="line"><a href="#L48">48</a>        const.Sound.CARD_CONVERT,</span>
+<span id="L49" class="line"><a href="#L49">49</a>        const.Sound.STAR_TO_BAG,</span>
+<span id="L50" class="line"><a href="#L50">50</a>        const.Sound.STAR_IN_BAG,</span>
+<span id="L51" class="line"><a href="#L51">51</a>    }) do</span>
+<span id="L52" class="line"><a href="#L52">52</a>        table.insert(resList, const.SoundPath[sound])</span>
+<span id="L53" class="line"><a href="#L53">53</a>    end</span>
+<span id="L54" class="line"><a href="#L54">54</a></span>
+<span id="L55" class="line"><a href="#L55">55</a>    return resList</span>
+<span id="L56" class="line"><a href="#L56">56</a>end</span>
+<span id="L57" class="line"><a href="#L57">57</a></span>
+<span id="L58" class="line"><a href="#L58">58</a>function LuckyDeliveryCardRewardPanel:init()</span>
+<span id="L59" class="line"><a href="#L59">59</a>    self.collectCardManager = _G.amfBean(&quot;CollectCardManager&quot;)</span>
+<span id="L60" class="line"><a href="#L60">60</a>    self.openCardUIBuilder = OpenCardUIBuilder.new()</span>
+<span id="L61" class="line"><a href="#L61">61</a>    self.settleModel = OpenCardAnimModel.new()</span>
+<span id="L62" class="line"><a href="#L62">62</a>    self.animator = CardAnimator.new(self.settleModel, self.openCardUIBuilder)</span>
+<span id="L63" class="line"><a href="#L63">63</a>    self.settleController = OpenCardAnimController.new(self.settleModel, self.animator, self.openCardUIBuilder)</span>
+<span id="L64" class="line"><a href="#L64">64</a>    self.settleController:setDelegate(self)</span>
+<span id="L65" class="line"><a href="#L65">65</a>    self.shownCardList = {}</span>
+<span id="L66" class="line"><a href="#L66">66</a>    self.extraReward = nil</span>
+<span id="L67" class="line"><a href="#L67">67</a>    self.cardAppearAnimPlaying = false</span>
+<span id="L68" class="line"><a href="#L68">68</a>    self.pendingSettleCallback = nil</span>
+<span id="L69" class="line"><a href="#L69">69</a>    self:setBlockEnabled(false)</span>
+<span id="L70" class="line"><a href="#L70">70</a>    self:bindButtons()</span>
+<span id="L71" class="line"><a href="#L71">71</a>end</span>
+<span id="L72" class="line"><a href="#L72">72</a></span>
+<span id="L73" class="line"><a href="#L73">73</a>function LuckyDeliveryCardRewardPanel:dispose()</span>
+<span id="L74" class="line"><a href="#L74">74</a>    if self.animator then</span>
+<span id="L75" class="line"><a href="#L75">75</a>        self.animator:clearAllStarNodes()</span>
+<span id="L76" class="line"><a href="#L76">76</a>    end</span>
+<span id="L77" class="line"><a href="#L77">77</a>    if self.starShopIcon and not self.starShopIcon.isDisposed then</span>
+<span id="L78" class="line"><a href="#L78">78</a>        self.starShopIcon:removeFromParentAndCleanup(true)</span>
+<span id="L79" class="line"><a href="#L79">79</a>        self.starShopIcon = nil</span>
+<span id="L80" class="line"><a href="#L80">80</a>    end</span>
+<span id="L81" class="line"><a href="#L81">81</a>    if self.settleController then</span>
+<span id="L82" class="line"><a href="#L82">82</a>        self.settleController:dispose()</span>
+<span id="L83" class="line"><a href="#L83">83</a>        self.settleController = nil</span>
+<span id="L84" class="line"><a href="#L84">84</a>    end</span>
+<span id="L85" class="line"><a href="#L85">85</a>    AMFBasePanel.dispose(self)</span>
+<span id="L86" class="line"><a href="#L86">86</a>end</span>
+<span id="L87" class="line"><a href="#L87">87</a></span>
+<span id="L88" class="line"><a href="#L88">88</a>function LuckyDeliveryCardRewardPanel:bindButtons()</span>
+<span id="L89" class="line"><a href="#L89">89</a>    self.receiveBtn:setTouchHandler(function()</span>
+<span id="L90" class="line"><a href="#L90">90</a>        self:sendCommand(&quot;onReceiveBtnTapped&quot;)</span>
+<span id="L91" class="line"><a href="#L91">91</a>    end)</span>
+<span id="L92" class="line"><a href="#L92">92</a>end</span>
+<span id="L93" class="line"><a href="#L93">93</a></span>
+<span id="L94" class="line"><a href="#L94">94</a>function LuckyDeliveryCardRewardPanel:initRewards(cardRewards, extraReward)</span>
+<span id="L95" class="line"><a href="#L95">95</a>    self.cardRewards = cardRewards or {}</span>
+<span id="L96" class="line"><a href="#L96">96</a>    self.extraReward = extraReward</span>
+<span id="L97" class="line"><a href="#L97">97</a>    self.cardDisplayInfos = self:buildCardDisplayInfos()</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>    local cardNum = math.min(math.max(#self.cardDisplayInfos, 1), MAX_CARD_NUM)</span>
+<span id="L100" class="line"><a href="#L100">100</a>    local suffix = self.extraReward and 2 or 1</span>
+<span id="L101" class="line"><a href="#L101">101</a>    local layoutNode = self.builder:createChild(string.format(&quot;card_%d_%d&quot;, cardNum, suffix))</span>
+<span id="L102" class="line"><a href="#L102">102</a>    self.ui:addChild(layoutNode)</span>
+<span id="L103" class="line"><a href="#L103">103</a>    self.cardLayoutNode = layoutNode</span>
+<span id="L104" class="line"><a href="#L104">104</a></span>
+<span id="L105" class="line"><a href="#L105">105</a>    self:initCardRewards()</span>
+<span id="L106" class="line"><a href="#L106">106</a>    self:initExtraReward(cardNum)</span>
+<span id="L107" class="line"><a href="#L107">107</a>end</span>
+<span id="L108" class="line"><a href="#L108">108</a></span>
+<span id="L109" class="line"><a href="#L109">109</a>function LuckyDeliveryCardRewardPanel:initCardRewards()</span>
+<span id="L110" class="line"><a href="#L110">110</a>    local posNodes = {}</span>
+<span id="L111" class="line"><a href="#L111">111</a>    for _, child in ipairs(self.cardLayoutNode:getChildrenSafeList() or {}) do</span>
+<span id="L112" class="line"><a href="#L112">112</a>        if child.getName and string.starts(tostring(child:getName()), &quot;cardPosNode_&quot;) then</span>
+<span id="L113" class="line"><a href="#L113">113</a>            table.insert(posNodes, child)</span>
+<span id="L114" class="line"><a href="#L114">114</a>        end</span>
+<span id="L115" class="line"><a href="#L115">115</a>    end</span>
+<span id="L116" class="line"><a href="#L116">116</a>    sortNodesByLayout(posNodes)</span>
+<span id="L117" class="line"><a href="#L117">117</a></span>
+<span id="L118" class="line"><a href="#L118">118</a>    local cardDisplayInfos = self.cardDisplayInfos or self:buildCardDisplayInfos()</span>
+<span id="L119" class="line"><a href="#L119">119</a>    local cardScale = self:getCardScale(#cardDisplayInfos, self.extraReward ~= nil)</span>
+<span id="L120" class="line"><a href="#L120">120</a>    local appearAnimInfos = {}</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>    for index, reward in ipairs(cardDisplayInfos) do</span>
+<span id="L123" class="line"><a href="#L123">123</a>        local card = self:addCardToPosNode(reward, posNodes[index], cardScale)</span>
+<span id="L124" class="line"><a href="#L124">124</a>        table.insert(appearAnimInfos, {</span>
+<span id="L125" class="line"><a href="#L125">125</a>            card = card,</span>
+<span id="L126" class="line"><a href="#L126">126</a>            posNode = posNodes[index],</span>
+<span id="L127" class="line"><a href="#L127">127</a>            reward = reward,</span>
+<span id="L128" class="line"><a href="#L128">128</a>            scale = cardScale,</span>
+<span id="L129" class="line"><a href="#L129">129</a>        })</span>
+<span id="L130" class="line"><a href="#L130">130</a>    end</span>
+<span id="L131" class="line"><a href="#L131">131</a></span>
+<span id="L132" class="line"><a href="#L132">132</a>    self:playCardAppearAnim(appearAnimInfos)</span>
+<span id="L133" class="line"><a href="#L133">133</a>end</span>
+<span id="L134" class="line"><a href="#L134">134</a></span>
+<span id="L135" class="line"><a href="#L135">135</a>function LuckyDeliveryCardRewardPanel:getCardScale(cardNum, hasExtraReward)</span>
+<span id="L136" class="line"><a href="#L136">136</a>    local displayScale = 1</span>
+<span id="L137" class="line"><a href="#L137">137</a>    if hasExtraReward then</span>
+<span id="L138" class="line"><a href="#L138">138</a>        if cardNum &gt;= 7 then</span>
+<span id="L139" class="line"><a href="#L139">139</a>            displayScale = 0.8</span>
+<span id="L140" class="line"><a href="#L140">140</a>        elseif cardNum &gt;= 3 then</span>
+<span id="L141" class="line"><a href="#L141">141</a>            displayScale = 0.9</span>
+<span id="L142" class="line"><a href="#L142">142</a>        end</span>
+<span id="L143" class="line"><a href="#L143">143</a>    elseif cardNum &gt;= 7 then</span>
+<span id="L144" class="line"><a href="#L144">144</a>        displayScale = 0.9</span>
+<span id="L145" class="line"><a href="#L145">145</a>    end</span>
+<span id="L146" class="line"><a href="#L146">146</a>    return BASE_CARD_SCALE * displayScale</span>
+<span id="L147" class="line"><a href="#L147">147</a>end</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>function LuckyDeliveryCardRewardPanel:addCardToPosNode(reward, posNode, cardScale)</span>
+<span id="L150" class="line"><a href="#L150">150</a>    local card = self.openCardUIBuilder:createCard(reward.cardData, not reward.isRepeat)</span>
+<span id="L151" class="line"><a href="#L151">151</a>    card:setScale(0)</span>
+<span id="L152" class="line"><a href="#L152">152</a>    card:setPositionXY(0, 0)</span>
+<span id="L153" class="line"><a href="#L153">153</a>    posNode:addChild(card)</span>
+<span id="L154" class="line"><a href="#L154">154</a></span>
+<span id="L155" class="line"><a href="#L155">155</a>    table.insert(self.shownCardList, {</span>
+<span id="L156" class="line"><a href="#L156">156</a>        cardData = reward.cardData,</span>
+<span id="L157" class="line"><a href="#L157">157</a>        node = card,</span>
+<span id="L158" class="line"><a href="#L158">158</a>        isNewCard = reward.isNewCard,</span>
+<span id="L159" class="line"><a href="#L159">159</a>        isRepeat = reward.isRepeat,</span>
+<span id="L160" class="line"><a href="#L160">160</a>        cardScale = cardScale or BASE_CARD_SCALE,</span>
+<span id="L161" class="line"><a href="#L161">161</a>    })</span>
+<span id="L162" class="line"><a href="#L162">162</a></span>
+<span id="L163" class="line"><a href="#L163">163</a>    return card</span>
+<span id="L164" class="line"><a href="#L164">164</a>end</span>
+<span id="L165" class="line"><a href="#L165">165</a></span>
+<span id="L166" class="line"><a href="#L166">166</a>function LuckyDeliveryCardRewardPanel:playCardAppearAnim(appearAnimInfos)</span>
+<span id="L167" class="line"><a href="#L167">167</a>    if table.isEmpty(appearAnimInfos) then return end</span>
+<span id="L168" class="line"><a href="#L168">168</a></span>
+<span id="L169" class="line"><a href="#L169">169</a>    self.cardAppearAnimPlaying = true</span>
+<span id="L170" class="line"><a href="#L170">170</a>    local index = 1</span>
+<span id="L171" class="line"><a href="#L171">171</a>    local playNext</span>
+<span id="L172" class="line"><a href="#L172">172</a>    playNext = function()</span>
+<span id="L173" class="line"><a href="#L173">173</a>        if self.isDisposed then return end</span>
+<span id="L174" class="line"><a href="#L174">174</a>        local animInfo = appearAnimInfos[index]</span>
+<span id="L175" class="line"><a href="#L175">175</a>        if not animInfo then</span>
+<span id="L176" class="line"><a href="#L176">176</a>            self:onCardAppearAnimFinished()</span>
+<span id="L177" class="line"><a href="#L177">177</a>            return</span>
+<span id="L178" class="line"><a href="#L178">178</a>        end</span>
+<span id="L179" class="line"><a href="#L179">179</a>        index = index + 1</span>
+<span id="L180" class="line"><a href="#L180">180</a>        self:playSingleCardAppearAnim(animInfo, 0, playNext)</span>
+<span id="L181" class="line"><a href="#L181">181</a>    end</span>
+<span id="L182" class="line"><a href="#L182">182</a>    playNext()</span>
+<span id="L183" class="line"><a href="#L183">183</a>end</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>function LuckyDeliveryCardRewardPanel:playSingleCardAppearAnim(animInfo, delay, callback)</span>
+<span id="L186" class="line"><a href="#L186">186</a>    local card = animInfo.card</span>
+<span id="L187" class="line"><a href="#L187">187</a>    local reward = animInfo.reward</span>
+<span id="L188" class="line"><a href="#L188">188</a></span>
+<span id="L189" class="line"><a href="#L189">189</a>    local cardScale = animInfo.scale or BASE_CARD_SCALE</span>
+<span id="L190" class="line"><a href="#L190">190</a>    card:setScale(0)</span>
+<span id="L191" class="line"><a href="#L191">191</a>    card:runAction(ActionUtil:sequence{</span>
+<span id="L192" class="line"><a href="#L192">192</a>        CCDelayTime:create(delay or 0),</span>
+<span id="L193" class="line"><a href="#L193">193</a>        CCCallFunc:create(function()</span>
+<span id="L194" class="line"><a href="#L194">194</a>            if self.isDisposed or card.isDisposed then</span>
+<span id="L195" class="line"><a href="#L195">195</a>                safeRunCall(callback)</span>
+<span id="L196" class="line"><a href="#L196">196</a>                return</span>
+<span id="L197" class="line"><a href="#L197">197</a>            end</span>
+<span id="L198" class="line"><a href="#L198">198</a>            self:playCardAppearEffect(animInfo)</span>
+<span id="L199" class="line"><a href="#L199">199</a>            if reward.isRepeat then</span>
+<span id="L200" class="line"><a href="#L200">200</a>                card:runAction(ActionUtil:sequence{</span>
+<span id="L201" class="line"><a href="#L201">201</a>                    CCScaleTo:create(3 * OpenCardAnimConfig.FRAME_TIME, cardScale * 1.2),</span>
+<span id="L202" class="line"><a href="#L202">202</a>                    CCScaleTo:create(3 * OpenCardAnimConfig.FRAME_TIME, cardScale),</span>
+<span id="L203" class="line"><a href="#L203">203</a>                    CCCallFunc:create(function()</span>
+<span id="L204" class="line"><a href="#L204">204</a>                        safeRunCall(callback)</span>
+<span id="L205" class="line"><a href="#L205">205</a>                    end)</span>
+<span id="L206" class="line"><a href="#L206">206</a>                })</span>
+<span id="L207" class="line"><a href="#L207">207</a>            end</span>
+<span id="L208" class="line"><a href="#L208">208</a>        end),</span>
+<span id="L209" class="line"><a href="#L209">209</a>        CCDelayTime:create(reward.isRepeat and 0 or 15 * OpenCardAnimConfig.FRAME_TIME),</span>
+<span id="L210" class="line"><a href="#L210">210</a>        CCCallFunc:create(function()</span>
+<span id="L211" class="line"><a href="#L211">211</a>            if reward.isRepeat then return end</span>
+<span id="L212" class="line"><a href="#L212">212</a>            if self.isDisposed or card.isDisposed then</span>
+<span id="L213" class="line"><a href="#L213">213</a>                safeRunCall(callback)</span>
+<span id="L214" class="line"><a href="#L214">214</a>                return</span>
+<span id="L215" class="line"><a href="#L215">215</a>            end</span>
+<span id="L216" class="line"><a href="#L216">216</a>            card:setScaleX(0.6 * cardScale)</span>
+<span id="L217" class="line"><a href="#L217">217</a>            card:setScaleY(cardScale)</span>
+<span id="L218" class="line"><a href="#L218">218</a>            card:runAction(ActionUtil:sequence{</span>
+<span id="L219" class="line"><a href="#L219">219</a>                CCEaseSineInOut:create(CCScaleTo:create(2 * OpenCardAnimConfig.FRAME_TIME, cardScale, cardScale)),</span>
+<span id="L220" class="line"><a href="#L220">220</a>                CCCallFunc:create(function()</span>
+<span id="L221" class="line"><a href="#L221">221</a>                    safeRunCall(callback)</span>
+<span id="L222" class="line"><a href="#L222">222</a>                end)</span>
+<span id="L223" class="line"><a href="#L223">223</a>            })</span>
+<span id="L224" class="line"><a href="#L224">224</a>        end)</span>
+<span id="L225" class="line"><a href="#L225">225</a>    })</span>
+<span id="L226" class="line"><a href="#L226">226</a>end</span>
+<span id="L227" class="line"><a href="#L227">227</a></span>
+<span id="L228" class="line"><a href="#L228">228</a>function LuckyDeliveryCardRewardPanel:playCardAppearEffect(animInfo)</span>
+<span id="L229" class="line"><a href="#L229">229</a>    local reward = animInfo.reward</span>
+<span id="L230" class="line"><a href="#L230">230</a>    local Const = self.collectCardManager:getConst()</span>
+<span id="L231" class="line"><a href="#L231">231</a>    if not reward.isRepeat then</span>
+<span id="L232" class="line"><a href="#L232">232</a>        local effectType = Const.Sound.MOVE_NEW_CARD_1</span>
+<span id="L233" class="line"><a href="#L233">233</a>        self.collectCardManager:playEffect(effectType)</span>
+<span id="L234" class="line"><a href="#L234">234</a>        self.collectCardManager:playHaptics(Const.Haptics.NEW_CARD_DROP)</span>
+<span id="L235" class="line"><a href="#L235">235</a>        self:playNewCardLight(animInfo)</span>
+<span id="L236" class="line"><a href="#L236">236</a>    else</span>
+<span id="L237" class="line"><a href="#L237">237</a>        self.collectCardManager:playEffect(Const.Sound.MOVE_REPEAT_CARD)</span>
+<span id="L238" class="line"><a href="#L238">238</a>        self.collectCardManager:playHaptics(Const.Haptics.CARD_DROP)</span>
+<span id="L239" class="line"><a href="#L239">239</a>    end</span>
+<span id="L240" class="line"><a href="#L240">240</a>end</span>
+<span id="L241" class="line"><a href="#L241">241</a></span>
+<span id="L242" class="line"><a href="#L242">242</a>function LuckyDeliveryCardRewardPanel:playNewCardLight(animInfo)</span>
+<span id="L243" class="line"><a href="#L243">243</a>    local reward = animInfo.reward</span>
+<span id="L244" class="line"><a href="#L244">244</a>    local cardData = reward.cardData</span>
+<span id="L245" class="line"><a href="#L245">245</a>    local posNode = animInfo.posNode</span>
+<span id="L246" class="line"><a href="#L246">246</a></span>
+<span id="L247" class="line"><a href="#L247">247</a>    local Const = self.collectCardManager:getConst()</span>
+<span id="L248" class="line"><a href="#L248">248</a>    local cardSp = UICreateUtil:createSpine(OpenCardAnimConfig.ResPath.NewCardSpine)</span>
+<span id="L249" class="line"><a href="#L249">249</a>    local animName = cardData.cardType == Const.CardType.GOLD and &quot;xinka_jin&quot; or &quot;xinka_yin&quot;</span>
+<span id="L250" class="line"><a href="#L250">250</a>    posNode:addChild(cardSp)</span>
+<span id="L251" class="line"><a href="#L251">251</a>    cardSp:setPositionXY(0, 0)</span>
+<span id="L252" class="line"><a href="#L252">252</a>    cardSp:playOnceAndDispose(animName)</span>
+<span id="L253" class="line"><a href="#L253">253</a>    cardSp:setScale(0.6 * ((animInfo.scale or BASE_CARD_SCALE) / BASE_CARD_SCALE))</span>
+<span id="L254" class="line"><a href="#L254">254</a>    local oriScale = cardSp:getScale()</span>
+<span id="L255" class="line"><a href="#L255">255</a>    cardSp:runAction(ActionUtil:sequence{</span>
+<span id="L256" class="line"><a href="#L256">256</a>        CCEaseSineInOut:create(CCScaleTo:create(12 * OpenCardAnimConfig.FRAME_TIME, oriScale * 1.3)),</span>
+<span id="L257" class="line"><a href="#L257">257</a>        CCEaseSineIn:create(CCScaleTo:create(4 * OpenCardAnimConfig.FRAME_TIME, oriScale)),</span>
+<span id="L258" class="line"><a href="#L258">258</a>    })</span>
+<span id="L259" class="line"><a href="#L259">259</a>end</span>
+<span id="L260" class="line"><a href="#L260">260</a></span>
+<span id="L261" class="line"><a href="#L261">261</a>function LuckyDeliveryCardRewardPanel:onCardAppearAnimFinished()</span>
+<span id="L262" class="line"><a href="#L262">262</a>    if self.isDisposed then return end</span>
+<span id="L263" class="line"><a href="#L263">263</a></span>
+<span id="L264" class="line"><a href="#L264">264</a>    self.cardAppearAnimPlaying = false</span>
+<span id="L265" class="line"><a href="#L265">265</a>    if self.pendingSettleCallback then</span>
+<span id="L266" class="line"><a href="#L266">266</a>        local callback = self.pendingSettleCallback</span>
+<span id="L267" class="line"><a href="#L267">267</a>        self.pendingSettleCallback = nil</span>
+<span id="L268" class="line"><a href="#L268">268</a>        self:playSettleAnim(callback)</span>
+<span id="L269" class="line"><a href="#L269">269</a>    end</span>
+<span id="L270" class="line"><a href="#L270">270</a>end</span>
+<span id="L271" class="line"><a href="#L271">271</a></span>
+<span id="L272" class="line"><a href="#L272">272</a>function LuckyDeliveryCardRewardPanel:buildCardDisplayInfos()</span>
+<span id="L273" class="line"><a href="#L273">273</a>    local cardIdList = {}</span>
+<span id="L274" class="line"><a href="#L274">274</a>    local getCardList = {}</span>
+<span id="L275" class="line"><a href="#L275">275</a></span>
+<span id="L276" class="line"><a href="#L276">276</a>    for _, reward in ipairs(self.cardRewards or {}) do</span>
+<span id="L277" class="line"><a href="#L277">277</a>        local cardId = reward.cardId or self.collectCardManager:getCardIdByItemId(reward.itemId)</span>
+<span id="L278" class="line"><a href="#L278">278</a>        local cardData = cardId and self.collectCardManager:getCardDataById(cardId)</span>
+<span id="L279" class="line"><a href="#L279">279</a>        if cardData then</span>
+<span id="L280" class="line"><a href="#L280">280</a>            local num = math.max(math.floor(tonumber(reward.num) or 1), 1)</span>
+<span id="L281" class="line"><a href="#L281">281</a>            local cardIdKey = tostring(cardData.cardId)</span>
+<span id="L282" class="line"><a href="#L282">282</a>            getCardList[cardIdKey] = (getCardList[cardIdKey] or 0) + num</span>
+<span id="L283" class="line"><a href="#L283">283</a>            for _ = 1, num do</span>
+<span id="L284" class="line"><a href="#L284">284</a>                if #cardIdList &gt;= MAX_CARD_NUM then break end</span>
+<span id="L285" class="line"><a href="#L285">285</a>                table.insert(cardIdList, cardData.cardId)</span>
+<span id="L286" class="line"><a href="#L286">286</a>            end</span>
+<span id="L287" class="line"><a href="#L287">287</a>        end</span>
+<span id="L288" class="line"><a href="#L288">288</a>    end</span>
+<span id="L289" class="line"><a href="#L289">289</a></span>
+<span id="L290" class="line"><a href="#L290">290</a>    self.settleModel.getCardList = getCardList</span>
+<span id="L291" class="line"><a href="#L291">291</a>    return self.settleModel:buildCardInfoList(cardIdList)</span>
+<span id="L292" class="line"><a href="#L292">292</a>end</span>
+<span id="L293" class="line"><a href="#L293">293</a></span>
+<span id="L294" class="line"><a href="#L294">294</a>function LuckyDeliveryCardRewardPanel:initExtraReward(cardNum)</span>
+<span id="L295" class="line"><a href="#L295">295</a>    if not self.extraReward then return end</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>    local rewardItem = self.cardLayoutNode.mbMap[&quot;rewardItem_&quot; .. tostring(cardNum)]</span>
+<span id="L298" class="line"><a href="#L298">298</a>    rewardItem:setItem(self.extraReward)</span>
+<span id="L299" class="line"><a href="#L299">299</a>end</span>
+<span id="L300" class="line"><a href="#L300">300</a></span>
+<span id="L301" class="line"><a href="#L301">301</a>function LuckyDeliveryCardRewardPanel:playSettleAnim(callback)</span>
+<span id="L302" class="line"><a href="#L302">302</a>    if self.cardAppearAnimPlaying then</span>
+<span id="L303" class="line"><a href="#L303">303</a>        self.pendingSettleCallback = callback</span>
+<span id="L304" class="line"><a href="#L304">304</a>        return</span>
+<span id="L305" class="line"><a href="#L305">305</a>    end</span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>    if table.isEmpty(self.shownCardList) then</span>
+<span id="L308" class="line"><a href="#L308">308</a>        safeRunCall(callback)</span>
+<span id="L309" class="line"><a href="#L309">309</a>        return</span>
+<span id="L310" class="line"><a href="#L310">310</a>    end</span>
+<span id="L311" class="line"><a href="#L311">311</a></span>
+<span id="L312" class="line"><a href="#L312">312</a>    self.settleModel.localStarNum = self:getLocalStarNumBeforeSettle()</span>
+<span id="L313" class="line"><a href="#L313">313</a>    self.settleController:settleCards(self.shownCardList, nil):next(function()</span>
+<span id="L314" class="line"><a href="#L314">314</a>        safeRunCall(callback)</span>
+<span id="L315" class="line"><a href="#L315">315</a>    end, function()</span>
+<span id="L316" class="line"><a href="#L316">316</a>        safeRunCall(callback)</span>
+<span id="L317" class="line"><a href="#L317">317</a>    end)</span>
+<span id="L318" class="line"><a href="#L318">318</a>end</span>
+<span id="L319" class="line"><a href="#L319">319</a></span>
+<span id="L320" class="line"><a href="#L320">320</a>function LuckyDeliveryCardRewardPanel:getLocalStarNumBeforeSettle()</span>
+<span id="L321" class="line"><a href="#L321">321</a>    local gotStarNum = 0</span>
+<span id="L322" class="line"><a href="#L322">322</a>    for _, cardInfo in ipairs(self.shownCardList or {}) do</span>
+<span id="L323" class="line"><a href="#L323">323</a>        if cardInfo.isRepeat and cardInfo.cardData then</span>
+<span id="L324" class="line"><a href="#L324">324</a>            gotStarNum = gotStarNum + (cardInfo.cardData.starLevel or 0)</span>
+<span id="L325" class="line"><a href="#L325">325</a>        end</span>
+<span id="L326" class="line"><a href="#L326">326</a>    end</span>
+<span id="L327" class="line"><a href="#L327">327</a></span>
+<span id="L328" class="line"><a href="#L328">328</a>    return (self.collectCardManager:getStarNum() or 0) - gotStarNum</span>
+<span id="L329" class="line"><a href="#L329">329</a>end</span>
+<span id="L330" class="line"><a href="#L330">330</a></span>
+<span id="L331" class="line"><a href="#L331">331</a>function LuckyDeliveryCardRewardPanel:getLocalStarNum()</span>
+<span id="L332" class="line"><a href="#L332">332</a>    if self.settleModel then</span>
+<span id="L333" class="line"><a href="#L333">333</a>        return self.settleModel:getLocalStarNum()</span>
+<span id="L334" class="line"><a href="#L334">334</a>    end</span>
+<span id="L335" class="line"><a href="#L335">335</a>    return self:getLocalStarNumBeforeSettle()</span>
+<span id="L336" class="line"><a href="#L336">336</a>end</span>
+<span id="L337" class="line"><a href="#L337">337</a></span>
+<span id="L338" class="line"><a href="#L338">338</a>function LuckyDeliveryCardRewardPanel:getStarShopIcon()</span>
+<span id="L339" class="line"><a href="#L339">339</a>    return self.starShopIcon</span>
+<span id="L340" class="line"><a href="#L340">340</a>end</span>
+<span id="L341" class="line"><a href="#L341">341</a></span>
+<span id="L342" class="line"><a href="#L342">342</a>function LuckyDeliveryCardRewardPanel:setStarShopIcon(icon)</span>
+<span id="L343" class="line"><a href="#L343">343</a>    self.starShopIcon = icon</span>
+<span id="L344" class="line"><a href="#L344">344</a>end</span>
+<span id="L345" class="line"><a href="#L345">345</a></span>
+<span id="L346" class="line"><a href="#L346">346</a>return LuckyDeliveryCardRewardPanel</span></pre></main></html>

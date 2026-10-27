@@ -1,0 +1,82 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/climbtower/const/ClimbTowerConst.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="7d04b82fda47.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/climbtower/const/ClimbTowerConst.lua</h1><p>SHA256 1256fc9e5d78b2561ce5c0a553163bddc02d010b269c37cbcd8b0daaa0a43c5a</p><pre><span id="L1" class="line"><a href="#L1">1</a>local ClimbTowerConst = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>ClimbTowerConst.actId = 5073</span>
+<span id="L4" class="line"><a href="#L4">4</a>ClimbTowerConst.clientVersionControl = 0</span>
+<span id="L5" class="line"><a href="#L5">5</a>ClimbTowerConst.actChName = &quot;冲顶夺宝&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>ClimbTowerConst.gameName = &quot;climb_tower&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>ClimbTowerConst.TicketItemId = 55081</span>
+<span id="L9" class="line"><a href="#L9">9</a>ClimbTowerConst.GrandLayerId = 6</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>ClimbTowerConst.Sound = {</span>
+<span id="L12" class="line"><a href="#L12">12</a>    TICKET_COLLECT = &quot;ticket_collect.mp3&quot;,</span>
+<span id="L13" class="line"><a href="#L13">13</a>}</span>
+<span id="L14" class="line"><a href="#L14">14</a></span>
+<span id="L15" class="line"><a href="#L15">15</a>ClimbTowerConst.infoPrefix = &quot;userInfo&quot;</span>
+<span id="L16" class="line"><a href="#L16">16</a>ClimbTowerConst.configPrefix = &quot;localConfig&quot;</span>
+<span id="L17" class="line"><a href="#L17">17</a>ClimbTowerConst.timePrefix = &quot;activityTime&quot;</span>
+<span id="L18" class="line"><a href="#L18">18</a></span>
+<span id="L19" class="line"><a href="#L19">19</a>ClimbTowerConst.TipKey = {</span>
+<span id="L20" class="line"><a href="#L20">20</a>    JOIN       = &quot;tip_join&quot;,        -- 参与 tip</span>
+<span id="L21" class="line"><a href="#L21">21</a>    NEXT_LAYER = &quot;tip_next_layer&quot;,  -- 冲下层 tip</span>
+<span id="L22" class="line"><a href="#L22">22</a>    GRAND_PUSH = &quot;tip_grand_push&quot;,  -- 冲大奖 tip</span>
+<span id="L23" class="line"><a href="#L23">23</a>}</span>
+<span id="L24" class="line"><a href="#L24">24</a></span>
+<span id="L25" class="line"><a href="#L25">25</a>ClimbTowerConst.TipDailyLimit = {</span>
+<span id="L26" class="line"><a href="#L26">26</a>    [ClimbTowerConst.TipKey.JOIN]       = 1,</span>
+<span id="L27" class="line"><a href="#L27">27</a>    [ClimbTowerConst.TipKey.NEXT_LAYER] = 2,</span>
+<span id="L28" class="line"><a href="#L28">28</a>    [ClimbTowerConst.TipKey.GRAND_PUSH] = 2,</span>
+<span id="L29" class="line"><a href="#L29">29</a>}</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>ClimbTowerConst.TipDesc = {</span>
+<span id="L32" class="line"><a href="#L32">32</a>    [ClimbTowerConst.TipKey.JOIN]       = &quot;向上冲赢免费大奖！&quot;,</span>
+<span id="L33" class="line"><a href="#L33">33</a>    [ClimbTowerConst.TipKey.NEXT_LAYER] = &quot;下抽必升一层！&quot;,</span>
+<span id="L34" class="line"><a href="#L34">34</a>    [ClimbTowerConst.TipKey.GRAND_PUSH] = &quot;终极大奖，就差一步！&quot;,</span>
+<span id="L35" class="line"><a href="#L35">35</a>}</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>ClimbTowerConst.DrawButtonState = {</span>
+<span id="L38" class="line"><a href="#L38">38</a>    NORMAL    = 1,  -- 【奖券.jpg n 抽一次】可点</span>
+<span id="L39" class="line"><a href="#L39">39</a>    DRAWING   = 2,  -- 【抽取中】置灰</span>
+<span id="L40" class="line"><a href="#L40">40</a>    GO_STORE  = 3,  -- 【前往商店】（券不足）</span>
+<span id="L41" class="line"><a href="#L41">41</a>    ENDED     = 4,  -- 【已结束】（第5层升级抽完）</span>
+<span id="L42" class="line"><a href="#L42">42</a>}</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>ClimbTowerConst.DCKey = {</span>
+<span id="L45" class="line"><a href="#L45">45</a>    QUALIFY_DAILY = &quot;dc_qualify_daily&quot;,</span>
+<span id="L46" class="line"><a href="#L46">46</a>    JOIN_DAILY    = &quot;dc_join_daily&quot;,</span>
+<span id="L47" class="line"><a href="#L47">47</a>}</span>
+<span id="L48" class="line"><a href="#L48">48</a></span>
+<span id="L49" class="line"><a href="#L49">49</a>ClimbTowerConst.GuideIndex = {</span>
+<span id="L50" class="line"><a href="#L50">50</a>    MAIN_PANEL_FIRST_ENTER = 1,  -- 活动主面板首次入场动画</span>
+<span id="L51" class="line"><a href="#L51">51</a>    INFO_PANEL_FIRST_SHOW  = 2,  -- 活动说明首次弹出</span>
+<span id="L52" class="line"><a href="#L52">52</a>    STORE_GUIDE_1_IN_MAIN  = 3,  -- 商店引导1（活动主面板，免费券用完）</span>
+<span id="L53" class="line"><a href="#L53">53</a>    STORE_GUIDE_2_IN_STORE = 4,  -- 商店引导2（商店面板内）</span>
+<span id="L54" class="line"><a href="#L54">54</a>    PURCHASE_OFFER_SHOWN   = 5,  -- ON2 大奖直购机会展示已弹过（一期一次，避免重复打扰）</span>
+<span id="L55" class="line"><a href="#L55">55</a>}</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>-- 本地推送（仅 App，小游戏不推）</span>
+<span id="L58" class="line"><a href="#L58">58</a>-- 推送 1：当前层仅剩升级奖励且非第 5 层    → 每日 20:00 × 1</span>
+<span id="L59" class="line"><a href="#L59">59</a>-- 推送 2：当前层为第 5 层（解锁大奖未领）  → 每日 10:00 + 20:00 各 × 1</span>
+<span id="L60" class="line"><a href="#L60">60</a>ClimbTowerConst.PushType = {</span>
+<span id="L61" class="line"><a href="#L61">61</a>    NEXT_LAYER = &quot;next_layer&quot;,   -- 推送 1</span>
+<span id="L62" class="line"><a href="#L62">62</a>    GRAND      = &quot;grand&quot;,        -- 推送 2</span>
+<span id="L63" class="line"><a href="#L63">63</a>}</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>ClimbTowerConst.PushText = {</span>
+<span id="L66" class="line"><a href="#L66">66</a>    [ClimbTowerConst.PushType.NEXT_LAYER] = {</span>
+<span id="L67" class="line"><a href="#L67">67</a>        title   = &quot;冲顶夺宝，抽奖你最行！&quot;,</span>
+<span id="L68" class="line"><a href="#L68">68</a>        message = &quot;下抽必升一层！后面奖励更精彩！&quot;,</span>
+<span id="L69" class="line"><a href="#L69">69</a>    },</span>
+<span id="L70" class="line"><a href="#L70">70</a>    [ClimbTowerConst.PushType.GRAND] = {</span>
+<span id="L71" class="line"><a href="#L71">71</a>        title   = &quot;来领免费大奖啦！&quot;,</span>
+<span id="L72" class="line"><a href="#L72">72</a>        message = &quot;就差一步，超级大奖免费拿！&quot;,</span>
+<span id="L73" class="line"><a href="#L73">73</a>    },</span>
+<span id="L74" class="line"><a href="#L74">74</a>}</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>-- 推送时间点（小时偏移；UTC+8 当日 0 点起算）</span>
+<span id="L77" class="line"><a href="#L77">77</a>ClimbTowerConst.PushHourOffsets = {</span>
+<span id="L78" class="line"><a href="#L78">78</a>    [ClimbTowerConst.PushType.NEXT_LAYER] = { 20 },       -- 仅 20:00</span>
+<span id="L79" class="line"><a href="#L79">79</a>    [ClimbTowerConst.PushType.GRAND]      = { 10, 20 },   -- 10:00 + 20:00</span>
+<span id="L80" class="line"><a href="#L80">80</a>}</span>
+<span id="L81" class="line"><a href="#L81">81</a></span>
+<span id="L82" class="line"><a href="#L82">82</a>return ClimbTowerConst</span></pre></main></html>

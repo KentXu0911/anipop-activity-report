@@ -1,0 +1,18 @@
+﻿name,type,requested_schedule,conditions,source,line
+幸运快递,21,首次符合条件的后台事件排程时刻＋23.5小时；当天排过程则不重排,活动启用且当天任务未完成；非小游戏,amf/feature/localactivity/luckydelivery/localpush/LocalPush.lua,30
+开心快递,21,首次符合条件的后台事件排程时刻＋23.5小时；当天排过程则不重排,实际上游资格见Manager，非小游戏；不是实际登录时刻＋23.5小时,amf/feature/localactivity/happydelivery/localpush/LocalPush.lua,24
+每日夺宝正式期,71,正式期内周六/周日18:00，今天到活动结束逐天尝试排程,活动启用；今天剩余次数>0，未来日期按免费次数刷新预测；已过18:00不补发,amf/feature/localactivity/dailylevel/LocalPush.lua,29
+每日夺宝领奖期,72,领奖期内每天18:00,现有数据判断有奖可领；不要求排程时已进入领奖期,amf/feature/localactivity/dailylevel/LocalPush.lua,57
+回馈狂欢,70,今天或明天10:00/20:00中首个距离当前至少4小时的时间,活动启用且推送时刻严格早于正式期结束；进入后台重建,amf/feature/localactivity/shopreward/logic/ShopRewardLocalPushLogic.lua,26
+冲顶夺宝,21,今天至第3天：仅剩升层奖励时20:00；接近大奖层时10:00和20:00,活动启用且正式期；未领大奖；时刻在正式期内；最终同日同组去重,amf/feature/localactivity/climbtower/plug/LocalPush.lua,27
+小合合,73,当天12:00,启用且尚未到12:00，12:00早于正式期结束；数据刷新入口有会话内registerPush标记,amf/feature/localactivity/mergeevolution/plug/LocalPush.lua,19
+妙音合合,21,当天12:00/18:00/20:00各添加候选,启用、未来时刻且早于正式期结束；同日同组最终通常只保留一条,amf/feature/localactivity/musicmerge/plug/LocalPush.lua,19
+超级魔力鸟保鸟提醒,54,调用时刻＋1小时、＋24小时,UBF tryRegisterPush接入；最终时段修正和同组去重；完整上游保鸟资格另需看UBF生命周期,amf/feature/localactivity/supermagicbird/localpush/LocalPush.lua,13
+签到未领,29,当前＋30分钟，若早于18点调整到18点；计算后小时≥22则不排,当天尚未签到；App后台事件且模块启用；原实现调整小时/分钟时未重置秒,amf/feature/dailyreward/mark/push/LocalPush.lua,13
+签到月奖励,23,月末3个日期19:00,月签到≥15、月奖励未领；日期在未来或今天尚未签到,amf/feature/dailyreward/mark/push/LocalPush.lua,37
+过关领勋章,42/动态typeId,业务提交关键日12:00或当天20:30，也可逐条读取pushList时间文案,type42实际为受限上午组，公共调度会改排08:00，不保证原提交时间送达,amf/feature/dailyreward/promotedaily/localpush/LocalPush.lua,11
+集字果树,45,果子成熟时刻：毫秒除1000向下取整,成熟时间晚于现在；先撤旧再排,amf/feature/fruittree/act/collectword/localpush/LocalPush.lua,12
+新关发布,17,倒计时结束减UTC偏移,玩家最高关≥本地最高关−5，存在当前/下一倒计时区域且未到期,amf/middleware/data/userdata/levelarea/localpush/LocalPush.lua,11
+区域解锁,2,调用方给出的notifyTime,先删除旧type2；上游解锁状态不由此工具函数判断,amf/feature/mainscene/module/areaunlock/logic/LocalPush.lua,12
+精力回满,20,当前时间＋计算出的回满秒数,enablePush且回满间隔>0,amf/feature/mainscene/module/assetsbar/energy/localpush/LocalPush.lua,13
+离线召回,30/31/32,当天零点＋7/8/9天，再由公共调度改为对应日08:00,并非精确离线168/192/216小时；受上午竞争、近1小时过滤,amf/middleware/data/userdata/user/localpush/LocalPush.lua,16

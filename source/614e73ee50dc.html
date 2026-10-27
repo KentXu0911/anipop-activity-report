@@ -1,0 +1,210 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/script/spring/ioc/animal/startup/config/ModuleDI.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="614e73ee50dc.lua" download>下载Lua原文</a></p><h1>amf/script/spring/ioc/animal/startup/config/ModuleDI.lua</h1><p>SHA256 a2bdcd95b1a8f570f6b5120e5da9c98db5ccbf1b7bfc8da1b74bf2470f20de9d</p><pre><span id="L1" class="line"><a href="#L1">1</a>--------------------- 注意事项 ---------------------</span>
+<span id="L2" class="line"><a href="#L2">2</a>-- id是必须的</span>
+<span id="L3" class="line"><a href="#L3">3</a>--class 和 routes 二选一</span>
+<span id="L4" class="line"><a href="#L4">4</a>--routes 用于跨平台的class路径配置, 优先寻找routes， 没找到使用class作为默认路径</span>
+<span id="L5" class="line"><a href="#L5">5</a>--[[</span>
+<span id="L6" class="line"><a href="#L6">6</a>routes = {</span>
+<span id="L7" class="line"><a href="#L7">7</a>    android = &quot;amf.middleware.data.userdata.android.AMFUserTagManager&quot;,</span>
+<span id="L8" class="line"><a href="#L8">8</a>    ios = &quot;amf.middleware.data.userdata.ios.AMFUserTagManager&quot;,</span>
+<span id="L9" class="line"><a href="#L9">9</a>    ohos = &quot;amf.middleware.data.userdata.ohos.AMFUserTagManager&quot;,</span>
+<span id="L10" class="line"><a href="#L10">10</a>    linux = &quot;amf.middleware.data.userdata.linux.AMFUserTagManager&quot;,</span>
+<span id="L11" class="line"><a href="#L11">11</a>    win32 = &quot;amf.middleware.data.userdata.win32.AMFUserTagManager&quot;,</span>
+<span id="L12" class="line"><a href="#L12">12</a>},</span>
+<span id="L13" class="line"><a href="#L13">13</a>]]</span>
+<span id="L14" class="line"><a href="#L14">14</a>-- scope字段默认为singleton，可以缺省</span>
+<span id="L15" class="line"><a href="#L15">15</a>-- lazyInit字段默认为false，可以缺省</span>
+<span id="L16" class="line"><a href="#L16">16</a>-- constructorArgs字段默认为nil，可以缺省，constructorArgs内部除value字段外，其它也可缺省</span>
+<span id="L17" class="line"><a href="#L17">17</a>--      如果有constructorArgs字段，create时会依次传入参数，注意顺序和空值</span>
+<span id="L18" class="line"><a href="#L18">18</a>-- initMethod字段默认为nil，可以缺省，如果有initMethod字段，则在bean实例化后会调用该方法，调用顺序是create-&gt;setProperties-&gt;initMethod</span>
+<span id="L19" class="line"><a href="#L19">19</a>--      用到其它类的实例做初始化时，可以在initMethod中调用，此时其它类已经被注入了</span>
+<span id="L20" class="line"><a href="#L20">20</a>-- properties字段默认为nil，可以缺省，其内type字段可缺省</span>
+<span id="L21" class="line"><a href="#L21">21</a>--      name字段是必须的，且保证对应的类中已经定义了对应的setter方法，比如name为propParam1NameA，则类中必须有setPropParam1NameA方法</span>
+<span id="L22" class="line"><a href="#L22">22</a>--      value和ref字段至少有一个，value和ref字段不要同时存在，会优先判断value字段</span>
+<span id="L23" class="line"><a href="#L23">23</a>--      ref字段是要注入的其它类的id，其它类必须在本配置文件中定义，否则会报错</span>
+<span id="L24" class="line"><a href="#L24">24</a>-- autoRegEvent字段默认nil, 为true时，自动注册到EventCenter的FeatureEventBus，SystemEventBus，TransactionEventBus</span>
+<span id="L25" class="line"><a href="#L25">25</a>---------------------------------------------------</span>
+<span id="L26" class="line"><a href="#L26">26</a>-- ioc框架支持循环引用，示例本身就是循环引用的例子：CongfigA_ClassA-&gt;CongfigA_ClassB-&gt;CongfigB_ClassC-&gt;CongfigA_ClassA</span>
+<span id="L27" class="line"><a href="#L27">27</a>-- 注意：循环引用时，如果定义了initMethod，initMethod的调用顺序与实例创建顺序是反的</span>
+<span id="L28" class="line"><a href="#L28">28</a>---------------------------------------------------</span>
+<span id="L29" class="line"><a href="#L29">29</a>-- ClassConfigA.lua和ClassConfigB.lua是两个示例配置文件</span>
+<span id="L30" class="line"><a href="#L30">30</a>-- 最简单的定义方式是只有id和class字段，其它字段都可以缺省，像ClassConfigB.lua中的CongfigB_ClassD和CongfigB_ClassE</span>
+<span id="L31" class="line"><a href="#L31">31</a>---------------------------------------------------</span>
+<span id="L32" class="line"><a href="#L32">32</a>return {</span>
+<span id="L33" class="line"><a href="#L33">33</a>    {</span>
+<span id="L34" class="line"><a href="#L34">34</a>        id = &quot;LocationService&quot;,</span>
+<span id="L35" class="line"><a href="#L35">35</a>        class = &quot;amf.middleware.service.location.LocationServiceBase&quot;,</span>
+<span id="L36" class="line"><a href="#L36">36</a>        autoRegEvent = true,</span>
+<span id="L37" class="line"><a href="#L37">37</a>        routes = {</span>
+<span id="L38" class="line"><a href="#L38">38</a>            android = &quot;amf.middleware.service.location.android.LocationService&quot;,</span>
+<span id="L39" class="line"><a href="#L39">39</a>            ios = &quot;amf.middleware.service.location.ios.LocationService&quot;,</span>
+<span id="L40" class="line"><a href="#L40">40</a>            ohos = &quot;amf.middleware.service.location.ohos.LocationService&quot;,</span>
+<span id="L41" class="line"><a href="#L41">41</a>        },</span>
+<span id="L42" class="line"><a href="#L42">42</a>        properties = {</span>
+<span id="L43" class="line"><a href="#L43">43</a>            {name = &quot;userManager&quot;, ref = &quot;UserManager&quot;},</span>
+<span id="L44" class="line"><a href="#L44">44</a>            {name = &quot;deviceManager&quot;, ref = &quot;DeviceManager&quot;},</span>
+<span id="L45" class="line"><a href="#L45">45</a>        },</span>
+<span id="L46" class="line"><a href="#L46">46</a>    },</span>
+<span id="L47" class="line"><a href="#L47">47</a>    {</span>
+<span id="L48" class="line"><a href="#L48">48</a>        id = &quot;AnnouncementMgr&quot;,</span>
+<span id="L49" class="line"><a href="#L49">49</a>        class = &quot;amf.middleware.notification.announce.AnnouncementMgr&quot;,</span>
+<span id="L50" class="line"><a href="#L50">50</a>        properties = {</span>
+<span id="L51" class="line"><a href="#L51">51</a>            {name = &quot;userManager&quot;, ref = &quot;UserManager&quot;},</span>
+<span id="L52" class="line"><a href="#L52">52</a>            {name = &quot;loginUtil&quot;, ref = &quot;LoginUtil&quot;},</span>
+<span id="L53" class="line"><a href="#L53">53</a>        },</span>
+<span id="L54" class="line"><a href="#L54">54</a>    },</span>
+<span id="L55" class="line"><a href="#L55">55</a>    {</span>
+<span id="L56" class="line"><a href="#L56">56</a>        id = &quot;PopoutManager&quot;,</span>
+<span id="L57" class="line"><a href="#L57">57</a>        class = &quot;amf.middleware.ui.popout.AMFPopoutManager&quot;,</span>
+<span id="L58" class="line"><a href="#L58">58</a>        initMethod = &quot;init&quot;,</span>
+<span id="L59" class="line"><a href="#L59">59</a>        autoRegEvent = true,</span>
+<span id="L60" class="line"><a href="#L60">60</a>    },</span>
+<span id="L61" class="line"><a href="#L61">61</a>    {</span>
+<span id="L62" class="line"><a href="#L62">62</a>        id = &quot;AssetsUtil&quot;,</span>
+<span id="L63" class="line"><a href="#L63">63</a>        class = &quot;amf.middleware.resmanagement.util.AssetsUtil&quot;,</span>
+<span id="L64" class="line"><a href="#L64">64</a>        noneInstantiable = true,</span>
+<span id="L65" class="line"><a href="#L65">65</a>    },</span>
+<span id="L66" class="line"><a href="#L66">66</a>    {</span>
+<span id="L67" class="line"><a href="#L67">67</a>        id = &quot;Rank2026AssetManager&quot;,</span>
+<span id="L68" class="line"><a href="#L68">68</a>        class = &quot;amf.middleware.ui.kit.panel.rank2026.Rank2026AssetManager&quot;,</span>
+<span id="L69" class="line"><a href="#L69">69</a>        initMethod = &quot;initialize&quot;,</span>
+<span id="L70" class="line"><a href="#L70">70</a>    },</span>
+<span id="L71" class="line"><a href="#L71">71</a>    {</span>
+<span id="L72" class="line"><a href="#L72">72</a>        id = &quot;HideAreaConfigParser&quot;,</span>
+<span id="L73" class="line"><a href="#L73">73</a>        class = &quot;amf.middleware.levelarea.levelconfig.HideAreaConfigParser&quot;,</span>
+<span id="L74" class="line"><a href="#L74">74</a>        initMethod = &quot;init&quot;,</span>
+<span id="L75" class="line"><a href="#L75">75</a>    },</span>
+<span id="L76" class="line"><a href="#L76">76</a>    {</span>
+<span id="L77" class="line"><a href="#L77">77</a>        id = &quot;LevelAreaConfigParser&quot;,</span>
+<span id="L78" class="line"><a href="#L78">78</a>        class = &quot;amf.middleware.levelarea.levelconfig.LevelAreaConfigParser&quot;,</span>
+<span id="L79" class="line"><a href="#L79">79</a>        initMethod = &quot;init&quot;,</span>
+<span id="L80" class="line"><a href="#L80">80</a>    },</span>
+<span id="L81" class="line"><a href="#L81">81</a>    {</span>
+<span id="L82" class="line"><a href="#L82">82</a>        id = &quot;LevelUnlockConfigParser&quot;,</span>
+<span id="L83" class="line"><a href="#L83">83</a>        class = &quot;amf.middleware.levelarea.levelconfig.LevelUnlockConfigParser&quot;,</span>
+<span id="L84" class="line"><a href="#L84">84</a>        initMethod = &quot;init&quot;,</span>
+<span id="L85" class="line"><a href="#L85">85</a>    },</span>
+<span id="L86" class="line"><a href="#L86">86</a>    {</span>
+<span id="L87" class="line"><a href="#L87">87</a>        id = &quot;UnlockManager&quot;,</span>
+<span id="L88" class="line"><a href="#L88">88</a>        class = &quot;amf.middleware.levelarea.unlock.UnlockManager&quot;,</span>
+<span id="L89" class="line"><a href="#L89">89</a>        initMethod = &quot;init&quot;,</span>
+<span id="L90" class="line"><a href="#L90">90</a>        properties = {</span>
+<span id="L91" class="line"><a href="#L91">91</a>            {name = &quot;HideAreaConfigParser&quot;, ref = &quot;HideAreaConfigParser&quot;},</span>
+<span id="L92" class="line"><a href="#L92">92</a>            {name = &quot;LevelAreaConfigParser&quot;, ref = &quot;LevelAreaConfigParser&quot;},</span>
+<span id="L93" class="line"><a href="#L93">93</a>            {name = &quot;LevelUnlockConfigParser&quot;, ref = &quot;LevelUnlockConfigParser&quot;},</span>
+<span id="L94" class="line"><a href="#L94">94</a>            {name = &quot;levelAreaManager&quot;, ref = &quot;LevelAreaManager&quot;},</span>
+<span id="L95" class="line"><a href="#L95">95</a>        },</span>
+<span id="L96" class="line"><a href="#L96">96</a>    },</span>
+<span id="L97" class="line"><a href="#L97">97</a>    {</span>
+<span id="L98" class="line"><a href="#L98">98</a>        id = &quot;LevelAreaConfigManager&quot;,</span>
+<span id="L99" class="line"><a href="#L99">99</a>        class = &quot;amf.middleware.levelarea.bridge.LevelAreaConfigManager&quot;,</span>
+<span id="L100" class="line"><a href="#L100">100</a>        initMethod = &quot;init&quot;,</span>
+<span id="L101" class="line"><a href="#L101">101</a>        properties = {</span>
+<span id="L102" class="line"><a href="#L102">102</a>            {name = &quot;HideAreaConfigParser&quot;, ref = &quot;HideAreaConfigParser&quot;},</span>
+<span id="L103" class="line"><a href="#L103">103</a>            {name = &quot;LevelAreaConfigParser&quot;, ref = &quot;LevelAreaConfigParser&quot;},</span>
+<span id="L104" class="line"><a href="#L104">104</a>        },</span>
+<span id="L105" class="line"><a href="#L105">105</a>    },</span>
+<span id="L106" class="line"><a href="#L106">106</a>    {</span>
+<span id="L107" class="line"><a href="#L107">107</a>        id = &quot;LevelUnLockManager&quot;,</span>
+<span id="L108" class="line"><a href="#L108">108</a>        class = &quot;amf.middleware.levelarea.bridge.LevelUnLockManager&quot;,</span>
+<span id="L109" class="line"><a href="#L109">109</a>        initMethod = &quot;init&quot;,</span>
+<span id="L110" class="line"><a href="#L110">110</a>        properties = {</span>
+<span id="L111" class="line"><a href="#L111">111</a>            {name = &quot;LevelAreaConfigParser&quot;, ref = &quot;LevelAreaConfigParser&quot;},</span>
+<span id="L112" class="line"><a href="#L112">112</a>            {name = &quot;levelAreaManager&quot;, ref = &quot;LevelAreaManager&quot;},</span>
+<span id="L113" class="line"><a href="#L113">113</a>            {name = &quot;unlockManager&quot;, ref = &quot;UnlockManager&quot;},</span>
+<span id="L114" class="line"><a href="#L114">114</a>            {name = &quot;LevelUnlockConfigParser&quot;, ref = &quot;LevelUnlockConfigParser&quot;},</span>
+<span id="L115" class="line"><a href="#L115">115</a>            </span>
+<span id="L116" class="line"><a href="#L116">116</a>        },</span>
+<span id="L117" class="line"><a href="#L117">117</a>    },</span>
+<span id="L118" class="line"><a href="#L118">118</a>    {</span>
+<span id="L119" class="line"><a href="#L119">119</a>        id = &quot;OpenDataUtil&quot;,</span>
+<span id="L120" class="line"><a href="#L120">120</a>        class = &quot;amf.middleware.opendata.system.common.OpenDataUtil&quot;,</span>
+<span id="L121" class="line"><a href="#L121">121</a>        noneInstantiable = true,</span>
+<span id="L122" class="line"><a href="#L122">122</a>        routes = {</span>
+<span id="L123" class="line"><a href="#L123">123</a>            mini = &quot;amf.middleware.opendata.system.mini.OpenDataUtil&quot;,</span>
+<span id="L124" class="line"><a href="#L124">124</a>        },</span>
+<span id="L125" class="line"><a href="#L125">125</a>    },</span>
+<span id="L126" class="line"><a href="#L126">126</a>    {</span>
+<span id="L127" class="line"><a href="#L127">127</a>        id = &quot;VersionUpdateManager&quot;,</span>
+<span id="L128" class="line"><a href="#L128">128</a>        class = &quot;amf.feature.versionupdate.VersionUpdateManager&quot;,</span>
+<span id="L129" class="line"><a href="#L129">129</a>        appOnly = true,</span>
+<span id="L130" class="line"><a href="#L130">130</a>        routes = {</span>
+<span id="L131" class="line"><a href="#L131">131</a>            android = &quot;amf.feature.versionupdate.system.android.VersionUpdateManagerAndroid&quot;,</span>
+<span id="L132" class="line"><a href="#L132">132</a>            ios = &quot;amf.feature.versionupdate.system.ios.VersionUpdateManagerIOS&quot;,</span>
+<span id="L133" class="line"><a href="#L133">133</a>            ohos = &quot;amf.feature.versionupdate.system.ohos.VersionUpdateManagerOhos&quot;,</span>
+<span id="L134" class="line"><a href="#L134">134</a>            win32 = &quot;amf.feature.versionupdate.system.win32.VersionUpdateManagerWin32&quot;,</span>
+<span id="L135" class="line"><a href="#L135">135</a>        },</span>
+<span id="L136" class="line"><a href="#L136">136</a>        properties = {</span>
+<span id="L137" class="line"><a href="#L137">137</a>            {name = &quot;optionalDataManager&quot;, ref = &quot;OptionalDataManager&quot;},</span>
+<span id="L138" class="line"><a href="#L138">138</a>            {name = &quot;levelAreaManager&quot;, ref = &quot;LevelAreaManager&quot;},</span>
+<span id="L139" class="line"><a href="#L139">139</a>            {name = &quot;networkStatusManager&quot;, ref = &quot;NetworkStatusManager&quot;},</span>
+<span id="L140" class="line"><a href="#L140">140</a>        },</span>
+<span id="L141" class="line"><a href="#L141">141</a>    },</span>
+<span id="L142" class="line"><a href="#L142">142</a>    {</span>
+<span id="L143" class="line"><a href="#L143">143</a>        id = &quot;PermissionManager&quot;,</span>
+<span id="L144" class="line"><a href="#L144">144</a>        class = &quot;amf.middleware.permission.system.common.PermissionManager&quot;,</span>
+<span id="L145" class="line"><a href="#L145">145</a>        appOnly = true,</span>
+<span id="L146" class="line"><a href="#L146">146</a>        routes = {</span>
+<span id="L147" class="line"><a href="#L147">147</a>            android = &quot;amf.middleware.permission.system.android.PermissionManagerAndroid&quot;,</span>
+<span id="L148" class="line"><a href="#L148">148</a>            ios = &quot;amf.middleware.permission.system.ios.PermissionManagerIOS&quot;,</span>
+<span id="L149" class="line"><a href="#L149">149</a>            ohos = &quot;amf.middleware.permission.system.ohos.PermissionManagerOhos&quot;,</span>
+<span id="L150" class="line"><a href="#L150">150</a>        }</span>
+<span id="L151" class="line"><a href="#L151">151</a>    },</span>
+<span id="L152" class="line"><a href="#L152">152</a>    {</span>
+<span id="L153" class="line"><a href="#L153">153</a>        id = &quot;HapticsHandler&quot;,</span>
+<span id="L154" class="line"><a href="#L154">154</a>        class = &quot;amf.middleware.haptics.HapticsHandler&quot;,</span>
+<span id="L155" class="line"><a href="#L155">155</a>        initMethod = &quot;initialize&quot;,</span>
+<span id="L156" class="line"><a href="#L156">156</a>        properties = {</span>
+<span id="L157" class="line"><a href="#L157">157</a>            {name = &quot;settingManager&quot;, ref = &quot;SettingManager&quot;},</span>
+<span id="L158" class="line"><a href="#L158">158</a>            {name = &quot;serverCacheManager&quot;, ref = &quot;ServerCacheManager&quot;},</span>
+<span id="L159" class="line"><a href="#L159">159</a>            {name = &quot;accountManager&quot;, ref = &quot;AccountManager&quot;},</span>
+<span id="L160" class="line"><a href="#L160">160</a>        }</span>
+<span id="L161" class="line"><a href="#L161">161</a>    },</span>
+<span id="L162" class="line"><a href="#L162">162</a>    {</span>
+<span id="L163" class="line"><a href="#L163">163</a>        id = &quot;ExitGameManager&quot;,</span>
+<span id="L164" class="line"><a href="#L164">164</a>        class = &quot;amf.middleware.exit.ExitGameManager&quot;,</span>
+<span id="L165" class="line"><a href="#L165">165</a>        initMethod = &quot;initialize&quot;,</span>
+<span id="L166" class="line"><a href="#L166">166</a>    },</span>
+<span id="L167" class="line"><a href="#L167">167</a>    {</span>
+<span id="L168" class="line"><a href="#L168">168</a>        id = &quot;FenceManager&quot;,</span>
+<span id="L169" class="line"><a href="#L169">169</a>        class = &quot;amf.middleware.fence.FenceManager&quot;,</span>
+<span id="L170" class="line"><a href="#L170">170</a>        initMethod = &quot;initialize&quot;,</span>
+<span id="L171" class="line"><a href="#L171">171</a>    },</span>
+<span id="L172" class="line"><a href="#L172">172</a>    {</span>
+<span id="L173" class="line"><a href="#L173">173</a>        id = &quot;HeadImageSyncManager&quot;,</span>
+<span id="L174" class="line"><a href="#L174">174</a>        class = &quot;amf.feature.personalhub.headimagesync.HeadImageSyncManager&quot;,</span>
+<span id="L175" class="line"><a href="#L175">175</a>        initMethod = &quot;initialize&quot;,</span>
+<span id="L176" class="line"><a href="#L176">176</a>        properties = {</span>
+<span id="L177" class="line"><a href="#L177">177</a>            {name = &quot;profileManager&quot;, ref = &quot;ProfileManager&quot;},</span>
+<span id="L178" class="line"><a href="#L178">178</a>            {name = &quot;accountManager&quot;, ref = &quot;AccountManager&quot;},</span>
+<span id="L179" class="line"><a href="#L179">179</a>            {name = &quot;fenceManager&quot;, ref = &quot;FenceManager&quot;},</span>
+<span id="L180" class="line"><a href="#L180">180</a>            {name = &quot;sdkLoginManager&quot;, ref = &quot;SDKLoginManager&quot;},</span>
+<span id="L181" class="line"><a href="#L181">181</a>        }</span>
+<span id="L182" class="line"><a href="#L182">182</a>    },</span>
+<span id="L183" class="line"><a href="#L183">183</a>    {</span>
+<span id="L184" class="line"><a href="#L184">184</a>        id = &quot;UpdateProfileManager&quot;,</span>
+<span id="L185" class="line"><a href="#L185">185</a>        class = &quot;amf.feature.personalhub.updateprofile.UpdateProfileManager&quot;,</span>
+<span id="L186" class="line"><a href="#L186">186</a>        initMethod = &quot;initialize&quot;,</span>
+<span id="L187" class="line"><a href="#L187">187</a>        properties = {</span>
+<span id="L188" class="line"><a href="#L188">188</a>            {name = &quot;profileManager&quot;, ref = &quot;ProfileManager&quot;},</span>
+<span id="L189" class="line"><a href="#L189">189</a>            {name = &quot;accountManager&quot;, ref = &quot;AccountManager&quot;},</span>
+<span id="L190" class="line"><a href="#L190">190</a>            {name = &quot;fenceManager&quot;, ref = &quot;FenceManager&quot;},</span>
+<span id="L191" class="line"><a href="#L191">191</a>            {name = &quot;sdkLoginManager&quot;, ref = &quot;SDKLoginManager&quot;},</span>
+<span id="L192" class="line"><a href="#L192">192</a>            {name = &quot;headImageSyncManager&quot;, ref = &quot;HeadImageSyncManager&quot;},</span>
+<span id="L193" class="line"><a href="#L193">193</a>        }</span>
+<span id="L194" class="line"><a href="#L194">194</a>    },</span>
+<span id="L195" class="line"><a href="#L195">195</a>    {</span>
+<span id="L196" class="line"><a href="#L196">196</a>        id = &quot;MiniGameAdaptor&quot;,</span>
+<span id="L197" class="line"><a href="#L197">197</a>        class = &quot;amf.middleware.multiplatform.minigameadaptor.MiniGameAdaptor&quot;,</span>
+<span id="L198" class="line"><a href="#L198">198</a>        initMethod = &quot;initialize&quot;,</span>
+<span id="L199" class="line"><a href="#L199">199</a>    },</span>
+<span id="L200" class="line"><a href="#L200">200</a>    {</span>
+<span id="L201" class="line"><a href="#L201">201</a>        id = &quot;InLevelBridgeManager&quot;,</span>
+<span id="L202" class="line"><a href="#L202">202</a>        class = &quot;amf.middleware.activity.base.inlevelbridge.InLevelBridgeManager&quot;,</span>
+<span id="L203" class="line"><a href="#L203">203</a>        initMethod = &quot;initialize&quot;,</span>
+<span id="L204" class="line"><a href="#L204">204</a>    },</span>
+<span id="L205" class="line"><a href="#L205">205</a>    {</span>
+<span id="L206" class="line"><a href="#L206">206</a>        id = &quot;CloudMusicTaskReportManager&quot;,</span>
+<span id="L207" class="line"><a href="#L207">207</a>        class = &quot;amf.feature.localactivity.cloudmusictask.CloudMusicTaskReportManager&quot;,</span>
+<span id="L208" class="line"><a href="#L208">208</a>        initMethod = &quot;initialize&quot;,</span>
+<span id="L209" class="line"><a href="#L209">209</a>    },</span>
+<span id="L210" class="line"><a href="#L210">210</a>}</span></pre></main></html>

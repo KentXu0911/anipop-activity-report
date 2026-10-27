@@ -1,0 +1,1328 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/stellarconvergence/system/StellarConvergenceManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="3bf7ebee712e.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/stellarconvergence/system/StellarConvergenceManager.lua</h1><p>SHA256 abe3c219d5731d3115a6ad267fe1a549de9ba366a547ab4c9772188df4c81f28</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureManager = require &quot;amf.middleware.activity.base.BaseFeatureManager&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local PropEventCenter = require &quot;amf.middleware.prop.event.PropEventCenter&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local StellarConvergenceDC = require(&quot;amf.feature.localactivity.stellarconvergence.dc.StellarConvergenceDC&quot;)</span>
+<span id="L6" class="line"><a href="#L6">6</a>local CircularTitle = require &quot;amf.middleware.ui.kit.component.CircularTitle&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local MainSceneEventCenter = require &#x27;amf.feature.mainscene.core.event.MainSceneEventCenter&#x27;</span>
+<span id="L8" class="line"><a href="#L8">8</a>local Condition = require &quot;amf.script.sugar.Condition&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>local Manager = class(&quot;StellarConvergenceManager&quot;, BaseFeatureManager)</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>local __debug = false</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>-- 获取需要启动的额外功能列表</span>
+<span id="L14" class="line"><a href="#L14">14</a>function Manager:_getExtraPlugsConfigList()</span>
+<span id="L15" class="line"><a href="#L15">15</a>    return {{</span>
+<span id="L16" class="line"><a href="#L16">16</a>        key = &quot;Download&quot;</span>
+<span id="L17" class="line"><a href="#L17">17</a>    }, {</span>
+<span id="L18" class="line"><a href="#L18">18</a>        key = &quot;Panel&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a>    }, {</span>
+<span id="L20" class="line"><a href="#L20">20</a>        key = &quot;Rewards&quot;</span>
+<span id="L21" class="line"><a href="#L21">21</a>    }}</span>
+<span id="L22" class="line"><a href="#L22">22</a>end</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>function Manager:_getConstPath()</span>
+<span id="L25" class="line"><a href="#L25">25</a>    return &quot;amf.feature.localactivity.stellarconvergence.config.StellarConvergenceConst&quot;</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>function Manager:_getModelPath()</span>
+<span id="L29" class="line"><a href="#L29">29</a>    return &quot;amf.feature.localactivity.stellarconvergence.model.StellarConvergenceModel&quot;</span>
+<span id="L30" class="line"><a href="#L30">30</a>end</span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>function Manager:_getGroupPath()</span>
+<span id="L33" class="line"><a href="#L33">33</a>    return &quot;amf.feature.localactivity.stellarconvergence.config.StellarConvergenceGroup&quot;</span>
+<span id="L34" class="line"><a href="#L34">34</a>end</span>
+<span id="L35" class="line"><a href="#L35">35</a></span>
+<span id="L36" class="line"><a href="#L36">36</a>function Manager:_getDCPath()</span>
+<span id="L37" class="line"><a href="#L37">37</a>    return &quot;amf.feature.localactivity.stellarconvergence.dc.StellarConvergenceDC&quot;</span>
+<span id="L38" class="line"><a href="#L38">38</a>end</span>
+<span id="L39" class="line"><a href="#L39">39</a></span>
+<span id="L40" class="line"><a href="#L40">40</a>function Manager:_init()</span>
+<span id="L41" class="line"><a href="#L41">41</a>    self._group = require(self:_getGroupPath())</span>
+<span id="L42" class="line"><a href="#L42">42</a>    self._dc = require(self:_getDCPath())</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>    self:registerActProps()</span>
+<span id="L45" class="line"><a href="#L45">45</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)</span>
+<span id="L46" class="line"><a href="#L46">46</a>    </span>
+<span id="L47" class="line"><a href="#L47">47</a>    -- 过关炫耀强弹见 PassLevelShowOffModule 统一处理，不再在此注册</span>
+<span id="L48" class="line"><a href="#L48">48</a>    -- MainSceneEventCenter:register(MainSceneEvent.Play.HANDLE_PASS_LEVEL, self.onHandleChangeLevel, self, MSP.PassLevel.STELLAR_CHANGE_LEVEL)</span>
+<span id="L49" class="line"><a href="#L49">49</a>    </span>
+<span id="L50" class="line"><a href="#L50">50</a>    self:tryloadRes()</span>
+<span id="L51" class="line"><a href="#L51">51</a>    </span>
+<span id="L52" class="line"><a href="#L52">52</a>    -- 校验并修复 curRankType 缓存（防止离线修改星级后缓存值过高）</span>
+<span id="L53" class="line"><a href="#L53">53</a>    self:validateAndFixCurRankType(true)</span>
+<span id="L54" class="line"><a href="#L54">54</a>    PropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)</span>
+<span id="L55" class="line"><a href="#L55">55</a>end</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>-- 注册活动道具</span>
+<span id="L58" class="line"><a href="#L58">58</a>function Manager:registerActProps()</span>
+<span id="L59" class="line"><a href="#L59">59</a>    require(&quot;amf.feature.localactivity.stellarconvergence.prop.AMFProp_57248&quot;)</span>
+<span id="L60" class="line"><a href="#L60">60</a>end</span>
+<span id="L61" class="line"><a href="#L61">61</a></span>
+<span id="L62" class="line"><a href="#L62">62</a>function Manager:isEnabled()</span>
+<span id="L63" class="line"><a href="#L63">63</a>    if not self._group then</span>
+<span id="L64" class="line"><a href="#L64">64</a>        return false</span>
+<span id="L65" class="line"><a href="#L65">65</a>    end</span>
+<span id="L66" class="line"><a href="#L66">66</a>    return self._group:isFeatureEnabled()</span>
+<span id="L67" class="line"><a href="#L67">67</a>end</span>
+<span id="L68" class="line"><a href="#L68">68</a></span>
+<span id="L69" class="line"><a href="#L69">69</a>function Manager:isDebug()</span>
+<span id="L70" class="line"><a href="#L70">70</a>    return __debug</span>
+<span id="L71" class="line"><a href="#L71">71</a>end</span>
+<span id="L72" class="line"><a href="#L72">72</a></span>
+<span id="L73" class="line"><a href="#L73">73</a>function Manager:tryloadRes(successCallback, failCallback, cancelCallback)</span>
+<span id="L74" class="line"><a href="#L74">74</a>    if self:isFullLevelLocal() then</span>
+<span id="L75" class="line"><a href="#L75">75</a>        self:tryloadNormalRes(function ()</span>
+<span id="L76" class="line"><a href="#L76">76</a>            self:tryloadFullLevelRes(successCallback, failCallback, cancelCallback)</span>
+<span id="L77" class="line"><a href="#L77">77</a>        end, failCallback, cancelCallback)</span>
+<span id="L78" class="line"><a href="#L78">78</a>    else</span>
+<span id="L79" class="line"><a href="#L79">79</a>        self:tryloadNormalRes(successCallback, failCallback, cancelCallback)</span>
+<span id="L80" class="line"><a href="#L80">80</a>    end</span>
+<span id="L81" class="line"><a href="#L81">81</a>end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>function Manager:tryloadNormalRes(successCallback, failCallback, cancelCallback)</span>
+<span id="L84" class="line"><a href="#L84">84</a>    if self:isNormalResReady() then </span>
+<span id="L85" class="line"><a href="#L85">85</a>        safeRunCall(successCallback)</span>
+<span id="L86" class="line"><a href="#L86">86</a>        return </span>
+<span id="L87" class="line"><a href="#L87">87</a>    end</span>
+<span id="L88" class="line"><a href="#L88">88</a>    local function _onResReady()</span>
+<span id="L89" class="line"><a href="#L89">89</a>        self._isNormalResReady = true</span>
+<span id="L90" class="line"><a href="#L90">90</a>        safeRunCall(successCallback)</span>
+<span id="L91" class="line"><a href="#L91">91</a>    end</span>
+<span id="L92" class="line"><a href="#L92">92</a>    AssetsUtil:loadDynamicModule(&quot;meta/StellarConvergenceRes.xml&quot;, _onResReady, failCallback, cancelCallback)</span>
+<span id="L93" class="line"><a href="#L93">93</a>end</span>
+<span id="L94" class="line"><a href="#L94">94</a></span>
+<span id="L95" class="line"><a href="#L95">95</a>function Manager:tryloadFullLevelRes(successCallback, failCallback, cancelCallback)</span>
+<span id="L96" class="line"><a href="#L96">96</a>    if self:isFullLevelResReady() then </span>
+<span id="L97" class="line"><a href="#L97">97</a>        safeRunCall(successCallback)</span>
+<span id="L98" class="line"><a href="#L98">98</a>        return </span>
+<span id="L99" class="line"><a href="#L99">99</a>    end</span>
+<span id="L100" class="line"><a href="#L100">100</a>    local function _onResReady()</span>
+<span id="L101" class="line"><a href="#L101">101</a>        self._isFullLevelResReady = true</span>
+<span id="L102" class="line"><a href="#L102">102</a>        safeRunCall(successCallback)</span>
+<span id="L103" class="line"><a href="#L103">103</a>    end</span>
+<span id="L104" class="line"><a href="#L104">104</a>    AssetsUtil:loadDynamicModule(&quot;meta/StellarConvergenceFullLevelRes.xml&quot;, _onResReady, failCallback, cancelCallback)</span>
+<span id="L105" class="line"><a href="#L105">105</a>end</span>
+<span id="L106" class="line"><a href="#L106">106</a></span>
+<span id="L107" class="line"><a href="#L107">107</a>function Manager:isResReady()</span>
+<span id="L108" class="line"><a href="#L108">108</a>    if self:isFullLevelLocal() then</span>
+<span id="L109" class="line"><a href="#L109">109</a>        return self:isNormalResReady() and self:isFullLevelResReady()</span>
+<span id="L110" class="line"><a href="#L110">110</a>    else</span>
+<span id="L111" class="line"><a href="#L111">111</a>        return self:isNormalResReady()</span>
+<span id="L112" class="line"><a href="#L112">112</a>    end</span>
+<span id="L113" class="line"><a href="#L113">113</a>end</span>
+<span id="L114" class="line"><a href="#L114">114</a></span>
+<span id="L115" class="line"><a href="#L115">115</a>function Manager:isNormalResReady()</span>
+<span id="L116" class="line"><a href="#L116">116</a>    return self._isNormalResReady</span>
+<span id="L117" class="line"><a href="#L117">117</a>end</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>function Manager:isFullLevelResReady()</span>
+<span id="L120" class="line"><a href="#L120">120</a>    return self._isFullLevelResReady</span>
+<span id="L121" class="line"><a href="#L121">121</a>end</span>
+<span id="L122" class="line"><a href="#L122">122</a></span>
+<span id="L123" class="line"><a href="#L123">123</a>function Manager:isDataEnabled()</span>
+<span id="L124" class="line"><a href="#L124">124</a>    return self:isEnabled() and self:getModel():isDataEnabled()</span>
+<span id="L125" class="line"><a href="#L125">125</a>end</span>
+<span id="L126" class="line"><a href="#L126">126</a></span>
+<span id="L127" class="line"><a href="#L127">127</a>function Manager:isPeriodEnabled()</span>
+<span id="L128" class="line"><a href="#L128">128</a>    local period = self:getPeriod()</span>
+<span id="L129" class="line"><a href="#L129">129</a>    if period &lt;= 0 then</span>
+<span id="L130" class="line"><a href="#L130">130</a>        return false</span>
+<span id="L131" class="line"><a href="#L131">131</a>    end</span>
+<span id="L132" class="line"><a href="#L132">132</a></span>
+<span id="L133" class="line"><a href="#L133">133</a>    local curTime = TimeKit:timeInSec()</span>
+<span id="L134" class="line"><a href="#L134">134</a>    local startTime = self:getStartTimeSec()</span>
+<span id="L135" class="line"><a href="#L135">135</a>    local endTime = self:getLastEndTimeSec()</span>
+<span id="L136" class="line"><a href="#L136">136</a>    if startTime &lt;= 0 or endTime &lt;= 0 then</span>
+<span id="L137" class="line"><a href="#L137">137</a>        return false</span>
+<span id="L138" class="line"><a href="#L138">138</a>    end</span>
+<span id="L139" class="line"><a href="#L139">139</a></span>
+<span id="L140" class="line"><a href="#L140">140</a>    return curTime &gt;= startTime and curTime &lt;= endTime</span>
+<span id="L141" class="line"><a href="#L141">141</a>end</span>
+<span id="L142" class="line"><a href="#L142">142</a></span>
+<span id="L143" class="line"><a href="#L143">143</a>function Manager:updateData(data)</span>
+<span id="L144" class="line"><a href="#L144">144</a>    self:getModel():assignData(data)</span>
+<span id="L145" class="line"><a href="#L145">145</a>end</span>
+<span id="L146" class="line"><a href="#L146">146</a></span>
+<span id="L147" class="line"><a href="#L147">147</a>function Manager:getDC()</span>
+<span id="L148" class="line"><a href="#L148">148</a>    return self._dc</span>
+<span id="L149" class="line"><a href="#L149">149</a>end</span>
+<span id="L150" class="line"><a href="#L150">150</a></span>
+<span id="L151" class="line"><a href="#L151">151</a>function Manager:getGroup()</span>
+<span id="L152" class="line"><a href="#L152">152</a>    return self._group</span>
+<span id="L153" class="line"><a href="#L153">153</a>end</span>
+<span id="L154" class="line"><a href="#L154">154</a></span>
+<span id="L155" class="line"><a href="#L155">155</a>-------------------------------------- 封装 ----------------------------------</span>
+<span id="L156" class="line"><a href="#L156">156</a>function Manager:addRewardsForShop(rewardDirectList, param, endCall, resOrEvt)</span>
+<span id="L157" class="line"><a href="#L157">157</a>    self:callPlug(&quot;Rewards&quot;, &quot;addRewardsForShop&quot;, rewardDirectList, param, endCall, resOrEvt)</span>
+<span id="L158" class="line"><a href="#L158">158</a>end</span>
+<span id="L159" class="line"><a href="#L159">159</a></span>
+<span id="L160" class="line"><a href="#L160">160</a>function Manager:addRewardsNormal(rewards, params)</span>
+<span id="L161" class="line"><a href="#L161">161</a>    self:callPlug(&quot;Rewards&quot;, &quot;addRewardsNormal&quot;, rewards, params)</span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>function Manager:openActivity(delegate)</span>
+<span id="L165" class="line"><a href="#L165">165</a>    self:callPlug(&quot;Act&quot;, &quot;openActivity&quot;, delegate)</span>
+<span id="L166" class="line"><a href="#L166">166</a>end</span>
+<span id="L167" class="line"><a href="#L167">167</a></span>
+<span id="L168" class="line"><a href="#L168">168</a>function Manager:getActivityIcon()</span>
+<span id="L169" class="line"><a href="#L169">169</a>    return self:callPlug(&quot;Act&quot;, &quot;getActIcon&quot;)</span>
+<span id="L170" class="line"><a href="#L170">170</a>end</span>
+<span id="L171" class="line"><a href="#L171">171</a></span>
+<span id="L172" class="line"><a href="#L172">172</a>function Manager:refreshActivityIcon(reason, icon)</span>
+<span id="L173" class="line"><a href="#L173">173</a>    icon = icon or self:getActivityIcon()</span>
+<span id="L174" class="line"><a href="#L174">174</a>    if not isSafeCocosObj(icon) then</span>
+<span id="L175" class="line"><a href="#L175">175</a>        return false, icon</span>
+<span id="L176" class="line"><a href="#L176">176</a>    end</span>
+<span id="L177" class="line"><a href="#L177">177</a></span>
+<span id="L178" class="line"><a href="#L178">178</a>    if type(icon.refreshProvider) == &quot;function&quot; then</span>
+<span id="L179" class="line"><a href="#L179">179</a>        pcall(icon.refreshProvider, icon, reason)</span>
+<span id="L180" class="line"><a href="#L180">180</a>        return true, icon</span>
+<span id="L181" class="line"><a href="#L181">181</a>    end</span>
+<span id="L182" class="line"><a href="#L182">182</a></span>
+<span id="L183" class="line"><a href="#L183">183</a>    if type(icon.updateIcon) == &quot;function&quot; then</span>
+<span id="L184" class="line"><a href="#L184">184</a>        pcall(icon.updateIcon, icon)</span>
+<span id="L185" class="line"><a href="#L185">185</a>    end</span>
+<span id="L186" class="line"><a href="#L186">186</a>    return false, icon</span>
+<span id="L187" class="line"><a href="#L187">187</a>end</span>
+<span id="L188" class="line"><a href="#L188">188</a></span>
+<span id="L189" class="line"><a href="#L189">189</a>function Manager:updateTipView()</span>
+<span id="L190" class="line"><a href="#L190">190</a>    return self:callPlug(&quot;Act&quot;, &quot;updateTipView&quot;)</span>
+<span id="L191" class="line"><a href="#L191">191</a>end</span>
+<span id="L192" class="line"><a href="#L192">192</a></span>
+<span id="L193" class="line"><a href="#L193">193</a>-------------------------------------- 协议 --------------------------------------</span>
+<span id="L194" class="line"><a href="#L194">194</a>-- 星光宝盒领奖</span>
+<span id="L195" class="line"><a href="#L195">195</a>function Manager:requestStarRewards(areaId, from)</span>
+<span id="L196" class="line"><a href="#L196">196</a>    local promise = deferred.new()</span>
+<span id="L197" class="line"><a href="#L197">197</a></span>
+<span id="L198" class="line"><a href="#L198">198</a>    if areaId &lt; 40000 then</span>
+<span id="L199" class="line"><a href="#L199">199</a>        areaId = areaId + 40000</span>
+<span id="L200" class="line"><a href="#L200">200</a>    end</span>
+<span id="L201" class="line"><a href="#L201">201</a></span>
+<span id="L202" class="line"><a href="#L202">202</a>    self:getModel():requestGetStarRewards({</span>
+<span id="L203" class="line"><a href="#L203">203</a>        areaId = areaId</span>
+<span id="L204" class="line"><a href="#L204">204</a>    }, false):next(function(response)</span>
+<span id="L205" class="line"><a href="#L205">205</a>        local data = response:getData()</span>
+<span id="L206" class="line"><a href="#L206">206</a></span>
+<span id="L207" class="line"><a href="#L207">207</a>        _G.amfTransaction(TransactionEvent.EXCHANGE_SHOP_TASK, {</span>
+<span id="L208" class="line"><a href="#L208">208</a>            subCmd = &quot;addReward&quot;,</span>
+<span id="L209" class="line"><a href="#L209">209</a>            subData = {</span>
+<span id="L210" class="line"><a href="#L210">210</a>                rewardList = data.bean.rewardList,</span>
+<span id="L211" class="line"><a href="#L211">211</a>                repeatList = data.bean.repeatList,</span>
+<span id="L212" class="line"><a href="#L212">212</a>                rewardDirectList = data.bean.rewardDirectList,</span>
+<span id="L213" class="line"><a href="#L213">213</a>                yuanBaoList = data.bean.yuanBaoList,</span>
+<span id="L214" class="line"><a href="#L214">214</a>                feature = self:getDC().DCFeature,</span>
+<span id="L215" class="line"><a href="#L215">215</a>                source = from == &#x27;flaunt&#x27; and &#x27;flaunt_reward&#x27; or &quot;main_panel_reward&quot;,</span>
+<span id="L216" class="line"><a href="#L216">216</a>                endCall = function(notCardMap, cardMap)</span>
+<span id="L217" class="line"><a href="#L217">217</a>                    notCardMap = notCardMap or {}</span>
+<span id="L218" class="line"><a href="#L218">218</a>                    if not table.isEmpty(notCardMap) then</span>
+<span id="L219" class="line"><a href="#L219">219</a>                        self:addRewardsNormal(notCardMap, {</span>
+<span id="L220" class="line"><a href="#L220">220</a>                            dcExtra = {</span>
+<span id="L221" class="line"><a href="#L221">221</a>                                dcFeature = self:getDC().DCFeature,</span>
+<span id="L222" class="line"><a href="#L222">222</a>                                dcSource = from == &#x27;flaunt&#x27; and &#x27;flaunt_reward&#x27; or &quot;main_panel_reward&quot;</span>
+<span id="L223" class="line"><a href="#L223">223</a>                            }</span>
+<span id="L224" class="line"><a href="#L224">224</a>                        })</span>
+<span id="L225" class="line"><a href="#L225">225</a>                    end</span>
+<span id="L226" class="line"><a href="#L226">226</a>                    promise:resolve({</span>
+<span id="L227" class="line"><a href="#L227">227</a>                        callData = {</span>
+<span id="L228" class="line"><a href="#L228">228</a>                            rewardList = data.bean.rewardList,</span>
+<span id="L229" class="line"><a href="#L229">229</a>                            repeatList = data.bean.repeatList,</span>
+<span id="L230" class="line"><a href="#L230">230</a>                            rewardDirectList = data.bean.rewardDirectList,</span>
+<span id="L231" class="line"><a href="#L231">231</a>                            yuanBaoList = data.bean.yuanBaoList</span>
+<span id="L232" class="line"><a href="#L232">232</a>                        }</span>
+<span id="L233" class="line"><a href="#L233">233</a>                    })</span>
+<span id="L234" class="line"><a href="#L234">234</a>                end</span>
+<span id="L235" class="line"><a href="#L235">235</a>            }</span>
+<span id="L236" class="line"><a href="#L236">236</a>        })</span>
+<span id="L237" class="line"><a href="#L237">237</a></span>
+<span id="L238" class="line"><a href="#L238">238</a>        self:updateTipView()</span>
+<span id="L239" class="line"><a href="#L239">239</a>    end, function(response)</span>
+<span id="L240" class="line"><a href="#L240">240</a>        if not response:isCancel() then</span>
+<span id="L241" class="line"><a href="#L241">241</a>            CommonTip:showErrorTip(response.errorCode)</span>
+<span id="L242" class="line"><a href="#L242">242</a>        end</span>
+<span id="L243" class="line"><a href="#L243">243</a>        promise:reject()</span>
+<span id="L244" class="line"><a href="#L244">244</a>    end)</span>
+<span id="L245" class="line"><a href="#L245">245</a></span>
+<span id="L246" class="line"><a href="#L246">246</a>    return promise</span>
+<span id="L247" class="line"><a href="#L247">247</a>end</span>
+<span id="L248" class="line"><a href="#L248">248</a></span>
+<span id="L249" class="line"><a href="#L249">249</a>function Manager:onActPassDay()</span>
+<span id="L250" class="line"><a href="#L250">250</a>    self:_checkAndNotifyPassDayOnInit()</span>
+<span id="L251" class="line"><a href="#L251">251</a>end</span>
+<span id="L252" class="line"><a href="#L252">252</a></span>
+<span id="L253" class="line"><a href="#L253">253</a>function Manager:passDayRefreshData()</span>
+<span id="L254" class="line"><a href="#L254">254</a>    self:clearPositionTimes()</span>
+<span id="L255" class="line"><a href="#L255">255</a>end</span>
+<span id="L256" class="line"><a href="#L256">256</a></span>
+<span id="L257" class="line"><a href="#L257">257</a>function Manager:hasReward()</span>
+<span id="L258" class="line"><a href="#L258">258</a>    return self:getModel():checkCanGetRewardToday()</span>
+<span id="L259" class="line"><a href="#L259">259</a>end</span>
+<span id="L260" class="line"><a href="#L260">260</a></span>
+<span id="L261" class="line"><a href="#L261">261</a>-------------------------------------- 事件 -------------------------------------------</span>
+<span id="L262" class="line"><a href="#L262">262</a>function Manager:onActTestButtonReady(data)</span>
+<span id="L263" class="line"><a href="#L263">263</a>	addGlobalTestButton(&quot;星光之域debug&quot;, function()</span>
+<span id="L264" class="line"><a href="#L264">264</a>		__debug = not __debug</span>
+<span id="L265" class="line"><a href="#L265">265</a>        CommonTip:showTip(__debug and &quot;开启debug&quot; or &quot;关闭debug&quot;)</span>
+<span id="L266" class="line"><a href="#L266">266</a>		return nil, true</span>
+<span id="L267" class="line"><a href="#L267">267</a>	end, {</span>
+<span id="L268" class="line"><a href="#L268">268</a>		TestButtonConst.Tags.ACTIVITY,</span>
+<span id="L269" class="line"><a href="#L269">269</a>	})</span>
+<span id="L270" class="line"><a href="#L270">270</a>end</span>
+<span id="L271" class="line"><a href="#L271">271</a></span>
+<span id="L272" class="line"><a href="#L272">272</a>function Manager:onActActInfoUpdate(event)</span>
+<span id="L273" class="line"><a href="#L273">273</a>    if not self:isEnabled() then return end</span>
+<span id="L274" class="line"><a href="#L274">274</a></span>
+<span id="L275" class="line"><a href="#L275">275</a>    local data = event:getData()</span>
+<span id="L276" class="line"><a href="#L276">276</a>    local actInfos = data.actInfos or {}</span>
+<span id="L277" class="line"><a href="#L277">277</a>    local fromServer = data.fromServer</span>
+<span id="L278" class="line"><a href="#L278">278</a>    local actInfo = actInfos[tostring(self:getConst().actId)]</span>
+<span id="L279" class="line"><a href="#L279">279</a></span>
+<span id="L280" class="line"><a href="#L280">280</a>    if not actInfo or not fromServer or not actInfo.extra then</span>
+<span id="L281" class="line"><a href="#L281">281</a>        return</span>
+<span id="L282" class="line"><a href="#L282">282</a>    end</span>
+<span id="L283" class="line"><a href="#L283">283</a></span>
+<span id="L284" class="line"><a href="#L284">284</a>    local extra = table.deserialize(actInfo.extra)</span>
+<span id="L285" class="line"><a href="#L285">285</a>    if not extra or table.isEmpty(extra) then</span>
+<span id="L286" class="line"><a href="#L286">286</a>        return</span>
+<span id="L287" class="line"><a href="#L287">287</a>    end</span>
+<span id="L288" class="line"><a href="#L288">288</a></span>
+<span id="L289" class="line"><a href="#L289">289</a>    local periodId = extra.periodId</span>
+<span id="L290" class="line"><a href="#L290">290</a>    local rank = extra.rank</span>
+<span id="L291" class="line"><a href="#L291">291</a>    local fullLevel = extra.fullLevel</span>
+<span id="L292" class="line"><a href="#L292">292</a></span>
+<span id="L293" class="line"><a href="#L293">293</a>    self:getModel():setDataByKey(&quot;periodId&quot;, tonumber(periodId))</span>
+<span id="L294" class="line"><a href="#L294">294</a>    local simpleFullLevelRankBean = self:getModel():getDataByKey(&quot;simpleFullLevelRankBean&quot;)</span>
+<span id="L295" class="line"><a href="#L295">295</a>    if simpleFullLevelRankBean then</span>
+<span id="L296" class="line"><a href="#L296">296</a>        self:getModel():setDataByKey(&quot;simpleFullLevelRankBean.rank&quot;, rank)</span>
+<span id="L297" class="line"><a href="#L297">297</a>    end</span>
+<span id="L298" class="line"><a href="#L298">298</a></span>
+<span id="L299" class="line"><a href="#L299">299</a>    if fullLevel and fullLevel &gt; 0 then</span>
+<span id="L300" class="line"><a href="#L300">300</a>        self:getModel():setDataByKey(&quot;fullLevel&quot;, fullLevel)</span>
+<span id="L301" class="line"><a href="#L301">301</a>    end</span>
+<span id="L302" class="line"><a href="#L302">302</a></span>
+<span id="L303" class="line"><a href="#L303">303</a>    -- 校验并修复 curRankType 缓存（防止离线修改星级后缓存值过高）</span>
+<span id="L304" class="line"><a href="#L304">304</a>    self:validateAndFixCurRankType()</span>
+<span id="L305" class="line"><a href="#L305">305</a></span>
+<span id="L306" class="line"><a href="#L306">306</a>    local icon = self:getActivityIcon()</span>
+<span id="L307" class="line"><a href="#L307">307</a>    if icon then</span>
+<span id="L308" class="line"><a href="#L308">308</a>        self:updateTipView()</span>
+<span id="L309" class="line"><a href="#L309">309</a>        if type(icon.refreshProvider) ~= &quot;function&quot; then</span>
+<span id="L310" class="line"><a href="#L310">310</a>            self:refreshActivityIcon(&quot;actInfoUpdate&quot;, icon)</span>
+<span id="L311" class="line"><a href="#L311">311</a>        end</span>
+<span id="L312" class="line"><a href="#L312">312</a>    end</span>
+<span id="L313" class="line"><a href="#L313">313</a>end</span>
+<span id="L314" class="line"><a href="#L314">314</a></span>
+<span id="L315" class="line"><a href="#L315">315</a>function Manager:onActOnlineUnlockOver()</span>
+<span id="L316" class="line"><a href="#L316">316</a>    if not self:isEnabled() then</span>
+<span id="L317" class="line"><a href="#L317">317</a>        return</span>
+<span id="L318" class="line"><a href="#L318">318</a>    end</span>
+<span id="L319" class="line"><a href="#L319">319</a></span>
+<span id="L320" class="line"><a href="#L320">320</a>    self:getModel():setDataByKey(&quot;periodId&quot;, 0)</span>
+<span id="L321" class="line"><a href="#L321">321</a>    local icon = self:getActivityIcon()</span>
+<span id="L322" class="line"><a href="#L322">322</a>    if icon then</span>
+<span id="L323" class="line"><a href="#L323">323</a>        self:updateTipView()</span>
+<span id="L324" class="line"><a href="#L324">324</a>        if type(icon.refreshProvider) ~= &quot;function&quot; then</span>
+<span id="L325" class="line"><a href="#L325">325</a>            self:refreshActivityIcon(&quot;onlineUnlockOver&quot;, icon)</span>
+<span id="L326" class="line"><a href="#L326">326</a>        end</span>
+<span id="L327" class="line"><a href="#L327">327</a>    end</span>
+<span id="L328" class="line"><a href="#L328">328</a>end</span>
+<span id="L329" class="line"><a href="#L329">329</a></span>
+<span id="L330" class="line"><a href="#L330">330</a>function Manager:setFlyCollectContext()</span>
+<span id="L331" class="line"><a href="#L331">331</a>    if not self:isEnabled() then return end</span>
+<span id="L332" class="line"><a href="#L332">332</a>    if not self:isPeriodEnabled() then return end</span>
+<span id="L333" class="line"><a href="#L333">333</a>    if not self:isFullLevel() then return end</span>
+<span id="L334" class="line"><a href="#L334">334</a></span>
+<span id="L335" class="line"><a href="#L335">335</a>    local lastPassLevelDataForIcon = self:getModel():getTempData(&quot;lastPassLevelDataForIcon&quot;)</span>
+<span id="L336" class="line"><a href="#L336">336</a>    if not lastPassLevelDataForIcon then return end</span>
+<span id="L337" class="line"><a href="#L337">337</a></span>
+<span id="L338" class="line"><a href="#L338">338</a>    local starSp, starNum = nil, 0</span>
+<span id="L339" class="line"><a href="#L339">339</a>    if UBFLevelSceneFunc:isMainLevel(lastPassLevelDataForIcon.levelScene) and lastPassLevelDataForIcon.star &gt;</span>
+<span id="L340" class="line"><a href="#L340">340</a>        lastPassLevelDataForIcon.oldStar then</span>
+<span id="L341" class="line"><a href="#L341">341</a>        if lastPassLevelDataForIcon.star &lt;= 3 then</span>
+<span id="L342" class="line"><a href="#L342">342</a>            starSp = Sprite:createWithSpriteFrameName(&quot;other/iconV2/ui_icon_star_02_v2&quot;)</span>
+<span id="L343" class="line"><a href="#L343">343</a>            starNum = lastPassLevelDataForIcon.star - lastPassLevelDataForIcon.oldStar</span>
+<span id="L344" class="line"><a href="#L344">344</a>        else</span>
+<span id="L345" class="line"><a href="#L345">345</a>            starSp = Sprite:createWithSpriteFrameName(&quot;other/iconV2/ui_icon_star_01_v2&quot;)</span>
+<span id="L346" class="line"><a href="#L346">346</a>            starNum = 3</span>
+<span id="L347" class="line"><a href="#L347">347</a>        end</span>
+<span id="L348" class="line"><a href="#L348">348</a>    elseif UBFLevelSceneFunc:isHideLevel(lastPassLevelDataForIcon.levelScene) and lastPassLevelDataForIcon.star &gt;</span>
+<span id="L349" class="line"><a href="#L349">349</a>        lastPassLevelDataForIcon.oldStar and _G.amfBean(&quot;UserManager&quot;):getColorfulStar() == self:getServerMaxLevel() * 3 then</span>
+<span id="L350" class="line"><a href="#L350">350</a>        starSp = Sprite:createWithSpriteFrameName(&quot;other/iconV2/ui_icon_star_03_v2&quot;)</span>
+<span id="L351" class="line"><a href="#L351">351</a>        starNum = lastPassLevelDataForIcon.star - lastPassLevelDataForIcon.oldStar</span>
+<span id="L352" class="line"><a href="#L352">352</a>    elseif UBFLevelSceneFunc:isFullLevelLib(lastPassLevelDataForIcon.levelScene) and</span>
+<span id="L353" class="line"><a href="#L353">353</a>        _G.amfBean(&quot;UserManager&quot;):getHiddenStar() == (self:getServerMaxLevel() / 15 - 1) * 9 and self:isPeriodEnabled() then</span>
+<span id="L354" class="line"><a href="#L354">354</a>        local mgr = _G.amfBean(&quot;FullStarLevelLibManager&quot;)</span>
+<span id="L355" class="line"><a href="#L355">355</a>        local flag = mgr:getLevelDifficultFlagByLevelId(lastPassLevelDataForIcon.levelId)</span>
+<span id="L356" class="line"><a href="#L356">356</a>        starSp = Sprite:createWithSpriteFrameName(&quot;other/iconV2/ui_icon_star_05_v2&quot;)</span>
+<span id="L357" class="line"><a href="#L357">357</a>        starNum = mgr:isDifficultLevel(flag) and 3 or 1</span>
+<span id="L358" class="line"><a href="#L358">358</a>    end</span>
+<span id="L359" class="line"><a href="#L359">359</a></span>
+<span id="L360" class="line"><a href="#L360">360</a>    if starSp then</span>
+<span id="L361" class="line"><a href="#L361">361</a>        starSp:setScale(0.8)</span>
+<span id="L362" class="line"><a href="#L362">362</a>        _G.amfTransaction(TransactionEvent.FLY_ACT_COLLECTIONS, FlyActCollectionContext.new(self:getConst().actId, {{</span>
+<span id="L363" class="line"><a href="#L363">363</a>            icon = starSp,</span>
+<span id="L364" class="line"><a href="#L364">364</a>            num = starNum</span>
+<span id="L365" class="line"><a href="#L365">365</a>        }}))</span>
+<span id="L366" class="line"><a href="#L366">366</a>    end</span>
+<span id="L367" class="line"><a href="#L367">367</a></span>
+<span id="L368" class="line"><a href="#L368">368</a>    self:getModel():setTempData(&quot;lastPassLevelDataForIcon&quot;, nil)</span>
+<span id="L369" class="line"><a href="#L369">369</a>end</span>
+<span id="L370" class="line"><a href="#L370">370</a></span>
+<span id="L371" class="line"><a href="#L371">371</a>-- 过关更新数据</span>
+<span id="L372" class="line"><a href="#L372">372</a>function Manager:onActPlayLevelEnd(event)</span>
+<span id="L373" class="line"><a href="#L373">373</a>    local data = event:getData() or {}</span>
+<span id="L374" class="line"><a href="#L374">374</a></span>
+<span id="L375" class="line"><a href="#L375">375</a>    if not data.isWin then return end</span>
+<span id="L376" class="line"><a href="#L376">376</a></span>
+<span id="L377" class="line"><a href="#L377">377</a>    local saveData = {}</span>
+<span id="L378" class="line"><a href="#L378">378</a>    saveData.levelId = data.levelId</span>
+<span id="L379" class="line"><a href="#L379">379</a>    saveData.levelScene = data.levelScene</span>
+<span id="L380" class="line"><a href="#L380">380</a>    saveData.oldStar = data.oldStar</span>
+<span id="L381" class="line"><a href="#L381">381</a>    saveData.star = data.star</span>
+<span id="L382" class="line"><a href="#L382">382</a>    saveData.areaId = self:getAreaIdByLevelId(data.levelId)</span>
+<span id="L383" class="line"><a href="#L383">383</a></span>
+<span id="L384" class="line"><a href="#L384">384</a>    -- 存储过关数据，用于记录数据变更</span>
+<span id="L385" class="line"><a href="#L385">385</a>    if UBFLevelSceneFunc:isMainLevel(saveData.levelScene) and saveData.star &gt; saveData.oldStar then</span>
+<span id="L386" class="line"><a href="#L386">386</a>        self:getModel():setLocalCache(&quot;lastPassLevelData&quot;, saveData)</span>
+<span id="L387" class="line"><a href="#L387">387</a>        self:getModel():setTempData(&quot;tenAreaStarData&quot;, nil)</span>
+<span id="L388" class="line"><a href="#L388">388</a>    end</span>
+<span id="L389" class="line"><a href="#L389">389</a></span>
+<span id="L390" class="line"><a href="#L390">390</a>    self:getModel():setTempData(&quot;lastPassLevelDataForIcon&quot;, saveData)</span>
+<span id="L391" class="line"><a href="#L391">391</a></span>
+<span id="L392" class="line"><a href="#L392">392</a>    local currentYellowStarNum, currentColorStarNum = _G.amfBean(&quot;LevelAreaManager&quot;):getYellowStarAndColorStarNum(</span>
+<span id="L393" class="line"><a href="#L393">393</a>        saveData.areaId)</span>
+<span id="L394" class="line"><a href="#L394">394</a>    local ts = TimeKit:timeInMillis()</span>
+<span id="L395" class="line"><a href="#L395">395</a></span>
+<span id="L396" class="line"><a href="#L396">396</a>    local areaLevelNum = self:getConst().AREA_LEVEL_NUM</span>
+<span id="L397" class="line"><a href="#L397">397</a>    if _G.getTopPassedLevelId() == saveData.levelId and saveData.oldStar == 0 then</span>
+<span id="L398" class="line"><a href="#L398">398</a>        if saveData.star &gt; 0 then</span>
+<span id="L399" class="line"><a href="#L399">399</a>            self:getModel():updateTenAreaPassTime(saveData.areaId, ts)</span>
+<span id="L400" class="line"><a href="#L400">400</a>        end</span>
+<span id="L401" class="line"><a href="#L401">401</a>    end</span>
+<span id="L402" class="line"><a href="#L402">402</a></span>
+<span id="L403" class="line"><a href="#L403">403</a>    if currentYellowStarNum == areaLevelNum * 3 then</span>
+<span id="L404" class="line"><a href="#L404">404</a>        if saveData.oldStar &lt; 3 then</span>
+<span id="L405" class="line"><a href="#L405">405</a>            self:getModel():updateAreaFullYellowTime(saveData.areaId, ts)</span>
+<span id="L406" class="line"><a href="#L406">406</a>        end</span>
+<span id="L407" class="line"><a href="#L407">407</a>    end</span>
+<span id="L408" class="line"><a href="#L408">408</a></span>
+<span id="L409" class="line"><a href="#L409">409</a>    if currentColorStarNum == areaLevelNum * 3 then</span>
+<span id="L410" class="line"><a href="#L410">410</a>        if saveData.oldStar &lt; 4 then</span>
+<span id="L411" class="line"><a href="#L411">411</a>            self:getModel():updateAreaFullColorTime(saveData.areaId, ts)</span>
+<span id="L412" class="line"><a href="#L412">412</a>        end</span>
+<span id="L413" class="line"><a href="#L413">413</a>    end</span>
+<span id="L414" class="line"><a href="#L414">414</a></span>
+<span id="L415" class="line"><a href="#L415">415</a>    self:setFlyCollectContext()</span>
+<span id="L416" class="line"><a href="#L416">416</a></span>
+<span id="L417" class="line"><a href="#L417">417</a>    self:tryloadRes()</span>
+<span id="L418" class="line"><a href="#L418">418</a>end</span>
+<span id="L419" class="line"><a href="#L419">419</a></span>
+<span id="L420" class="line"><a href="#L420">420</a>-------------------------------------- 接口 -------------------------------------------</span>
+<span id="L421" class="line"><a href="#L421">421</a>function Manager:checkHasGotReward(areaId)</span>
+<span id="L422" class="line"><a href="#L422">422</a>    return self:getModel():checkHasGotReward(areaId)</span>
+<span id="L423" class="line"><a href="#L423">423</a>end</span>
+<span id="L424" class="line"><a href="#L424">424</a></span>
+<span id="L425" class="line"><a href="#L425">425</a>function Manager:checkCanGetReward(areaId)</span>
+<span id="L426" class="line"><a href="#L426">426</a>    return self:getModel():checkCanGetReward(areaId)</span>
+<span id="L427" class="line"><a href="#L427">427</a>end</span>
+<span id="L428" class="line"><a href="#L428">428</a></span>
+<span id="L429" class="line"><a href="#L429">429</a>function Manager:getAreaPassTime(areaId)</span>
+<span id="L430" class="line"><a href="#L430">430</a>    return self:getModel():getAreaPassTime(areaId)</span>
+<span id="L431" class="line"><a href="#L431">431</a>end</span>
+<span id="L432" class="line"><a href="#L432">432</a></span>
+<span id="L433" class="line"><a href="#L433">433</a>function Manager:getAreaFullYellowTime(areaId)</span>
+<span id="L434" class="line"><a href="#L434">434</a>    return self:getModel():getAreaFullYellowTime(areaId)</span>
+<span id="L435" class="line"><a href="#L435">435</a>end</span>
+<span id="L436" class="line"><a href="#L436">436</a></span>
+<span id="L437" class="line"><a href="#L437">437</a>function Manager:getAreaFullColorTime(areaId)</span>
+<span id="L438" class="line"><a href="#L438">438</a>    return self:getModel():getAreaFullColorTime(areaId)</span>
+<span id="L439" class="line"><a href="#L439">439</a>end</span>
+<span id="L440" class="line"><a href="#L440">440</a></span>
+<span id="L441" class="line"><a href="#L441">441</a>function Manager:getTenAreaStarData(force, noNetwork)</span>
+<span id="L442" class="line"><a href="#L442">442</a>    return self:getModel():getTenAreaStarData(force, noNetwork)</span>
+<span id="L443" class="line"><a href="#L443">443</a>end</span>
+<span id="L444" class="line"><a href="#L444">444</a></span>
+<span id="L445" class="line"><a href="#L445">445</a>function Manager:getNebulaAreaStarData(force, noNetwork)</span>
+<span id="L446" class="line"><a href="#L446">446</a>    return self:getModel():getNebulaAreaStarData(force, noNetwork)</span>
+<span id="L447" class="line"><a href="#L447">447</a>end</span>
+<span id="L448" class="line"><a href="#L448">448</a></span>
+<span id="L449" class="line"><a href="#L449">449</a>function Manager:getNebulaAreaStarDataById(nebulaId, force, noNetwork)</span>
+<span id="L450" class="line"><a href="#L450">450</a>    local nebulaAreaStarData = self:getModel():getNebulaAreaStarData(force, noNetwork)</span>
+<span id="L451" class="line"><a href="#L451">451</a>    if not nebulaAreaStarData or not nebulaAreaStarData[nebulaId] then return end</span>
+<span id="L452" class="line"><a href="#L452">452</a>    return nebulaAreaStarData[nebulaId]</span>
+<span id="L453" class="line"><a href="#L453">453</a>end</span>
+<span id="L454" class="line"><a href="#L454">454</a></span>
+<span id="L455" class="line"><a href="#L455">455</a>function Manager:getCachedNebulaData()</span>
+<span id="L456" class="line"><a href="#L456">456</a>    return self:getModel():getCachedNebulaData()</span>
+<span id="L457" class="line"><a href="#L457">457</a>end</span>
+<span id="L458" class="line"><a href="#L458">458</a></span>
+<span id="L459" class="line"><a href="#L459">459</a>function Manager:getCachedNebulaDataById(nebulaId)</span>
+<span id="L460" class="line"><a href="#L460">460</a>    local nebulaData = self:getCachedNebulaData()</span>
+<span id="L461" class="line"><a href="#L461">461</a>    if not nebulaData or not nebulaData[nebulaId] then return end</span>
+<span id="L462" class="line"><a href="#L462">462</a>    return nebulaData[nebulaId]</span>
+<span id="L463" class="line"><a href="#L463">463</a>end</span>
+<span id="L464" class="line"><a href="#L464">464</a></span>
+<span id="L465" class="line"><a href="#L465">465</a>function Manager:setCachedNebulaData(data)</span>
+<span id="L466" class="line"><a href="#L466">466</a>    self:getModel():setCachedNebulaData(data)</span>
+<span id="L467" class="line"><a href="#L467">467</a>end</span>
+<span id="L468" class="line"><a href="#L468">468</a></span>
+<span id="L469" class="line"><a href="#L469">469</a>function Manager:setCachedNebulaDataById(data, nebulaId)</span>
+<span id="L470" class="line"><a href="#L470">470</a>    local nebulaData = self:getCachedNebulaData() or {}</span>
+<span id="L471" class="line"><a href="#L471">471</a>    nebulaData[nebulaId] = data</span>
+<span id="L472" class="line"><a href="#L472">472</a>    self:setCachedNebulaData(nebulaData)</span>
+<span id="L473" class="line"><a href="#L473">473</a>end</span>
+<span id="L474" class="line"><a href="#L474">474</a></span>
+<span id="L475" class="line"><a href="#L475">475</a>function Manager:getLastNebulaShowId()</span>
+<span id="L476" class="line"><a href="#L476">476</a>    return self:getModel():getLastNebulaShowId()</span>
+<span id="L477" class="line"><a href="#L477">477</a>end</span>
+<span id="L478" class="line"><a href="#L478">478</a></span>
+<span id="L479" class="line"><a href="#L479">479</a>function Manager:setLastNebulaShowId(showId)</span>
+<span id="L480" class="line"><a href="#L480">480</a>    self:getModel():setLastNebulaShowId(showId)</span>
+<span id="L481" class="line"><a href="#L481">481</a>end</span>
+<span id="L482" class="line"><a href="#L482">482</a></span>
+<span id="L483" class="line"><a href="#L483">483</a>function Manager:getStarState()</span>
+<span id="L484" class="line"><a href="#L484">484</a>    return self:getModel():getStarState()</span>
+<span id="L485" class="line"><a href="#L485">485</a>end</span>
+<span id="L486" class="line"><a href="#L486">486</a></span>
+<span id="L487" class="line"><a href="#L487">487</a>function Manager:setStarState(state)</span>
+<span id="L488" class="line"><a href="#L488">488</a>    self:getModel():setStarState(state)</span>
+<span id="L489" class="line"><a href="#L489">489</a>end</span>
+<span id="L490" class="line"><a href="#L490">490</a></span>
+<span id="L491" class="line"><a href="#L491">491</a>function Manager:getAreaIdByLevelId(levelId)</span>
+<span id="L492" class="line"><a href="#L492">492</a>    return self:getModel():getAreaIdByLevelId(levelId)</span>
+<span id="L493" class="line"><a href="#L493">493</a>end</span>
+<span id="L494" class="line"><a href="#L494">494</a></span>
+<span id="L495" class="line"><a href="#L495">495</a>function Manager:getScoreBuffTime()</span>
+<span id="L496" class="line"><a href="#L496">496</a>    return tonumber(self:getModel():getDataByKey(&quot;infoBean.buffEndTime&quot;) or 0)</span>
+<span id="L497" class="line"><a href="#L497">497</a>end</span>
+<span id="L498" class="line"><a href="#L498">498</a></span>
+<span id="L499" class="line"><a href="#L499">499</a>function Manager:addScoreBuffItem(num)</span>
+<span id="L500" class="line"><a href="#L500">500</a>    if not self:isDataEnabled() then return end</span>
+<span id="L501" class="line"><a href="#L501">501</a>    </span>
+<span id="L502" class="line"><a href="#L502">502</a>    self:getModel():addScoreBuffItem(num)</span>
+<span id="L503" class="line"><a href="#L503">503</a>    self:refreshStarButton()</span>
+<span id="L504" class="line"><a href="#L504">504</a>end</span>
+<span id="L505" class="line"><a href="#L505">505</a></span>
+<span id="L506" class="line"><a href="#L506">506</a>function Manager:refreshStarButton()</span>
+<span id="L507" class="line"><a href="#L507">507</a>    _G.amfEC:notifyNormal(NormalEvent.USER_ASSET_CHANGE)</span>
+<span id="L508" class="line"><a href="#L508">508</a>end</span>
+<span id="L509" class="line"><a href="#L509">509</a></span>
+<span id="L510" class="line"><a href="#L510">510</a>function Manager:createBuffIcon()</span>
+<span id="L511" class="line"><a href="#L511">511</a>    local item = Sprite:createWithSpriteFrameName(&quot;other/iconV2/ui_icon_star_02_v2&quot;)</span>
+<span id="L512" class="line"><a href="#L512">512</a></span>
+<span id="L513" class="line"><a href="#L513">513</a>    local scoreTitleLabel = TTFLabel:createAnimalYH(&#x27;分数&#x27;, 18)</span>
+<span id="L514" class="line"><a href="#L514">514</a>    scoreTitleLabel:setTextColor(hex2ccc4(&#x27;e6830cff&#x27;))</span>
+<span id="L515" class="line"><a href="#L515">515</a>    scoreTitleLabel:setPositionXY(45, 85)</span>
+<span id="L516" class="line"><a href="#L516">516</a>    item:addChild(scoreTitleLabel)</span>
+<span id="L517" class="line"><a href="#L517">517</a></span>
+<span id="L518" class="line"><a href="#L518">518</a>    local scoreLabel = TTFLabel:createAnimalYH(&#x27;x130%&#x27;, 18)</span>
+<span id="L519" class="line"><a href="#L519">519</a>    scoreLabel:setPositionXY(27, 63)</span>
+<span id="L520" class="line"><a href="#L520">520</a>    scoreLabel:setTextColor(hex2ccc4(&#x27;e6830cff&#x27;))</span>
+<span id="L521" class="line"><a href="#L521">521</a>    scoreLabel:enableOutline(hex2ccc4(&#x27;ffffffff&#x27;), 2)</span>
+<span id="L522" class="line"><a href="#L522">522</a>    item:addChild(scoreLabel)</span>
+<span id="L523" class="line"><a href="#L523">523</a></span>
+<span id="L524" class="line"><a href="#L524">524</a>    return item</span>
+<span id="L525" class="line"><a href="#L525">525</a>end</span>
+<span id="L526" class="line"><a href="#L526">526</a></span>
+<span id="L527" class="line"><a href="#L527">527</a>function Manager:getCurrentLevelForIcon()</span>
+<span id="L528" class="line"><a href="#L528">528</a>    local curLevel = self:getModel():getDataByKey(&quot;initStarLevel&quot;, 0) or 0</span>
+<span id="L529" class="line"><a href="#L529">529</a>    if curLevel &gt; 0 then</span>
+<span id="L530" class="line"><a href="#L530">530</a>        curLevel = math.max(self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.nowStarLevel&quot;, 0) or 0, curLevel)</span>
+<span id="L531" class="line"><a href="#L531">531</a>    end</span>
+<span id="L532" class="line"><a href="#L532">532</a>    </span>
+<span id="L533" class="line"><a href="#L533">533</a>    -- 校验：实时计算当前星级，如果缓存值比实际值高，说明星级数据被修改了</span>
+<span id="L534" class="line"><a href="#L534">534</a>    -- 只返回正确的图标等级，不更新缓存（缓存在 validateAndFixCurRankType 中统一处理）</span>
+<span id="L535" class="line"><a href="#L535">535</a>    local realLevel = self:calCurRankType()</span>
+<span id="L536" class="line"><a href="#L536">536</a>    if curLevel ~= realLevel then</span>
+<span id="L537" class="line"><a href="#L537">537</a>        printx(50, &quot;[StellarConvergenceManager] getCurrentLevelForIcon: cached level&quot;, curLevel, &quot;is different from real level&quot;, realLevel, &quot;, return real level for icon&quot;)</span>
+<span id="L538" class="line"><a href="#L538">538</a>        curLevel = realLevel</span>
+<span id="L539" class="line"><a href="#L539">539</a>    end</span>
+<span id="L540" class="line"><a href="#L540">540</a>    </span>
+<span id="L541" class="line"><a href="#L541">541</a>    return curLevel</span>
+<span id="L542" class="line"><a href="#L542">542</a>end</span>
+<span id="L543" class="line"><a href="#L543">543</a></span>
+<span id="L544" class="line"><a href="#L544">544</a>-- 校验并修复 curRankType 缓存（在进入游戏时调用，确保缓存值不会比实际值高）</span>
+<span id="L545" class="line"><a href="#L545">545</a>function Manager:validateAndFixCurRankType(forceSync)</span>
+<span id="L546" class="line"><a href="#L546">546</a>    local cachedLevel = self:getCurRankType()</span>
+<span id="L547" class="line"><a href="#L547">547</a>    local realLevel = self:calCurRankType()</span>
+<span id="L548" class="line"><a href="#L548">548</a>    </span>
+<span id="L549" class="line"><a href="#L549">549</a>    if forceSync then</span>
+<span id="L550" class="line"><a href="#L550">550</a>        if cachedLevel ~= realLevel then</span>
+<span id="L551" class="line"><a href="#L551">551</a>            printx(50, &quot;[StellarConvergenceManager] validateAndFixCurRankType: force sync cached level from&quot;, cachedLevel, &quot;to&quot;, realLevel)</span>
+<span id="L552" class="line"><a href="#L552">552</a>            self:setCurRankType(realLevel)</span>
+<span id="L553" class="line"><a href="#L553">553</a>        end</span>
+<span id="L554" class="line"><a href="#L554">554</a>        return</span>
+<span id="L555" class="line"><a href="#L555">555</a>    end</span>
+<span id="L556" class="line"><a href="#L556">556</a></span>
+<span id="L557" class="line"><a href="#L557">557</a>    if cachedLevel &gt; realLevel then</span>
+<span id="L558" class="line"><a href="#L558">558</a>        printx(50, &quot;[StellarConvergenceManager] validateAndFixCurRankType: cached level&quot;, cachedLevel, &quot;is different from real level&quot;, realLevel, &quot;, fix cache&quot;)</span>
+<span id="L559" class="line"><a href="#L559">559</a>        self:setCurRankType(realLevel)</span>
+<span id="L560" class="line"><a href="#L560">560</a>    end</span>
+<span id="L561" class="line"><a href="#L561">561</a>end</span>
+<span id="L562" class="line"><a href="#L562">562</a></span>
+<span id="L563" class="line"><a href="#L563">563</a>-- 检测引导标记</span>
+<span id="L564" class="line"><a href="#L564">564</a>function Manager:hasGuideIndex(index)</span>
+<span id="L565" class="line"><a href="#L565">565</a>    return self:getModel():hasGuide(index)</span>
+<span id="L566" class="line"><a href="#L566">566</a>end</span>
+<span id="L567" class="line"><a href="#L567">567</a></span>
+<span id="L568" class="line"><a href="#L568">568</a>-- 设置引导标记</span>
+<span id="L569" class="line"><a href="#L569">569</a>function Manager:addGuideIndex(index)</span>
+<span id="L570" class="line"><a href="#L570">570</a>    self:getModel():setGuide(index)</span>
+<span id="L571" class="line"><a href="#L571">571</a></span>
+<span id="L572" class="line"><a href="#L572">572</a>    local ActCommonHttp = require &#x27;amf.middleware.activity.http.ActCommonHttp&#x27;</span>
+<span id="L573" class="line"><a href="#L573">573</a>    ActCommonHttp:setActGuideFlag(self:getConst().FeatureId, index)</span>
+<span id="L574" class="line"><a href="#L574">574</a>end</span>
+<span id="L575" class="line"><a href="#L575">575</a></span>
+<span id="L576" class="line"><a href="#L576">576</a>function Manager:getServerMaxLevel()</span>
+<span id="L577" class="line"><a href="#L577">577</a>    return self:getModel():getDataByKey(&quot;fullLevel&quot;, 0) or 0</span>
+<span id="L578" class="line"><a href="#L578">578</a>end</span>
+<span id="L579" class="line"><a href="#L579">579</a></span>
+<span id="L580" class="line"><a href="#L580">580</a>function Manager:getLastPassLevelData()</span>
+<span id="L581" class="line"><a href="#L581">581</a>    local data = self:getModel():getLocalCache(&quot;lastPassLevelData&quot;)</span>
+<span id="L582" class="line"><a href="#L582">582</a>    self:clearLastPassLevelData()</span>
+<span id="L583" class="line"><a href="#L583">583</a>    return data</span>
+<span id="L584" class="line"><a href="#L584">584</a>end</span>
+<span id="L585" class="line"><a href="#L585">585</a></span>
+<span id="L586" class="line"><a href="#L586">586</a>function Manager:clearLastPassLevelData()</span>
+<span id="L587" class="line"><a href="#L587">587</a>    self:getModel():setLocalCache(&quot;lastPassLevelData&quot;, nil)</span>
+<span id="L588" class="line"><a href="#L588">588</a>end</span>
+<span id="L589" class="line"><a href="#L589">589</a></span>
+<span id="L590" class="line"><a href="#L590">590</a>-- 是否满级(本地)</span>
+<span id="L591" class="line"><a href="#L591">591</a>function Manager:isFullLevelLocal()</span>
+<span id="L592" class="line"><a href="#L592">592</a>    return _G.getTopPassedLevelId() == _G.amfBean(&quot;LevelUnLockManager&quot;):getCanPlayTopLevel()</span>
+<span id="L593" class="line"><a href="#L593">593</a>end</span>
+<span id="L594" class="line"><a href="#L594">594</a></span>
+<span id="L595" class="line"><a href="#L595">595</a>-- 是否满级</span>
+<span id="L596" class="line"><a href="#L596">596</a>function Manager:isFullLevel()</span>
+<span id="L597" class="line"><a href="#L597">597</a>    return _G.getTopPassedLevelId() == self:getServerMaxLevel()</span>
+<span id="L598" class="line"><a href="#L598">598</a>end</span>
+<span id="L599" class="line"><a href="#L599">599</a></span>
+<span id="L600" class="line"><a href="#L600">600</a>-- 是否top-60</span>
+<span id="L601" class="line"><a href="#L601">601</a>function Manager:isTopMinus60()</span>
+<span id="L602" class="line"><a href="#L602">602</a>    local diff = self:getServerMaxLevel() - _G.getTopPassedLevelId()</span>
+<span id="L603" class="line"><a href="#L603">603</a>    return diff &lt;= 60 and diff &gt; 0</span>
+<span id="L604" class="line"><a href="#L604">604</a>end</span>
+<span id="L605" class="line"><a href="#L605">605</a></span>
+<span id="L606" class="line"><a href="#L606">606</a>-- 定位次数</span>
+<span id="L607" class="line"><a href="#L607">607</a>function Manager:getPositionTimes()</span>
+<span id="L608" class="line"><a href="#L608">608</a>    return self:getModel():getLocalCache(&quot;poisitionTimes&quot;) or 0</span>
+<span id="L609" class="line"><a href="#L609">609</a>end</span>
+<span id="L610" class="line"><a href="#L610">610</a></span>
+<span id="L611" class="line"><a href="#L611">611</a>function Manager:addPositionTimes()</span>
+<span id="L612" class="line"><a href="#L612">612</a>    local times = self:getPositionTimes()</span>
+<span id="L613" class="line"><a href="#L613">613</a>    self:getModel():setLocalCache(&quot;poisitionTimes&quot;, times + 1)</span>
+<span id="L614" class="line"><a href="#L614">614</a>end</span>
+<span id="L615" class="line"><a href="#L615">615</a></span>
+<span id="L616" class="line"><a href="#L616">616</a>function Manager:clearPositionTimes()</span>
+<span id="L617" class="line"><a href="#L617">617</a>    self:getModel():setLocalCache(&quot;poisitionTimes&quot;, 0)</span>
+<span id="L618" class="line"><a href="#L618">618</a>end</span>
+<span id="L619" class="line"><a href="#L619">619</a></span>
+<span id="L620" class="line"><a href="#L620">620</a>function Manager:getStartTimeSec()</span>
+<span id="L621" class="line"><a href="#L621">621</a>    local peroidStatTime = self:getModel():getDataByKey(&quot;peroidStatTime&quot;, 0) or 0</span>
+<span id="L622" class="line"><a href="#L622">622</a>    return math.floor(tonumber(peroidStatTime) / 1000)</span>
+<span id="L623" class="line"><a href="#L623">623</a>end</span>
+<span id="L624" class="line"><a href="#L624">624</a></span>
+<span id="L625" class="line"><a href="#L625">625</a>function Manager:getLastEndTimeSec()</span>
+<span id="L626" class="line"><a href="#L626">626</a>    local peroidEndTime = self:getModel():getDataByKey(&quot;peroidEndTime&quot;, 0) or 0</span>
+<span id="L627" class="line"><a href="#L627">627</a>    return math.floor(tonumber(peroidEndTime) / 1000)</span>
+<span id="L628" class="line"><a href="#L628">628</a>end</span>
+<span id="L629" class="line"><a href="#L629">629</a></span>
+<span id="L630" class="line"><a href="#L630">630</a>function Manager:getPeriod()</span>
+<span id="L631" class="line"><a href="#L631">631</a>    local peroidId = self:getModel():getDataByKey(&quot;peroidId&quot;, -1) or -1</span>
+<span id="L632" class="line"><a href="#L632">632</a>    return tonumber(peroidId)</span>
+<span id="L633" class="line"><a href="#L633">633</a>end</span>
+<span id="L634" class="line"><a href="#L634">634</a></span>
+<span id="L635" class="line"><a href="#L635">635</a>function Manager:getMyRank()</span>
+<span id="L636" class="line"><a href="#L636">636</a>    local rank = self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.rank&quot;, 0) or 0</span>
+<span id="L637" class="line"><a href="#L637">637</a>    return tonumber(rank)</span>
+<span id="L638" class="line"><a href="#L638">638</a>end</span>
+<span id="L639" class="line"><a href="#L639">639</a></span>
+<span id="L640" class="line"><a href="#L640">640</a>function Manager:getNeedRankForUpAnim()</span>
+<span id="L641" class="line"><a href="#L641">641</a>    local type = tostring(self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.nowStarLevel&quot;, 0) or 0)</span>
+<span id="L642" class="line"><a href="#L642">642</a>    local rank = self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.rank&quot;, 0) or 0</span>
+<span id="L643" class="line"><a href="#L643">643</a>    local period = tostring(self:getModel():getDataByKey(&quot;periodId&quot;, -1) or -1)</span>
+<span id="L644" class="line"><a href="#L644">644</a></span>
+<span id="L645" class="line"><a href="#L645">645</a>    local cacheRankForUpAnim = self:getModel():getLocalCache(&quot;cacheRankForUpAnim&quot;) or {}</span>
+<span id="L646" class="line"><a href="#L646">646</a>    if cacheRankForUpAnim[period] and cacheRankForUpAnim[period][type] then</span>
+<span id="L647" class="line"><a href="#L647">647</a>        return rank &lt; cacheRankForUpAnim[period][type]</span>
+<span id="L648" class="line"><a href="#L648">648</a>    end</span>
+<span id="L649" class="line"><a href="#L649">649</a></span>
+<span id="L650" class="line"><a href="#L650">650</a>    return false</span>
+<span id="L651" class="line"><a href="#L651">651</a>end</span>
+<span id="L652" class="line"><a href="#L652">652</a></span>
+<span id="L653" class="line"><a href="#L653">653</a>function Manager:setRankForUpAnim()</span>
+<span id="L654" class="line"><a href="#L654">654</a>    local type = tostring(self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.nowStarLevel&quot;, 0) or 0)</span>
+<span id="L655" class="line"><a href="#L655">655</a>    local rank = self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.rank&quot;, 0) or 0</span>
+<span id="L656" class="line"><a href="#L656">656</a>    local period = tostring(self:getModel():getDataByKey(&quot;periodId&quot;, -1) or -1)</span>
+<span id="L657" class="line"><a href="#L657">657</a></span>
+<span id="L658" class="line"><a href="#L658">658</a>    local cacheRankForUpAnim = self:getModel():getLocalCache(&quot;cacheRankForUpAnim&quot;) or {}</span>
+<span id="L659" class="line"><a href="#L659">659</a>    cacheRankForUpAnim[period] = cacheRankForUpAnim[period] or {}</span>
+<span id="L660" class="line"><a href="#L660">660</a>    cacheRankForUpAnim[period][type] = rank</span>
+<span id="L661" class="line"><a href="#L661">661</a>    self:getModel():setLocalCache(&quot;cacheRankForUpAnim&quot;, cacheRankForUpAnim)</span>
+<span id="L662" class="line"><a href="#L662">662</a>end</span>
+<span id="L663" class="line"><a href="#L663">663</a></span>
+<span id="L664" class="line"><a href="#L664">664</a>function Manager:resetMyRankAndTypeAndIcon()</span>
+<span id="L665" class="line"><a href="#L665">665</a>    local simpleFullLevelRankBean = self:getModel():getDataByKey(&quot;simpleFullLevelRankBean&quot;, {}) or {}</span>
+<span id="L666" class="line"><a href="#L666">666</a>    simpleFullLevelRankBean.rank = 0</span>
+<span id="L667" class="line"><a href="#L667">667</a>    simpleFullLevelRankBean.nowStarLevel = 0</span>
+<span id="L668" class="line"><a href="#L668">668</a>    self:getModel():setDataByKey(&quot;simpleFullLevelRankBean&quot;, simpleFullLevelRankBean)</span>
+<span id="L669" class="line"><a href="#L669">669</a>    self:getModel():setDataByKey(&quot;initStarLevel&quot;, 0)</span>
+<span id="L670" class="line"><a href="#L670">670</a>    local icon = self:getActivityIcon()</span>
+<span id="L671" class="line"><a href="#L671">671</a>    if icon then</span>
+<span id="L672" class="line"><a href="#L672">672</a>        self:updateTipView()</span>
+<span id="L673" class="line"><a href="#L673">673</a>        if type(icon.refreshProvider) ~= &quot;function&quot; then</span>
+<span id="L674" class="line"><a href="#L674">674</a>            self:refreshActivityIcon(&quot;rankReset&quot;, icon)</span>
+<span id="L675" class="line"><a href="#L675">675</a>        end</span>
+<span id="L676" class="line"><a href="#L676">676</a>    end</span>
+<span id="L677" class="line"><a href="#L677">677</a>end</span>
+<span id="L678" class="line"><a href="#L678">678</a></span>
+<span id="L679" class="line"><a href="#L679">679</a>function Manager:getNeedCheckRankType()</span>
+<span id="L680" class="line"><a href="#L680">680</a>    local initStarLevel = self:getModel():getDataByKey(&quot;initStarLevel&quot;, 0) or 0</span>
+<span id="L681" class="line"><a href="#L681">681</a>    return initStarLevel &lt;= 0</span>
+<span id="L682" class="line"><a href="#L682">682</a>end</span>
+<span id="L683" class="line"><a href="#L683">683</a></span>
+<span id="L684" class="line"><a href="#L684">684</a>function Manager:getNeedChangeRankType()</span>
+<span id="L685" class="line"><a href="#L685">685</a>    local initStarLevel = self:getModel():getDataByKey(&quot;initStarLevel&quot;, 0) or 0</span>
+<span id="L686" class="line"><a href="#L686">686</a>    local curStarLevel = self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.nowStarLevel&quot;, 0) or 0</span>
+<span id="L687" class="line"><a href="#L687">687</a>    return initStarLevel &gt; 0 and curStarLevel &gt; initStarLevel</span>
+<span id="L688" class="line"><a href="#L688">688</a>end</span>
+<span id="L689" class="line"><a href="#L689">689</a></span>
+<span id="L690" class="line"><a href="#L690">690</a>function Manager:resetInitLevel()</span>
+<span id="L691" class="line"><a href="#L691">691</a>    local curStarLevel = self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.nowStarLevel&quot;, 0) or 0</span>
+<span id="L692" class="line"><a href="#L692">692</a>    if curStarLevel &gt; 0 then</span>
+<span id="L693" class="line"><a href="#L693">693</a>        self:getModel():setDataByKey(&quot;initStarLevel&quot;, curStarLevel)</span>
+<span id="L694" class="line"><a href="#L694">694</a>    end</span>
+<span id="L695" class="line"><a href="#L695">695</a>end</span>
+<span id="L696" class="line"><a href="#L696">696</a></span>
+<span id="L697" class="line"><a href="#L697">697</a>function Manager:getPopChangeType(rankType)</span>
+<span id="L698" class="line"><a href="#L698">698</a>    local popChangeList = self:getModel():getTempData(&quot;popChangeList&quot;) or {}</span>
+<span id="L699" class="line"><a href="#L699">699</a>    return table.exist(popChangeList, rankType)</span>
+<span id="L700" class="line"><a href="#L700">700</a>end</span>
+<span id="L701" class="line"><a href="#L701">701</a></span>
+<span id="L702" class="line"><a href="#L702">702</a>function Manager:setPopChangeType(rankType)</span>
+<span id="L703" class="line"><a href="#L703">703</a>    local popChangeList = self:getModel():getTempData(&quot;popChangeList&quot;) or {}</span>
+<span id="L704" class="line"><a href="#L704">704</a>    table.insert(popChangeList, rankType)</span>
+<span id="L705" class="line"><a href="#L705">705</a>    self:getModel():setTempData(&quot;popChangeList&quot;, popChangeList)</span>
+<span id="L706" class="line"><a href="#L706">706</a>end</span>
+<span id="L707" class="line"><a href="#L707">707</a></span>
+<span id="L708" class="line"><a href="#L708">708</a>function Manager:calCurRankType()</span>
+<span id="L709" class="line"><a href="#L709">709</a>    local userManager = _G.amfBean(&quot;UserManager&quot;)</span>
+<span id="L710" class="line"><a href="#L710">710</a>    local serverMaxLevel = self:getServerMaxLevel()</span>
+<span id="L711" class="line"><a href="#L711">711</a>    </span>
+<span id="L712" class="line"><a href="#L712">712</a>    local userTopLevel = _G.getTopPassedLevelId()</span>
+<span id="L713" class="line"><a href="#L713">713</a>    if userTopLevel &lt; serverMaxLevel then</span>
+<span id="L714" class="line"><a href="#L714">714</a>        return 0</span>
+<span id="L715" class="line"><a href="#L715">715</a>    end</span>
+<span id="L716" class="line"><a href="#L716">716</a></span>
+<span id="L717" class="line"><a href="#L717">717</a>    local curYellow = userManager:getStar()</span>
+<span id="L718" class="line"><a href="#L718">718</a>    local totalYellow = serverMaxLevel * 3</span>
+<span id="L719" class="line"><a href="#L719">719</a></span>
+<span id="L720" class="line"><a href="#L720">720</a>    if curYellow &lt; totalYellow then</span>
+<span id="L721" class="line"><a href="#L721">721</a>        local per = math.floor(curYellow / totalYellow * 100)</span>
+<span id="L722" class="line"><a href="#L722">722</a>        for i = 1, 4 do</span>
+<span id="L723" class="line"><a href="#L723">723</a>            local next = self:getNextPerRatioByRankType(i)</span>
+<span id="L724" class="line"><a href="#L724">724</a>            if per &lt; next then</span>
+<span id="L725" class="line"><a href="#L725">725</a>                return i</span>
+<span id="L726" class="line"><a href="#L726">726</a>            end</span>
+<span id="L727" class="line"><a href="#L727">727</a>        end</span>
+<span id="L728" class="line"><a href="#L728">728</a>    end</span>
+<span id="L729" class="line"><a href="#L729">729</a></span>
+<span id="L730" class="line"><a href="#L730">730</a>    local curColor = userManager:getColorfulStar()</span>
+<span id="L731" class="line"><a href="#L731">731</a>    local totalColor = serverMaxLevel * 3</span>
+<span id="L732" class="line"><a href="#L732">732</a>    if curColor &lt; totalColor then</span>
+<span id="L733" class="line"><a href="#L733">733</a>        return 5</span>
+<span id="L734" class="line"><a href="#L734">734</a>    end</span>
+<span id="L735" class="line"><a href="#L735">735</a></span>
+<span id="L736" class="line"><a href="#L736">736</a>    local curHide = userManager:getHiddenStar()</span>
+<span id="L737" class="line"><a href="#L737">737</a>    local totalHide = (serverMaxLevel / 15 - 1) * 9</span>
+<span id="L738" class="line"><a href="#L738">738</a>    if curHide &lt; totalHide then</span>
+<span id="L739" class="line"><a href="#L739">739</a>        return 6</span>
+<span id="L740" class="line"><a href="#L740">740</a>    end</span>
+<span id="L741" class="line"><a href="#L741">741</a></span>
+<span id="L742" class="line"><a href="#L742">742</a>    return 7</span>
+<span id="L743" class="line"><a href="#L743">743</a>end</span>
+<span id="L744" class="line"><a href="#L744">744</a></span>
+<span id="L745" class="line"><a href="#L745">745</a>function Manager:getCurRankType()</span>
+<span id="L746" class="line"><a href="#L746">746</a>    local curStarLevel = self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.nowStarLevel&quot;, 0)</span>
+<span id="L747" class="line"><a href="#L747">747</a>    return curStarLevel</span>
+<span id="L748" class="line"><a href="#L748">748</a>end</span>
+<span id="L749" class="line"><a href="#L749">749</a></span>
+<span id="L750" class="line"><a href="#L750">750</a>function Manager:setCurRankType(rankType)</span>
+<span id="L751" class="line"><a href="#L751">751</a>    self:getModel():setDataByKey(&quot;simpleFullLevelRankBean.nowStarLevel&quot;, rankType)</span>
+<span id="L752" class="line"><a href="#L752">752</a>end</span>
+<span id="L753" class="line"><a href="#L753">753</a></span>
+<span id="L754" class="line"><a href="#L754">754</a>function Manager:getCurRank()</span>
+<span id="L755" class="line"><a href="#L755">755</a>    local curRank = self:getModel():getDataByKey(&quot;simpleFullLevelRankBean.rank&quot;, 0)</span>
+<span id="L756" class="line"><a href="#L756">756</a>    return curRank</span>
+<span id="L757" class="line"><a href="#L757">757</a>end</span>
+<span id="L758" class="line"><a href="#L758">758</a></span>
+<span id="L759" class="line"><a href="#L759">759</a>function Manager:setCurRank(rank)</span>
+<span id="L760" class="line"><a href="#L760">760</a>    self:getModel():setDataByKey(&quot;simpleFullLevelRankBean.rank&quot;, rank)</span>
+<span id="L761" class="line"><a href="#L761">761</a>end</span>
+<span id="L762" class="line"><a href="#L762">762</a></span>
+<span id="L763" class="line"><a href="#L763">763</a>function Manager:getStarBottleNum()</span>
+<span id="L764" class="line"><a href="#L764">764</a>    return _G.amfBean(&quot;StarBuffManager&quot;):getStarBuffNum(true)</span>
+<span id="L765" class="line"><a href="#L765">765</a>end</span>
+<span id="L766" class="line"><a href="#L766">766</a></span>
+<span id="L767" class="line"><a href="#L767">767</a>function Manager:getStarWandCanShow()</span>
+<span id="L768" class="line"><a href="#L768">768</a>    return _G.amfBean(&quot;StarWandBuffManager&quot;):isEnabled()</span>
+<span id="L769" class="line"><a href="#L769">769</a>end</span>
+<span id="L770" class="line"><a href="#L770">770</a></span>
+<span id="L771" class="line"><a href="#L771">771</a>function Manager:getDefaultWeekRankPanelType()</span>
+<span id="L772" class="line"><a href="#L772">772</a>    return self:getModel():getLocalCache(&quot;weekRankPanelType&quot;) or 1</span>
+<span id="L773" class="line"><a href="#L773">773</a>end</span>
+<span id="L774" class="line"><a href="#L774">774</a></span>
+<span id="L775" class="line"><a href="#L775">775</a>function Manager:setDefaultWeekRankPanelType(value)</span>
+<span id="L776" class="line"><a href="#L776">776</a>    self:getModel():setLocalCache(&quot;weekRankPanelType&quot;, value)</span>
+<span id="L777" class="line"><a href="#L777">777</a>end</span>
+<span id="L778" class="line"><a href="#L778">778</a></span>
+<span id="L779" class="line"><a href="#L779">779</a>function Manager:getNextPerRatioByRankType(rankType)</span>
+<span id="L780" class="line"><a href="#L780">780</a>    rankType = rankType or self:getCurRankType()</span>
+<span id="L781" class="line"><a href="#L781">781</a>    if rankType &lt;= 3 then</span>
+<span id="L782" class="line"><a href="#L782">782</a>        local starLevelMetaList = self:getModel():getConfigByKey(&quot;starLevelMetaList&quot;) or {}</span>
+<span id="L783" class="line"><a href="#L783">783</a>        local levelMeta = table.find(starLevelMetaList, function(v)</span>
+<span id="L784" class="line"><a href="#L784">784</a>            return v.level == rankType</span>
+<span id="L785" class="line"><a href="#L785">785</a>        end) or {}</span>
+<span id="L786" class="line"><a href="#L786">786</a>        return levelMeta.ratio or 100</span>
+<span id="L787" class="line"><a href="#L787">787</a>    else</span>
+<span id="L788" class="line"><a href="#L788">788</a>        return 100</span>
+<span id="L789" class="line"><a href="#L789">789</a>    end</span>
+<span id="L790" class="line"><a href="#L790">790</a>end</span>
+<span id="L791" class="line"><a href="#L791">791</a></span>
+<span id="L792" class="line"><a href="#L792">792</a>function Manager:getActIconWorldPos()</span>
+<span id="L793" class="line"><a href="#L793">793</a>    local actIcon = self.actPlug:getActIcon()</span>
+<span id="L794" class="line"><a href="#L794">794</a>    if actIcon then</span>
+<span id="L795" class="line"><a href="#L795">795</a>        return true, actIcon:getPositionInWorldSpace()</span>
+<span id="L796" class="line"><a href="#L796">796</a>    end</span>
+<span id="L797" class="line"><a href="#L797">797</a>    return false, ccp(0, 0)</span>
+<span id="L798" class="line"><a href="#L798">798</a>end</span>
+<span id="L799" class="line"><a href="#L799">799</a></span>
+<span id="L800" class="line"><a href="#L800">800</a>function Manager:flyNodeToActIcon(callback, node, startPos, endPos, duration, endScale, onReachCallback)</span>
+<span id="L801" class="line"><a href="#L801">801</a>    if not endScale then</span>
+<span id="L802" class="line"><a href="#L802">802</a>        endScale = 0.5</span>
+<span id="L803" class="line"><a href="#L803">803</a>    end</span>
+<span id="L804" class="line"><a href="#L804">804</a></span>
+<span id="L805" class="line"><a href="#L805">805</a>    local scene = Director:sharedDirector():getRunningSceneLua()</span>
+<span id="L806" class="line"><a href="#L806">806</a>    if not scene or not scene:isScene(&quot;MainScene&quot;) then</span>
+<span id="L807" class="line"><a href="#L807">807</a>        safeRunCall(callback)</span>
+<span id="L808" class="line"><a href="#L808">808</a>        return</span>
+<span id="L809" class="line"><a href="#L809">809</a>    end</span>
+<span id="L810" class="line"><a href="#L810">810</a></span>
+<span id="L811" class="line"><a href="#L811">811</a>    local icon = self:getActivityIcon()</span>
+<span id="L812" class="line"><a href="#L812">812</a>    if not isSafeCocosObj(icon) then</span>
+<span id="L813" class="line"><a href="#L813">813</a>        safeRunCall(callback)</span>
+<span id="L814" class="line"><a href="#L814">814</a>        return</span>
+<span id="L815" class="line"><a href="#L815">815</a>    end</span>
+<span id="L816" class="line"><a href="#L816">816</a></span>
+<span id="L817" class="line"><a href="#L817">817</a>    -- 不传endPos默认给飞到icon上，然后触发icon抖动动画</span>
+<span id="L818" class="line"><a href="#L818">818</a>    if not endPos then</span>
+<span id="L819" class="line"><a href="#L819">819</a>        endPos = icon:getPositionInWorldSpace()</span>
+<span id="L820" class="line"><a href="#L820">820</a>    end</span>
+<span id="L821" class="line"><a href="#L821">821</a></span>
+<span id="L822" class="line"><a href="#L822">822</a>    local flyLayer = Layer:create()</span>
+<span id="L823" class="line"><a href="#L823">823</a>    flyLayer:setWorldPositon(startPos)</span>
+<span id="L824" class="line"><a href="#L824">824</a>    flyLayer:addChild(node)</span>
+<span id="L825" class="line"><a href="#L825">825</a>    scene:addChild(flyLayer, SceneLayerShowKey.POP_OUT_LAYER)</span>
+<span id="L826" class="line"><a href="#L826">826</a>    printx(42, &quot;start--------00000000000000000000000&quot;)</span>
+<span id="L827" class="line"><a href="#L827">827</a>    if isSafeCocosObj(node) then</span>
+<span id="L828" class="line"><a href="#L828">828</a>        local pos = node:getPositionInWorldSpace()</span>
+<span id="L829" class="line"><a href="#L829">829</a>        printx(42, &quot;node Pos&quot;, pos.x, pos.y)</span>
+<span id="L830" class="line"><a href="#L830">830</a></span>
+<span id="L831" class="line"><a href="#L831">831</a>        local updateTime = function()</span>
+<span id="L832" class="line"><a href="#L832">832</a>            if not isSafeCocosObj(flyLayer) then</span>
+<span id="L833" class="line"><a href="#L833">833</a>                printx(42, &quot;flyLayer disposed&quot;)</span>
+<span id="L834" class="line"><a href="#L834">834</a>            end</span>
+<span id="L835" class="line"><a href="#L835">835</a></span>
+<span id="L836" class="line"><a href="#L836">836</a>            if isSafeCocosObj(node) then</span>
+<span id="L837" class="line"><a href="#L837">837</a>                local pos2 = node:getPositionInWorldSpace()</span>
+<span id="L838" class="line"><a href="#L838">838</a>                printx(42, &quot;node Pos&quot;, pos2.x, pos2.y)</span>
+<span id="L839" class="line"><a href="#L839">839</a>            else</span>
+<span id="L840" class="line"><a href="#L840">840</a>                printx(42, &quot;node is disposed&quot;)</span>
+<span id="L841" class="line"><a href="#L841">841</a>            end</span>
+<span id="L842" class="line"><a href="#L842">842</a>        end</span>
+<span id="L843" class="line"><a href="#L843">843</a></span>
+<span id="L844" class="line"><a href="#L844">844</a>        local action = CCRepeatForever:create(CCSequence:createWithTwoActions(CCDelayTime:create(1 / 30),</span>
+<span id="L845" class="line"><a href="#L845">845</a>            CCCallFunc:create(updateTime)))</span>
+<span id="L846" class="line"><a href="#L846">846</a>        node:runAction(action)</span>
+<span id="L847" class="line"><a href="#L847">847</a>    end</span>
+<span id="L848" class="line"><a href="#L848">848</a></span>
+<span id="L849" class="line"><a href="#L849">849</a>    -- 释放layer</span>
+<span id="L850" class="line"><a href="#L850">850</a>    local function callback2()</span>
+<span id="L851" class="line"><a href="#L851">851</a>        if onReachCallback then</span>
+<span id="L852" class="line"><a href="#L852">852</a>            safeRunCall(onReachCallback)</span>
+<span id="L853" class="line"><a href="#L853">853</a>        end</span>
+<span id="L854" class="line"><a href="#L854">854</a>        setTimeOut(function()</span>
+<span id="L855" class="line"><a href="#L855">855</a>            safeRunCall(callback)</span>
+<span id="L856" class="line"><a href="#L856">856</a>        end, 0.167)</span>
+<span id="L857" class="line"><a href="#L857">857</a>        printx(42, &quot;fly End000000000000000000000000000&quot;)</span>
+<span id="L858" class="line"><a href="#L858">858</a>        if isSafeCocosObj(icon) then</span>
+<span id="L859" class="line"><a href="#L859">859</a>            -- icon抖动动画</span>
+<span id="L860" class="line"><a href="#L860">860</a>            icon:playCollectAni()</span>
+<span id="L861" class="line"><a href="#L861">861</a>        end</span>
+<span id="L862" class="line"><a href="#L862">862</a>        if isSafeCocosObj(flyLayer) then</span>
+<span id="L863" class="line"><a href="#L863">863</a>            flyLayer:setVisible(false)</span>
+<span id="L864" class="line"><a href="#L864">864</a>            flyLayer:removeFromParentAndCleanup(true)</span>
+<span id="L865" class="line"><a href="#L865">865</a>        end</span>
+<span id="L866" class="line"><a href="#L866">866</a>    end</span>
+<span id="L867" class="line"><a href="#L867">867</a></span>
+<span id="L868" class="line"><a href="#L868">868</a>    local ActionUtil = require &quot;amf.middleware.ui.util.ActionUtil&quot;</span>
+<span id="L869" class="line"><a href="#L869">869</a>    local action = ActionUtil:sequence({CCDelayTime:create(0),</span>
+<span id="L870" class="line"><a href="#L870">870</a>                                        ActionUtil:spawn({ -- CCMoveTo:create(oneFrame*10, nodePos),</span>
+<span id="L871" class="line"><a href="#L871">871</a>    ActionUtil:bezier(startPos, endPos, nil, duration, callback2), CCScaleTo:create(duration, endScale)})})</span>
+<span id="L872" class="line"><a href="#L872">872</a>    flyLayer:runAction(action)</span>
+<span id="L873" class="line"><a href="#L873">873</a>end</span>
+<span id="L874" class="line"><a href="#L874">874</a></span>
+<span id="L875" class="line"><a href="#L875">875</a>-------------------------------------------面板-----------------------------------------------------</span>
+<span id="L876" class="line"><a href="#L876">876</a></span>
+<span id="L877" class="line"><a href="#L877">877</a>function Manager:tryOpenDailyGetBuffPanel(callback)</span>
+<span id="L878" class="line"><a href="#L878">878</a>    _G.amfBean(&quot;StarBuffManager&quot;):tryOpenGetStarBuffPanel({</span>
+<span id="L879" class="line"><a href="#L879">879</a>        closeCallback = function()</span>
+<span id="L880" class="line"><a href="#L880">880</a>            local buffNum = _G.amfBean(&quot;StarBuffManager&quot;):getStarBuffNum(true)</span>
+<span id="L881" class="line"><a href="#L881">881</a>            safeRunCall(callback, buffNum)</span>
+<span id="L882" class="line"><a href="#L882">882</a>        end,</span>
+<span id="L883" class="line"><a href="#L883">883</a>        popoutSourceTypeId = StarBuffConst.PopoutSourceType.kStellarConvergence</span>
+<span id="L884" class="line"><a href="#L884">884</a>    })</span>
+<span id="L885" class="line"><a href="#L885">885</a>end</span>
+<span id="L886" class="line"><a href="#L886">886</a></span>
+<span id="L887" class="line"><a href="#L887">887</a>function Manager:openStarBottlePanel(updateFunc)</span>
+<span id="L888" class="line"><a href="#L888">888</a>    _G.amfBean(&quot;StarBuffManager&quot;):dc(&quot;click_icon_buff&quot;)</span>
+<span id="L889" class="line"><a href="#L889">889</a>    local ShowStarBuffRemainPanelVM = require(&quot;amf.feature.localactivity.stellarconvergence.view.vm.ShowStarBuffRemainPanelVM&quot;)</span>
+<span id="L890" class="line"><a href="#L890">890</a>    local vm = ShowStarBuffRemainPanelVM.Builder.new()</span>
+<span id="L891" class="line"><a href="#L891">891</a>        :setTitle(&quot;补星瓶&quot;)</span>
+<span id="L892" class="line"><a href="#L892">892</a>        :setRefreshFunc(updateFunc)</span>
+<span id="L893" class="line"><a href="#L893">893</a>        :setCloseCallback(function()</span>
+<span id="L894" class="line"><a href="#L894">894</a>            if not EnvUtil:isUnity() then</span>
+<span id="L895" class="line"><a href="#L895">895</a>                -- UICreateUtil:unloadPlist(&quot;amf/uikit/image/panel/changeColor/testPicPack.plist&quot;)</span>
+<span id="L896" class="line"><a href="#L896">896</a>            end</span>
+<span id="L897" class="line"><a href="#L897">897</a>            if updateFunc then updateFunc() end</span>
+<span id="L898" class="line"><a href="#L898">898</a>        end)</span>
+<span id="L899" class="line"><a href="#L899">899</a>        :setColorType(PanelColorConst.ColorType.kStardustPalace2023Blue)</span>
+<span id="L900" class="line"><a href="#L900">900</a>        :setDCFeatureAndSource(&quot;star_region&quot;, &quot;repair_star&quot;)</span>
+<span id="L901" class="line"><a href="#L901">901</a>        :setFarmStarPanelType(3)</span>
+<span id="L902" class="line"><a href="#L902">902</a>        :build()</span>
+<span id="L903" class="line"><a href="#L903">903</a></span>
+<span id="L904" class="line"><a href="#L904">904</a>    vm:popout()</span>
+<span id="L905" class="line"><a href="#L905">905</a>end</span>
+<span id="L906" class="line"><a href="#L906">906</a></span>
+<span id="L907" class="line"><a href="#L907">907</a>function Manager:openFullLevelScoringPanel(source)</span>
+<span id="L908" class="line"><a href="#L908">908</a>    -- FullLevelOptimizeManager2023:setPanelSource(22)</span>
+<span id="L909" class="line"><a href="#L909">909</a>    _G.amfBean(&quot;FarmLevelManager&quot;):openRecommendPanel(nil, source)</span>
+<span id="L910" class="line"><a href="#L910">910</a>    _G.amfBean(&quot;StarWandBuffManager&quot;):dcClickIcon(3)</span>
+<span id="L911" class="line"><a href="#L911">911</a>end</span>
+<span id="L912" class="line"><a href="#L912">912</a></span>
+<span id="L913" class="line"><a href="#L913">913</a>-- 领奖二次确认</span>
+<span id="L914" class="line"><a href="#L914">914</a>function Manager:openGetRewardSecondConfirm(confirmCallback, notConfirmCallback)</span>
+<span id="L915" class="line"><a href="#L915">915</a>    local targetTime = self:getModel():getLocalCache(&quot;getRewardSecondConfirm&quot;)</span>
+<span id="L916" class="line"><a href="#L916">916</a>    local curTime = TimeKit:timeInSec()</span>
+<span id="L917" class="line"><a href="#L917">917</a>    local needShow = (not targetTime) or (targetTime + 7 * 24 * 60 * 60 &lt; curTime)</span>
+<span id="L918" class="line"><a href="#L918">918</a></span>
+<span id="L919" class="line"><a href="#L919">919</a>    if not needShow then</span>
+<span id="L920" class="line"><a href="#L920">920</a>        safeRunCall(confirmCallback)</span>
+<span id="L921" class="line"><a href="#L921">921</a>        return</span>
+<span id="L922" class="line"><a href="#L922">922</a>    end</span>
+<span id="L923" class="line"><a href="#L923">923</a></span>
+<span id="L924" class="line"><a href="#L924">924</a>    local dcFlag = false</span>
+<span id="L925" class="line"><a href="#L925">925</a>    local confirm = false</span>
+<span id="L926" class="line"><a href="#L926">926</a>    local vm</span>
+<span id="L927" class="line"><a href="#L927">927</a>    local CheckBox = require &quot;amf.middleware.ui.kit.component.CheckBox&quot;</span>
+<span id="L928" class="line"><a href="#L928">928</a>    local checkBoxBuilder = CheckBox.Builder.new()</span>
+<span id="L929" class="line"><a href="#L929">929</a>    :setText(&quot;七天内不再提醒&quot;)</span>
+<span id="L930" class="line"><a href="#L930">930</a>    :setTickVisible(false)</span>
+<span id="L931" class="line"><a href="#L931">931</a>    :setClickCallback(function(isCheck)</span>
+<span id="L932" class="line"><a href="#L932">932</a>        dcFlag = isCheck</span>
+<span id="L933" class="line"><a href="#L933">933</a></span>
+<span id="L934" class="line"><a href="#L934">934</a>        if dcFlag then</span>
+<span id="L935" class="line"><a href="#L935">935</a>            self:getModel():setLocalCache(&quot;getRewardSecondConfirm&quot;, curTime)</span>
+<span id="L936" class="line"><a href="#L936">936</a>        end</span>
+<span id="L937" class="line"><a href="#L937">937</a>    end)</span>
+<span id="L938" class="line"><a href="#L938">938</a>    local FourthPanelAVM = require &quot;amf.middleware.ui.kit.panel.fourth.FourthPanelAVM&quot;</span>
+<span id="L939" class="line"><a href="#L939">939</a>    local builder = FourthPanelAVM.Builder.new()</span>
+<span id="L940" class="line"><a href="#L940">940</a>    builder:setButtonsConfig({{</span>
+<span id="L941" class="line"><a href="#L941">941</a>        str = &quot;确定&quot;,</span>
+<span id="L942" class="line"><a href="#L942">942</a>        widthMode = UIButtonConfig.Widths.kShort,</span>
+<span id="L943" class="line"><a href="#L943">943</a>        colorMode = UIButtonConfig.ColorMode.green,</span>
+<span id="L944" class="line"><a href="#L944">944</a>        touchFunc = function()</span>
+<span id="L945" class="line"><a href="#L945">945</a>            if vm.isDisposed then</span>
+<span id="L946" class="line"><a href="#L946">946</a>                return</span>
+<span id="L947" class="line"><a href="#L947">947</a>            end</span>
+<span id="L948" class="line"><a href="#L948">948</a>            confirm = true</span>
+<span id="L949" class="line"><a href="#L949">949</a>            safeRunCall(confirmCallback)</span>
+<span id="L950" class="line"><a href="#L950">950</a>            vm:onCloseBtnTapped()</span>
+<span id="L951" class="line"><a href="#L951">951</a>            StellarConvergenceDC:sendDC(&quot;affirm_click&quot;, {</span>
+<span id="L952" class="line"><a href="#L952">952</a>                t1 = 1,</span>
+<span id="L953" class="line"><a href="#L953">953</a>                t2 = dcFlag and 1 or 2</span>
+<span id="L954" class="line"><a href="#L954">954</a>            })</span>
+<span id="L955" class="line"><a href="#L955">955</a>        end</span>
+<span id="L956" class="line"><a href="#L956">956</a>    }})</span>
+<span id="L957" class="line"><a href="#L957">957</a></span>
+<span id="L958" class="line"><a href="#L958">958</a>    local todayOpenCount = self:getModel():getTodayOpenCount()</span>
+<span id="L959" class="line"><a href="#L959">959</a>    local todayMaxCount = self:getModel():getValue(&quot;perDayOpenBoxNum&quot;) or 2</span>
+<span id="L960" class="line"><a href="#L960">960</a>    local retCount = todayMaxCount - todayOpenCount</span>
+<span id="L961" class="line"><a href="#L961">961</a>    builder:setText({&quot;确定要&quot;, &quot;&lt;&lt;c=ea6b34&gt;立刻开启&gt;&quot;,</span>
+<span id="L962" class="line"><a href="#L962">962</a>                   &quot;星光宝盒吗？\n（今天还可开启&quot; .. retCount .. &quot;次）&quot;}, kCCTextAlignmentCenter)</span>
+<span id="L963" class="line"><a href="#L963">963</a></span>
+<span id="L964" class="line"><a href="#L964">964</a>    builder:setCheckBoxBuilder(checkBoxBuilder)</span>
+<span id="L965" class="line"><a href="#L965">965</a>    builder:setCloseCallback(function()</span>
+<span id="L966" class="line"><a href="#L966">966</a>        StellarConvergenceDC:sendDC(&quot;affirm_click&quot;, {</span>
+<span id="L967" class="line"><a href="#L967">967</a>            t1 = 2,</span>
+<span id="L968" class="line"><a href="#L968">968</a>            t2 = dcFlag and 1 or 2</span>
+<span id="L969" class="line"><a href="#L969">969</a>        })</span>
+<span id="L970" class="line"><a href="#L970">970</a>        if not confirm then</span>
+<span id="L971" class="line"><a href="#L971">971</a>            safeRunCall(notConfirmCallback)</span>
+<span id="L972" class="line"><a href="#L972">972</a>        end</span>
+<span id="L973" class="line"><a href="#L973">973</a>    end)</span>
+<span id="L974" class="line"><a href="#L974">974</a></span>
+<span id="L975" class="line"><a href="#L975">975</a>    vm = builder:build()</span>
+<span id="L976" class="line"><a href="#L976">976</a>    vm:popout()</span>
+<span id="L977" class="line"><a href="#L977">977</a>end</span>
+<span id="L978" class="line"><a href="#L978">978</a></span>
+<span id="L979" class="line"><a href="#L979">979</a>function Manager:openExchangeRewardPanel(rewardBean, areaId, done, disableDarkOpacity, extraSpineConfig)</span>
+<span id="L980" class="line"><a href="#L980">980</a>    local str = &quot;恭喜获得&quot;</span>
+<span id="L981" class="line"><a href="#L981">981</a>    local title = CircularTitle:create(str)</span>
+<span id="L982" class="line"><a href="#L982">982</a></span>
+<span id="L983" class="line"><a href="#L983">983</a>    for i, v in ipairs(rewardBean.rewardDirectList) do</span>
+<span id="L984" class="line"><a href="#L984">984</a>        if v.itemId == self:getConst().ScoreBuffId then</span>
+<span id="L985" class="line"><a href="#L985">985</a>            v.flyFunc = function(reward, worldPos, scale, callback)</span>
+<span id="L986" class="line"><a href="#L986">986</a>                local flyContext = FlyItemContext.new({</span>
+<span id="L987" class="line"><a href="#L987">987</a>                    itemId = FlyItemContext.FakeItemId.YELLOW_STAR,</span>
+<span id="L988" class="line"><a href="#L988">988</a>                    num = 1,</span>
+<span id="L989" class="line"><a href="#L989">989</a>                    starsWorldPos = {worldPos},</span>
+<span id="L990" class="line"><a href="#L990">990</a>                })</span>
+<span id="L991" class="line"><a href="#L991">991</a>                flyContext:setFinishCallback(callback)</span>
+<span id="L992" class="line"><a href="#L992">992</a>                _G.amfTransaction(TransactionEvent.FLY_ITEMS, flyContext)</span>
+<span id="L993" class="line"><a href="#L993">993</a>            end</span>
+<span id="L994" class="line"><a href="#L994">994</a>        end</span>
+<span id="L995" class="line"><a href="#L995">995</a>    end</span>
+<span id="L996" class="line"><a href="#L996">996</a>    -- panelC延长animDelay时间，fireworks加个等级6</span>
+<span id="L997" class="line"><a href="#L997">997</a>    local spinePath = &quot;amf/activity/stellarconvergence/spine/xxlihe.skel&quot;</span>
+<span id="L998" class="line"><a href="#L998">998</a>    local showName = &quot;in_open&quot;</span>
+<span id="L999" class="line"><a href="#L999">999</a>    local idleName = &quot;open_idle&quot;</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>    local disappearName = &quot;out&quot;</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>    local spineSpeed = 1.2</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>    local boxAnimDelay = nil</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>    local delayShowBtnTime = nil</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>    if extraSpineConfig then</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>        spinePath = extraSpineConfig.spinePath</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>        showName = extraSpineConfig.showName</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>        idleName = extraSpineConfig.idleName</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>        disappearName = extraSpineConfig.disappearName</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>        spineSpeed = extraSpineConfig.spineSpeed</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>        boxAnimDelay = extraSpineConfig.boxAnimDelay</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>        delayShowBtnTime = extraSpineConfig.delayShowBtnTime</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>    end</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a></span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>    local todayOpenCount = self:getModel():getTodayOpenCount()</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>    local todayMaxCount = self:getModel():getValue(&quot;perDayOpenBoxNum&quot;) or 2</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a></span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>    _G.amfTransaction(AMFEventConst.TransactionType.EXCHANGE_SHOP_TASK, {</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>        subCmd = &quot;showReward&quot;,</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a>        subData = {</span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>            closeCallback = done,</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>            -- rewards = rewardBean,</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>            panelType = 3,</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>            dontNeedRunNumber = true,</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>            customBoxConfig = {</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>                path = spinePath,</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>                showName = showName,</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>                idleName = idleName,</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>                disappearName = disappearName,</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>                fireWorkType = 6,</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>                skinType = 6,</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>                speed = spineSpeed</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>            },</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>            titleSprite = title,</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a>            subTitle = string.format(&quot;区域%d满黄星奖励&quot;, areaId),</span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>            bottomText = {</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>                desc = {string.format(&quot;每日限领取%d/%d个 &quot;, todayOpenCount, todayMaxCount), &quot;&lt;&lt;node&gt;&gt;&quot;},</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>                nodes = {UICreateUtil:createSpriteFile(&quot;amf/activity/stellarconvergence/materials/rewardBox.png&quot;)},</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>                outlineSize = 2,</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>                outlineColor = hex2ccc4(&quot;954600FF&quot;)</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>            },</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>            rewardList = rewardBean.rewardList,</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>            rewardDirectList = rewardBean.rewardDirectList,</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>            repeatList = rewardBean.repeatList,</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>            yuanBaoList = rewardBean.yuanBaoList,</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>            -- dontPopout = true,</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>            disableDarkOpacity = disableDarkOpacity,</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>            boxAnimDelay = boxAnimDelay,</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>            delayShowBtnTime = delayShowBtnTime,</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a>            buttonUpText = &quot;领取&quot;,</span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>        }</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>    })</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>end</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a></span>
+<span id="L1054" class="line"><a href="#L1054">1054</a></span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>-- delegate = {</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>--     isFullColor = true,</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>--     areaId = 1,</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>--     closeCallback = nil,</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>--     isPlayNextLevel = false</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>-- }</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>function Manager:showOneAreaFullStarPanel(delegate)</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>    local todayOpenCount = self:getModel():getTodayOpenCount()</span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>    local todayMaxCount = self:getModel():getValue(&quot;perDayOpenBoxNum&quot;) or 2</span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>    local hasGotReward = self:checkHasGotReward(delegate.areaId)</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>    </span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>    delegate.todayOpenCount = todayOpenCount</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a>    delegate.todayMaxCount = todayMaxCount</span>
+<span id="L1068" class="line"><a href="#L1068">1068</a>    delegate.dontShowReward = hasGotReward</span>
+<span id="L1069" class="line"><a href="#L1069">1069</a></span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>    local panelVm</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>    local panelVMClass = require &quot;amf.feature.localactivity.stellarconvergence.view.vm.OneAreaFullStarPanelVM&quot;</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>    panelVm = panelVMClass:create(delegate)</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a>    panelVm:popout()</span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>    return panelVm</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>end</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a></span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>-- delegate = {</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>--     areaId = 1,--1-10 1是1-150，2是151-300</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a>--     colorStar = true,</span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>--     closeCallback = nil</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>-- }</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>function Manager:showTenAreaFullStarPanel(delegate)</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>    local panelVm</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a></span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>    local panelVMClass = require &quot;amf.feature.localactivity.stellarconvergence.view.vm.TenAreaFullStarPanelVM&quot;</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>    panelVm = panelVMClass:create(delegate)</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>    panelVm:popout()</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a></span>
+<span id="L1089" class="line"><a href="#L1089">1089</a>    return panelVm</span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>end</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a></span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>-- 26.01.15 弹出太卡，做资源异步预加载</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>function Manager:showConstellationFullStarPanel(delegate)</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>    local function realPop()</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>        local panelVm</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a>        local panelVMClass = require &quot;amf.feature.localactivity.stellarconvergence.view.vm.ConstellationFullStarPanelVM&quot;</span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>        panelVm = panelVMClass:create(delegate)</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>        panelVm:setLoadResFailCallback(function()</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>            if not EnvUtil:isMiniGame() then self:releaseResList() end</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>            safeRunCall(delegate.closeCallback)</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>        end)</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a>        panelVm:setCloseCallback(function()</span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>            if not EnvUtil:isMiniGame() then self:releaseResList() end</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a>            safeRunCall(delegate.closeCallback)</span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>        end)</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>        panelVm:popout()</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>    end</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a></span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>    if not EnvUtil:isMiniGame() then</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>        local panel = require &quot;amf.feature.localactivity.stellarconvergence.view.panel.ConstellationFullStarPanel&quot;</span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>        local resList = panel:getAssetsList()</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>        self:loadResListAndRetainAsync(resList, realPop)</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a>    else</span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>        realPop()</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a>    end</span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>end</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a></span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>-- 26.01.15 弹出太卡，做资源异步预加载</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>function Manager:showFullStarSharePanel(delegate)</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a>    local function realPop()</span>
+<span id="L1121" class="line"><a href="#L1121">1121</a>        local panelVm</span>
+<span id="L1122" class="line"><a href="#L1122">1122</a>        local panelVMClass = require &quot;amf.feature.localactivity.stellarconvergence.view.vm.FullStarSharePanelVM&quot;</span>
+<span id="L1123" class="line"><a href="#L1123">1123</a>        panelVm = panelVMClass:create(delegate)</span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>        panelVm:setLoadResFailCallback(function()</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>            if not EnvUtil:isMiniGame() then self:releaseResList() end</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a>            safeRunCall(delegate.closeCallback)</span>
+<span id="L1127" class="line"><a href="#L1127">1127</a>        end)</span>
+<span id="L1128" class="line"><a href="#L1128">1128</a>        panelVm:setCloseCallback(function()</span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>            if not EnvUtil:isMiniGame() then self:releaseResList() end</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>            safeRunCall(delegate.closeCallback)</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>        end)</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a>        panelVm:popout()</span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>    end</span>
+<span id="L1134" class="line"><a href="#L1134">1134</a></span>
+<span id="L1135" class="line"><a href="#L1135">1135</a>    if not EnvUtil:isMiniGame() then</span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>        local panel = require &quot;amf.feature.localactivity.stellarconvergence.view.panel.FullStarSharePanel&quot;</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>        local resList = panel:getAssetsList()</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>        self:loadResListAndRetainAsync(resList, realPop)</span>
+<span id="L1139" class="line"><a href="#L1139">1139</a>    else</span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>        realPop()</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>    end</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a>end</span>
+<span id="L1143" class="line"><a href="#L1143">1143</a></span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>function Manager:showStarLevelChangePanel(delegate)</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a>    self:setPopChangeType(delegate.newRankType)</span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>    self:setCurRankType(delegate.newRankType)</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a>    </span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>    local wrappedCallback = function()</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>        local isIconV2, icon = self:refreshActivityIcon(&quot;starLevelChanged&quot;)</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>        if not isIconV2 and isSafeCocosObj(icon) and type(icon.playBoomAni) == &quot;function&quot; then</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>            pcall(icon.playBoomAni, icon)</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>        end</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a>        safeRunCall(delegate.callback)</span>
+<span id="L1154" class="line"><a href="#L1154">1154</a>    end</span>
+<span id="L1155" class="line"><a href="#L1155">1155</a>    </span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>    local panelVMClass = require &quot;amf.feature.localactivity.stellarconvergence.view.vm.StarLevelUpgradePanelVM&quot;</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a>    local panelVm = panelVMClass:create({</span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>        oldRankType = delegate.oldRankType,</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a>        rankType = delegate.newRankType,</span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>        closeCallback = wrappedCallback</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a>    })</span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>    panelVm:popout(nil, true, nil, 0)</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a>end</span>
+<span id="L1164" class="line"><a href="#L1164">1164</a></span>
+<span id="L1165" class="line"><a href="#L1165">1165</a>---------------------------------------------------------------------------------</span>
+<span id="L1166" class="line"><a href="#L1166">1166</a></span>
+<span id="L1167" class="line"><a href="#L1167">1167</a></span>
+<span id="L1168" class="line"><a href="#L1168">1168</a>function Manager:getFullColorAndYellowNum()</span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>    return self:getModel():getFullColorAndYellowNum()</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a>end</span>
+<span id="L1171" class="line"><a href="#L1171">1171</a></span>
+<span id="L1172" class="line"><a href="#L1172">1172</a>function Manager:getStarwandLevelNum()</span>
+<span id="L1173" class="line"><a href="#L1173">1173</a>    local lvsMain, lvsHide = self:getModel():getStarWandData()</span>
+<span id="L1174" class="line"><a href="#L1174">1174</a>    if not lvsMain or not lvsHide then</span>
+<span id="L1175" class="line"><a href="#L1175">1175</a>        return 0</span>
+<span id="L1176" class="line"><a href="#L1176">1176</a>    end</span>
+<span id="L1177" class="line"><a href="#L1177">1177</a>    return #lvsMain + #lvsHide</span>
+<span id="L1178" class="line"><a href="#L1178">1178</a>end</span>
+<span id="L1179" class="line"><a href="#L1179">1179</a></span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>function Manager:getStarWandNum()</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a>    return self:getStarwandLevelNum()</span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>end</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a></span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>function Manager:getCanOpenBoxNum()</span>
+<span id="L1185" class="line"><a href="#L1185">1185</a>    return self:getModel():getCanOpenBoxNum()</span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>end</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a></span>
+<span id="L1188" class="line"><a href="#L1188">1188</a>-------------------------------------- 关卡内接口 -------------------------------------------</span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>function Manager:isInLevelEnabled(params)</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a>    if not UBFLevelSceneFunc:isFullLevelLib(params.levelScene) then</span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>        return false</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a>    end</span>
+<span id="L1193" class="line"><a href="#L1193">1193</a>    if not self:isEnabled() then</span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>        return false</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>    end</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a></span>
+<span id="L1197" class="line"><a href="#L1197">1197</a>    -- 判满紫，关卡库判了黄彩不用再判了</span>
+<span id="L1198" class="line"><a href="#L1198">1198</a>    local serverMaxLevel = self:getServerMaxLevel()</span>
+<span id="L1199" class="line"><a href="#L1199">1199</a>    local cur = _G.amfBean(&quot;UserManager&quot;):getHiddenStar()</span>
+<span id="L1200" class="line"><a href="#L1200">1200</a>    local total = (serverMaxLevel / 15 - 1) * 9</span>
+<span id="L1201" class="line"><a href="#L1201">1201</a>    if cur &lt; total then</span>
+<span id="L1202" class="line"><a href="#L1202">1202</a>        return false</span>
+<span id="L1203" class="line"><a href="#L1203">1203</a>    end</span>
+<span id="L1204" class="line"><a href="#L1204">1204</a></span>
+<span id="L1205" class="line"><a href="#L1205">1205</a>    return true</span>
+<span id="L1206" class="line"><a href="#L1206">1206</a>end</span>
+<span id="L1207" class="line"><a href="#L1207">1207</a></span>
+<span id="L1208" class="line"><a href="#L1208">1208</a>function Manager:getInLevelActData(levelId, ubfSLRuntime)</span>
+<span id="L1209" class="line"><a href="#L1209">1209</a>    local inLevelActData = {}</span>
+<span id="L1210" class="line"><a href="#L1210">1210</a></span>
+<span id="L1211" class="line"><a href="#L1211">1211</a>    inLevelActData.actEndTime = self:getLastEndTimeSec() * 1000</span>
+<span id="L1212" class="line"><a href="#L1212">1212</a></span>
+<span id="L1213" class="line"><a href="#L1213">1213</a>    local starBuffMgr = _G.amfBean(&quot;StarBuffManager&quot;)</span>
+<span id="L1214" class="line"><a href="#L1214">1214</a>    local normalNum = starBuffMgr:getStarBuffNormalNum()</span>
+<span id="L1215" class="line"><a href="#L1215">1215</a>    local limitPropList = starBuffMgr:getStarBuffTimeLimitPerNum(true)</span>
+<span id="L1216" class="line"><a href="#L1216">1216</a>    local infiniteTime = starBuffMgr:getStarBuffInfiniteTime()</span>
+<span id="L1217" class="line"><a href="#L1217">1217</a>    local str = &quot;&quot;</span>
+<span id="L1218" class="line"><a href="#L1218">1218</a>    str = str .. AMFPropId.STARBUFF .. &quot;_&quot; .. normalNum .. &quot;;&quot;</span>
+<span id="L1219" class="line"><a href="#L1219">1219</a>    for k, v in pairs(limitPropList) do</span>
+<span id="L1220" class="line"><a href="#L1220">1220</a>        str = str .. k .. &quot;_&quot; .. v .. &quot;;&quot;</span>
+<span id="L1221" class="line"><a href="#L1221">1221</a>    end</span>
+<span id="L1222" class="line"><a href="#L1222">1222</a>    str = str .. AMFPropId.INFINITE_STARBUFF_ONE_MINUTE .. &quot;_&quot; .. infiniteTime</span>
+<span id="L1223" class="line"><a href="#L1223">1223</a>    inLevelActData.star_stock = str</span>
+<span id="L1224" class="line"><a href="#L1224">1224</a></span>
+<span id="L1225" class="line"><a href="#L1225">1225</a>    return inLevelActData</span>
+<span id="L1226" class="line"><a href="#L1226">1226</a>end</span>
+<span id="L1227" class="line"><a href="#L1227">1227</a></span>
+<span id="L1228" class="line"><a href="#L1228">1228</a>function Manager:getCurAvailableBuffAndEndTime()</span>
+<span id="L1229" class="line"><a href="#L1229">1229</a>    return 0.3, self:getScoreBuffTime()</span>
+<span id="L1230" class="line"><a href="#L1230">1230</a>end</span>
+<span id="L1231" class="line"><a href="#L1231">1231</a></span>
+<span id="L1232" class="line"><a href="#L1232">1232</a>function Manager:getCurAvailableBuffAndEndTimeSec()</span>
+<span id="L1233" class="line"><a href="#L1233">1233</a>    return 0.3, math.floor(self:getScoreBuffTime() / 1000)</span>
+<span id="L1234" class="line"><a href="#L1234">1234</a>end</span>
+<span id="L1235" class="line"><a href="#L1235">1235</a></span>
+<span id="L1236" class="line"><a href="#L1236">1236</a>-------------------------------------- 资源预加载 -------------------------------------------</span>
+<span id="L1237" class="line"><a href="#L1237">1237</a></span>
+<span id="L1238" class="line"><a href="#L1238">1238</a>-- only app</span>
+<span id="L1239" class="line"><a href="#L1239">1239</a>local ResType = {</span>
+<span id="L1240" class="line"><a href="#L1240">1240</a>    PLIST = &quot;plist&quot;,</span>
+<span id="L1241" class="line"><a href="#L1241">1241</a>    SPINE = &quot;spine&quot;,</span>
+<span id="L1242" class="line"><a href="#L1242">1242</a>    SPRITE = &quot;sprite&quot;,</span>
+<span id="L1243" class="line"><a href="#L1243">1243</a>}</span>
+<span id="L1244" class="line"><a href="#L1244">1244</a></span>
+<span id="L1245" class="line"><a href="#L1245">1245</a>function Manager:loadResListAndRetainAsync(resList, onCompleted)</span>
+<span id="L1246" class="line"><a href="#L1246">1246</a>    if not resList or #resList == 0 then</span>
+<span id="L1247" class="line"><a href="#L1247">1247</a>        if onCompleted then</span>
+<span id="L1248" class="line"><a href="#L1248">1248</a>            onCompleted()</span>
+<span id="L1249" class="line"><a href="#L1249">1249</a>        end</span>
+<span id="L1250" class="line"><a href="#L1250">1250</a>        return</span>
+<span id="L1251" class="line"><a href="#L1251">1251</a>    end</span>
+<span id="L1252" class="line"><a href="#L1252">1252</a></span>
+<span id="L1253" class="line"><a href="#L1253">1253</a>    if EnvUtil:isMiniGame() then</span>
+<span id="L1254" class="line"><a href="#L1254">1254</a>        _G.amfBean(&quot;AssetsUtil&quot;):loadMiniFiles(resList, true):next(onCompleted)</span>
+<span id="L1255" class="line"><a href="#L1255">1255</a>        return</span>
+<span id="L1256" class="line"><a href="#L1256">1256</a>    end</span>
+<span id="L1257" class="line"><a href="#L1257">1257</a></span>
+<span id="L1258" class="line"><a href="#L1258">1258</a>    if self.allLoadPromise and self.curLoadPromise then</span>
+<span id="L1259" class="line"><a href="#L1259">1259</a>        -- 已经请求加载过了，直接接promise</span>
+<span id="L1260" class="line"><a href="#L1260">1260</a>        self.curLoadPromise = self.curLoadPromise:next(onCompleted)</span>
+<span id="L1261" class="line"><a href="#L1261">1261</a>        return</span>
+<span id="L1262" class="line"><a href="#L1262">1262</a>    end</span>
+<span id="L1263" class="line"><a href="#L1263">1263</a></span>
+<span id="L1264" class="line"><a href="#L1264">1264</a>    local autoReferenceMap = {}</span>
+<span id="L1265" class="line"><a href="#L1265">1265</a>    self.autoReferenceMap = autoReferenceMap</span>
+<span id="L1266" class="line"><a href="#L1266">1266</a>    self.allLoadPromise = deferred.new()</span>
+<span id="L1267" class="line"><a href="#L1267">1267</a>    self.curLoadPromise = self.allLoadPromise:next(onCompleted)</span>
+<span id="L1268" class="line"><a href="#L1268">1268</a></span>
+<span id="L1269" class="line"><a href="#L1269">1269</a>    local cond = Condition.new(function()</span>
+<span id="L1270" class="line"><a href="#L1270">1270</a>        printx(31, &quot;allResLoaded&quot;, TimeKit:timeInMillis())</span>
+<span id="L1271" class="line"><a href="#L1271">1271</a>        self.allLoadPromise:resolve()</span>
+<span id="L1272" class="line"><a href="#L1272">1272</a>    end, #resList)</span>
+<span id="L1273" class="line"><a href="#L1273">1273</a></span>
+<span id="L1274" class="line"><a href="#L1274">1274</a>    local function onSingleResLoaded()</span>
+<span id="L1275" class="line"><a href="#L1275">1275</a>        cond:notify()</span>
+<span id="L1276" class="line"><a href="#L1276">1276</a>    end</span>
+<span id="L1277" class="line"><a href="#L1277">1277</a></span>
+<span id="L1278" class="line"><a href="#L1278">1278</a>    printx(31, &quot;start load res list async&quot;, TimeKit:timeInMillis())</span>
+<span id="L1279" class="line"><a href="#L1279">1279</a>    for _, file in ipairs(resList) do</span>
+<span id="L1280" class="line"><a href="#L1280">1280</a>        if not autoReferenceMap[file] then</span>
+<span id="L1281" class="line"><a href="#L1281">1281</a>            if file:ends(&quot;.plist&quot;) then</span>
+<span id="L1282" class="line"><a href="#L1282">1282</a>                UICreateUtil:loadPlistAsync(file, onSingleResLoaded)</span>
+<span id="L1283" class="line"><a href="#L1283">1283</a>                autoReferenceMap[file] = ResType.PLIST</span>
+<span id="L1284" class="line"><a href="#L1284">1284</a>            elseif file:ends(&quot;.skel&quot;) then</span>
+<span id="L1285" class="line"><a href="#L1285">1285</a>                UICreateUtil:loadSpineResAsync(file, nil, onSingleResLoaded)</span>
+<span id="L1286" class="line"><a href="#L1286">1286</a>                autoReferenceMap[file] = ResType.SPINE</span>
+<span id="L1287" class="line"><a href="#L1287">1287</a>            elseif file:ends(&quot;.png&quot;) or file:ends(&quot;.jpg&quot;) then</span>
+<span id="L1288" class="line"><a href="#L1288">1288</a>                UICreateUtil:loadImageAsync(file, onSingleResLoaded)</span>
+<span id="L1289" class="line"><a href="#L1289">1289</a>                autoReferenceMap[file] = ResType.SPRITE</span>
+<span id="L1290" class="line"><a href="#L1290">1290</a>            end</span>
+<span id="L1291" class="line"><a href="#L1291">1291</a>        end</span>
+<span id="L1292" class="line"><a href="#L1292">1292</a>    end</span>
+<span id="L1293" class="line"><a href="#L1293">1293</a>end</span>
+<span id="L1294" class="line"><a href="#L1294">1294</a></span>
+<span id="L1295" class="line"><a href="#L1295">1295</a>function Manager:releaseResList()</span>
+<span id="L1296" class="line"><a href="#L1296">1296</a>    if not self.autoReferenceMap then return end</span>
+<span id="L1297" class="line"><a href="#L1297">1297</a></span>
+<span id="L1298" class="line"><a href="#L1298">1298</a>    if EnvUtil:isMiniGame() then</span>
+<span id="L1299" class="line"><a href="#L1299">1299</a>        local files = table.keys(self.autoReferenceMap)</span>
+<span id="L1300" class="line"><a href="#L1300">1300</a>        _G.amfBean(&quot;AssetsUtil&quot;):unloadRes(files)</span>
+<span id="L1301" class="line"><a href="#L1301">1301</a>    else</span>
+<span id="L1302" class="line"><a href="#L1302">1302</a>        for file, resType in pairs(self.autoReferenceMap) do</span>
+<span id="L1303" class="line"><a href="#L1303">1303</a>            if resType == ResType.PLIST then</span>
+<span id="L1304" class="line"><a href="#L1304">1304</a>                UICreateUtil:unloadPlist(file)</span>
+<span id="L1305" class="line"><a href="#L1305">1305</a>            elseif resType == ResType.SPINE then</span>
+<span id="L1306" class="line"><a href="#L1306">1306</a>                UICreateUtil:unloadSpineRes(file, true, true)</span>
+<span id="L1307" class="line"><a href="#L1307">1307</a>            elseif resType == ResType.SPRITE then</span>
+<span id="L1308" class="line"><a href="#L1308">1308</a>                UICreateUtil:unloadImage(file)</span>
+<span id="L1309" class="line"><a href="#L1309">1309</a>            end</span>
+<span id="L1310" class="line"><a href="#L1310">1310</a>        end</span>
+<span id="L1311" class="line"><a href="#L1311">1311</a>    end</span>
+<span id="L1312" class="line"><a href="#L1312">1312</a>    </span>
+<span id="L1313" class="line"><a href="#L1313">1313</a>    self.autoReferenceMap = nil</span>
+<span id="L1314" class="line"><a href="#L1314">1314</a>    self.allLoadPromise = nil</span>
+<span id="L1315" class="line"><a href="#L1315">1315</a>    self.curLoadPromise = nil</span>
+<span id="L1316" class="line"><a href="#L1316">1316</a>end</span>
+<span id="L1317" class="line"><a href="#L1317">1317</a>--------------------------------------------------------------------------------------------</span>
+<span id="L1318" class="line"><a href="#L1318">1318</a></span>
+<span id="L1319" class="line"><a href="#L1319">1319</a>---------------------------------- CUSTOM_GAIN ----------------------------------</span>
+<span id="L1320" class="line"><a href="#L1320">1320</a></span>
+<span id="L1321" class="line"><a href="#L1321">1321</a>function Manager:_onCustomGain(event)</span>
+<span id="L1322" class="line"><a href="#L1322">1322</a>    local reward = event:getData()</span>
+<span id="L1323" class="line"><a href="#L1323">1323</a>    if reward.itemId == self:getConst().ScoreBuffId then</span>
+<span id="L1324" class="line"><a href="#L1324">1324</a>        self:addScoreBuffItem(reward.num)</span>
+<span id="L1325" class="line"><a href="#L1325">1325</a>    end</span>
+<span id="L1326" class="line"><a href="#L1326">1326</a>end</span>
+<span id="L1327" class="line"><a href="#L1327">1327</a></span>
+<span id="L1328" class="line"><a href="#L1328">1328</a>return Manager</span></pre></main></html>

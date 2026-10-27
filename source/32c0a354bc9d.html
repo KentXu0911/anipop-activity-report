@@ -1,0 +1,799 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/ui/export/widgets/progress/MilestonePropIconPixelConfigDebug.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="32c0a354bc9d.lua" download>下载Lua原文</a></p><h1>amf/middleware/ui/export/widgets/progress/MilestonePropIconPixelConfigDebug.lua</h1><p>SHA256 ebfba37ab99e09ed5ab289b643e4eb047fbdf8686ea6856b692b2ba54fdf6f20</p><pre><span id="L1" class="line"><a href="#L1">1</a>local UEPropIcon = require &quot;amf.middleware.ui.export.widgets.prop.UEPropIcon&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local UEProgressMilestoneBuilder = require &quot;amf.middleware.ui.export.widgets.progress.UEProgressMilestoneBuilder&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>---@class MilestonePropIconPixelConfigDebug</span>
+<span id="L5" class="line"><a href="#L5">5</a>local MilestonePropIconPixelConfigDebug = {}</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>local CAPTURE_WIDTH = 512</span>
+<span id="L8" class="line"><a href="#L8">8</a>local CAPTURE_HEIGHT = 512</span>
+<span id="L9" class="line"><a href="#L9">9</a>local DEFAULT_NUM = 10</span>
+<span id="L10" class="line"><a href="#L10">10</a>local DEFAULT_CAPTURE_SCALE = 1</span>
+<span id="L11" class="line"><a href="#L11">11</a>local DEFAULT_MILESTONE_SCALE = 0.4</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>-- 进度条三状态验证的固定参数：长度 1200、最大值 1000、可视区域 500、里程碑值 100。</span>
+<span id="L14" class="line"><a href="#L14">14</a>-- 固定这些参数后，三张截图只随验证值变化，便于对比进度头相对里程碑的停靠位置。</span>
+<span id="L15" class="line"><a href="#L15">15</a>local VERIFICATION_FIXED = {</span>
+<span id="L16" class="line"><a href="#L16">16</a>    maxValue = 1000,</span>
+<span id="L17" class="line"><a href="#L17">17</a>    progressWidth = 1200,</span>
+<span id="L18" class="line"><a href="#L18">18</a>    scrollContainerWidth = 500,</span>
+<span id="L19" class="line"><a href="#L19">19</a>    threshold = 100,</span>
+<span id="L20" class="line"><a href="#L20">20</a>    positionX = 360,</span>
+<span id="L21" class="line"><a href="#L21">21</a>    positionY = 500,</span>
+<span id="L22" class="line"><a href="#L22">22</a>}</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>-- 三状态对应的验证值：前临界 95、里程碑 100、后临界 105。</span>
+<span id="L25" class="line"><a href="#L25">25</a>local VERIFICATION_STATE_VALUES = {</span>
+<span id="L26" class="line"><a href="#L26">26</a>    before = 95,</span>
+<span id="L27" class="line"><a href="#L27">27</a>    milestone = 100,</span>
+<span id="L28" class="line"><a href="#L28">28</a>    after = 105,</span>
+<span id="L29" class="line"><a href="#L29">29</a>}</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>local function getCachePath(options)</span>
+<span id="L32" class="line"><a href="#L32">32</a>    if options and options.cachePath then</span>
+<span id="L33" class="line"><a href="#L33">33</a>        return options.cachePath</span>
+<span id="L34" class="line"><a href="#L34">34</a>    end</span>
+<span id="L35" class="line"><a href="#L35">35</a>    return HeResPathUtils:getUserDataPath() .. &quot;/milestone_prop_icon_pixel_cache&quot;</span>
+<span id="L36" class="line"><a href="#L36">36</a>end</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>local function ensureDirectory(path)</span>
+<span id="L39" class="line"><a href="#L39">39</a>    if HeFileUtils and HeFileUtils.mkdirs then</span>
+<span id="L40" class="line"><a href="#L40">40</a>        HeFileUtils:mkdirs(path)</span>
+<span id="L41" class="line"><a href="#L41">41</a>    end</span>
+<span id="L42" class="line"><a href="#L42">42</a>end</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>local function removeDirectory(path)</span>
+<span id="L45" class="line"><a href="#L45">45</a>    if path and path ~= &quot;&quot; and HeFileUtils and HeFileUtils.exists(path) then</span>
+<span id="L46" class="line"><a href="#L46">46</a>        HeFileUtils:removeDir(path)</span>
+<span id="L47" class="line"><a href="#L47">47</a>    end</span>
+<span id="L48" class="line"><a href="#L48">48</a>end</span>
+<span id="L49" class="line"><a href="#L49">49</a></span>
+<span id="L50" class="line"><a href="#L50">50</a>local function writeText(path, content)</span>
+<span id="L51" class="line"><a href="#L51">51</a>    local file = io.open(path, &quot;w&quot;)</span>
+<span id="L52" class="line"><a href="#L52">52</a>    if not file then</span>
+<span id="L53" class="line"><a href="#L53">53</a>        return false</span>
+<span id="L54" class="line"><a href="#L54">54</a>    end</span>
+<span id="L55" class="line"><a href="#L55">55</a>    file:write(content)</span>
+<span id="L56" class="line"><a href="#L56">56</a>    file:close()</span>
+<span id="L57" class="line"><a href="#L57">57</a>    return true</span>
+<span id="L58" class="line"><a href="#L58">58</a>end</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>-- 从真实 UEProgressMilestone 布局测量进度条与里程碑的相对 Y 区间。</span>
+<span id="L61" class="line"><a href="#L61">61</a>local function resolveMilestoneProgressRoi(itemId, options)</span>
+<span id="L62" class="line"><a href="#L62">62</a>    local scene = Director:sharedDirector():getRunningSceneLua()</span>
+<span id="L63" class="line"><a href="#L63">63</a>    if not scene then</span>
+<span id="L64" class="line"><a href="#L64">64</a>        return nil, &quot;running scene unavailable&quot;</span>
+<span id="L65" class="line"><a href="#L65">65</a>    end</span>
+<span id="L66" class="line"><a href="#L66">66</a>    local builder = UEProgressMilestoneBuilder.new()</span>
+<span id="L67" class="line"><a href="#L67">67</a>        :setMaxValue(1000)</span>
+<span id="L68" class="line"><a href="#L68">68</a>        :setValue(0)</span>
+<span id="L69" class="line"><a href="#L69">69</a>        :setProgressWidth(options.progressWidth or 493)</span>
+<span id="L70" class="line"><a href="#L70">70</a>        :setScrollContainerWidth(options.scrollContainerWidth or 493)</span>
+<span id="L71" class="line"><a href="#L71">71</a>        :setScrollable(false)</span>
+<span id="L72" class="line"><a href="#L72">72</a>        :setMilestoneConfig({</span>
+<span id="L73" class="line"><a href="#L73">73</a>            autoClaim = true,</span>
+<span id="L74" class="line"><a href="#L74">74</a>            milestonesList = {</span>
+<span id="L75" class="line"><a href="#L75">75</a>                {</span>
+<span id="L76" class="line"><a href="#L76">76</a>                    threshold = 500,</span>
+<span id="L77" class="line"><a href="#L77">77</a>                    rewardConfig = { itemId = itemId, num = options.num or DEFAULT_NUM },</span>
+<span id="L78" class="line"><a href="#L78">78</a>                },</span>
+<span id="L79" class="line"><a href="#L79">79</a>            },</span>
+<span id="L80" class="line"><a href="#L80">80</a>        })</span>
+<span id="L81" class="line"><a href="#L81">81</a>    local success, probeOrError = pcall(function()</span>
+<span id="L82" class="line"><a href="#L82">82</a>        return WidgetManager:createWidgetObj(&quot;UEProgressMilestone&quot;, builder)</span>
+<span id="L83" class="line"><a href="#L83">83</a>    end)</span>
+<span id="L84" class="line"><a href="#L84">84</a>    if not success or not probeOrError then</span>
+<span id="L85" class="line"><a href="#L85">85</a>        return nil, tostring(probeOrError)</span>
+<span id="L86" class="line"><a href="#L86">86</a>    end</span>
+<span id="L87" class="line"><a href="#L87">87</a></span>
+<span id="L88" class="line"><a href="#L88">88</a>    local probe = probeOrError</span>
+<span id="L89" class="line"><a href="#L89">89</a>    scene:addChild(probe)</span>
+<span id="L90" class="line"><a href="#L90">90</a>    local content = probe:_getContentNode()</span>
+<span id="L91" class="line"><a href="#L91">91</a>    local progress = probe:_getProgressNode()</span>
+<span id="L92" class="line"><a href="#L92">92</a>    local milestoneNode = probe:_getMilestoneNode(1)</span>
+<span id="L93" class="line"><a href="#L93">93</a>    local progressBounds = progress and progress:getGroupBounds(content, true)</span>
+<span id="L94" class="line"><a href="#L94">94</a>    local nodeBounds = milestoneNode and milestoneNode:getGroupBounds(content, true)</span>
+<span id="L95" class="line"><a href="#L95">95</a>    local result</span>
+<span id="L96" class="line"><a href="#L96">96</a>    if progressBounds and nodeBounds and progressBounds.origin and progressBounds.size</span>
+<span id="L97" class="line"><a href="#L97">97</a>        and nodeBounds.origin and nodeBounds.size then</span>
+<span id="L98" class="line"><a href="#L98">98</a>        local progressBottom = progressBounds.origin.y</span>
+<span id="L99" class="line"><a href="#L99">99</a>        local progressTop = progressBounds.origin.y + progressBounds.size.height</span>
+<span id="L100" class="line"><a href="#L100">100</a>        local nodeCenterY = nodeBounds.origin.y + nodeBounds.size.height * 0.5</span>
+<span id="L101" class="line"><a href="#L101">101</a>        local sourceCenterY = CAPTURE_HEIGHT * 0.5</span>
+<span id="L102" class="line"><a href="#L102">102</a>        -- manifest 保存运行时 scale=0.4 的坐标，Python 会映射回 scale=1 截图。</span>
+<span id="L103" class="line"><a href="#L103">103</a>        result = {</span>
+<span id="L104" class="line"><a href="#L104">104</a>            top = sourceCenterY + (progressTop - nodeCenterY),</span>
+<span id="L105" class="line"><a href="#L105">105</a>            bottom = sourceCenterY + (progressBottom - nodeCenterY),</span>
+<span id="L106" class="line"><a href="#L106">106</a>            scale = DEFAULT_MILESTONE_SCALE,</span>
+<span id="L107" class="line"><a href="#L107">107</a>        }</span>
+<span id="L108" class="line"><a href="#L108">108</a>        if result.top &gt; result.bottom then</span>
+<span id="L109" class="line"><a href="#L109">109</a>            result.top, result.bottom = result.bottom, result.top</span>
+<span id="L110" class="line"><a href="#L110">110</a>        end</span>
+<span id="L111" class="line"><a href="#L111">111</a>    end</span>
+<span id="L112" class="line"><a href="#L112">112</a>    probe:removeFromParentAndCleanup(true)</span>
+<span id="L113" class="line"><a href="#L113">113</a>    if not result then</span>
+<span id="L114" class="line"><a href="#L114">114</a>        return nil, &quot;milestone progress ROI unavailable&quot;</span>
+<span id="L115" class="line"><a href="#L115">115</a>    end</span>
+<span id="L116" class="line"><a href="#L116">116</a>    return result</span>
+<span id="L117" class="line"><a href="#L117">117</a>end</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>local function getItemIds(explicitItemIds)</span>
+<span id="L120" class="line"><a href="#L120">120</a>    if type(explicitItemIds) == &quot;table&quot; then</span>
+<span id="L121" class="line"><a href="#L121">121</a>        local ids = {}</span>
+<span id="L122" class="line"><a href="#L122">122</a>        local seen = {}</span>
+<span id="L123" class="line"><a href="#L123">123</a>        for _, itemId in ipairs(explicitItemIds) do</span>
+<span id="L124" class="line"><a href="#L124">124</a>            itemId = tonumber(itemId)</span>
+<span id="L125" class="line"><a href="#L125">125</a>            if itemId and itemId &gt; 0 and not seen[itemId] then</span>
+<span id="L126" class="line"><a href="#L126">126</a>                ids[#ids + 1] = itemId</span>
+<span id="L127" class="line"><a href="#L127">127</a>                seen[itemId] = true</span>
+<span id="L128" class="line"><a href="#L128">128</a>            end</span>
+<span id="L129" class="line"><a href="#L129">129</a>        end</span>
+<span id="L130" class="line"><a href="#L130">130</a>        return ids</span>
+<span id="L131" class="line"><a href="#L131">131</a>    end</span>
+<span id="L132" class="line"><a href="#L132">132</a></span>
+<span id="L133" class="line"><a href="#L133">133</a>    -- 直接使用 items_config 数组顺序，保证批量配置输出可追溯。</span>
+<span id="L134" class="line"><a href="#L134">134</a>    local itemConfig = require &quot;zoo.config.meta.items_config&quot;</span>
+<span id="L135" class="line"><a href="#L135">135</a>    local ids = {}</span>
+<span id="L136" class="line"><a href="#L136">136</a>    for _, row in ipairs(itemConfig or {}) do</span>
+<span id="L137" class="line"><a href="#L137">137</a>        local itemId = row and tonumber(row.itemId)</span>
+<span id="L138" class="line"><a href="#L138">138</a>        if itemId and itemId &gt; 0 then</span>
+<span id="L139" class="line"><a href="#L139">139</a>            ids[#ids + 1] = itemId</span>
+<span id="L140" class="line"><a href="#L140">140</a>        end</span>
+<span id="L141" class="line"><a href="#L141">141</a>    end</span>
+<span id="L142" class="line"><a href="#L142">142</a>    return ids</span>
+<span id="L143" class="line"><a href="#L143">143</a>end</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>local function getSceneRoot()</span>
+<span id="L146" class="line"><a href="#L146">146</a>    local scene = Director:sharedDirector():getRunningSceneLua()</span>
+<span id="L147" class="line"><a href="#L147">147</a>    if not scene then</span>
+<span id="L148" class="line"><a href="#L148">148</a>        return nil, &quot;running scene unavailable&quot;</span>
+<span id="L149" class="line"><a href="#L149">149</a>    end</span>
+<span id="L150" class="line"><a href="#L150">150</a>    local root = Layer:create()</span>
+<span id="L151" class="line"><a href="#L151">151</a>    if not root then</span>
+<span id="L152" class="line"><a href="#L152">152</a>        return nil, &quot;capture root creation failed&quot;</span>
+<span id="L153" class="line"><a href="#L153">153</a>    end</span>
+<span id="L154" class="line"><a href="#L154">154</a>    scene:addChild(root)</span>
+<span id="L155" class="line"><a href="#L155">155</a>    return root</span>
+<span id="L156" class="line"><a href="#L156">156</a>end</span>
+<span id="L157" class="line"><a href="#L157">157</a></span>
+<span id="L158" class="line"><a href="#L158">158</a>-- 活动仓库目录名（各人本地路径不同，需动态查找；找不到则上报询问用户）</span>
+<span id="L159" class="line"><a href="#L159">159</a>local ACTIVITY_REPO_DIR_NAME = &quot;minigame-activity-development-cocos&quot;</span>
+<span id="L160" class="line"><a href="#L160">160</a>local g_activityRepoRoot = nil</span>
+<span id="L161" class="line"><a href="#L161">161</a>local g_activityRepoResolved = false</span>
+<span id="L162" class="line"><a href="#L162">162</a></span>
+<span id="L163" class="line"><a href="#L163">163</a>local function pathIsDir(path)</span>
+<span id="L164" class="line"><a href="#L164">164</a>    return path and path ~= &quot;&quot; and HeFileUtils and HeFileUtils.exists and HeFileUtils:exists(path)</span>
+<span id="L165" class="line"><a href="#L165">165</a>end</span>
+<span id="L166" class="line"><a href="#L166">166</a></span>
+<span id="L167" class="line"><a href="#L167">167</a>-- 定位活动仓库根目录：优先用显式传入；否则从已知资源绝对路径逐级向上查找同级同名目录。</span>
+<span id="L168" class="line"><a href="#L168">168</a>-- 找不到返回 nil，由上层记录 &quot;activity repo not found, ask user&quot;。</span>
+<span id="L169" class="line"><a href="#L169">169</a>-- @param explicit string|nil 显式指定的活动仓库路径</span>
+<span id="L170" class="line"><a href="#L170">170</a>-- @return string|nil 活动仓库根目录</span>
+<span id="L171" class="line"><a href="#L171">171</a>local function resolveActivityRepoRoot(explicit)</span>
+<span id="L172" class="line"><a href="#L172">172</a>    if explicit and explicit ~= &quot;&quot; and pathIsDir(explicit) then</span>
+<span id="L173" class="line"><a href="#L173">173</a>        g_activityRepoRoot = explicit</span>
+<span id="L174" class="line"><a href="#L174">174</a>        g_activityRepoResolved = true</span>
+<span id="L175" class="line"><a href="#L175">175</a>        return g_activityRepoRoot</span>
+<span id="L176" class="line"><a href="#L176">176</a>    end</span>
+<span id="L177" class="line"><a href="#L177">177</a>    if g_activityRepoResolved then</span>
+<span id="L178" class="line"><a href="#L178">178</a>        return g_activityRepoRoot</span>
+<span id="L179" class="line"><a href="#L179">179</a>    end</span>
+<span id="L180" class="line"><a href="#L180">180</a>    g_activityRepoResolved = true</span>
+<span id="L181" class="line"><a href="#L181">181</a>    local probe = CCFileUtils:sharedFileUtils():fullPathForFilename(&quot;amf/uikit/image/base/common_item_icon256.plist&quot;)</span>
+<span id="L182" class="line"><a href="#L182">182</a>    if probe and probe:sub(1, 1) == &quot;/&quot; then</span>
+<span id="L183" class="line"><a href="#L183">183</a>        local dir = probe:gsub(&quot;/[^/]+$&quot;, &quot;&quot;)</span>
+<span id="L184" class="line"><a href="#L184">184</a>        for _ = 1, 12 do</span>
+<span id="L185" class="line"><a href="#L185">185</a>            local parent = dir:gsub(&quot;/[^/]+$&quot;, &quot;&quot;)</span>
+<span id="L186" class="line"><a href="#L186">186</a>            if parent == dir or parent == &quot;&quot; then</span>
+<span id="L187" class="line"><a href="#L187">187</a>                break</span>
+<span id="L188" class="line"><a href="#L188">188</a>            end</span>
+<span id="L189" class="line"><a href="#L189">189</a>            dir = parent</span>
+<span id="L190" class="line"><a href="#L190">190</a>            local candidate = dir .. &quot;/&quot; .. ACTIVITY_REPO_DIR_NAME</span>
+<span id="L191" class="line"><a href="#L191">191</a>            if pathIsDir(candidate) then</span>
+<span id="L192" class="line"><a href="#L192">192</a>                g_activityRepoRoot = candidate</span>
+<span id="L193" class="line"><a href="#L193">193</a>                return candidate</span>
+<span id="L194" class="line"><a href="#L194">194</a>            end</span>
+<span id="L195" class="line"><a href="#L195">195</a>        end</span>
+<span id="L196" class="line"><a href="#L196">196</a>    end</span>
+<span id="L197" class="line"><a href="#L197">197</a>    return nil</span>
+<span id="L198" class="line"><a href="#L198">198</a>end</span>
+<span id="L199" class="line"><a href="#L199">199</a></span>
+<span id="L200" class="line"><a href="#L200">200</a>-- 确保 imageInfo 对应的纹理可用：图集未加载时先加载 plist，独立 png 则按路径加载。</span>
+<span id="L201" class="line"><a href="#L201">201</a>-- 散图（png）不在运行时搜索路径时，回退到活动仓库查找；找不到则报错，交由上层询问用户。</span>
+<span id="L202" class="line"><a href="#L202">202</a>-- 避免 setFrame 未命中时精灵保留空白纹理、渲染成 256x256 空白色块却仍被当成成功。</span>
+<span id="L203" class="line"><a href="#L203">203</a>-- @param imageInfo table {Atlas, Frame, IsPropPng}</span>
+<span id="L204" class="line"><a href="#L204">204</a>-- @return boolean ok 帧/纹理是否可用</span>
+<span id="L205" class="line"><a href="#L205">205</a>-- @return string|nil reason 失败原因</span>
+<span id="L206" class="line"><a href="#L206">206</a>local function ensureImageLoaded(imageInfo)</span>
+<span id="L207" class="line"><a href="#L207">207</a>    if not imageInfo or not imageInfo.Frame or imageInfo.Frame == &quot;&quot; then</span>
+<span id="L208" class="line"><a href="#L208">208</a>        return false, &quot;empty image frame&quot;</span>
+<span id="L209" class="line"><a href="#L209">209</a>    end</span>
+<span id="L210" class="line"><a href="#L210">210</a>    local frameCache = CCSpriteFrameCache:sharedSpriteFrameCache()</span>
+<span id="L211" class="line"><a href="#L211">211</a>    if frameCache:spriteFrameByName(imageInfo.Frame) then</span>
+<span id="L212" class="line"><a href="#L212">212</a>        return true</span>
+<span id="L213" class="line"><a href="#L213">213</a>    end</span>
+<span id="L214" class="line"><a href="#L214">214</a>    -- fullPathForFilename 命中真实文件时返回绝对路径，缺失时原样返回入参</span>
+<span id="L215" class="line"><a href="#L215">215</a>    local fileUtils = CCFileUtils:sharedFileUtils()</span>
+<span id="L216" class="line"><a href="#L216">216</a>    local function resolvedPath(path)</span>
+<span id="L217" class="line"><a href="#L217">217</a>        local full = fileUtils:fullPathForFilename(path)</span>
+<span id="L218" class="line"><a href="#L218">218</a>        if full and full ~= &quot;&quot; and full:sub(1, 1) == &quot;/&quot; then</span>
+<span id="L219" class="line"><a href="#L219">219</a>            return full</span>
+<span id="L220" class="line"><a href="#L220">220</a>        end</span>
+<span id="L221" class="line"><a href="#L221">221</a>        return nil</span>
+<span id="L222" class="line"><a href="#L222">222</a>    end</span>
+<span id="L223" class="line"><a href="#L223">223</a>    local atlas = imageInfo.Atlas</span>
+<span id="L224" class="line"><a href="#L224">224</a>    if atlas and atlas ~= &quot;&quot; and imageInfo.IsPropPng ~= true then</span>
+<span id="L225" class="line"><a href="#L225">225</a>        -- 图集未加载：先确认真实存在，再加载 plist 并校验帧命中</span>
+<span id="L226" class="line"><a href="#L226">226</a>        if not resolvedPath(atlas) then</span>
+<span id="L227" class="line"><a href="#L227">227</a>            return false, &quot;atlas file not found: &quot; .. tostring(atlas)</span>
+<span id="L228" class="line"><a href="#L228">228</a>        end</span>
+<span id="L229" class="line"><a href="#L229">229</a>        frameCache:addSpriteFramesWithFile(atlas)</span>
+<span id="L230" class="line"><a href="#L230">230</a>        if frameCache:spriteFrameByName(imageInfo.Frame) then</span>
+<span id="L231" class="line"><a href="#L231">231</a>            return true</span>
+<span id="L232" class="line"><a href="#L232">232</a>        end</span>
+<span id="L233" class="line"><a href="#L233">233</a>        return false, &quot;atlas loaded but frame not found: &quot; .. tostring(imageInfo.Frame)</span>
+<span id="L234" class="line"><a href="#L234">234</a>    end</span>
+<span id="L235" class="line"><a href="#L235">235</a>    -- 独立 png：缺失时 addImage 会返回 32x32 占位图，必须先定位真实文件</span>
+<span id="L236" class="line"><a href="#L236">236</a>    local pngPath = resolvedPath(imageInfo.Frame)</span>
+<span id="L237" class="line"><a href="#L237">237</a>    if not pngPath then</span>
+<span id="L238" class="line"><a href="#L238">238</a>        -- 回退活动仓库：activity/&lt;act&gt;/... 或 amf/activity/&lt;act&gt;/... -&gt; &lt;repo&gt;/&lt;act&gt;/...</span>
+<span id="L239" class="line"><a href="#L239">239</a>        local rel = tostring(imageInfo.Frame):gsub(&quot;^amf/activity/&quot;, &quot;&quot;):gsub(&quot;^activity/&quot;, &quot;&quot;)</span>
+<span id="L240" class="line"><a href="#L240">240</a>        local repoRoot = resolveActivityRepoRoot()</span>
+<span id="L241" class="line"><a href="#L241">241</a>        local candidate = repoRoot and (repoRoot .. &quot;/&quot; .. rel) or nil</span>
+<span id="L242" class="line"><a href="#L242">242</a>        if not pathIsDir(candidate) then</span>
+<span id="L243" class="line"><a href="#L243">243</a>            if not repoRoot then</span>
+<span id="L244" class="line"><a href="#L244">244</a>                return false, &quot;activity repo not found, ask user (dir: &quot; .. ACTIVITY_REPO_DIR_NAME .. &quot;)&quot;</span>
+<span id="L245" class="line"><a href="#L245">245</a>            end</span>
+<span id="L246" class="line"><a href="#L246">246</a>            return false, &quot;loose png not found (runtime &amp; activity repo): &quot; .. tostring(imageInfo.Frame)</span>
+<span id="L247" class="line"><a href="#L247">247</a>        end</span>
+<span id="L248" class="line"><a href="#L248">248</a>        pngPath = candidate</span>
+<span id="L249" class="line"><a href="#L249">249</a>        -- 渲染时必须用绝对路径，否则 Image:setFrame 仍按相对路径找不到文件</span>
+<span id="L250" class="line"><a href="#L250">250</a>        imageInfo.Frame = candidate</span>
+<span id="L251" class="line"><a href="#L251">251</a>        imageInfo.__renderDirect = true</span>
+<span id="L252" class="line"><a href="#L252">252</a>    end</span>
+<span id="L253" class="line"><a href="#L253">253</a>    local texture = CCTextureCache:sharedTextureCache():addImage(pngPath)</span>
+<span id="L254" class="line"><a href="#L254">254</a>    if not texture then</span>
+<span id="L255" class="line"><a href="#L255">255</a>        return false, &quot;addImage failed: &quot; .. tostring(pngPath)</span>
+<span id="L256" class="line"><a href="#L256">256</a>    end</span>
+<span id="L257" class="line"><a href="#L257">257</a>    return true</span>
+<span id="L258" class="line"><a href="#L258">258</a>end</span>
+<span id="L259" class="line"><a href="#L259">259</a></span>
+<span id="L260" class="line"><a href="#L260">260</a>-- 复用 PropManager:getItemAttr 的 isSupported 语义判断图标是否异常。</span>
+<span id="L261" class="line"><a href="#L261">261</a>-- getItemAttr 在普通道具找不到图片时会走 getUnknownItemImage 兜底并置 isSupported=false，</span>
+<span id="L262" class="line"><a href="#L262">262</a>-- 此时 UEPropIcon 仍能成功创建但渲染的是“错误道具”占位图，像素补偿无意义，应记为失败项。</span>
+<span id="L263" class="line"><a href="#L263">263</a>-- @param itemId integer 道具 ID</span>
+<span id="L264" class="line"><a href="#L264">264</a>-- @return boolean ok 图标是否可正常解析</span>
+<span id="L265" class="line"><a href="#L265">265</a>-- @return string|nil reason 异常原因</span>
+<span id="L266" class="line"><a href="#L266">266</a>-- @return table|nil imageInfo 命中后的图片信息 {Atlas, Frame, IsPropPng}</span>
+<span id="L267" class="line"><a href="#L267">267</a>local function checkItemSupported(itemId)</span>
+<span id="L268" class="line"><a href="#L268">268</a>    -- 与 UEItemConvertor:setItemId 保持一致：先加载通用道具图集，避免 plist 帧查找遗漏</span>
+<span id="L269" class="line"><a href="#L269">269</a>    local commonDefine = _G.CommonDefine</span>
+<span id="L270" class="line"><a href="#L270">270</a>    if commonDefine and commonDefine.loadItemCommonPlist then</span>
+<span id="L271" class="line"><a href="#L271">271</a>        commonDefine.loadItemCommonPlist()</span>
+<span id="L272" class="line"><a href="#L272">272</a>    end</span>
+<span id="L273" class="line"><a href="#L273">273</a>    local propMgr = _G.amfBean and _G.amfBean(&quot;PropManager&quot;)</span>
+<span id="L274" class="line"><a href="#L274">274</a>    if not propMgr then</span>
+<span id="L275" class="line"><a href="#L275">275</a>        return false, &quot;PropManager unavailable&quot;</span>
+<span id="L276" class="line"><a href="#L276">276</a>    end</span>
+<span id="L277" class="line"><a href="#L277">277</a>    local ok, attr = pcall(function()</span>
+<span id="L278" class="line"><a href="#L278">278</a>        return propMgr:getItemAttr(itemId)</span>
+<span id="L279" class="line"><a href="#L279">279</a>    end)</span>
+<span id="L280" class="line"><a href="#L280">280</a>    if not ok then</span>
+<span id="L281" class="line"><a href="#L281">281</a>        return false, &quot;getItemAttr error: &quot; .. tostring(attr)</span>
+<span id="L282" class="line"><a href="#L282">282</a>    end</span>
+<span id="L283" class="line"><a href="#L283">283</a>    if not attr then</span>
+<span id="L284" class="line"><a href="#L284">284</a>        return false, &quot;getItemAttr returned nil&quot;</span>
+<span id="L285" class="line"><a href="#L285">285</a>    end</span>
+<span id="L286" class="line"><a href="#L286">286</a>    if attr.isSupported == false then</span>
+<span id="L287" class="line"><a href="#L287">287</a>        return false, &quot;icon unsupported (getUnknownItemImage fallback), itemId=&quot; .. tostring(itemId)</span>
+<span id="L288" class="line"><a href="#L288">288</a>    end</span>
+<span id="L289" class="line"><a href="#L289">289</a>    -- 新增：确认纹理/图集已加载并命中帧，未命中视为异常，避免采集到空白色块</span>
+<span id="L290" class="line"><a href="#L290">290</a>    local imageInfo = attr.image</span>
+<span id="L291" class="line"><a href="#L291">291</a>    if imageInfo then</span>
+<span id="L292" class="line"><a href="#L292">292</a>        local loaded, loadReason = ensureImageLoaded(imageInfo)</span>
+<span id="L293" class="line"><a href="#L293">293</a>        if not loaded then</span>
+<span id="L294" class="line"><a href="#L294">294</a>            return false, &quot;image frame not resolved: &quot; .. tostring(imageInfo.Frame) .. &quot; (&quot; .. tostring(loadReason) .. &quot;)&quot;</span>
+<span id="L295" class="line"><a href="#L295">295</a>        end</span>
+<span id="L296" class="line"><a href="#L296">296</a>    end</span>
+<span id="L297" class="line"><a href="#L297">297</a>    return true, nil, imageInfo</span>
+<span id="L298" class="line"><a href="#L298">298</a>end</span>
+<span id="L299" class="line"><a href="#L299">299</a></span>
+<span id="L300" class="line"><a href="#L300">300</a>---判断道具是否需要传递 num：只有无限道具和限时道具需要。</span>
+<span id="L301" class="line"><a href="#L301">301</a>---无限道具用数量换算剩余时间，限时道具展示限时标签；普通道具传 num 会多出数量角标，</span>
+<span id="L302" class="line"><a href="#L302">302</a>---污染图标像素边界，因此不传。</span>
+<span id="L303" class="line"><a href="#L303">303</a>---@param itemId integer 道具 ID</span>
+<span id="L304" class="line"><a href="#L304">304</a>---@return boolean needNum 是否需要数量</span>
+<span id="L305" class="line"><a href="#L305">305</a>local function shouldPassNum(itemId)</span>
+<span id="L306" class="line"><a href="#L306">306</a>    local propMgr = _G.amfBean and _G.amfBean(&quot;PropManager&quot;)</span>
+<span id="L307" class="line"><a href="#L307">307</a>    if not propMgr then</span>
+<span id="L308" class="line"><a href="#L308">308</a>        return true</span>
+<span id="L309" class="line"><a href="#L309">309</a>    end</span>
+<span id="L310" class="line"><a href="#L310">310</a>    if propMgr:isInfiniteProp(itemId) or propMgr:isInfiniteTodayProp(itemId) then</span>
+<span id="L311" class="line"><a href="#L311">311</a>        return true</span>
+<span id="L312" class="line"><a href="#L312">312</a>    end</span>
+<span id="L313" class="line"><a href="#L313">313</a>    return propMgr:isTimeLimitProp(itemId) == true</span>
+<span id="L314" class="line"><a href="#L314">314</a>end</span>
+<span id="L315" class="line"><a href="#L315">315</a></span>
+<span id="L316" class="line"><a href="#L316">316</a>-- 动态图标兜底（RESOLVE_ICON 类）：部分道具 icon 由活动监听提供，但监听在活动未初始化时会抛错</span>
+<span id="L317" class="line"><a href="#L317">317</a>-- （如 MergeManager 里 self:getData():getCurWeek()）。这里按监听同源配表直接取图，绕开 getData()。</span>
+<span id="L318" class="line"><a href="#L318">318</a>-- @param itemId integer 道具 ID</span>
+<span id="L319" class="line"><a href="#L319">319</a>-- @return table|nil imageInfo {Atlas, Frame, IsPropPng}</span>
+<span id="L320" class="line"><a href="#L320">320</a>local function resolveDynamicImage(itemId)</span>
+<span id="L321" class="line"><a href="#L321">321</a>    local BoardMeta = require &quot;amf.feature.localactivity.merge.config.BoardMeta&quot;</span>
+<span id="L322" class="line"><a href="#L322">322</a>    if not table.exist(BoardMeta:getAllItemList(), itemId) then</span>
+<span id="L323" class="line"><a href="#L323">323</a>        return nil</span>
+<span id="L324" class="line"><a href="#L324">324</a>    end</span>
+<span id="L325" class="line"><a href="#L325">325</a>    local atlas = BoardMeta.BoardItemsPlistPath</span>
+<span id="L326" class="line"><a href="#L326">326</a>    local frame = BoardMeta:getMergeItemSpName(itemId)</span>
+<span id="L327" class="line"><a href="#L327">327</a>    if not frame or frame == &quot;&quot; then</span>
+<span id="L328" class="line"><a href="#L328">328</a>        return nil</span>
+<span id="L329" class="line"><a href="#L329">329</a>    end</span>
+<span id="L330" class="line"><a href="#L330">330</a>    -- 图集可能尚未加载，先保证 frame 命中</span>
+<span id="L331" class="line"><a href="#L331">331</a>    local frameCache = CCSpriteFrameCache:sharedSpriteFrameCache()</span>
+<span id="L332" class="line"><a href="#L332">332</a>    if atlas and atlas ~= &quot;&quot; and not frameCache:spriteFrameByName(frame) then</span>
+<span id="L333" class="line"><a href="#L333">333</a>        frameCache:addSpriteFramesWithFile(atlas)</span>
+<span id="L334" class="line"><a href="#L334">334</a>    end</span>
+<span id="L335" class="line"><a href="#L335">335</a>    return { Atlas = atlas or &quot;&quot;, Frame = frame, IsPropPng = false }</span>
+<span id="L336" class="line"><a href="#L336">336</a>end</span>
+<span id="L337" class="line"><a href="#L337">337</a></span>
+<span id="L338" class="line"><a href="#L338">338</a>local function captureIcon(itemId, options, cachePath)</span>
+<span id="L339" class="line"><a href="#L339">339</a>    -- 图标异常（走 getUnknownItemImage 兜底）直接记为失败，避免产出占位图的无意义补偿</span>
+<span id="L340" class="line"><a href="#L340">340</a>    local supported, reason, imageInfo = checkItemSupported(itemId)</span>
+<span id="L341" class="line"><a href="#L341">341</a>    local customImage = nil</span>
+<span id="L342" class="line"><a href="#L342">342</a>    if not supported then</span>
+<span id="L343" class="line"><a href="#L343">343</a>        -- RESOLVE_ICON 类动态图标失败时，按同源配表直接取图（方案 B），仍无法取到才记失败</span>
+<span id="L344" class="line"><a href="#L344">344</a>        local dynamicImage = resolveDynamicImage(itemId)</span>
+<span id="L345" class="line"><a href="#L345">345</a>        if not dynamicImage then</span>
+<span id="L346" class="line"><a href="#L346">346</a>            return nil, reason</span>
+<span id="L347" class="line"><a href="#L347">347</a>        end</span>
+<span id="L348" class="line"><a href="#L348">348</a>        local loaded, loadReason = ensureImageLoaded(dynamicImage)</span>
+<span id="L349" class="line"><a href="#L349">349</a>        if not loaded then</span>
+<span id="L350" class="line"><a href="#L350">350</a>            return nil, &quot;dynamic image frame not resolved: &quot; .. tostring(dynamicImage.Frame) .. &quot; (&quot; .. tostring(loadReason) .. &quot;)&quot;</span>
+<span id="L351" class="line"><a href="#L351">351</a>        end</span>
+<span id="L352" class="line"><a href="#L352">352</a>        customImage = dynamicImage</span>
+<span id="L353" class="line"><a href="#L353">353</a>    elseif imageInfo and imageInfo.__renderDirect then</span>
+<span id="L354" class="line"><a href="#L354">354</a>        -- 散图定位到活动仓库等非运行时路径时，直接按绝对路径设图</span>
+<span id="L355" class="line"><a href="#L355">355</a>        customImage = imageInfo</span>
+<span id="L356" class="line"><a href="#L356">356</a>    end</span>
+<span id="L357" class="line"><a href="#L357">357</a></span>
+<span id="L358" class="line"><a href="#L358">358</a>    local root, rootError = getSceneRoot()</span>
+<span id="L359" class="line"><a href="#L359">359</a>    if not root then</span>
+<span id="L360" class="line"><a href="#L360">360</a>        return nil, rootError</span>
+<span id="L361" class="line"><a href="#L361">361</a>    end</span>
+<span id="L362" class="line"><a href="#L362">362</a></span>
+<span id="L363" class="line"><a href="#L363">363</a>    local icon</span>
+<span id="L364" class="line"><a href="#L364">364</a>    local success, result = xpcall(function()</span>
+<span id="L365" class="line"><a href="#L365">365</a>        icon = UEPropIcon.create()</span>
+<span id="L366" class="line"><a href="#L366">366</a>        if not icon then</span>
+<span id="L367" class="line"><a href="#L367">367</a>            error(&quot;UEPropIcon.create returned nil&quot;)</span>
+<span id="L368" class="line"><a href="#L368">368</a>        end</span>
+<span id="L369" class="line"><a href="#L369">369</a></span>
+<span id="L370" class="line"><a href="#L370">370</a>        -- 截图不设置外层 scale；UEPropIcon 内部资源适配逻辑仍按正常流程执行。</span>
+<span id="L371" class="line"><a href="#L371">371</a>        if customImage then</span>
+<span id="L372" class="line"><a href="#L372">372</a>            -- 动态图标 / 散图：直接设图，绕开 itemId → getItemAttr → RESOLVE_ICON 链路</span>
+<span id="L373" class="line"><a href="#L373">373</a>            icon:setItemImage(customImage)</span>
+<span id="L374" class="line"><a href="#L374">374</a>        else</span>
+<span id="L375" class="line"><a href="#L375">375</a>            -- 只有无限/限时道具才传 num，普通道具不传数量角标，避免影响像素边界测量。</span>
+<span id="L376" class="line"><a href="#L376">376</a>            local itemData = { itemId = itemId }</span>
+<span id="L377" class="line"><a href="#L377">377</a>            if shouldPassNum(itemId) then</span>
+<span id="L378" class="line"><a href="#L378">378</a>                itemData.num = options.num or DEFAULT_NUM</span>
+<span id="L379" class="line"><a href="#L379">379</a>            end</span>
+<span id="L380" class="line"><a href="#L380">380</a>            icon:setItem(itemData)</span>
+<span id="L381" class="line"><a href="#L381">381</a>        end</span>
+<span id="L382" class="line"><a href="#L382">382</a>        -- 采集图标统一使用已领取(Claimed)状态，与里程碑图标的展示状态保持一致。</span>
+<span id="L383" class="line"><a href="#L383">383</a>        if icon.setRewardState and _G.UEPropIcon_RewardState then</span>
+<span id="L384" class="line"><a href="#L384">384</a>            icon:setRewardState(_G.UEPropIcon_RewardState.Claimed)</span>
+<span id="L385" class="line"><a href="#L385">385</a>        end</span>
+<span id="L386" class="line"><a href="#L386">386</a>        root:addChild(icon)</span>
+<span id="L387" class="line"><a href="#L387">387</a></span>
+<span id="L388" class="line"><a href="#L388">388</a>        local bounds = icon:getGroupBounds(root, true)</span>
+<span id="L389" class="line"><a href="#L389">389</a>        if not bounds or not bounds.origin or not bounds.size</span>
+<span id="L390" class="line"><a href="#L390">390</a>            or bounds.size.width &lt;= 0 or bounds.size.height &lt;= 0 then</span>
+<span id="L391" class="line"><a href="#L391">391</a>            error(&quot;icon bounds unavailable&quot;)</span>
+<span id="L392" class="line"><a href="#L392">392</a>        end</span>
+<span id="L393" class="line"><a href="#L393">393</a></span>
+<span id="L394" class="line"><a href="#L394">394</a>        local boundsCenterX = bounds.origin.x + bounds.size.width * 0.5</span>
+<span id="L395" class="line"><a href="#L395">395</a>        local boundsCenterY = bounds.origin.y + bounds.size.height * 0.5</span>
+<span id="L396" class="line"><a href="#L396">396</a>        icon:setPositionXY(</span>
+<span id="L397" class="line"><a href="#L397">397</a>            icon:getPositionX() + CAPTURE_WIDTH * 0.5 - boundsCenterX,</span>
+<span id="L398" class="line"><a href="#L398">398</a>            icon:getPositionY() + CAPTURE_HEIGHT * 0.5 - boundsCenterY</span>
+<span id="L399" class="line"><a href="#L399">399</a>        )</span>
+<span id="L400" class="line"><a href="#L400">400</a></span>
+<span id="L401" class="line"><a href="#L401">401</a>        local renderTexture = CCRenderTexture:create(</span>
+<span id="L402" class="line"><a href="#L402">402</a>            CAPTURE_WIDTH,</span>
+<span id="L403" class="line"><a href="#L403">403</a>            CAPTURE_HEIGHT,</span>
+<span id="L404" class="line"><a href="#L404">404</a>            kCCTexture2DPixelFormat_RGBA8888</span>
+<span id="L405" class="line"><a href="#L405">405</a>        )</span>
+<span id="L406" class="line"><a href="#L406">406</a>        if not renderTexture then</span>
+<span id="L407" class="line"><a href="#L407">407</a>            error(&quot;CCRenderTexture:create returned nil&quot;)</span>
+<span id="L408" class="line"><a href="#L408">408</a>        end</span>
+<span id="L409" class="line"><a href="#L409">409</a>        renderTexture:beginWithClear(0, 0, 0, 0, 0)</span>
+<span id="L410" class="line"><a href="#L410">410</a>        icon:visit()</span>
+<span id="L411" class="line"><a href="#L411">411</a>        renderTexture:endToLua()</span>
+<span id="L412" class="line"><a href="#L412">412</a></span>
+<span id="L413" class="line"><a href="#L413">413</a>        local imagePath = cachePath .. &quot;/item_&quot; .. tostring(itemId) .. &quot;.png&quot;</span>
+<span id="L414" class="line"><a href="#L414">414</a>        if not renderTexture:saveToFile(imagePath) then</span>
+<span id="L415" class="line"><a href="#L415">415</a>            error(&quot;saveToFile failed: &quot; .. imagePath)</span>
+<span id="L416" class="line"><a href="#L416">416</a>        end</span>
+<span id="L417" class="line"><a href="#L417">417</a>        if renderTexture.dispose then</span>
+<span id="L418" class="line"><a href="#L418">418</a>            renderTexture:dispose()</span>
+<span id="L419" class="line"><a href="#L419">419</a>        end</span>
+<span id="L420" class="line"><a href="#L420">420</a></span>
+<span id="L421" class="line"><a href="#L421">421</a>        return {</span>
+<span id="L422" class="line"><a href="#L422">422</a>            itemId = itemId,</span>
+<span id="L423" class="line"><a href="#L423">423</a>            imagePath = imagePath,</span>
+<span id="L424" class="line"><a href="#L424">424</a>            captureScale = DEFAULT_CAPTURE_SCALE,</span>
+<span id="L425" class="line"><a href="#L425">425</a>            centerX = CAPTURE_WIDTH * 0.5,</span>
+<span id="L426" class="line"><a href="#L426">426</a>            centerY = CAPTURE_HEIGHT * 0.5,</span>
+<span id="L427" class="line"><a href="#L427">427</a>            progressTop = options.progressTop,</span>
+<span id="L428" class="line"><a href="#L428">428</a>            progressBottom = options.progressBottom,</span>
+<span id="L429" class="line"><a href="#L429">429</a>        }</span>
+<span id="L430" class="line"><a href="#L430">430</a>    end, function(errorMessage)</span>
+<span id="L431" class="line"><a href="#L431">431</a>        return debug.traceback(tostring(errorMessage))</span>
+<span id="L432" class="line"><a href="#L432">432</a>    end)</span>
+<span id="L433" class="line"><a href="#L433">433</a></span>
+<span id="L434" class="line"><a href="#L434">434</a>    if icon and not icon.isDisposed then</span>
+<span id="L435" class="line"><a href="#L435">435</a>        icon:removeFromParentAndCleanup(true)</span>
+<span id="L436" class="line"><a href="#L436">436</a>    end</span>
+<span id="L437" class="line"><a href="#L437">437</a>    if root and not root.isDisposed then</span>
+<span id="L438" class="line"><a href="#L438">438</a>        root:removeFromParentAndCleanup(true)</span>
+<span id="L439" class="line"><a href="#L439">439</a>    end</span>
+<span id="L440" class="line"><a href="#L440">440</a></span>
+<span id="L441" class="line"><a href="#L441">441</a>    if not success then</span>
+<span id="L442" class="line"><a href="#L442">442</a>        return nil, result</span>
+<span id="L443" class="line"><a href="#L443">443</a>    end</span>
+<span id="L444" class="line"><a href="#L444">444</a>    return result</span>
+<span id="L445" class="line"><a href="#L445">445</a>end</span>
+<span id="L446" class="line"><a href="#L446">446</a></span>
+<span id="L447" class="line"><a href="#L447">447</a>-- 用 CCRenderTexture 只渲染进度条可视区域（ScrollContainer），不包含整屏背景。</span>
+<span id="L448" class="line"><a href="#L448">448</a>-- @param progress UEProgressMilestone 验证组件</span>
+<span id="L449" class="line"><a href="#L449">449</a>-- @param cachePath string 输出目录</span>
+<span id="L450" class="line"><a href="#L450">450</a>-- @param itemId integer 道具 ID</span>
+<span id="L451" class="line"><a href="#L451">451</a>-- @param state string 验证状态</span>
+<span id="L452" class="line"><a href="#L452">452</a>-- @return string|nil imagePath 截图路径</span>
+<span id="L453" class="line"><a href="#L453">453</a>-- @return string|nil errorMessage 错误信息</span>
+<span id="L454" class="line"><a href="#L454">454</a>local function captureProgressBar(progress, cachePath, itemId, state)</span>
+<span id="L455" class="line"><a href="#L455">455</a>    local scrollContainer = progress and progress:_getScrollContainer()</span>
+<span id="L456" class="line"><a href="#L456">456</a>    if not scrollContainer then</span>
+<span id="L457" class="line"><a href="#L457">457</a>        return nil, &quot;scroll container unavailable&quot;</span>
+<span id="L458" class="line"><a href="#L458">458</a>    end</span>
+<span id="L459" class="line"><a href="#L459">459</a>    local parent = progress:getParent()</span>
+<span id="L460" class="line"><a href="#L460">460</a>    if not parent then</span>
+<span id="L461" class="line"><a href="#L461">461</a>        return nil, &quot;progress parent unavailable&quot;</span>
+<span id="L462" class="line"><a href="#L462">462</a>    end</span>
+<span id="L463" class="line"><a href="#L463">463</a></span>
+<span id="L464" class="line"><a href="#L464">464</a>    local size = scrollContainer:getContentSize()</span>
+<span id="L465" class="line"><a href="#L465">465</a>    if size.width &lt;= 0 or size.height &lt;= 0 then</span>
+<span id="L466" class="line"><a href="#L466">466</a>        return nil, &quot;invalid scroll container size&quot;</span>
+<span id="L467" class="line"><a href="#L467">467</a>    end</span>
+<span id="L468" class="line"><a href="#L468">468</a></span>
+<span id="L469" class="line"><a href="#L469">469</a>    -- 让 ScrollContainer 可视区域左下角对齐渲染纹理原点，保证只截进度条区域。</span>
+<span id="L470" class="line"><a href="#L470">470</a>    local scWorld = scrollContainer:convertToWorldSpace(ccp(0, 0))</span>
+<span id="L471" class="line"><a href="#L471">471</a>    local scInParent = parent:convertToNodeSpace(scWorld)</span>
+<span id="L472" class="line"><a href="#L472">472</a>    local parentOrigin = parent:convertToNodeSpace(ccp(0, 0))</span>
+<span id="L473" class="line"><a href="#L473">473</a>    local offsetX = scInParent.x - parentOrigin.x</span>
+<span id="L474" class="line"><a href="#L474">474</a>    local offsetY = scInParent.y - parentOrigin.y</span>
+<span id="L475" class="line"><a href="#L475">475</a>    local originalX, originalY = progress:getPositionX(), progress:getPositionY()</span>
+<span id="L476" class="line"><a href="#L476">476</a>    progress:setPositionXY(originalX - offsetX, originalY - offsetY)</span>
+<span id="L477" class="line"><a href="#L477">477</a></span>
+<span id="L478" class="line"><a href="#L478">478</a>    local renderTexture</span>
+<span id="L479" class="line"><a href="#L479">479</a>    local success, result = xpcall(function()</span>
+<span id="L480" class="line"><a href="#L480">480</a>        -- 进度条内部可能包含裁剪节点，使用带模板缓冲的渲染纹理避免裁剪失效。</span>
+<span id="L481" class="line"><a href="#L481">481</a>        renderTexture = CCRenderTexture:create(</span>
+<span id="L482" class="line"><a href="#L482">482</a>            size.width,</span>
+<span id="L483" class="line"><a href="#L483">483</a>            size.height,</span>
+<span id="L484" class="line"><a href="#L484">484</a>            kCCTexture2DPixelFormat_RGBA8888,</span>
+<span id="L485" class="line"><a href="#L485">485</a>            0x88F0</span>
+<span id="L486" class="line"><a href="#L486">486</a>        )</span>
+<span id="L487" class="line"><a href="#L487">487</a>        if not renderTexture then</span>
+<span id="L488" class="line"><a href="#L488">488</a>            error(&quot;CCRenderTexture:create returned nil&quot;)</span>
+<span id="L489" class="line"><a href="#L489">489</a>        end</span>
+<span id="L490" class="line"><a href="#L490">490</a>        renderTexture:beginWithClear(0, 0, 0, 0, 0)</span>
+<span id="L491" class="line"><a href="#L491">491</a>        progress:visit()</span>
+<span id="L492" class="line"><a href="#L492">492</a>        renderTexture:endToLua()</span>
+<span id="L493" class="line"><a href="#L493">493</a></span>
+<span id="L494" class="line"><a href="#L494">494</a>        local imagePath = cachePath .. &quot;/progress_&quot; .. tostring(itemId)</span>
+<span id="L495" class="line"><a href="#L495">495</a>            .. &quot;_&quot; .. tostring(state) .. &quot;.png&quot;</span>
+<span id="L496" class="line"><a href="#L496">496</a>        if not renderTexture:saveToFile(imagePath) then</span>
+<span id="L497" class="line"><a href="#L497">497</a>            error(&quot;saveToFile failed: &quot; .. imagePath)</span>
+<span id="L498" class="line"><a href="#L498">498</a>        end</span>
+<span id="L499" class="line"><a href="#L499">499</a>        return imagePath</span>
+<span id="L500" class="line"><a href="#L500">500</a>    end, function(errorMessage)</span>
+<span id="L501" class="line"><a href="#L501">501</a>        return debug.traceback(tostring(errorMessage))</span>
+<span id="L502" class="line"><a href="#L502">502</a>    end)</span>
+<span id="L503" class="line"><a href="#L503">503</a></span>
+<span id="L504" class="line"><a href="#L504">504</a>    if renderTexture and renderTexture.dispose then</span>
+<span id="L505" class="line"><a href="#L505">505</a>        renderTexture:dispose()</span>
+<span id="L506" class="line"><a href="#L506">506</a>    end</span>
+<span id="L507" class="line"><a href="#L507">507</a>    progress:setPositionXY(originalX, originalY)</span>
+<span id="L508" class="line"><a href="#L508">508</a></span>
+<span id="L509" class="line"><a href="#L509">509</a>    if not success then</span>
+<span id="L510" class="line"><a href="#L510">510</a>        return nil, result</span>
+<span id="L511" class="line"><a href="#L511">511</a>    end</span>
+<span id="L512" class="line"><a href="#L512">512</a>    return result</span>
+<span id="L513" class="line"><a href="#L513">513</a>end</span>
+<span id="L514" class="line"><a href="#L514">514</a></span>
+<span id="L515" class="line"><a href="#L515">515</a>local function serializeManifestRow(row)</span>
+<span id="L516" class="line"><a href="#L516">516</a>    return table.concat({</span>
+<span id="L517" class="line"><a href="#L517">517</a>        tostring(row.itemId),</span>
+<span id="L518" class="line"><a href="#L518">518</a>        tostring(row.imagePath),</span>
+<span id="L519" class="line"><a href="#L519">519</a>        tostring(row.captureScale),</span>
+<span id="L520" class="line"><a href="#L520">520</a>        tostring(row.centerX),</span>
+<span id="L521" class="line"><a href="#L521">521</a>        tostring(row.centerY),</span>
+<span id="L522" class="line"><a href="#L522">522</a>        tostring(row.progressTop or &quot;&quot;),</span>
+<span id="L523" class="line"><a href="#L523">523</a>        tostring(row.progressBottom or &quot;&quot;),</span>
+<span id="L524" class="line"><a href="#L524">524</a>    }, &quot;\t&quot;)</span>
+<span id="L525" class="line"><a href="#L525">525</a>end</span>
+<span id="L526" class="line"><a href="#L526">526</a></span>
+<span id="L527" class="line"><a href="#L527">527</a>---检测指定 ItemId 的图标是否可正常解析（复用 PropManager:getItemAttr 的 isSupported 语义）。</span>
+<span id="L528" class="line"><a href="#L528">528</a>---走到 getUnknownItemImage 兜底即视为异常（未注册/资源缺失/动态解析失败）。</span>
+<span id="L529" class="line"><a href="#L529">529</a>---@param itemId integer 道具 ID</span>
+<span id="L530" class="line"><a href="#L530">530</a>---@return boolean ok 图标是否可正常解析</span>
+<span id="L531" class="line"><a href="#L531">531</a>---@return string|nil reason 异常原因</span>
+<span id="L532" class="line"><a href="#L532">532</a>function MilestonePropIconPixelConfigDebug:checkItemSupported(itemId)</span>
+<span id="L533" class="line"><a href="#L533">533</a>    itemId = tonumber(itemId)</span>
+<span id="L534" class="line"><a href="#L534">534</a>    if not itemId or itemId &lt;= 0 then</span>
+<span id="L535" class="line"><a href="#L535">535</a>        return false, &quot;invalid itemId&quot;</span>
+<span id="L536" class="line"><a href="#L536">536</a>    end</span>
+<span id="L537" class="line"><a href="#L537">537</a>    return checkItemSupported(itemId)</span>
+<span id="L538" class="line"><a href="#L538">538</a>end</span>
+<span id="L539" class="line"><a href="#L539">539</a></span>
+<span id="L540" class="line"><a href="#L540">540</a>---创建指定 ItemId 的完整 UEPropIcon 截图。</span>
+<span id="L541" class="line"><a href="#L541">541</a>---@param itemId integer 道具 ID</span>
+<span id="L542" class="line"><a href="#L542">542</a>---@param options table|nil num、cachePath 等参数</span>
+<span id="L543" class="line"><a href="#L543">543</a>---@return table|nil result 截图结果</span>
+<span id="L544" class="line"><a href="#L544">544</a>---@return string|nil errorMessage 错误信息</span>
+<span id="L545" class="line"><a href="#L545">545</a>function MilestonePropIconPixelConfigDebug:createByItemId(itemId, options)</span>
+<span id="L546" class="line"><a href="#L546">546</a>    options = options or {}</span>
+<span id="L547" class="line"><a href="#L547">547</a>    resolveActivityRepoRoot(options.activityRepoPath)</span>
+<span id="L548" class="line"><a href="#L548">548</a>    itemId = tonumber(itemId)</span>
+<span id="L549" class="line"><a href="#L549">549</a>    if not itemId or itemId &lt;= 0 then</span>
+<span id="L550" class="line"><a href="#L550">550</a>        return nil, &quot;invalid itemId&quot;</span>
+<span id="L551" class="line"><a href="#L551">551</a>    end</span>
+<span id="L552" class="line"><a href="#L552">552</a></span>
+<span id="L553" class="line"><a href="#L553">553</a>    local cachePath = getCachePath(options)</span>
+<span id="L554" class="line"><a href="#L554">554</a>    removeDirectory(cachePath)</span>
+<span id="L555" class="line"><a href="#L555">555</a>    ensureDirectory(cachePath)</span>
+<span id="L556" class="line"><a href="#L556">556</a>    return captureIcon(itemId, options, cachePath)</span>
+<span id="L557" class="line"><a href="#L557">557</a>end</span>
+<span id="L558" class="line"><a href="#L558">558</a></span>
+<span id="L559" class="line"><a href="#L559">559</a>---按输入顺序分帧创建全部 ItemId，成功项和失败项分别记录。</span>
+<span id="L560" class="line"><a href="#L560">560</a>---@param options table|nil itemIds、num、cachePath 等参数</span>
+<span id="L561" class="line"><a href="#L561">561</a>---@return table task 任务启动状态</span>
+<span id="L562" class="line"><a href="#L562">562</a>function MilestonePropIconPixelConfigDebug:createAll(options)</span>
+<span id="L563" class="line"><a href="#L563">563</a>    options = options or {}</span>
+<span id="L564" class="line"><a href="#L564">564</a>    resolveActivityRepoRoot(options.activityRepoPath)</span>
+<span id="L565" class="line"><a href="#L565">565</a>    local cachePath = getCachePath(options)</span>
+<span id="L566" class="line"><a href="#L566">566</a>    removeDirectory(cachePath)</span>
+<span id="L567" class="line"><a href="#L567">567</a>    ensureDirectory(cachePath)</span>
+<span id="L568" class="line"><a href="#L568">568</a></span>
+<span id="L569" class="line"><a href="#L569">569</a>    local itemIds = getItemIds(options.itemIds)</span>
+<span id="L570" class="line"><a href="#L570">570</a>    if options.roiMode == &quot;milestone&quot; and options.progressTop == nil</span>
+<span id="L571" class="line"><a href="#L571">571</a>        and options.progressBottom == nil and itemIds[1] then</span>
+<span id="L572" class="line"><a href="#L572">572</a>        local roi = resolveMilestoneProgressRoi(itemIds[1], options)</span>
+<span id="L573" class="line"><a href="#L573">573</a>        if roi then</span>
+<span id="L574" class="line"><a href="#L574">574</a>            options.progressTop = roi.top</span>
+<span id="L575" class="line"><a href="#L575">575</a>            options.progressBottom = roi.bottom</span>
+<span id="L576" class="line"><a href="#L576">576</a>            options.progressScale = roi.scale</span>
+<span id="L577" class="line"><a href="#L577">577</a>        end</span>
+<span id="L578" class="line"><a href="#L578">578</a>    end</span>
+<span id="L579" class="line"><a href="#L579">579</a>    local task = {</span>
+<span id="L580" class="line"><a href="#L580">580</a>        running = true,</span>
+<span id="L581" class="line"><a href="#L581">581</a>        index = 1,</span>
+<span id="L582" class="line"><a href="#L582">582</a>        total = #itemIds,</span>
+<span id="L583" class="line"><a href="#L583">583</a>        itemIds = itemIds,</span>
+<span id="L584" class="line"><a href="#L584">584</a>        successes = {},</span>
+<span id="L585" class="line"><a href="#L585">585</a>        failures = {},</span>
+<span id="L586" class="line"><a href="#L586">586</a>        cachePath = cachePath,</span>
+<span id="L587" class="line"><a href="#L587">587</a>        options = options,</span>
+<span id="L588" class="line"><a href="#L588">588</a>    }</span>
+<span id="L589" class="line"><a href="#L589">589</a>    _G.__MilestonePropIconPixelConfigTask = task</span>
+<span id="L590" class="line"><a href="#L590">590</a></span>
+<span id="L591" class="line"><a href="#L591">591</a>    local function step()</span>
+<span id="L592" class="line"><a href="#L592">592</a>        if not task.running then</span>
+<span id="L593" class="line"><a href="#L593">593</a>            return</span>
+<span id="L594" class="line"><a href="#L594">594</a>        end</span>
+<span id="L595" class="line"><a href="#L595">595</a>        local itemId = task.itemIds[task.index]</span>
+<span id="L596" class="line"><a href="#L596">596</a>        if itemId == nil then</span>
+<span id="L597" class="line"><a href="#L597">597</a>            task.running = false</span>
+<span id="L598" class="line"><a href="#L598">598</a>            local lines = {</span>
+<span id="L599" class="line"><a href="#L599">599</a>                &quot;itemId\timagePath\tcaptureScale\tcenterX\tcenterY\tprogressTop\tprogressBottom&quot;,</span>
+<span id="L600" class="line"><a href="#L600">600</a>            }</span>
+<span id="L601" class="line"><a href="#L601">601</a>            for _, row in ipairs(task.successes) do</span>
+<span id="L602" class="line"><a href="#L602">602</a>                lines[#lines + 1] = serializeManifestRow(row)</span>
+<span id="L603" class="line"><a href="#L603">603</a>            end</span>
+<span id="L604" class="line"><a href="#L604">604</a>            writeText(cachePath .. &quot;/manifest.tsv&quot;, table.concat(lines, &quot;\n&quot;) .. &quot;\n&quot;)</span>
+<span id="L605" class="line"><a href="#L605">605</a>            writeText(cachePath .. &quot;/failures.lua&quot;, table.serialize(task.failures))</span>
+<span id="L606" class="line"><a href="#L606">606</a>            return</span>
+<span id="L607" class="line"><a href="#L607">607</a>        end</span>
+<span id="L608" class="line"><a href="#L608">608</a></span>
+<span id="L609" class="line"><a href="#L609">609</a>        local result, errorMessage = captureIcon(itemId, task.options, cachePath)</span>
+<span id="L610" class="line"><a href="#L610">610</a>        if result then</span>
+<span id="L611" class="line"><a href="#L611">611</a>            task.successes[#task.successes + 1] = result</span>
+<span id="L612" class="line"><a href="#L612">612</a>        else</span>
+<span id="L613" class="line"><a href="#L613">613</a>            task.failures[#task.failures + 1] = {</span>
+<span id="L614" class="line"><a href="#L614">614</a>                itemId = itemId,</span>
+<span id="L615" class="line"><a href="#L615">615</a>                errorMessage = errorMessage,</span>
+<span id="L616" class="line"><a href="#L616">616</a>                inputIndex = task.index,</span>
+<span id="L617" class="line"><a href="#L617">617</a>            }</span>
+<span id="L618" class="line"><a href="#L618">618</a>        end</span>
+<span id="L619" class="line"><a href="#L619">619</a>        task.index = task.index + 1</span>
+<span id="L620" class="line"><a href="#L620">620</a>        setTimeOut(step, 0)</span>
+<span id="L621" class="line"><a href="#L621">621</a>    end</span>
+<span id="L622" class="line"><a href="#L622">622</a>    setTimeOut(step, 0)</span>
+<span id="L623" class="line"><a href="#L623">623</a></span>
+<span id="L624" class="line"><a href="#L624">624</a>    return {</span>
+<span id="L625" class="line"><a href="#L625">625</a>        started = true,</span>
+<span id="L626" class="line"><a href="#L626">626</a>        total = task.total,</span>
+<span id="L627" class="line"><a href="#L627">627</a>        cachePath = task.cachePath,</span>
+<span id="L628" class="line"><a href="#L628">628</a>    }</span>
+<span id="L629" class="line"><a href="#L629">629</a>end</span>
+<span id="L630" class="line"><a href="#L630">630</a></span>
+<span id="L631" class="line"><a href="#L631">631</a>---读取截图任务的轻量状态。</span>
+<span id="L632" class="line"><a href="#L632">632</a>---@return table|nil status 任务状态</span>
+<span id="L633" class="line"><a href="#L633">633</a>function MilestonePropIconPixelConfigDebug:getTask()</span>
+<span id="L634" class="line"><a href="#L634">634</a>    local task = _G.__MilestonePropIconPixelConfigTask</span>
+<span id="L635" class="line"><a href="#L635">635</a>    if not task then</span>
+<span id="L636" class="line"><a href="#L636">636</a>        return nil</span>
+<span id="L637" class="line"><a href="#L637">637</a>    end</span>
+<span id="L638" class="line"><a href="#L638">638</a>    return {</span>
+<span id="L639" class="line"><a href="#L639">639</a>        running = task.running,</span>
+<span id="L640" class="line"><a href="#L640">640</a>        index = task.index,</span>
+<span id="L641" class="line"><a href="#L641">641</a>        total = task.total,</span>
+<span id="L642" class="line"><a href="#L642">642</a>        successCount = #task.successes,</span>
+<span id="L643" class="line"><a href="#L643">643</a>        failureCount = #task.failures,</span>
+<span id="L644" class="line"><a href="#L644">644</a>        cachePath = task.cachePath,</span>
+<span id="L645" class="line"><a href="#L645">645</a>    }</span>
+<span id="L646" class="line"><a href="#L646">646</a>end</span>
+<span id="L647" class="line"><a href="#L647">647</a></span>
+<span id="L648" class="line"><a href="#L648">648</a>---清理截图缓存。</span>
+<span id="L649" class="line"><a href="#L649">649</a>---@param options table|nil cachePath</span>
+<span id="L650" class="line"><a href="#L650">650</a>function MilestonePropIconPixelConfigDebug:clearCache(options)</span>
+<span id="L651" class="line"><a href="#L651">651</a>    removeDirectory(getCachePath(options or {}))</span>
+<span id="L652" class="line"><a href="#L652">652</a>end</span>
+<span id="L653" class="line"><a href="#L653">653</a></span>
+<span id="L654" class="line"><a href="#L654">654</a>---创建用于截图验证的真实 UEProgressMilestone。</span>
+<span id="L655" class="line"><a href="#L655">655</a>---@param itemId integer 道具 ID</span>
+<span id="L656" class="line"><a href="#L656">656</a>---@param beforePx number scale=1 的左侧补偿</span>
+<span id="L657" class="line"><a href="#L657">657</a>---@param afterPx number scale=1 的右侧补偿</span>
+<span id="L658" class="line"><a href="#L658">658</a>---@param value number 当前进度值</span>
+<span id="L659" class="line"><a href="#L659">659</a>---@param options table|nil maxValue、threshold、scale、position 等参数</span>
+<span id="L660" class="line"><a href="#L660">660</a>---@return table|nil result 验证组件信息</span>
+<span id="L661" class="line"><a href="#L661">661</a>---@return string|nil errorMessage 错误信息</span>
+<span id="L662" class="line"><a href="#L662">662</a>function MilestonePropIconPixelConfigDebug:createVerificationProgress(</span>
+<span id="L663" class="line"><a href="#L663">663</a>    itemId,</span>
+<span id="L664" class="line"><a href="#L664">664</a>    beforePx,</span>
+<span id="L665" class="line"><a href="#L665">665</a>    afterPx,</span>
+<span id="L666" class="line"><a href="#L666">666</a>    value,</span>
+<span id="L667" class="line"><a href="#L667">667</a>    options</span>
+<span id="L668" class="line"><a href="#L668">668</a>)</span>
+<span id="L669" class="line"><a href="#L669">669</a>    options = options or {}</span>
+<span id="L670" class="line"><a href="#L670">670</a>    local scene = Director:sharedDirector():getRunningSceneLua()</span>
+<span id="L671" class="line"><a href="#L671">671</a>    if not scene then</span>
+<span id="L672" class="line"><a href="#L672">672</a>        return nil, &quot;running scene unavailable&quot;</span>
+<span id="L673" class="line"><a href="#L673">673</a>    end</span>
+<span id="L674" class="line"><a href="#L674">674</a>    local oldProgress = _G.__MilestonePropIconPixelVerificationProgress</span>
+<span id="L675" class="line"><a href="#L675">675</a>    if oldProgress and not oldProgress.isDisposed then</span>
+<span id="L676" class="line"><a href="#L676">676</a>        oldProgress:removeFromParentAndCleanup(true)</span>
+<span id="L677" class="line"><a href="#L677">677</a>    end</span>
+<span id="L678" class="line"><a href="#L678">678</a></span>
+<span id="L679" class="line"><a href="#L679">679</a>    local threshold = tonumber(options.threshold) or 500</span>
+<span id="L680" class="line"><a href="#L680">680</a>    local maxValue = tonumber(options.maxValue) or 1000</span>
+<span id="L681" class="line"><a href="#L681">681</a>    local milestoneScale = tonumber(options.milestoneScale) or DEFAULT_MILESTONE_SCALE</span>
+<span id="L682" class="line"><a href="#L682">682</a>    local builder = UEProgressMilestoneBuilder.new()</span>
+<span id="L683" class="line"><a href="#L683">683</a>        :setMaxValue(maxValue)</span>
+<span id="L684" class="line"><a href="#L684">684</a>        :setValue(tonumber(value) or 0)</span>
+<span id="L685" class="line"><a href="#L685">685</a>        :setProgressWidth(tonumber(options.progressWidth) or 900)</span>
+<span id="L686" class="line"><a href="#L686">686</a>        :setScrollContainerWidth(tonumber(options.scrollContainerWidth) or 520)</span>
+<span id="L687" class="line"><a href="#L687">687</a>        :setScrollable(false)</span>
+<span id="L688" class="line"><a href="#L688">688</a>        :setMilestoneConfig({</span>
+<span id="L689" class="line"><a href="#L689">689</a>            autoClaim = true,</span>
+<span id="L690" class="line"><a href="#L690">690</a>            showMilestoneLabels = true,</span>
+<span id="L691" class="line"><a href="#L691">691</a>            milestonesList = {</span>
+<span id="L692" class="line"><a href="#L692">692</a>                {</span>
+<span id="L693" class="line"><a href="#L693">693</a>                    threshold = threshold,</span>
+<span id="L694" class="line"><a href="#L694">694</a>                    rewardConfig = {</span>
+<span id="L695" class="line"><a href="#L695">695</a>                        itemId = itemId,</span>
+<span id="L696" class="line"><a href="#L696">696</a>                        num = tonumber(options.num) or DEFAULT_NUM,</span>
+<span id="L697" class="line"><a href="#L697">697</a>                    },</span>
+<span id="L698" class="line"><a href="#L698">698</a>                    pixelCompensation = {</span>
+<span id="L699" class="line"><a href="#L699">699</a>                        beforePx = (tonumber(beforePx) or 0) * milestoneScale,</span>
+<span id="L700" class="line"><a href="#L700">700</a>                        afterPx = (tonumber(afterPx) or 0) * milestoneScale,</span>
+<span id="L701" class="line"><a href="#L701">701</a>                    },</span>
+<span id="L702" class="line"><a href="#L702">702</a>                },</span>
+<span id="L703" class="line"><a href="#L703">703</a>            },</span>
+<span id="L704" class="line"><a href="#L704">704</a>        })</span>
+<span id="L705" class="line"><a href="#L705">705</a></span>
+<span id="L706" class="line"><a href="#L706">706</a>    local success, progressOrError = pcall(function()</span>
+<span id="L707" class="line"><a href="#L707">707</a>        return WidgetManager:createWidgetObj(&quot;UEProgressMilestone&quot;, builder)</span>
+<span id="L708" class="line"><a href="#L708">708</a>    end)</span>
+<span id="L709" class="line"><a href="#L709">709</a>    if not success or not progressOrError then</span>
+<span id="L710" class="line"><a href="#L710">710</a>        return nil, tostring(progressOrError)</span>
+<span id="L711" class="line"><a href="#L711">711</a>    end</span>
+<span id="L712" class="line"><a href="#L712">712</a></span>
+<span id="L713" class="line"><a href="#L713">713</a>    local progress = progressOrError</span>
+<span id="L714" class="line"><a href="#L714">714</a>    -- 截图验证时关闭进度条描边图片透明度，避免描边干扰可视区域判断（默认 0）。</span>
+<span id="L715" class="line"><a href="#L715">715</a>    if progress.setOutlineImageOpacity then</span>
+<span id="L716" class="line"><a href="#L716">716</a>        progress:setOutlineImageOpacity(tonumber(options.outlineImageOpacity) or 0)</span>
+<span id="L717" class="line"><a href="#L717">717</a>    end</span>
+<span id="L718" class="line"><a href="#L718">718</a>    progress:setName(&quot;MilestonePropIconPixelVerification&quot;)</span>
+<span id="L719" class="line"><a href="#L719">719</a>    progress:setPositionXY(</span>
+<span id="L720" class="line"><a href="#L720">720</a>        tonumber(options.positionX) or 360,</span>
+<span id="L721" class="line"><a href="#L721">721</a>        tonumber(options.positionY) or 500</span>
+<span id="L722" class="line"><a href="#L722">722</a>    )</span>
+<span id="L723" class="line"><a href="#L723">723</a>    scene:addChild(progress)</span>
+<span id="L724" class="line"><a href="#L724">724</a>    _G.__MilestonePropIconPixelVerificationProgress = progress</span>
+<span id="L725" class="line"><a href="#L725">725</a>    return {</span>
+<span id="L726" class="line"><a href="#L726">726</a>        itemId = itemId,</span>
+<span id="L727" class="line"><a href="#L727">727</a>        threshold = threshold,</span>
+<span id="L728" class="line"><a href="#L728">728</a>        value = tonumber(value) or 0,</span>
+<span id="L729" class="line"><a href="#L729">729</a>        beforePx = tonumber(beforePx) or 0,</span>
+<span id="L730" class="line"><a href="#L730">730</a>        afterPx = tonumber(afterPx) or 0,</span>
+<span id="L731" class="line"><a href="#L731">731</a>    }</span>
+<span id="L732" class="line"><a href="#L732">732</a>end</span>
+<span id="L733" class="line"><a href="#L733">733</a></span>
+<span id="L734" class="line"><a href="#L734">734</a>---创建固定参数的里程碑进度条并按三状态截取进度条可视区域。</span>
+<span id="L735" class="line"><a href="#L735">735</a>---固定进度条长度 1000、最大值 1000、可视区域 500、里程碑值 100；</span>
+<span id="L736" class="line"><a href="#L736">736</a>---state 对应验证值：before=99、milestone=100、after=101。</span>
+<span id="L737" class="line"><a href="#L737">737</a>---截图使用 CCRenderTexture 只渲染进度条可视区域，不包含整屏。</span>
+<span id="L738" class="line"><a href="#L738">738</a>---@param itemId integer 道具 ID</span>
+<span id="L739" class="line"><a href="#L739">739</a>---@param beforePx number scale=1 的左侧补偿</span>
+<span id="L740" class="line"><a href="#L740">740</a>---@param afterPx number scale=1 的右侧补偿</span>
+<span id="L741" class="line"><a href="#L741">741</a>---@param state string 验证状态：&quot;before&quot;|&quot;milestone&quot;|&quot;after&quot;</span>
+<span id="L742" class="line"><a href="#L742">742</a>---@param options table|nil cachePath 等参数</span>
+<span id="L743" class="line"><a href="#L743">743</a>---@return table|nil result 验证结果，含 state、value、imagePath</span>
+<span id="L744" class="line"><a href="#L744">744</a>---@return string|nil errorMessage 错误信息</span>
+<span id="L745" class="line"><a href="#L745">745</a>function MilestonePropIconPixelConfigDebug:createVerificationProgressShot(</span>
+<span id="L746" class="line"><a href="#L746">746</a>    itemId,</span>
+<span id="L747" class="line"><a href="#L747">747</a>    beforePx,</span>
+<span id="L748" class="line"><a href="#L748">748</a>    afterPx,</span>
+<span id="L749" class="line"><a href="#L749">749</a>    state,</span>
+<span id="L750" class="line"><a href="#L750">750</a>    options</span>
+<span id="L751" class="line"><a href="#L751">751</a>)</span>
+<span id="L752" class="line"><a href="#L752">752</a>    options = options or {}</span>
+<span id="L753" class="line"><a href="#L753">753</a>    local value = VERIFICATION_STATE_VALUES[state]</span>
+<span id="L754" class="line"><a href="#L754">754</a>    if not value then</span>
+<span id="L755" class="line"><a href="#L755">755</a>        return nil, &quot;invalid verification state: &quot; .. tostring(state)</span>
+<span id="L756" class="line"><a href="#L756">756</a>    end</span>
+<span id="L757" class="line"><a href="#L757">757</a></span>
+<span id="L758" class="line"><a href="#L758">758</a>    local result, errorMessage = self:createVerificationProgress(itemId, beforePx, afterPx, value, {</span>
+<span id="L759" class="line"><a href="#L759">759</a>        threshold = VERIFICATION_FIXED.threshold,</span>
+<span id="L760" class="line"><a href="#L760">760</a>        maxValue = VERIFICATION_FIXED.maxValue,</span>
+<span id="L761" class="line"><a href="#L761">761</a>        progressWidth = VERIFICATION_FIXED.progressWidth,</span>
+<span id="L762" class="line"><a href="#L762">762</a>        scrollContainerWidth = VERIFICATION_FIXED.scrollContainerWidth,</span>
+<span id="L763" class="line"><a href="#L763">763</a>        positionX = VERIFICATION_FIXED.positionX,</span>
+<span id="L764" class="line"><a href="#L764">764</a>        positionY = VERIFICATION_FIXED.positionY,</span>
+<span id="L765" class="line"><a href="#L765">765</a>    })</span>
+<span id="L766" class="line"><a href="#L766">766</a>    if not result then</span>
+<span id="L767" class="line"><a href="#L767">767</a>        return nil, errorMessage</span>
+<span id="L768" class="line"><a href="#L768">768</a>    end</span>
+<span id="L769" class="line"><a href="#L769">769</a></span>
+<span id="L770" class="line"><a href="#L770">770</a>    local cachePath = getCachePath(options)</span>
+<span id="L771" class="line"><a href="#L771">771</a>    ensureDirectory(cachePath)</span>
+<span id="L772" class="line"><a href="#L772">772</a>    local imagePath, shotError = captureProgressBar(</span>
+<span id="L773" class="line"><a href="#L773">773</a>        _G.__MilestonePropIconPixelVerificationProgress,</span>
+<span id="L774" class="line"><a href="#L774">774</a>        cachePath,</span>
+<span id="L775" class="line"><a href="#L775">775</a>        itemId,</span>
+<span id="L776" class="line"><a href="#L776">776</a>        state</span>
+<span id="L777" class="line"><a href="#L777">777</a>    )</span>
+<span id="L778" class="line"><a href="#L778">778</a>    if not imagePath then</span>
+<span id="L779" class="line"><a href="#L779">779</a>        return nil, shotError</span>
+<span id="L780" class="line"><a href="#L780">780</a>    end</span>
+<span id="L781" class="line"><a href="#L781">781</a></span>
+<span id="L782" class="line"><a href="#L782">782</a>    result.state = state</span>
+<span id="L783" class="line"><a href="#L783">783</a>    result.value = value</span>
+<span id="L784" class="line"><a href="#L784">784</a>    result.imagePath = imagePath</span>
+<span id="L785" class="line"><a href="#L785">785</a>    return result</span>
+<span id="L786" class="line"><a href="#L786">786</a>end</span>
+<span id="L787" class="line"><a href="#L787">787</a></span>
+<span id="L788" class="line"><a href="#L788">788</a>---销毁验证用里程碑进度条。</span>
+<span id="L789" class="line"><a href="#L789">789</a>function MilestonePropIconPixelConfigDebug:clearVerificationProgress()</span>
+<span id="L790" class="line"><a href="#L790">790</a>    local progress = _G.__MilestonePropIconPixelVerificationProgress</span>
+<span id="L791" class="line"><a href="#L791">791</a>    if progress and not progress.isDisposed then</span>
+<span id="L792" class="line"><a href="#L792">792</a>        progress:removeFromParentAndCleanup(true)</span>
+<span id="L793" class="line"><a href="#L793">793</a>    end</span>
+<span id="L794" class="line"><a href="#L794">794</a>    _G.__MilestonePropIconPixelVerificationProgress = nil</span>
+<span id="L795" class="line"><a href="#L795">795</a>end</span>
+<span id="L796" class="line"><a href="#L796">796</a></span>
+<span id="L797" class="line"><a href="#L797">797</a>_G.MilestonePropIconPixelConfigDebug = MilestonePropIconPixelConfigDebug</span>
+<span id="L798" class="line"><a href="#L798">798</a></span>
+<span id="L799" class="line"><a href="#L799">799</a>return MilestonePropIconPixelConfigDebug</span></pre></main></html>

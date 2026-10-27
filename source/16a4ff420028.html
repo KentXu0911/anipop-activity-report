@@ -1,0 +1,178 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/activity/processor/AutoPopupProcessor.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="16a4ff420028.lua" download>下载Lua原文</a></p><h1>amf/middleware/activity/processor/AutoPopupProcessor.lua</h1><p>SHA256 45ab3ea31b7311104840ab96151f444997fadf12985d7d1ea8b9df70f0ca3b21</p><pre><span id="L1" class="line"><a href="#L1">1</a>-- 负责发现新活动和配置强弹</span>
+<span id="L2" class="line"><a href="#L2">2</a>local IProcessor = require &quot;amf.middleware.activity.processor.IProcessor&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local AutoPopupProcessor = class(&quot;AutoPopupProcessor&quot;).implement(IProcessor)</span>
+<span id="L4" class="line"><a href="#L4">4</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local APMetaConfigRef = require &quot;amf.middleware.activity.config.APMetaConfigRef&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local ActivityDebugLog = require &quot;amf.middleware.activity.debug.ActivityDebugLog&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>-- 创建</span>
+<span id="L9" class="line"><a href="#L9">9</a>function AutoPopupProcessor:create(source, actId)</span>
+<span id="L10" class="line"><a href="#L10">10</a>    local cls = self.new()</span>
+<span id="L11" class="line"><a href="#L11">11</a>    cls:init(source, actId)</span>
+<span id="L12" class="line"><a href="#L12">12</a>    return cls</span>
+<span id="L13" class="line"><a href="#L13">13</a>end</span>
+<span id="L14" class="line"><a href="#L14">14</a></span>
+<span id="L15" class="line"><a href="#L15">15</a>function AutoPopupProcessor:init(source, actId)</span>
+<span id="L16" class="line"><a href="#L16">16</a>    self._source = source</span>
+<span id="L17" class="line"><a href="#L17">17</a>    self._actId = actId</span>
+<span id="L18" class="line"><a href="#L18">18</a></span>
+<span id="L19" class="line"><a href="#L19">19</a>    self._eventHandled = false</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>    self._autoPopupConfig = {}</span>
+<span id="L22" class="line"><a href="#L22">22</a>end</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>--强弹结束</span>
+<span id="L25" class="line"><a href="#L25">25</a>function AutoPopupProcessor:popupOverFunc(data)</span>
+<span id="L26" class="line"><a href="#L26">26</a>    local metaId = data.metaId</span>
+<span id="L27" class="line"><a href="#L27">27</a>    local actId = data.actId</span>
+<span id="L28" class="line"><a href="#L28">28</a>    local popupConfig</span>
+<span id="L29" class="line"><a href="#L29">29</a></span>
+<span id="L30" class="line"><a href="#L30">30</a>    ActivityDebugLog:logAutoPop(metaId, actId, &quot;强弹结束，申请取消&quot;)</span>
+<span id="L31" class="line"><a href="#L31">31</a>    if metaId then</span>
+<span id="L32" class="line"><a href="#L32">32</a>        popupConfig = self._autoPopupConfig[tostring(metaId)]</span>
+<span id="L33" class="line"><a href="#L33">33</a>    elseif actId then</span>
+<span id="L34" class="line"><a href="#L34">34</a>        for k, v in pairs(self._autoPopupConfig) do</span>
+<span id="L35" class="line"><a href="#L35">35</a>            if tonumber(v:getActId()) == tonumber(actId) and not v:isStage3CustomizedPopup() and not v:isStage4CustomizedPopup() then</span>
+<span id="L36" class="line"><a href="#L36">36</a>                popupConfig = v</span>
+<span id="L37" class="line"><a href="#L37">37</a>                metaId = v:getMetaId()</span>
+<span id="L38" class="line"><a href="#L38">38</a>                break</span>
+<span id="L39" class="line"><a href="#L39">39</a>            end</span>
+<span id="L40" class="line"><a href="#L40">40</a>        end</span>
+<span id="L41" class="line"><a href="#L41">41</a>    end</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>    if popupConfig then</span>
+<span id="L44" class="line"><a href="#L44">44</a>        local needSync = popupConfig:needSyncPopupNum()</span>
+<span id="L45" class="line"><a href="#L45">45</a>        if needSync then</span>
+<span id="L46" class="line"><a href="#L46">46</a>            popupConfig:syncPopupNum()</span>
+<span id="L47" class="line"><a href="#L47">47</a>        end</span>
+<span id="L48" class="line"><a href="#L48">48</a>        local shouldRemove = popupConfig:shouldRemoveAfterPop()</span>
+<span id="L49" class="line"><a href="#L49">49</a>        ActivityDebugLog:logAutoPop(popupConfig:getMetaId(), popupConfig:getActId(), &quot;强弹结束，实际取消&quot;</span>
+<span id="L50" class="line"><a href="#L50">50</a>            ,&quot;需要同步到后端&quot; .. tostring(needSync), &quot;需要移除强弹&quot; .. tostring(shouldRemove))</span>
+<span id="L51" class="line"><a href="#L51">51</a>        if shouldRemove then</span>
+<span id="L52" class="line"><a href="#L52">52</a>            self._autoPopupConfig[tostring(metaId)] = nil</span>
+<span id="L53" class="line"><a href="#L53">53</a>        end</span>
+<span id="L54" class="line"><a href="#L54">54</a>    end</span>
+<span id="L55" class="line"><a href="#L55">55</a>end</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>function AutoPopupProcessor:process()</span>
+<span id="L58" class="line"><a href="#L58">58</a>    if not self:getEventHandled() then</span>
+<span id="L59" class="line"><a href="#L59">59</a>        self:handleConfigPopup()</span>
+<span id="L60" class="line"><a href="#L60">60</a>        self:setEventHandled(true)</span>
+<span id="L61" class="line"><a href="#L61">61</a>        if self._autoPopupConfig and next(self._autoPopupConfig) ~= nil then</span>
+<span id="L62" class="line"><a href="#L62">62</a>            return true</span>
+<span id="L63" class="line"><a href="#L63">63</a>        end</span>
+<span id="L64" class="line"><a href="#L64">64</a>    end</span>
+<span id="L65" class="line"><a href="#L65">65</a>end</span>
+<span id="L66" class="line"><a href="#L66">66</a></span>
+<span id="L67" class="line"><a href="#L67">67</a>function AutoPopupProcessor:setEventHandled(flag)</span>
+<span id="L68" class="line"><a href="#L68">68</a>    self._eventHandled = flag</span>
+<span id="L69" class="line"><a href="#L69">69</a>end</span>
+<span id="L70" class="line"><a href="#L70">70</a></span>
+<span id="L71" class="line"><a href="#L71">71</a>function AutoPopupProcessor:getEventHandled()</span>
+<span id="L72" class="line"><a href="#L72">72</a>    return self._eventHandled</span>
+<span id="L73" class="line"><a href="#L73">73</a>end</span>
+<span id="L74" class="line"><a href="#L74">74</a></span>
+<span id="L75" class="line"><a href="#L75">75</a>-- 配置强弹处理入口</span>
+<span id="L76" class="line"><a href="#L76">76</a>function AutoPopupProcessor:handleConfigPopup()</span>
+<span id="L77" class="line"><a href="#L77">77</a>    local config = require(&quot;activity/&quot; .. self._source)</span>
+<span id="L78" class="line"><a href="#L78">78</a>    -- 活动状态切换会重跑本函数（ActivityNode:handleAutoPopup），先清掉上一次的配置，</span>
+<span id="L79" class="line"><a href="#L79">79</a>    -- 避免活动已 ignore / 无 AutoPopupMgr 时残留旧强弹配置。</span>
+<span id="L80" class="line"><a href="#L80">80</a>    self:removeOldConfig()</span>
+<span id="L81" class="line"><a href="#L81">81</a>    if self:ignoreAutoPop(config) then</span>
+<span id="L82" class="line"><a href="#L82">82</a>        return</span>
+<span id="L83" class="line"><a href="#L83">83</a>    end</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>    if not _G.amfBean(&quot;AutoPopupMgr&quot;) then</span>
+<span id="L86" class="line"><a href="#L86">86</a>        return</span>
+<span id="L87" class="line"><a href="#L87">87</a>    end</span>
+<span id="L88" class="line"><a href="#L88">88</a></span>
+<span id="L89" class="line"><a href="#L89">89</a>    self:addConfigToPopQueue(config, self._source)</span>
+<span id="L90" class="line"><a href="#L90">90</a>end</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>function AutoPopupProcessor:removeOldConfig()</span>
+<span id="L93" class="line"><a href="#L93">93</a>    self._autoPopupConfig = {}</span>
+<span id="L94" class="line"><a href="#L94">94</a>end</span>
+<span id="L95" class="line"><a href="#L95">95</a></span>
+<span id="L96" class="line"><a href="#L96">96</a>function AutoPopupProcessor:addConfigToPopQueue(config, source)</span>
+<span id="L97" class="line"><a href="#L97">97</a>    local _popupConfigs = self:genActAutoPopupConfig(config.autoPopConfigs, config)</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>    local function insertToTable(tbl, popupConfig)</span>
+<span id="L100" class="line"><a href="#L100">100</a>        tbl[tostring(popupConfig:getMetaId())] = popupConfig</span>
+<span id="L101" class="line"><a href="#L101">101</a>    end</span>
+<span id="L102" class="line"><a href="#L102">102</a>    for _, popupConfig in ipairs(_popupConfigs) do</span>
+<span id="L103" class="line"><a href="#L103">103</a>        popupConfig:setActSource(source)</span>
+<span id="L104" class="line"><a href="#L104">104</a>        insertToTable(self._autoPopupConfig,popupConfig)</span>
+<span id="L105" class="line"><a href="#L105">105</a>    end</span>
+<span id="L106" class="line"><a href="#L106">106</a>end</span>
+<span id="L107" class="line"><a href="#L107">107</a></span>
+<span id="L108" class="line"><a href="#L108">108</a>function AutoPopupProcessor:genActAutoPopupConfig(autoPopConfigs, actConfig)</span>
+<span id="L109" class="line"><a href="#L109">109</a>    local ret = {}</span>
+<span id="L110" class="line"><a href="#L110">110</a>    for i, v in ipairs(autoPopConfigs) do</span>
+<span id="L111" class="line"><a href="#L111">111</a>        local config = table.clone(v)</span>
+<span id="L112" class="line"><a href="#L112">112</a>        config.autoPopCustomizedCheck = self:getFunctionFromActConfig(actConfig, config.autoPopCustomizedCheck)</span>
+<span id="L113" class="line"><a href="#L113">113</a>        config.autoPopCustomizedCreator = self:getFunctionFromActConfig(actConfig, config.autoPopCustomizedCreator)</span>
+<span id="L114" class="line"><a href="#L114">114</a>        local popupConfig = APMetaConfigRef:create()</span>
+<span id="L115" class="line"><a href="#L115">115</a>        popupConfig:updateConfigData(config)</span>
+<span id="L116" class="line"><a href="#L116">116</a>        if popupConfig:isTimeEffective() and popupConfig:isRuleEffective() and popupConfig:isPayTypeEffective() and</span>
+<span id="L117" class="line"><a href="#L117">117</a>            popupConfig:isActiveTypeEffective() and popupConfig:isGroupSwitchEffective() then</span>
+<span id="L118" class="line"><a href="#L118">118</a>            table.insert(ret, popupConfig)</span>
+<span id="L119" class="line"><a href="#L119">119</a>        end</span>
+<span id="L120" class="line"><a href="#L120">120</a>    end</span>
+<span id="L121" class="line"><a href="#L121">121</a>    return ret</span>
+<span id="L122" class="line"><a href="#L122">122</a>end</span>
+<span id="L123" class="line"><a href="#L123">123</a></span>
+<span id="L124" class="line"><a href="#L124">124</a>function AutoPopupProcessor:setIsResLoaded(loaded)</span>
+<span id="L125" class="line"><a href="#L125">125</a>    for k, v in pairs(self._autoPopupConfig) do</span>
+<span id="L126" class="line"><a href="#L126">126</a>        v:setIsResLoaded(loaded)</span>
+<span id="L127" class="line"><a href="#L127">127</a>    end</span>
+<span id="L128" class="line"><a href="#L128">128</a>end</span>
+<span id="L129" class="line"><a href="#L129">129</a></span>
+<span id="L130" class="line"><a href="#L130">130</a>function AutoPopupProcessor:getFunctionFromActConfig(actConfig, funcKey)</span>
+<span id="L131" class="line"><a href="#L131">131</a>    funcKey = tostring(funcKey)</span>
+<span id="L132" class="line"><a href="#L132">132</a>    if not funcKey then</span>
+<span id="L133" class="line"><a href="#L133">133</a>        return</span>
+<span id="L134" class="line"><a href="#L134">134</a>    end</span>
+<span id="L135" class="line"><a href="#L135">135</a>    if funcKey == &quot;&quot; or funcKey == &quot;nil&quot; then</span>
+<span id="L136" class="line"><a href="#L136">136</a>        return</span>
+<span id="L137" class="line"><a href="#L137">137</a>    end</span>
+<span id="L138" class="line"><a href="#L138">138</a>    if not actConfig[funcKey] then</span>
+<span id="L139" class="line"><a href="#L139">139</a>        return</span>
+<span id="L140" class="line"><a href="#L140">140</a>    end</span>
+<span id="L141" class="line"><a href="#L141">141</a>    if type(actConfig[funcKey]) ~= &quot;function&quot; then</span>
+<span id="L142" class="line"><a href="#L142">142</a>        return</span>
+<span id="L143" class="line"><a href="#L143">143</a>    end</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>    return actConfig[funcKey]</span>
+<span id="L146" class="line"><a href="#L146">146</a>end</span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>function AutoPopupProcessor:getAutoPopupData(delegate)</span>
+<span id="L149" class="line"><a href="#L149">149</a>    local ret = {}</span>
+<span id="L150" class="line"><a href="#L150">150</a>    for k, v in pairs(self._autoPopupConfig) do</span>
+<span id="L151" class="line"><a href="#L151">151</a>        local popData = v:checkAndGetPopData(delegate)</span>
+<span id="L152" class="line"><a href="#L152">152</a>        table.insert(ret, popData)</span>
+<span id="L153" class="line"><a href="#L153">153</a>    end</span>
+<span id="L154" class="line"><a href="#L154">154</a></span>
+<span id="L155" class="line"><a href="#L155">155</a>    return ret</span>
+<span id="L156" class="line"><a href="#L156">156</a>end</span>
+<span id="L157" class="line"><a href="#L157">157</a></span>
+<span id="L158" class="line"><a href="#L158">158</a>function AutoPopupProcessor:checkHasAutoPopupByMetaId(metaId)</span>
+<span id="L159" class="line"><a href="#L159">159</a>    for k, v in pairs(self._autoPopupConfig) do</span>
+<span id="L160" class="line"><a href="#L160">160</a>        if v:getMetaId() == metaId then</span>
+<span id="L161" class="line"><a href="#L161">161</a>            return true</span>
+<span id="L162" class="line"><a href="#L162">162</a>        end</span>
+<span id="L163" class="line"><a href="#L163">163</a>    end</span>
+<span id="L164" class="line"><a href="#L164">164</a>    return false</span>
+<span id="L165" class="line"><a href="#L165">165</a>end</span>
+<span id="L166" class="line"><a href="#L166">166</a></span>
+<span id="L167" class="line"><a href="#L167">167</a>function AutoPopupProcessor:ignoreAutoPop(config)</span>
+<span id="L168" class="line"><a href="#L168">168</a>    if not config.autoPopConfigs then</span>
+<span id="L169" class="line"><a href="#L169">169</a>        return true</span>
+<span id="L170" class="line"><a href="#L170">170</a>    end</span>
+<span id="L171" class="line"><a href="#L171">171</a>    return config.ignoreAutoPopup</span>
+<span id="L172" class="line"><a href="#L172">172</a>end</span>
+<span id="L173" class="line"><a href="#L173">173</a></span>
+<span id="L174" class="line"><a href="#L174">174</a>function AutoPopupProcessor:dispose()</span>
+<span id="L175" class="line"><a href="#L175">175</a>    self:removeOldConfig()</span>
+<span id="L176" class="line"><a href="#L176">176</a>end</span>
+<span id="L177" class="line"><a href="#L177">177</a></span>
+<span id="L178" class="line"><a href="#L178">178</a>return AutoPopupProcessor</span></pre></main></html>

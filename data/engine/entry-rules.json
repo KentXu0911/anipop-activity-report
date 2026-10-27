@@ -1,0 +1,465 @@
+[
+  {
+    "id": "N01",
+    "title": "四小时是真正的数值规则",
+    "rule": "isInNewLevelTime不传delta时取14400秒；当前可打最高主线关定位区域，拿开放时间；open<=now<=open+14400有效，两端包含。不是登录后4小时，也没有在此函数硬编码周五19点。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/levelarea/unlock/module/UnlockConfigCheck.lua",
+        "line": 44,
+        "anchor": "function UnlockConfigCheck:isInNewLevelTime",
+        "sha256": "7936df6c6edcd5e0f1d8244cc875f6b9656b6023181a8b6ec1dcf99bb0307b51"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/levelarea/levelconfig/LevelUnlockConfigParser.lua",
+        "line": 346,
+        "anchor": "function LevelUnlockConfigParser:getAreaOpenTime",
+        "sha256": "4195fbc11bd38df46132880d1329799d3f5a2c05260090c6f2bc2a19e13619a8"
+      }
+    ]
+  },
+  {
+    "id": "N02",
+    "title": "最新新关不是固定30关",
+    "rule": "isTopNewMainOrHideLevel取当前最高主线区域对应解锁配置areaIDs，主线判断关卡所属区域是否在列表；隐藏分支匹配隐藏区域startNormalLevel与主线区域minLevel。因此新关批次数量来自配置，不固定Top30。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/levelarea/unlock/module/UnlockConfigCheck.lua",
+        "line": 71,
+        "anchor": "function UnlockConfigCheck:isTopNewMainOrHideLevel",
+        "sha256": "7936df6c6edcd5e0f1d8244cc875f6b9656b6023181a8b6ec1dcf99bb0307b51"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/levelarea/levelconfig/LevelUnlockConfigParser.lua",
+        "line": 333,
+        "anchor": "function LevelUnlockConfigParser:getAreaUnlockConfigByAreaId",
+        "sha256": "4195fbc11bd38df46132880d1329799d3f5a2c05260090c6f2bc2a19e13619a8"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/levelarea/levelconfig/LevelAreaConfigParser.lua",
+        "line": 67,
+        "anchor": "function LevelAreaConfigParser:getAreaIDByLevelID",
+        "sha256": "a38974d72cecc9e4e01474303ca0d17933e6eccb3eb327d9745cb69f9f14154f"
+      }
+    ]
+  },
+  {
+    "id": "N03",
+    "title": "当前最高关计算",
+    "rule": "getLocalTopLevel(false)：当前倒计时区域未结束时取前一区maxLevel；否则取已解析最大主线关，false不做后续在线解锁NEED检查。保护窗口使用的是客户端当前可打关卡上限，而非玩家个人最高进度。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/levelarea/unlock/module/TopAreaInfoLogic.lua",
+        "line": 296,
+        "anchor": "function TopAreaInfoLogic:getLocalTopLevel",
+        "sha256": "2f957b48f447a1a5ce4225bca6032a94c90010b572e10db735d53d6a2747d6c6"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/levelarea/unlock/module/TopAreaInfoLogic.lua",
+        "line": 284,
+        "anchor": "function TopAreaInfoLogic:isCurCountdownAreaOver",
+        "sha256": "2f957b48f447a1a5ce4225bca6032a94c90010b572e10db735d53d6a2747d6c6"
+      }
+    ]
+  },
+  {
+    "id": "N04",
+    "title": "新关保护适用范围",
+    "rule": "AutoPopupMgr:ignoreForTopLevelPlayer须非TOP_STAR、isMainLevel(scene)通过、刚打的关卡属于最新发布区域、处于4小时窗口。isMainLevel(nil)也返回真；Stage3实际写状态未传scene，因此主线正常命中，但不能假定所有传入场景都保留原类型。handleStage4AfterStartGameNoPop才执行该保护；不能说所有场景4/所有活动统一屏蔽。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 557,
+        "anchor": "function AutoPopupMgr:ignoreForTopLevelPlayer",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 529,
+        "anchor": "function AutoPopupMgr:handleStage4AfterStartGameNoPop",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 511,
+        "anchor": "function AutoPopupMgr:handleStage4AfterStartGamePopup",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      }
+    ]
+  },
+  {
+    "id": "N05",
+    "title": "Top30/周五是注释不是硬规则",
+    "rule": "MainSceneButtonManager.canPlayStarWandAutoPop的周五19-23/Top30注释落地调用ignoreForTopLevelPlayer，实际按前述开放配置而非数字30；其他isInNewLevelTime消费者有各自门槛，不由这条注释统一概括。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscenebutton/MainSceneButtonManager.lua",
+        "line": 256,
+        "anchor": "function MainSceneButtonManager:canPlayStarWandAutoPop",
+        "sha256": "b903250fcd97ccfdb05e67dd31417334742b8a5c7b2dda424069b349b4b9522a"
+      }
+    ]
+  },
+  {
+    "id": "B01",
+    "title": "共同Manager没有默认开启判定",
+    "rule": "BaseFeatureManager:isEnabled函数为空，是子类覆写点。不能凭继承关系补出统一维护/平台/时间门槛。isActivitySupported(actId)实际上返回ActivityMgr:isActReady(actId)==true，活动ID从const.actId/ACT_ID兜底。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/BaseFeatureManager.lua",
+        "line": 240,
+        "anchor": "function BaseFeatureManager:isEnabled",
+        "sha256": "ba25998b0442762c0208fc27f91c4d8efb4cd4e8d2168e11e9a87aefacc7e373"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/BaseFeatureManager.lua",
+        "line": 184,
+        "anchor": "function BaseFeatureManager:isActivitySupported",
+        "sha256": "ba25998b0442762c0208fc27f91c4d8efb4cd4e8d2168e11e9a87aefacc7e373"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 389,
+        "anchor": "function ActivityMgr:isActReady",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      }
+    ]
+  },
+  {
+    "id": "B02",
+    "title": "共同Model时间是左开右闭",
+    "rule": "BaseFeatureModel预热begin<now<=mainBegin；正式mainBegin<now<=mainEnd；领奖mainEnd<now<=end，先tryConvertMsToSec。与ActivityNode的左闭右开分期存在边界差异，报告应按调用模块写条件；默认时间字段读不到为0。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/BaseFeatureModel.lua",
+        "line": 189,
+        "anchor": "function BaseFeatureModel:isInPreheatTime",
+        "sha256": "f8a6aba0e60fa020ec9a6d2e08fb7d73a773e9141aa10e59fb3e575a61d809f0"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/BaseFeatureModel.lua",
+        "line": 194,
+        "anchor": "function BaseFeatureModel:isInMainTime",
+        "sha256": "f8a6aba0e60fa020ec9a6d2e08fb7d73a773e9141aa10e59fb3e575a61d809f0"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/BaseFeatureModel.lua",
+        "line": 199,
+        "anchor": "function BaseFeatureModel:isInRewardTime",
+        "sha256": "f8a6aba0e60fa020ec9a6d2e08fb7d73a773e9141aa10e59fb3e575a61d809f0"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/node/ActivityNode.lua",
+        "line": 176,
+        "anchor": "function ActivityNode:updateState",
+        "sha256": "8b7e1d4a444785a1eb574b8417e458cc0c7a3cb86955935ad6f2b1e054b4d845"
+      }
+    ]
+  },
+  {
+    "id": "B03",
+    "title": "日/期标记只是可选校验",
+    "rule": "setLocalValueByKey保存当天零点、值、mainBeginTime；读时只有needTime为真才要求同日，只有needActStartTimeCheck真才要求同一期。不传参数不能称日限/期限；具体子类调用决定。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/BaseFeatureModel.lua",
+        "line": 87,
+        "anchor": "function BaseFeatureModel:setLocalValueByKey",
+        "sha256": "f8a6aba0e60fa020ec9a6d2e08fb7d73a773e9141aa10e59fb3e575a61d809f0"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/BaseFeatureModel.lua",
+        "line": 104,
+        "anchor": "function BaseFeatureModel:getLocalValueByKey",
+        "sha256": "f8a6aba0e60fa020ec9a6d2e08fb7d73a773e9141aa10e59fb3e575a61d809f0"
+      }
+    ]
+  },
+  {
+    "id": "B04",
+    "title": "关内卡片与参与标签",
+    "rule": "ActPlug.shouldShowInLevelCard：bottomSwitch ON3没开直接允许，已参与直接允许，否则才调用参与标签卡片判定。它是关内卡片，不是活动中心列表或所有图标的统一门槛。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/plug/ActPlug.lua",
+        "line": 20,
+        "anchor": "function ActPlug:shouldShowInLevelCard",
+        "sha256": "1dbc9447ba885cd7191ccc7274d4b34ed5edd1a9ef6c209c7ffa12cd17ea1db6"
+      }
+    ]
+  },
+  {
+    "id": "I01",
+    "title": "图标与活动资格",
+    "rule": "ActivityNode启动后IconProcessor还需图标系统就绪、config.icon存在、config.isSupport返回真。没有icon不代表活动不存在或不能强弹。Node仅预热/正式期启用发现新活动通知标志，领奖期不能据此推成图标一律隐藏。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/processor/IconProcessor.lua",
+        "line": 109,
+        "anchor": "function IconProcessor:process",
+        "sha256": "0bd0ef0d92e2c0121bb405bde9bb951745d37edef1293557524a67160e007519"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/processor/IconProcessor.lua",
+        "line": 206,
+        "anchor": "function IconProcessor:checkNoIcon",
+        "sha256": "0bd0ef0d92e2c0121bb405bde9bb951745d37edef1293557524a67160e007519"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/node/ActivityNode.lua",
+        "line": 455,
+        "anchor": "function ActivityNode:handleIcon",
+        "sha256": "8b7e1d4a444785a1eb574b8417e458cc0c7a3cb86955935ad6f2b1e054b4d845"
+      }
+    ]
+  },
+  {
+    "id": "I02",
+    "title": "V2采用条件与旧版回退",
+    "rule": "配置icon.mode=dataDriven、dataProvider为非空字符串、NewVineicon_v2/ON实验开启、可选useDataDrivenWhen返回boolean真才走V2。实验按有效UID缓存快照。V2初始化失败可回退旧图标；provider not_present是明确不展示，释放owner，不应当作错误回退重建旧入口。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/processor/IconProcessor.lua",
+        "line": 469,
+        "anchor": "function IconProcessor:shouldUseDataDrivenIcon",
+        "sha256": "0bd0ef0d92e2c0121bb405bde9bb951745d37edef1293557524a67160e007519"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/processor/IconProcessor.lua",
+        "line": 344,
+        "anchor": "function IconProcessor:buildIconBtn",
+        "sha256": "0bd0ef0d92e2c0121bb405bde9bb951745d37edef1293557524a67160e007519"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/processor/IconProcessor.lua",
+        "line": 369,
+        "anchor": "function IconProcessor:buildDataDrivenIconBtn",
+        "sha256": "0bd0ef0d92e2c0121bb405bde9bb951745d37edef1293557524a67160e007519"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/experiment/IconV2Experiment.lua",
+        "line": 16,
+        "anchor": "local function resolveEnabled",
+        "sha256": "f05e84eb4a107e165e623b96a8d246988b8260e88f76624440c6e448cf761005"
+      }
+    ]
+  },
+  {
+    "id": "I03",
+    "title": "红点可来自服务端也可本地业务",
+    "rule": "IconProcessor转发actInfo.reward/msgNum/rank/progress/maxProgress；ActInfoStateOverride先允许provider接管reward/msgNum，否则reward严格true显示奖励，msgNum转换非负整数作为数字红点。本地ActPlug.updateTipView也能从业务hasReward/getMsgNum覆盖actInfo并发送SET_ACT_INFO。不能说所有红点服务器独占。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/processor/IconProcessor.lua",
+        "line": 550,
+        "anchor": "function IconProcessor:refreshActIconFlag",
+        "sha256": "0bd0ef0d92e2c0121bb405bde9bb951745d37edef1293557524a67160e007519"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/provider/ActInfoStateOverride.lua",
+        "line": 31,
+        "anchor": "function ActInfoStateOverride.apply",
+        "sha256": "9240091bce379177ccff88baa0d1dc8e5fdb9c195aca90398c665ab27eeaf346"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/plug/ActPlug.lua",
+        "line": 93,
+        "anchor": "function ActPlug:updateTipView",
+        "sha256": "1dbc9447ba885cd7191ccc7274d4b34ed5edd1a9ef6c209c7ffa12cd17ea1db6"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/base/plug/ActPlug.lua",
+        "line": 82,
+        "anchor": "function ActPlug:_setIconInfo",
+        "sha256": "1dbc9447ba885cd7191ccc7274d4b34ed5edd1a9ef6c209c7ffa12cd17ea1db6"
+      }
+    ]
+  },
+  {
+    "id": "I04",
+    "title": "右上角竞争规则",
+    "rule": "V2默认角标优先奖励→感叹号→NEW→数字→红点；自定义优先序验证后可覆盖，漏项补全。可见折扣<10且有bubbleRenderer时折扣优先占右上角，角标隐藏；奖励动画被明确关闭。不是多个提醒同时堆叠。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/resolver/RightTopSlotResolver.lua",
+        "line": 4,
+        "anchor": "local DefaultPriorityOrder",
+        "sha256": "7e175949a416292bf60975cc416ae82684b13a4bc8958d87dc4edf75f1af1e82"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/resolver/RightTopSlotResolver.lua",
+        "line": 66,
+        "anchor": "local function validatePriorityOrder",
+        "sha256": "7e175949a416292bf60975cc416ae82684b13a4bc8958d87dc4edf75f1af1e82"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/resolver/RightTopSlotResolver.lua",
+        "line": 334,
+        "anchor": "function RightTopSlotResolver:_buildSnapshot",
+        "sha256": "7e175949a416292bf60975cc416ae82684b13a4bc8958d87dc4edf75f1af1e82"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/resolver/RightTopSlotResolver.lua",
+        "line": 107,
+        "anchor": "local function resolveReminderDynamic",
+        "sha256": "7e175949a416292bf60975cc416ae82684b13a4bc8958d87dc4edf75f1af1e82"
+      }
+    ]
+  },
+  {
+    "id": "I05",
+    "title": "图标优先级不是AI强弹分数",
+    "rule": "IconPriorityController.DYNAMIC_PRIORITY_ENABLED=false：创建时首次解析业务getDynamicPriority，以后冻结；只允许右侧pool且不得跨pool/越界，否则回退基础优先级。这不等于全站所有图标永不排序，也不影响独立AI强弹排序。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/runtime/IconPriorityController.lua",
+        "line": 8,
+        "anchor": "local DYNAMIC_PRIORITY_ENABLED",
+        "sha256": "9316964aed017e8a3b0dc5e94433c16984f0f32b3fb69012bd31be1663e71475"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/runtime/IconPriorityController.lua",
+        "line": 137,
+        "anchor": "function IconPriorityController:refresh",
+        "sha256": "9316964aed017e8a3b0dc5e94433c16984f0f32b3fb69012bd31be1663e71475"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/runtime/IconPriorityController.lua",
+        "line": 84,
+        "anchor": "function IconPriorityController:_validate",
+        "sha256": "9316964aed017e8a3b0dc5e94433c16984f0f32b3fb69012bd31be1663e71475"
+      }
+    ]
+  },
+  {
+    "id": "I06",
+    "title": "发现新活动A/B/C",
+    "rule": "V2 newActivityType A=红点，B=NEW，C=NEW并具通知资格，none不提醒；未合法配置类型退A。必须有cycleKey且未清除，notice/legacyPanel未记录；B可配置首次临时C，需featureKey且首次记录未消费。有NEW不等于一定强弹通知。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/newactivity/NewActivityPolicy.lua",
+        "line": 74,
+        "anchor": "function NewActivityPolicy.resolve",
+        "sha256": "3cf6388294bb9bcf46e74ce58aab38ca4d96664c6a3284dc617b7de757854977"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/newactivity/NewActivityPolicy.lua",
+        "line": 131,
+        "anchor": "function NewActivityPolicy.evaluate",
+        "sha256": "3cf6388294bb9bcf46e74ce58aab38ca4d96664c6a3284dc617b7de757854977"
+      }
+    ]
+  },
+  {
+    "id": "I07",
+    "title": "发现通知顺序与计数",
+    "rule": "NotificationCoordinator按poolIdx升序、同位cycleKey升序聚合，场景2优先，场景4需等待2或兜底；notice记录在onVisible时写，与普通强弹creator前计数不同。展示前取消可不消耗。maxBatchSize仅可选参数，此审计不编造固定显示数量。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/newactivity/NotificationCoordinator.lua",
+        "line": 200,
+        "anchor": "function NotificationCoordinator:_collectPending",
+        "sha256": "037fa05bc1a4eb7992ee422b8e57ba21cfb4f71421d686ad7a6f032e47cf079a"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/newactivity/NotificationCoordinator.lua",
+        "line": 429,
+        "anchor": "function NotificationCoordinator:request",
+        "sha256": "037fa05bc1a4eb7992ee422b8e57ba21cfb4f71421d686ad7a6f032e47cf079a"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/newactivity/NotificationCoordinator.lua",
+        "line": 273,
+        "anchor": "function NotificationCoordinator:_markVisible",
+        "sha256": "037fa05bc1a4eb7992ee422b8e57ba21cfb4f71421d686ad7a6f032e47cf079a"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/mainscene/module/icon/v2/newactivity/NotificationCoordinator.lua",
+        "line": 474,
+        "anchor": "function NotificationCoordinator:cancelBeforeVisible",
+        "sha256": "037fa05bc1a4eb7992ee422b8e57ba21cfb4f71421d686ad7a6f032e47cf079a"
+      }
+    ]
+  },
+  {
+    "id": "C01",
+    "title": "活动中心入口79关",
+    "rule": "活动中心须FeatureSwitch.ACT_CENTER、ActivityMgr开启、最高关>=79。活动启动成功且config.miniGameCenterAct真才收入活动中心；展示前清理isSupport=false条目。不是全部活动自动进中心。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/activitycenter/ActivityCenterManager.lua",
+        "line": 120,
+        "anchor": "function ActivityCenterManager:isEnabled",
+        "sha256": "8f6291e2925cdd816474a1fa0b495fae1e756949a381162b9763c8c72bbc6e57"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/activitycenter/ActivityCenterManager.lua",
+        "line": 134,
+        "anchor": "function ActivityCenterManager:getCanShowLevelId",
+        "sha256": "8f6291e2925cdd816474a1fa0b495fae1e756949a381162b9763c8c72bbc6e57"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/activitycenter/ActivityCenterManager.lua",
+        "line": 193,
+        "anchor": "function ActivityCenterManager:onActivityResolveOver",
+        "sha256": "8f6291e2925cdd816474a1fa0b495fae1e756949a381162b9763c8c72bbc6e57"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/activitycenter/model/ActivityCenterModel.lua",
+        "line": 32,
+        "anchor": "function Model:cleanupInvalidData",
+        "sha256": "2293cddae6e646e9734c24cff189b4106250513ae8ee940b9d72f8c077b33067"
+      }
+    ]
+  },
+  {
+    "id": "C02",
+    "title": "中心列表排序与红标",
+    "rule": "列表needTop=true优先，再beginTime越新越前，再actId越大越前；最新活动的redTag按beginTime/actId选出。中心奖励提醒需buttonText非空、hasReward真、HasReward+actId本地标志尚未设置；消息数汇总actInfo.msgNum。这个红标不等于AI分数，也不是参与L3门槛。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/activitycenter/view/ActivityCenterPanelVM.lua",
+        "line": 54,
+        "anchor": "table.sort(self.itemDatas",
+        "sha256": "15a02fc88a5f73f98dc85204fe608016d343b731a32684f5ac8e51f1f39ae644"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/activitycenter/ActivityCenterManager.lua",
+        "line": 79,
+        "anchor": "function ActivityCenterManager:hasReward",
+        "sha256": "8f6291e2925cdd816474a1fa0b495fae1e756949a381162b9763c8c72bbc6e57"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/activitycenter/ActivityCenterManager.lua",
+        "line": 102,
+        "anchor": "function ActivityCenterManager:getMsgNum",
+        "sha256": "8f6291e2925cdd816474a1fa0b495fae1e756949a381162b9763c8c72bbc6e57"
+      }
+    ]
+  },
+  {
+    "id": "N06",
+    "title": "缺省场景按主线处理",
+    "rule": "Stage3Handler的两条setStage3PopupState调用只传state和levelId，AutoPopupMgr保存scene=nil；UBFLevelSceneFunc:isMainLevel(nil)返回true。这是缺省语义，不应误报缺scene导致保护必失效；隐藏/满星关仍取决于其levelId能否映射到最新主线区域。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/popstage/Stage3Handler.lua",
+        "line": 60,
+        "anchor": "function Stage3Handler:checkExitLevelJump",
+        "sha256": "88761ce2ed700a7ac5462cdb7d297acd6a92cd5bdc6264a79fa526a95ac9dcf5"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 500,
+        "anchor": "function AutoPopupMgr:setStage3PopupState",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/ubf/UBFPlay/utils/UBFLevelIdUtil.lua",
+        "line": 30,
+        "anchor": "function UBFLevelSceneFunc:isMainLevel",
+        "sha256": "edc22f862898a4b2b7d18678f3220239832b35e5fb4e2a5ac0bbd306985972ff"
+      }
+    ]
+  }
+]

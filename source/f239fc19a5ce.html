@@ -1,0 +1,11 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/energyactv2/view/EnergyActV2ViewUtil.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="f239fc19a5ce.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/energyactv2/view/EnergyActV2ViewUtil.lua</h1><p>SHA256 99560203d9a970b4dc1b46fa0cb7519d4224b469c7bf1652732859f76830e2d2</p><pre><span id="L1" class="line"><a href="#L1">1</a>---@class EnergyActV2ViewUtil</span>
+<span id="L2" class="line"><a href="#L2">2</a>local ViewUtil = class(&quot;EnergyActV2ViewUtil&quot;)</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>--- 奖品飞行</span>
+<span id="L5" class="line"><a href="#L5">5</a>function ViewUtil.rewardFly(startNode, rewards)</span>
+<span id="L6" class="line"><a href="#L6">6</a>    local RewardFlyHelper = require &#x27;amf.feature.localactivity.processgiftautopopup.RewardFlyHelper&#x27;</span>
+<span id="L7" class="line"><a href="#L7">7</a>    local startWorldPos = startNode:getPositionInWorldSpace()</span>
+<span id="L8" class="line"><a href="#L8">8</a>    RewardFlyHelper:rewardFlyFunc(false, rewards[1], startWorldPos)</span>
+<span id="L9" class="line"><a href="#L9">9</a>end</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>return ViewUtil</span></pre></main></html>

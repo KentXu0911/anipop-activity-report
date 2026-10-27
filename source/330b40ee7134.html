@@ -1,0 +1,1656 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/bigvineskinact/BigVineSkinActManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="330b40ee7134.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/bigvineskinact/BigVineSkinActManager.lua</h1><p>SHA256 8135ebb3b2f5621ac1e36a907b489ddf23159baa75c28f672cc3963a859c6c6a</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureManager = require &quot;amf.middleware.activity.base.BaseFeatureManager&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local MarkEventCenter = require &quot;amf.feature.dailyreward.mark.event.MarkEventCenter&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local MainSceneEventCenter = require &quot;amf.feature.mainscene.core.event.MainSceneEventCenter&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>require &quot;amf.feature.mainscene.module.topbanner.config.SceneTopBannerConst&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>require &quot;amf.feature.mainscene.module.topbanner.SceneTopBannerContext&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>require &quot;amf.feature.personalhub.namecard.userdecotype.UserDecoMgr&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>require &quot;amf.feature.personalhub.namecard.decoration.vineskin.logic.VineSkinType&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>local ActivityName = &quot;BigVineSkinAct&quot;</span>
+<span id="L11" class="line"><a href="#L11">11</a>local Manager = class(ActivityName .. &quot;Manager&quot;, BaseFeatureManager)</span>
+<span id="L12" class="line"><a href="#L12">12</a>local TrialUsingSkinStateCacheKey = &quot;BigVineSkinActTrialUsingSkinState&quot;</span>
+<span id="L13" class="line"><a href="#L13">13</a>local MainPanelTipPopCountCacheKey = &quot;mainPanelTipPopCount&quot;</span>
+<span id="L14" class="line"><a href="#L14">14</a>local RecallInLevelToastShownCacheKeyPrefix = &quot;BigVineSkinActRecallInLevelToastShown_&quot;</span>
+<span id="L15" class="line"><a href="#L15">15</a>local ScheduledDayBroadcastCacheKeyPrefix = &quot;ScheduledDayBroadcast_&quot;</span>
+<span id="L16" class="line"><a href="#L16">16</a>local QualifyDCCacheKey = &quot;BigVineSkinActQualifyDC&quot;</span>
+<span id="L17" class="line"><a href="#L17">17</a>local JoinDCCacheKey = &quot;BigVineSkinActJoinDC&quot;</span>
+<span id="L18" class="line"><a href="#L18">18</a></span>
+<span id="L19" class="line"><a href="#L19">19</a>local function getRecallInLevelToastShownCacheKey(manager)</span>
+<span id="L20" class="line"><a href="#L20">20</a>    return RecallInLevelToastShownCacheKeyPrefix .. tostring(manager:getConst().actOpenVersion)</span>
+<span id="L21" class="line"><a href="#L21">21</a>end</span>
+<span id="L22" class="line"><a href="#L22">22</a></span>
+<span id="L23" class="line"><a href="#L23">23</a>function Manager:log(...)</span>
+<span id="L24" class="line"><a href="#L24">24</a>    printx(42, &quot;***** BigVineSkinAct *****  &quot;, ...)</span>
+<span id="L25" class="line"><a href="#L25">25</a>end</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>-- 获取常量路径</span>
+<span id="L28" class="line"><a href="#L28">28</a>function Manager:_getConstPath()</span>
+<span id="L29" class="line"><a href="#L29">29</a>    return &quot;amf.feature.localactivity.bigvineskinact.const.BigVineSkinActConst&quot;</span>
+<span id="L30" class="line"><a href="#L30">30</a>end</span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>-- 获取model路径</span>
+<span id="L33" class="line"><a href="#L33">33</a>function Manager:_getModelPath()</span>
+<span id="L34" class="line"><a href="#L34">34</a>    return &quot;amf.feature.localactivity.bigvineskinact.model.BigVineSkinActModel&quot;</span>
+<span id="L35" class="line"><a href="#L35">35</a>end</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>-- 如果有自己需要初始化的内容，覆写这个</span>
+<span id="L38" class="line"><a href="#L38">38</a>function Manager:_init()</span>
+<span id="L39" class="line"><a href="#L39">39</a>    _G.amfEC:registerFeature(self)</span>
+<span id="L40" class="line"><a href="#L40">40</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)</span>
+<span id="L41" class="line"><a href="#L41">41</a>    MarkEventCenter:register(MarkEvent.MARK_PREOPEN_CHECK, self.onMarkPreOpenEvent, self)</span>
+<span id="L42" class="line"><a href="#L42">42</a>    MainSceneEventCenter:register(MainSceneEvent.Play.HANDLE_PASS_LEVEL, self.onHandlePassLevelBonusAnim, self, MSP.PassLevel.BIG_VINE_SKIN_BONUS_ANIM)</span>
+<span id="L43" class="line"><a href="#L43">43</a>    -- 注册 求助点回</span>
+<span id="L44" class="line"><a href="#L44">44</a>    require(&quot;amf.feature.localactivity.bigvineskinact.share.BigVineSkinHelpHandler&quot;):create()</span>
+<span id="L45" class="line"><a href="#L45">45</a>end</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>function Manager:setAutoPopupMgr(manager)</span>
+<span id="L48" class="line"><a href="#L48">48</a>    self.autoPopupMgr = manager</span>
+<span id="L49" class="line"><a href="#L49">49</a>end</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>-- 获取需要启动的额外功能列表</span>
+<span id="L52" class="line"><a href="#L52">52</a>function Manager:_getExtraPlugsConfigList()</span>
+<span id="L53" class="line"><a href="#L53">53</a>    return {</span>
+<span id="L54" class="line"><a href="#L54">54</a>        {</span>
+<span id="L55" class="line"><a href="#L55">55</a>            key = &quot;Download&quot;,</span>
+<span id="L56" class="line"><a href="#L56">56</a>        },</span>
+<span id="L57" class="line"><a href="#L57">57</a>        {</span>
+<span id="L58" class="line"><a href="#L58">58</a>            key = &quot;Panel&quot;,</span>
+<span id="L59" class="line"><a href="#L59">59</a>        },</span>
+<span id="L60" class="line"><a href="#L60">60</a>        {</span>
+<span id="L61" class="line"><a href="#L61">61</a>            key = &quot;Rewards&quot;,</span>
+<span id="L62" class="line"><a href="#L62">62</a>        },</span>
+<span id="L63" class="line"><a href="#L63">63</a>        {</span>
+<span id="L64" class="line"><a href="#L64">64</a>            key = &quot;AutoPop&quot;,</span>
+<span id="L65" class="line"><a href="#L65">65</a>        },</span>
+<span id="L66" class="line"><a href="#L66">66</a>    }</span>
+<span id="L67" class="line"><a href="#L67">67</a>end</span>
+<span id="L68" class="line"><a href="#L68">68</a></span>
+<span id="L69" class="line"><a href="#L69">69</a>function Manager:_getAutoPopConfigList()</span>
+<span id="L70" class="line"><a href="#L70">70</a>    local PopStage = AutoPopupConst.PopStage</span>
+<span id="L71" class="line"><a href="#L71">71</a>    return {</span>
+<span id="L72" class="line"><a href="#L72">72</a>        -- 每期玩家触发活动的第1天，在场景2或4弹主活动面板；CheckPoint 位于 WATERFALL_GIFT_DY_OFFER 之后。</span>
+<span id="L73" class="line"><a href="#L73">73</a>        -- 每期一次由强弹框架控制，玩家触发日条件与主面板打开逻辑由业务补齐。</span>
+<span id="L74" class="line"><a href="#L74">74</a>        {</span>
+<span id="L75" class="line"><a href="#L75">75</a>            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_TRIGGER_DAY1,</span>
+<span id="L76" class="line"><a href="#L76">76</a>            stages = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },</span>
+<span id="L77" class="line"><a href="#L77">77</a>            check = function()</span>
+<span id="L78" class="line"><a href="#L78">78</a>                return self:checkCanPopTriggerDay1MainPanel()</span>
+<span id="L79" class="line"><a href="#L79">79</a>            end,</span>
+<span id="L80" class="line"><a href="#L80">80</a>            creator = function(_, onPopOver)</span>
+<span id="L81" class="line"><a href="#L81">81</a>                return function()</span>
+<span id="L82" class="line"><a href="#L82">82</a>                    self:popTriggerDay1MainPanel(onPopOver)</span>
+<span id="L83" class="line"><a href="#L83">83</a>                end</span>
+<span id="L84" class="line"><a href="#L84">84</a>            end,</span>
+<span id="L85" class="line"><a href="#L85">85</a>        },</span>
+<span id="L86" class="line"><a href="#L86">86</a>		-- 活动第5、8、12天仅在场景4弹主活动面板。</span>
+<span id="L87" class="line"><a href="#L87">87</a>		-- 每个目标日最多一次由强弹框架的 CheckPointNumLimit=1 控制。</span>
+<span id="L88" class="line"><a href="#L88">88</a>        {</span>
+<span id="L89" class="line"><a href="#L89">89</a>            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_SCHEDULED_DAY,</span>
+<span id="L90" class="line"><a href="#L90">90</a>            stages = { PopStage.STAGE_FOUR },</span>
+<span id="L91" class="line"><a href="#L91">91</a>            check = function()</span>
+<span id="L92" class="line"><a href="#L92">92</a>                return self:checkCanPopScheduledDayMainPanel()</span>
+<span id="L93" class="line"><a href="#L93">93</a>            end,</span>
+<span id="L94" class="line"><a href="#L94">94</a>            creator = function(_, onPopOver)</span>
+<span id="L95" class="line"><a href="#L95">95</a>                return function()</span>
+<span id="L96" class="line"><a href="#L96">96</a>                    self:popScheduledDayMainPanel(onPopOver)</span>
+<span id="L97" class="line"><a href="#L97">97</a>                end</span>
+<span id="L98" class="line"><a href="#L98">98</a>            end,</span>
+<span id="L99" class="line"><a href="#L99">99</a>        },</span>
+<span id="L100" class="line"><a href="#L100">100</a>		-- 限时试戴倒计时结束后，返回大藤蔓时在场景2或4弹业务小面板。</span>
+<span id="L101" class="line"><a href="#L101">101</a>		-- 试戴结束待提示状态、重复提示控制和小面板入口均需由业务补齐。</span>
+<span id="L102" class="line"><a href="#L102">102</a>        {</span>
+<span id="L103" class="line"><a href="#L103">103</a>            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_TRIAL_EXPIRED,</span>
+<span id="L104" class="line"><a href="#L104">104</a>            stages = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },</span>
+<span id="L105" class="line"><a href="#L105">105</a>            check = function()</span>
+<span id="L106" class="line"><a href="#L106">106</a>                return self:checkCanPopTrialExpiredPanel()</span>
+<span id="L107" class="line"><a href="#L107">107</a>            end,</span>
+<span id="L108" class="line"><a href="#L108">108</a>            creator = function(_, onPopOver)</span>
+<span id="L109" class="line"><a href="#L109">109</a>                return function()</span>
+<span id="L110" class="line"><a href="#L110">110</a>                    self:popTrialExpiredPanel(onPopOver)</span>
+<span id="L111" class="line"><a href="#L111">111</a>                end</span>
+<span id="L112" class="line"><a href="#L112">112</a>            end,</span>
+<span id="L113" class="line"><a href="#L113">113</a>        },</span>
+<span id="L114" class="line"><a href="#L114">114</a>		-- 获得试戴卡且满足试戴条件时，仅在场景4弹业务面板。</span>
+<span id="L115" class="line"><a href="#L115">115</a>		-- 试戴卡获得待提示状态、试戴资格判断和面板入口均需由业务补齐。</span>
+<span id="L116" class="line"><a href="#L116">116</a>        {</span>
+<span id="L117" class="line"><a href="#L117">117</a>            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_TRIAL_CARD,</span>
+<span id="L118" class="line"><a href="#L118">118</a>            stages = { PopStage.STAGE_FOUR },</span>
+<span id="L119" class="line"><a href="#L119">119</a>            check = function()</span>
+<span id="L120" class="line"><a href="#L120">120</a>                return self:checkCanPopTrialCardPanel()</span>
+<span id="L121" class="line"><a href="#L121">121</a>            end,</span>
+<span id="L122" class="line"><a href="#L122">122</a>            creator = function(_, onPopOver)</span>
+<span id="L123" class="line"><a href="#L123">123</a>                return function()</span>
+<span id="L124" class="line"><a href="#L124">124</a>                    self:popTrialCardPanel(onPopOver)</span>
+<span id="L125" class="line"><a href="#L125">125</a>                end</span>
+<span id="L126" class="line"><a href="#L126">126</a>            end,</span>
+<span id="L127" class="line"><a href="#L127">127</a>        },</span>
+<span id="L128" class="line"><a href="#L128">128</a>        -- 获得大藤蔓皮肤后仅在场景4弹引导；永久一次由强弹框架控制。</span>
+<span id="L129" class="line"><a href="#L129">129</a>		-- 皮肤获得状态、是否仍需引导和实际引导入口均需由业务补齐。</span>
+<span id="L130" class="line"><a href="#L130">130</a>        {</span>
+<span id="L131" class="line"><a href="#L131">131</a>            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_OWNED_GUIDE,</span>
+<span id="L132" class="line"><a href="#L132">132</a>            stages = { PopStage.STAGE_FOUR },</span>
+<span id="L133" class="line"><a href="#L133">133</a>            check = function()</span>
+<span id="L134" class="line"><a href="#L134">134</a>                return self:checkCanPopOwnedSkinGuide()</span>
+<span id="L135" class="line"><a href="#L135">135</a>            end,</span>
+<span id="L136" class="line"><a href="#L136">136</a>            creator = function(_, onPopOver)</span>
+<span id="L137" class="line"><a href="#L137">137</a>                return function()</span>
+<span id="L138" class="line"><a href="#L138">138</a>                    self:popOwnedSkinGuide(onPopOver)</span>
+<span id="L139" class="line"><a href="#L139">139</a>                end</span>
+<span id="L140" class="line"><a href="#L140">140</a>            end,</span>
+<span id="L141" class="line"><a href="#L141">141</a>        },</span>
+<span id="L142" class="line"><a href="#L142">142</a>    }</span>
+<span id="L143" class="line"><a href="#L143">143</a>end</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>function Manager:checkCanPopTriggerDay1MainPanel()</span>
+<span id="L146" class="line"><a href="#L146">146</a>    if not self:isEnabled() then return false end</span>
+<span id="L147" class="line"><a href="#L147">147</a>    if self:hasGuideIndex(103, false) then return false end</span>
+<span id="L148" class="line"><a href="#L148">148</a>    return true</span>
+<span id="L149" class="line"><a href="#L149">149</a>end</span>
+<span id="L150" class="line"><a href="#L150">150</a></span>
+<span id="L151" class="line"><a href="#L151">151</a>function Manager:popTriggerDay1MainPanel(onPopOver)</span>
+<span id="L152" class="line"><a href="#L152">152</a>    if not self:checkCanPopTriggerDay1MainPanel() then</span>
+<span id="L153" class="line"><a href="#L153">153</a>        safeRunCall(onPopOver)</span>
+<span id="L154" class="line"><a href="#L154">154</a>        return</span>
+<span id="L155" class="line"><a href="#L155">155</a>    end</span>
+<span id="L156" class="line"><a href="#L156">156</a></span>
+<span id="L157" class="line"><a href="#L157">157</a>    self:openActivity(onPopOver, {from = &quot;popoup&quot;, day = 1}, false)</span>
+<span id="L158" class="line"><a href="#L158">158</a>end</span>
+<span id="L159" class="line"><a href="#L159">159</a></span>
+<span id="L160" class="line"><a href="#L160">160</a>function Manager:checkCanPopScheduledDayMainPanel()</span>
+<span id="L161" class="line"><a href="#L161">161</a>    if not self:isEnabled() then return false end</span>
+<span id="L162" class="line"><a href="#L162">162</a></span>
+<span id="L163" class="line"><a href="#L163">163</a>    local day = self:getDayFromActOpen()</span>
+<span id="L164" class="line"><a href="#L164">164</a>    local scheduledDays = self:getConst().scheduledPopMainPanelDays</span>
+<span id="L165" class="line"><a href="#L165">165</a>    return table.exist(scheduledDays, day)</span>
+<span id="L166" class="line"><a href="#L166">166</a>end</span>
+<span id="L167" class="line"><a href="#L167">167</a></span>
+<span id="L168" class="line"><a href="#L168">168</a>function Manager:popScheduledDayMainPanel(onPopOver)</span>
+<span id="L169" class="line"><a href="#L169">169</a>    if not self:checkCanPopScheduledDayMainPanel() then</span>
+<span id="L170" class="line"><a href="#L170">170</a>        safeRunCall(onPopOver)</span>
+<span id="L171" class="line"><a href="#L171">171</a>        return</span>
+<span id="L172" class="line"><a href="#L172">172</a>    end</span>
+<span id="L173" class="line"><a href="#L173">173</a></span>
+<span id="L174" class="line"><a href="#L174">174</a>    self:openActivity(onPopOver, {from = &quot;popoup&quot;}, false)</span>
+<span id="L175" class="line"><a href="#L175">175</a>end</span>
+<span id="L176" class="line"><a href="#L176">176</a></span>
+<span id="L177" class="line"><a href="#L177">177</a>function Manager:getScheduledDayBroadcastInfo()</span>
+<span id="L178" class="line"><a href="#L178">178</a>    if not self:isEnabled() then return end</span>
+<span id="L179" class="line"><a href="#L179">179</a></span>
+<span id="L180" class="line"><a href="#L180">180</a>    local day = self:getDayFromActOpen()</span>
+<span id="L181" class="line"><a href="#L181">181</a>    local scheduledDays = self:getConst().scheduledDayBroadcastDays or {}</span>
+<span id="L182" class="line"><a href="#L182">182</a>    local scheduledTips = self:getConst().scheduledDayBroadcastTips or {}</span>
+<span id="L183" class="line"><a href="#L183">183</a>    local taskIndex</span>
+<span id="L184" class="line"><a href="#L184">184</a>    for index, scheduledDay in ipairs(scheduledDays) do</span>
+<span id="L185" class="line"><a href="#L185">185</a>        if scheduledDay == day then</span>
+<span id="L186" class="line"><a href="#L186">186</a>            taskIndex = index</span>
+<span id="L187" class="line"><a href="#L187">187</a>            break</span>
+<span id="L188" class="line"><a href="#L188">188</a>        end</span>
+<span id="L189" class="line"><a href="#L189">189</a>    end</span>
+<span id="L190" class="line"><a href="#L190">190</a>    if not taskIndex then return end</span>
+<span id="L191" class="line"><a href="#L191">191</a>    if self:getModel():getLocalCache(self:getScheduledDayBroadcastCacheKey(day)) then return end</span>
+<span id="L192" class="line"><a href="#L192">192</a></span>
+<span id="L193" class="line"><a href="#L193">193</a>    local stageInfo = self:getRewardStageProgressList()[taskIndex]</span>
+<span id="L194" class="line"><a href="#L194">194</a>    if stageInfo and tonumber(stageInfo.status) ~= 2 then</span>
+<span id="L195" class="line"><a href="#L195">195</a>        local progress = tonumber(stageInfo.progress) or 0</span>
+<span id="L196" class="line"><a href="#L196">196</a>        local needProgress = tonumber(stageInfo.needProgress) or 0</span>
+<span id="L197" class="line"><a href="#L197">197</a>        if needProgress &gt; 0 then</span>
+<span id="L198" class="line"><a href="#L198">198</a>            return {</span>
+<span id="L199" class="line"><a href="#L199">199</a>                day = day,</span>
+<span id="L200" class="line"><a href="#L200">200</a>                taskId = stageInfo.rewardId or stageInfo.index,</span>
+<span id="L201" class="line"><a href="#L201">201</a>                progress = progress,</span>
+<span id="L202" class="line"><a href="#L202">202</a>                needProgress = needProgress,</span>
+<span id="L203" class="line"><a href="#L203">203</a>                tips = scheduledTips[day],</span>
+<span id="L204" class="line"><a href="#L204">204</a>            }</span>
+<span id="L205" class="line"><a href="#L205">205</a>        end</span>
+<span id="L206" class="line"><a href="#L206">206</a>    end</span>
+<span id="L207" class="line"><a href="#L207">207</a>end</span>
+<span id="L208" class="line"><a href="#L208">208</a></span>
+<span id="L209" class="line"><a href="#L209">209</a>function Manager:checkCanPopScheduledDayBroadcast()</span>
+<span id="L210" class="line"><a href="#L210">210</a>    return self:getScheduledDayBroadcastInfo() ~= nil</span>
+<span id="L211" class="line"><a href="#L211">211</a>end</span>
+<span id="L212" class="line"><a href="#L212">212</a></span>
+<span id="L213" class="line"><a href="#L213">213</a>function Manager:popScheduledDayBroadcast(onPopOver)</span>
+<span id="L214" class="line"><a href="#L214">214</a>    local info = self:getScheduledDayBroadcastInfo()</span>
+<span id="L215" class="line"><a href="#L215">215</a>    if not info then</span>
+<span id="L216" class="line"><a href="#L216">216</a>        safeRunCall(onPopOver)</span>
+<span id="L217" class="line"><a href="#L217">217</a>        return</span>
+<span id="L218" class="line"><a href="#L218">218</a>    end</span>
+<span id="L219" class="line"><a href="#L219">219</a></span>
+<span id="L220" class="line"><a href="#L220">220</a>    local actImgPath = &quot;amf/activity/bigvineskinact/materials/actImg.png&quot;</span>
+<span id="L221" class="line"><a href="#L221">221</a>    local function popBroadcast()</span>
+<span id="L222" class="line"><a href="#L222">222</a>        local UEBroadCastContext = require &quot;amf.middleware.ui.kit.templates.uebroadcast.context.UEBroadCastContext&quot;</span>
+<span id="L223" class="line"><a href="#L223">223</a>        local UEBroadCastConst = require &quot;amf.middleware.ui.kit.templates.uebroadcast.config.UEBroadCastConst&quot;</span>
+<span id="L224" class="line"><a href="#L224">224</a>        UEBroadCastContext.new(UEBroadCastConst.Type.CUSTOM)</span>
+<span id="L225" class="line"><a href="#L225">225</a>            :setViewType(UEBroadCastConst.ViewType.SPECIAL_LONE)</span>
+<span id="L226" class="line"><a href="#L226">226</a>            :setTips(info.tips)</span>
+<span id="L227" class="line"><a href="#L227">227</a>            :setProgress({</span>
+<span id="L228" class="line"><a href="#L228">228</a>                text = tostring(info.progress) .. &quot;/&quot; .. tostring(info.needProgress),</span>
+<span id="L229" class="line"><a href="#L229">229</a>                percent = info.progress / info.needProgress,</span>
+<span id="L230" class="line"><a href="#L230">230</a>            })</span>
+<span id="L231" class="line"><a href="#L231">231</a>            :setCostIcon(nil, function()</span>
+<span id="L232" class="line"><a href="#L232">232</a>                local sprite = UICreateUtil:createSpriteFile(actImgPath, true)</span>
+<span id="L233" class="line"><a href="#L233">233</a>                sprite:setScale(2)</span>
+<span id="L234" class="line"><a href="#L234">234</a>                return sprite</span>
+<span id="L235" class="line"><a href="#L235">235</a>            end)</span>
+<span id="L236" class="line"><a href="#L236">236</a>            :build()</span>
+<span id="L237" class="line"><a href="#L237">237</a></span>
+<span id="L238" class="line"><a href="#L238">238</a>        self:getModel():setLocalCache(self:getScheduledDayBroadcastCacheKey(info.day), true)</span>
+<span id="L239" class="line"><a href="#L239">239</a>        safeRunCall(onPopOver)</span>
+<span id="L240" class="line"><a href="#L240">240</a>    end</span>
+<span id="L241" class="line"><a href="#L241">241</a></span>
+<span id="L242" class="line"><a href="#L242">242</a>    if EnvUtil:isApp() then</span>
+<span id="L243" class="line"><a href="#L243">243</a>        popBroadcast()</span>
+<span id="L244" class="line"><a href="#L244">244</a>        return</span>
+<span id="L245" class="line"><a href="#L245">245</a>    end</span>
+<span id="L246" class="line"><a href="#L246">246</a></span>
+<span id="L247" class="line"><a href="#L247">247</a>    AssetsUtil:loadMiniFiles({actImgPath}):next(popBroadcast, function()</span>
+<span id="L248" class="line"><a href="#L248">248</a>        safeRunCall(onPopOver)</span>
+<span id="L249" class="line"><a href="#L249">249</a>    end)</span>
+<span id="L250" class="line"><a href="#L250">250</a>end</span>
+<span id="L251" class="line"><a href="#L251">251</a></span>
+<span id="L252" class="line"><a href="#L252">252</a>function Manager:getScheduledDayBroadcastCacheKey(day)</span>
+<span id="L253" class="line"><a href="#L253">253</a>    return ScheduledDayBroadcastCacheKeyPrefix .. tostring(day or 0)</span>
+<span id="L254" class="line"><a href="#L254">254</a>end</span>
+<span id="L255" class="line"><a href="#L255">255</a></span>
+<span id="L256" class="line"><a href="#L256">256</a>function Manager:checkIconTip(config)</span>
+<span id="L257" class="line"><a href="#L257">257</a>    -- 抽条要加载资源，防止小游戏走加载资源逻辑</span>
+<span id="L258" class="line"><a href="#L258">258</a>    if EnvUtil:isMiniGame() then return end</span>
+<span id="L259" class="line"><a href="#L259">259</a>    if not self:isEnabled() then return end</span>
+<span id="L260" class="line"><a href="#L260">260</a>    local addProgress = tonumber(self.cacheAddProgress) or 0</span>
+<span id="L261" class="line"><a href="#L261">261</a>    if addProgress &lt;= 0 then return end</span>
+<span id="L262" class="line"><a href="#L262">262</a></span>
+<span id="L263" class="line"><a href="#L263">263</a>    local progressBeforeAdd = tonumber(self.cacheProgressBeforeAdd)</span>
+<span id="L264" class="line"><a href="#L264">264</a>    if not progressBeforeAdd then</span>
+<span id="L265" class="line"><a href="#L265">265</a>        progressBeforeAdd = math.max((tonumber(self:getProgress()) or 0) - addProgress, 0)</span>
+<span id="L266" class="line"><a href="#L266">266</a>    end</span>
+<span id="L267" class="line"><a href="#L267">267</a></span>
+<span id="L268" class="line"><a href="#L268">268</a>    local stageProgressBeforeAdd = 0</span>
+<span id="L269" class="line"><a href="#L269">269</a>    local stageNeedProgress = 0</span>
+<span id="L270" class="line"><a href="#L270">270</a>    local completedProgress = 0</span>
+<span id="L271" class="line"><a href="#L271">271</a>    -- 动画档位由加进度前的位置决定，与奖励是否已领取无关。</span>
+<span id="L272" class="line"><a href="#L272">272</a>    for _, info in ipairs(self:getRewardStageProgressList()) do</span>
+<span id="L273" class="line"><a href="#L273">273</a>        local needProgress = tonumber(info.needProgress) or 0</span>
+<span id="L274" class="line"><a href="#L274">274</a>        if needProgress &gt; 0 and progressBeforeAdd &lt; completedProgress + needProgress then</span>
+<span id="L275" class="line"><a href="#L275">275</a>            stageProgressBeforeAdd = math.max(progressBeforeAdd - completedProgress, 0)</span>
+<span id="L276" class="line"><a href="#L276">276</a>            stageNeedProgress = needProgress</span>
+<span id="L277" class="line"><a href="#L277">277</a>            break</span>
+<span id="L278" class="line"><a href="#L278">278</a>        end</span>
+<span id="L279" class="line"><a href="#L279">279</a>        completedProgress = completedProgress + needProgress</span>
+<span id="L280" class="line"><a href="#L280">280</a>    end</span>
+<span id="L281" class="line"><a href="#L281">281</a>    if stageNeedProgress &lt;= 0 then</span>
+<span id="L282" class="line"><a href="#L282">282</a>        self:clearIconTipProgressCache()</span>
+<span id="L283" class="line"><a href="#L283">283</a>        return</span>
+<span id="L284" class="line"><a href="#L284">284</a>    end</span>
+<span id="L285" class="line"><a href="#L285">285</a></span>
+<span id="L286" class="line"><a href="#L286">286</a>    local targetProgress = stageProgressBeforeAdd + addProgress</span>
+<span id="L287" class="line"><a href="#L287">287</a>    local remain = stageNeedProgress - math.min(targetProgress, stageNeedProgress)</span>
+<span id="L288" class="line"><a href="#L288">288</a>    if remain &gt; 20 then return end</span>
+<span id="L289" class="line"><a href="#L289">289</a></span>
+<span id="L290" class="line"><a href="#L290">290</a>    self:addIconTip(stageProgressBeforeAdd, targetProgress, stageNeedProgress, config)</span>
+<span id="L291" class="line"><a href="#L291">291</a>end</span>
+<span id="L292" class="line"><a href="#L292">292</a></span>
+<span id="L293" class="line"><a href="#L293">293</a>function Manager:clearIconTipProgressCache()</span>
+<span id="L294" class="line"><a href="#L294">294</a>    self.cacheAddProgress = nil</span>
+<span id="L295" class="line"><a href="#L295">295</a>    self.cacheProgressBeforeAdd = nil</span>
+<span id="L296" class="line"><a href="#L296">296</a>end</span>
+<span id="L297" class="line"><a href="#L297">297</a></span>
+<span id="L298" class="line"><a href="#L298">298</a>function Manager:addIconTip(fromProgress, targetProgress, needProgress, config)</span>
+<span id="L299" class="line"><a href="#L299">299</a>    local delegate = {</span>
+<span id="L300" class="line"><a href="#L300">300</a>        tipsType = HomeIconTipsType.PROGRESS,</span>
+<span id="L301" class="line"><a href="#L301">301</a>        min = 0,</span>
+<span id="L302" class="line"><a href="#L302">302</a>        max = needProgress,</span>
+<span id="L303" class="line"><a href="#L303">303</a>        value = fromProgress,</span>
+<span id="L304" class="line"><a href="#L304">304</a>        targetValue = targetProgress,</span>
+<span id="L305" class="line"><a href="#L305">305</a>        progressChangeTime = 0.3,</span>
+<span id="L306" class="line"><a href="#L306">306</a>        textMode = 0,</span>
+<span id="L307" class="line"><a href="#L307">307</a>        iconCreate = function()</span>
+<span id="L308" class="line"><a href="#L308">308</a>            return self:createIconTipLevelIcon()</span>
+<span id="L309" class="line"><a href="#L309">309</a>        end,</span>
+<span id="L310" class="line"><a href="#L310">310</a>        endCallback = function()</span>
+<span id="L311" class="line"><a href="#L311">311</a>            self:clearIconTipProgressCache()</span>
+<span id="L312" class="line"><a href="#L312">312</a>        end,</span>
+<span id="L313" class="line"><a href="#L313">313</a>    }</span>
+<span id="L314" class="line"><a href="#L314">314</a></span>
+<span id="L315" class="line"><a href="#L315">315</a>    self:loadDoubleBuffNodeRes(function()</span>
+<span id="L316" class="line"><a href="#L316">316</a>        local IconTipEventCenter = require(&quot;amf.feature.icontip.event.IconTipEventCenter&quot;)</span>
+<span id="L317" class="line"><a href="#L317">317</a>        IconTipEventCenter:dispatch(IconTipEvent.ADD_ICON_TIP, {</span>
+<span id="L318" class="line"><a href="#L318">318</a>            iconKey = tostring(self:getConst().actId),</span>
+<span id="L319" class="line"><a href="#L319">319</a>            iconType = IconTipType.MESSAGE,</span>
+<span id="L320" class="line"><a href="#L320">320</a>            creatorDelegate = delegate,</span>
+<span id="L321" class="line"><a href="#L321">321</a>            typeIndex = 1,</span>
+<span id="L322" class="line"><a href="#L322">322</a>            config = config,</span>
+<span id="L323" class="line"><a href="#L323">323</a>        })</span>
+<span id="L324" class="line"><a href="#L324">324</a>    end)</span>
+<span id="L325" class="line"><a href="#L325">325</a>end</span>
+<span id="L326" class="line"><a href="#L326">326</a></span>
+<span id="L327" class="line"><a href="#L327">327</a>function Manager:createIconTipLevelIcon()</span>
+<span id="L328" class="line"><a href="#L328">328</a>    local iconPathByLevelStatus = {</span>
+<span id="L329" class="line"><a href="#L329">329</a>        [1] = &quot;amf/activity/bigvineskinact/materials/fmj.png&quot;,</span>
+<span id="L330" class="line"><a href="#L330">330</a>        [2] = &quot;amf/activity/bigvineskinact/materials/fmc.png&quot;,</span>
+<span id="L331" class="line"><a href="#L331">331</a>        [3] = &quot;amf/activity/bigvineskinact/materials/mjmc.png&quot;,</span>
+<span id="L332" class="line"><a href="#L332">332</a>    }</span>
+<span id="L333" class="line"><a href="#L333">333</a>    local levelStatus = self:getLocalLevelStatus(_G.getTopLevelId())</span>
+<span id="L334" class="line"><a href="#L334">334</a>    local icon = UICreateUtil:createSpriteFile(iconPathByLevelStatus[levelStatus] or iconPathByLevelStatus[1], true)</span>
+<span id="L335" class="line"><a href="#L335">335</a>    if icon then</span>
+<span id="L336" class="line"><a href="#L336">336</a>        icon:setScale(0.38)</span>
+<span id="L337" class="line"><a href="#L337">337</a>        return icon</span>
+<span id="L338" class="line"><a href="#L338">338</a>    end</span>
+<span id="L339" class="line"><a href="#L339">339</a>    return Sprite:createEmpty()</span>
+<span id="L340" class="line"><a href="#L340">340</a>end</span>
+<span id="L341" class="line"><a href="#L341">341</a></span>
+<span id="L342" class="line"><a href="#L342">342</a>function Manager:getRandomShareKey()</span>
+<span id="L343" class="line"><a href="#L343">343</a>    local ret = &quot;♥sharekey复制口令进入开心消消乐aρρ，协助好友，领取奖励！&quot;</span>
+<span id="L344" class="line"><a href="#L344">344</a>    local shareKeyList = self:getModel():getConfigByKey(&quot;shareKeyList&quot;, {}) or {}</span>
+<span id="L345" class="line"><a href="#L345">345</a>    if table.isEmpty(shareKeyList) then return ret end</span>
+<span id="L346" class="line"><a href="#L346">346</a></span>
+<span id="L347" class="line"><a href="#L347">347</a>    return shareKeyList[math.random(1, #shareKeyList)] or ret</span>
+<span id="L348" class="line"><a href="#L348">348</a>end</span>
+<span id="L349" class="line"><a href="#L349">349</a></span>
+<span id="L350" class="line"><a href="#L350">350</a>function Manager:calNeedPlayHelpAnim()</span>
+<span id="L351" class="line"><a href="#L351">351</a>    local day = self:getDayFromActOpen()</span>
+<span id="L352" class="line"><a href="#L352">352</a>    local beHelpedRemain = tonumber(self:getModel():getDataByKey(&quot;dailyInfo.beHelpedRemain&quot;, 1)) or 1</span>
+<span id="L353" class="line"><a href="#L353">353</a>    local helpDoubleTimes = tonumber(self:getModel():getConfigByKey(&quot;beHelpedDoubleTimes&quot;)) or 5</span>
+<span id="L354" class="line"><a href="#L354">354</a>    local doubleRemain = self:getDailyDoubleRemain()</span>
+<span id="L355" class="line"><a href="#L355">355</a>    if not self:hasGuideIndex(day, false) and beHelpedRemain &lt;= 0 and doubleRemain &gt;= helpDoubleTimes then</span>
+<span id="L356" class="line"><a href="#L356">356</a>        self.needPlayHelpAnim = true</span>
+<span id="L357" class="line"><a href="#L357">357</a>    end</span>
+<span id="L358" class="line"><a href="#L358">358</a>end</span>
+<span id="L359" class="line"><a href="#L359">359</a></span>
+<span id="L360" class="line"><a href="#L360">360</a>function Manager:onActAfterAutoPopupEnd(event)</span>
+<span id="L361" class="line"><a href="#L361">361</a>    if not self:isEnabled() then return end</span>
+<span id="L362" class="line"><a href="#L362">362</a>    local data = event:getData()</span>
+<span id="L363" class="line"><a href="#L363">363</a>    local lastPopStage = data and data.lastPopStage</span>
+<span id="L364" class="line"><a href="#L364">364</a>    if lastPopStage == AutoPopupConst.PopStage.STAGE_TWO then</span>
+<span id="L365" class="line"><a href="#L365">365</a>        self:loadDoubleBuffNodeRes(function()</span>
+<span id="L366" class="line"><a href="#L366">366</a>            self:getDoubleBuffNodeShowRemain()</span>
+<span id="L367" class="line"><a href="#L367">367</a>            self:updateDoubleBuffNode(true)</span>
+<span id="L368" class="line"><a href="#L368">368</a>        end)</span>
+<span id="L369" class="line"><a href="#L369">369</a>    end</span>
+<span id="L370" class="line"><a href="#L370">370</a>    if lastPopStage ~= AutoPopupConst.PopStage.STAGE_TWO and lastPopStage ~= AutoPopupConst.PopStage.STAGE_FOUR then</span>
+<span id="L371" class="line"><a href="#L371">371</a>        return</span>
+<span id="L372" class="line"><a href="#L372">372</a>    end</span>
+<span id="L373" class="line"><a href="#L373">373</a></span>
+<span id="L374" class="line"><a href="#L374">374</a>    if self:checkCanPopScheduledDayBroadcast() then</span>
+<span id="L375" class="line"><a href="#L375">375</a>        self:popScheduledDayBroadcast()</span>
+<span id="L376" class="line"><a href="#L376">376</a>    end</span>
+<span id="L377" class="line"><a href="#L377">377</a>end</span>
+<span id="L378" class="line"><a href="#L378">378</a></span>
+<span id="L379" class="line"><a href="#L379">379</a>function Manager:clearTrialUsingSkinState()</span>
+<span id="L380" class="line"><a href="#L380">380</a>	LocalDB:setTable(TrialUsingSkinStateCacheKey, {}, true)</span>
+<span id="L381" class="line"><a href="#L381">381</a>end</span>
+<span id="L382" class="line"><a href="#L382">382</a></span>
+<span id="L383" class="line"><a href="#L383">383</a>function Manager:updateTrialUsingSkinState(skinId)</span>
+<span id="L384" class="line"><a href="#L384">384</a>	skinId = tonumber(skinId)</span>
+<span id="L385" class="line"><a href="#L385">385</a>	local nowMs = TimeKit:timeInMillis()</span>
+<span id="L386" class="line"><a href="#L386">386</a>	if not skinId or skinId == tonumber(VineSkinType.kDefault) then</span>
+<span id="L387" class="line"><a href="#L387">387</a>		self:clearTrialUsingSkinState()</span>
+<span id="L388" class="line"><a href="#L388">388</a>		return</span>
+<span id="L389" class="line"><a href="#L389">389</a>	end</span>
+<span id="L390" class="line"><a href="#L390">390</a></span>
+<span id="L391" class="line"><a href="#L391">391</a>	local vineDecoInfo = UserDeco:getDecoInfo(UserDecoType.kVineSkin)</span>
+<span id="L392" class="line"><a href="#L392">392</a>	for _, deco in ipairs(vineDecoInfo.decos or {}) do</span>
+<span id="L393" class="line"><a href="#L393">393</a>		if tonumber(deco.id) == skinId then</span>
+<span id="L394" class="line"><a href="#L394">394</a>			local expireTime = tonumber(deco.expireTime) or 0</span>
+<span id="L395" class="line"><a href="#L395">395</a>			if expireTime &gt; nowMs then</span>
+<span id="L396" class="line"><a href="#L396">396</a>				LocalDB:setTable(TrialUsingSkinStateCacheKey, {</span>
+<span id="L397" class="line"><a href="#L397">397</a>					skinId = skinId,</span>
+<span id="L398" class="line"><a href="#L398">398</a>					expireTime = expireTime,</span>
+<span id="L399" class="line"><a href="#L399">399</a>				}, true)</span>
+<span id="L400" class="line"><a href="#L400">400</a>				return</span>
+<span id="L401" class="line"><a href="#L401">401</a>			end</span>
+<span id="L402" class="line"><a href="#L402">402</a>		end</span>
+<span id="L403" class="line"><a href="#L403">403</a>	end</span>
+<span id="L404" class="line"><a href="#L404">404</a></span>
+<span id="L405" class="line"><a href="#L405">405</a>	self:clearTrialUsingSkinState()</span>
+<span id="L406" class="line"><a href="#L406">406</a>end</span>
+<span id="L407" class="line"><a href="#L407">407</a></span>
+<span id="L408" class="line"><a href="#L408">408</a>-- function Manager:onActLevelCollectionNewAni(event)</span>
+<span id="L409" class="line"><a href="#L409">409</a>--     self:loadDoubleBuffNodeRes(function()</span>
+<span id="L410" class="line"><a href="#L410">410</a>--         self:getDoubleBuffNodeShowRemain()</span>
+<span id="L411" class="line"><a href="#L411">411</a>--         self:updateDoubleBuffNode(true)</span>
+<span id="L412" class="line"><a href="#L412">412</a>--     end)</span>
+<span id="L413" class="line"><a href="#L413">413</a>-- end</span>
+<span id="L414" class="line"><a href="#L414">414</a></span>
+<span id="L415" class="line"><a href="#L415">415</a>function Manager:getTrialSkinState()</span>
+<span id="L416" class="line"><a href="#L416">416</a>	local trialState = LocalDB:getTable(TrialUsingSkinStateCacheKey, {})</span>
+<span id="L417" class="line"><a href="#L417">417</a>	if type(trialState) ~= &quot;table&quot; then</span>
+<span id="L418" class="line"><a href="#L418">418</a>		return nil</span>
+<span id="L419" class="line"><a href="#L419">419</a>	end</span>
+<span id="L420" class="line"><a href="#L420">420</a></span>
+<span id="L421" class="line"><a href="#L421">421</a>	local skinId = tonumber(trialState.skinId)</span>
+<span id="L422" class="line"><a href="#L422">422</a>	local expireTime = tonumber(trialState.expireTime)</span>
+<span id="L423" class="line"><a href="#L423">423</a>	if not skinId or skinId == tonumber(VineSkinType.kDefault) or not expireTime or expireTime &lt;= 0 then</span>
+<span id="L424" class="line"><a href="#L424">424</a>		return nil</span>
+<span id="L425" class="line"><a href="#L425">425</a>	end</span>
+<span id="L426" class="line"><a href="#L426">426</a></span>
+<span id="L427" class="line"><a href="#L427">427</a>	return {</span>
+<span id="L428" class="line"><a href="#L428">428</a>		skinId = skinId,</span>
+<span id="L429" class="line"><a href="#L429">429</a>		expireTime = expireTime,</span>
+<span id="L430" class="line"><a href="#L430">430</a>	}</span>
+<span id="L431" class="line"><a href="#L431">431</a>end</span>
+<span id="L432" class="line"><a href="#L432">432</a></span>
+<span id="L433" class="line"><a href="#L433">433</a>function Manager:checkCanPopTrialExpiredPanel()</span>
+<span id="L434" class="line"><a href="#L434">434</a>	local trialState = self:getTrialSkinState()</span>
+<span id="L435" class="line"><a href="#L435">435</a>	return trialState and trialState.expireTime &lt;= TimeKit:timeInMillis() or false</span>
+<span id="L436" class="line"><a href="#L436">436</a>end</span>
+<span id="L437" class="line"><a href="#L437">437</a></span>
+<span id="L438" class="line"><a href="#L438">438</a>function Manager:restoreExpiredTrialSkin(trialState)</span>
+<span id="L439" class="line"><a href="#L439">439</a>	if not trialState then return end</span>
+<span id="L440" class="line"><a href="#L440">440</a></span>
+<span id="L441" class="line"><a href="#L441">441</a>	local vineSkinManager = _G.amfBean(&quot;VineSkinManager&quot;)</span>
+<span id="L442" class="line"><a href="#L442">442</a>	local decoInfo = UserDeco:getDecoInfo(UserDecoType.kVineSkin)</span>
+<span id="L443" class="line"><a href="#L443">443</a>	local usingSkinId = vineSkinManager and tonumber(vineSkinManager:getUsingSkinType())</span>
+<span id="L444" class="line"><a href="#L444">444</a>	local profileUsingSkinId = tonumber(decoInfo.using)</span>
+<span id="L445" class="line"><a href="#L445">445</a>	if usingSkinId ~= trialState.skinId and profileUsingSkinId ~= trialState.skinId then return end</span>
+<span id="L446" class="line"><a href="#L446">446</a></span>
+<span id="L447" class="line"><a href="#L447">447</a>	UserDeco:setDecoUsing(UserDecoType.kVineSkin, VineSkinType.kDefault)</span>
+<span id="L448" class="line"><a href="#L448">448</a>	if vineSkinManager then</span>
+<span id="L449" class="line"><a href="#L449">449</a>		vineSkinManager:setUsingSkinType(VineSkinType.kDefault)</span>
+<span id="L450" class="line"><a href="#L450">450</a>	end</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>	local personalCenterManager = _G.amfBean(&quot;PersonalCenterManager&quot;)</span>
+<span id="L453" class="line"><a href="#L453">453</a>	if personalCenterManager then</span>
+<span id="L454" class="line"><a href="#L454">454</a>		personalCenterManager:setUsingDeco(UserDecoType.kVineSkin, VineSkinType.kDefault)</span>
+<span id="L455" class="line"><a href="#L455">455</a>	end</span>
+<span id="L456" class="line"><a href="#L456">456</a>end</span>
+<span id="L457" class="line"><a href="#L457">457</a></span>
+<span id="L458" class="line"><a href="#L458">458</a>function Manager:popTrialExpiredPanel(onPopOver)</span>
+<span id="L459" class="line"><a href="#L459">459</a>	local trialState = self:getTrialSkinState()</span>
+<span id="L460" class="line"><a href="#L460">460</a>	if not trialState then</span>
+<span id="L461" class="line"><a href="#L461">461</a>		safeRunCall(onPopOver)</span>
+<span id="L462" class="line"><a href="#L462">462</a>		return</span>
+<span id="L463" class="line"><a href="#L463">463</a>	end</span>
+<span id="L464" class="line"><a href="#L464">464</a></span>
+<span id="L465" class="line"><a href="#L465">465</a>	local finished = false</span>
+<span id="L466" class="line"><a href="#L466">466</a>	local goToLevel = false</span>
+<span id="L467" class="line"><a href="#L467">467</a>	local function finish(shouldHandleExpired)</span>
+<span id="L468" class="line"><a href="#L468">468</a>		if finished then return end</span>
+<span id="L469" class="line"><a href="#L469">469</a>		finished = true</span>
+<span id="L470" class="line"><a href="#L470">470</a>		if shouldHandleExpired then</span>
+<span id="L471" class="line"><a href="#L471">471</a>			self:restoreExpiredTrialSkin(trialState)</span>
+<span id="L472" class="line"><a href="#L472">472</a>			self:clearTrialUsingSkinState()</span>
+<span id="L473" class="line"><a href="#L473">473</a>			if goToLevel then</span>
+<span id="L474" class="line"><a href="#L474">474</a>				_G.amfTransaction(TransactionEvent.PLAY_LEVEL, PlayLevelContext.new())</span>
+<span id="L475" class="line"><a href="#L475">475</a>			end</span>
+<span id="L476" class="line"><a href="#L476">476</a>		end</span>
+<span id="L477" class="line"><a href="#L477">477</a>		safeRunCall(onPopOver)</span>
+<span id="L478" class="line"><a href="#L478">478</a>	end</span>
+<span id="L479" class="line"><a href="#L479">479</a></span>
+<span id="L480" class="line"><a href="#L480">480</a>	local vineSkinManager = _G.amfBean(&quot;VineSkinManager&quot;)</span>
+<span id="L481" class="line"><a href="#L481">481</a>	local skinName = vineSkinManager and vineSkinManager:getSkinName(trialState.skinId) or &quot;藤蔓皮肤&quot;</span>
+<span id="L482" class="line"><a href="#L482">482</a>	local panelId = UICreateUtil:getPanelId(&quot;BigVineSkinTrialExpiredPanel&quot;)</span>
+<span id="L483" class="line"><a href="#L483">483</a>	local FourthPanelAVM = require &quot;amf.middleware.ui.kit.panel.fourth.FourthPanelAVM&quot;</span>
+<span id="L484" class="line"><a href="#L484">484</a>	local vm</span>
+<span id="L485" class="line"><a href="#L485">485</a>	vm = FourthPanelAVM.Builder.new()</span>
+<span id="L486" class="line"><a href="#L486">486</a>		:setText(string.format(&quot;您的“%s”试戴结束了～\n加油闯关吧！&quot;, skinName))</span>
+<span id="L487" class="line"><a href="#L487">487</a>		:setButtonsConfig({{</span>
+<span id="L488" class="line"><a href="#L488">488</a>			str = &quot;去闯关&quot;,</span>
+<span id="L489" class="line"><a href="#L489">489</a>			widthMode = UIButtonConfig.Widths.kShort,</span>
+<span id="L490" class="line"><a href="#L490">490</a>			colorMode = UIButtonConfig.ColorMode.green,</span>
+<span id="L491" class="line"><a href="#L491">491</a>			touchFunc = function()</span>
+<span id="L492" class="line"><a href="#L492">492</a>				if not vm or vm.isDisposed then return end</span>
+<span id="L493" class="line"><a href="#L493">493</a>				self:dc(&quot;vine_decorate&quot;, &quot;trial_expired_click&quot;, panelId)</span>
+<span id="L494" class="line"><a href="#L494">494</a>				goToLevel = true</span>
+<span id="L495" class="line"><a href="#L495">495</a>				vm:close()</span>
+<span id="L496" class="line"><a href="#L496">496</a>			end,</span>
+<span id="L497" class="line"><a href="#L497">497</a>		}})</span>
+<span id="L498" class="line"><a href="#L498">498</a>		:setLoadResFailCallback(function()</span>
+<span id="L499" class="line"><a href="#L499">499</a>			finish(false)</span>
+<span id="L500" class="line"><a href="#L500">500</a>		end)</span>
+<span id="L501" class="line"><a href="#L501">501</a>		:setCloseCallback(function()</span>
+<span id="L502" class="line"><a href="#L502">502</a>			finish(true)</span>
+<span id="L503" class="line"><a href="#L503">503</a>		end)</span>
+<span id="L504" class="line"><a href="#L504">504</a>		:build()</span>
+<span id="L505" class="line"><a href="#L505">505</a></span>
+<span id="L506" class="line"><a href="#L506">506</a>	vm:popout()</span>
+<span id="L507" class="line"><a href="#L507">507</a>	self:dc(&quot;vine_decorate&quot;, &quot;trial_expired_show&quot;, panelId, trialState.skinId)</span>
+<span id="L508" class="line"><a href="#L508">508</a>end</span>
+<span id="L509" class="line"><a href="#L509">509</a></span>
+<span id="L510" class="line"><a href="#L510">510</a>function Manager:checkCanPopTrialCardPanel()</span>
+<span id="L511" class="line"><a href="#L511">511</a>	-- 补充活动与资源就绪、本次获得试戴卡尚未提示及当前满足试戴条件的同步判断。</span>
+<span id="L512" class="line"><a href="#L512">512</a>	-- check 中不要请求后端或修改试戴卡状态。</span>
+<span id="L513" class="line"><a href="#L513">513</a>    return self:checkCanReward()</span>
+<span id="L514" class="line"><a href="#L514">514</a>end</span>
+<span id="L515" class="line"><a href="#L515">515</a></span>
+<span id="L516" class="line"><a href="#L516">516</a>function Manager:popTrialCardPanel(onPopOver)</span>
+<span id="L517" class="line"><a href="#L517">517</a>	-- 打开获得试戴卡后的试戴面板，将 onPopOver 传入关闭、打开失败和异常兜底回调。</span>
+<span id="L518" class="line"><a href="#L518">518</a>	-- 面板确认打开后消费本次试戴卡的待提示状态。</span>
+<span id="L519" class="line"><a href="#L519">519</a>    if not self:checkCanReward() then </span>
+<span id="L520" class="line"><a href="#L520">520</a>        safeRunCall(onPopOver)</span>
+<span id="L521" class="line"><a href="#L521">521</a>        return</span>
+<span id="L522" class="line"><a href="#L522">522</a>    end</span>
+<span id="L523" class="line"><a href="#L523">523</a>    -- 去掉领奖后个人名片引导</span>
+<span id="L524" class="line"><a href="#L524">524</a>    self:tryOpenGetRewardPanel(onPopOver, onPopOver, false)</span>
+<span id="L525" class="line"><a href="#L525">525</a>end</span>
+<span id="L526" class="line"><a href="#L526">526</a></span>
+<span id="L527" class="line"><a href="#L527">527</a>function Manager:checkCanPopOwnedSkinGuide()</span>
+<span id="L528" class="line"><a href="#L528">528</a>	local autoPopupMgr = self.autoPopupMgr or _G.amfBean(&quot;AutoPopupMgr&quot;)</span>
+<span id="L529" class="line"><a href="#L529">529</a>	if not autoPopupMgr then return false end</span>
+<span id="L530" class="line"><a href="#L530">530</a>	if not self:isEnabled() then return false end</span>
+<span id="L531" class="line"><a href="#L531">531</a>	if autoPopupMgr:getPermanentShowNum(PopupCheckPoint.BIG_VINE_SKIN_OWNED_GUIDE) &gt; 0 then</span>
+<span id="L532" class="line"><a href="#L532">532</a>		return false</span>
+<span id="L533" class="line"><a href="#L533">533</a>	end</span>
+<span id="L534" class="line"><a href="#L534">534</a></span>
+<span id="L535" class="line"><a href="#L535">535</a>	local decoInfo = UserDeco:getDecoInfo(UserDecoType.kVineSkin)</span>
+<span id="L536" class="line"><a href="#L536">536</a>	return table.find(decoInfo.decos or {}, function(deco)</span>
+<span id="L537" class="line"><a href="#L537">537</a>		local skinId = tonumber(deco.id)</span>
+<span id="L538" class="line"><a href="#L538">538</a>		return skinId and skinId &gt; 0 and skinId ~= tonumber(VineSkinType.kDefault)</span>
+<span id="L539" class="line"><a href="#L539">539</a>	end) ~= nil</span>
+<span id="L540" class="line"><a href="#L540">540</a>end</span>
+<span id="L541" class="line"><a href="#L541">541</a></span>
+<span id="L542" class="line"><a href="#L542">542</a>function Manager:popOwnedSkinGuide(onPopOver)</span>
+<span id="L543" class="line"><a href="#L543">543</a>	local finished = false</span>
+<span id="L544" class="line"><a href="#L544">544</a>	local function finish()</span>
+<span id="L545" class="line"><a href="#L545">545</a>		if finished then return end</span>
+<span id="L546" class="line"><a href="#L546">546</a>		finished = true</span>
+<span id="L547" class="line"><a href="#L547">547</a>		safeRunCall(onPopOver)</span>
+<span id="L548" class="line"><a href="#L548">548</a>	end</span>
+<span id="L549" class="line"><a href="#L549">549</a></span>
+<span id="L550" class="line"><a href="#L550">550</a>	local IconMeta = require &quot;amf.feature.mainscene.module.icon.config.IconMeta&quot;</span>
+<span id="L551" class="line"><a href="#L551">551</a>	local IconEventCenter = require &quot;amf.feature.mainscene.module.icon.event.IconEventCenter&quot;</span>
+<span id="L552" class="line"><a href="#L552">552</a>	local iconManager = _G.amfBean(&quot;IconManager&quot;)</span>
+<span id="L553" class="line"><a href="#L553">553</a>	local iconPool = iconManager and iconManager:getPool(IconMeta.PoolType.kRightCorner)</span>
+<span id="L554" class="line"><a href="#L554">554</a>	local target = iconPool and iconPool.cornerButton</span>
+<span id="L555" class="line"><a href="#L555">555</a>	if not target or target.isDisposed then</span>
+<span id="L556" class="line"><a href="#L556">556</a>		finish()</span>
+<span id="L557" class="line"><a href="#L557">557</a>		return</span>
+<span id="L558" class="line"><a href="#L558">558</a>	end</span>
+<span id="L559" class="line"><a href="#L559">559</a></span>
+<span id="L560" class="line"><a href="#L560">560</a>	IconEventCenter:dispatch(IconEvent.OPEN_ICON_POOL, IconMeta.PoolType.kRightCorner)</span>
+<span id="L561" class="line"><a href="#L561">561</a>	setTimeOut(function()</span>
+<span id="L562" class="line"><a href="#L562">562</a>		if iconPool.isDisposed or target.isDisposed then</span>
+<span id="L563" class="line"><a href="#L563">563</a>			finish()</span>
+<span id="L564" class="line"><a href="#L564">564</a>			return</span>
+<span id="L565" class="line"><a href="#L565">565</a>		end</span>
+<span id="L566" class="line"><a href="#L566">566</a></span>
+<span id="L567" class="line"><a href="#L567">567</a>		local autoPopupMgr = self.autoPopupMgr or _G.amfBean(&quot;AutoPopupMgr&quot;)</span>
+<span id="L568" class="line"><a href="#L568">568</a>		local HeGuide = require &quot;amf.middleware.ui.kit.component.HeGuide&quot;</span>
+<span id="L569" class="line"><a href="#L569">569</a>		local heGuide = HeGuide:create(nil, true, nil, true,true)</span>
+<span id="L570" class="line"><a href="#L570">570</a>		heGuide:addAccurateGuide(target, {iconPool})</span>
+<span id="L571" class="line"><a href="#L571">571</a>		heGuide:setEndCall(finish)</span>
+<span id="L572" class="line"><a href="#L572">572</a>		heGuide:setKeyBackEnabled(Director:sharedDirector():getRunningSceneLua())</span>
+<span id="L573" class="line"><a href="#L573">573</a>		heGuide:showNpc2({</span>
+<span id="L574" class="line"><a href="#L574">574</a>			{ttf = &quot;在“我的名片”可更换\n大藤蔓皮肤哦～&quot;, fontSize = 34},</span>
+<span id="L575" class="line"><a href="#L575">575</a>		}, 460, &quot;点击任意处继续&quot;, -40)</span>
+<span id="L576" class="line"><a href="#L576">576</a></span>
+<span id="L577" class="line"><a href="#L577">577</a>		if autoPopupMgr then</span>
+<span id="L578" class="line"><a href="#L578">578</a>			autoPopupMgr:sendPermanentData(PopupCheckPoint.BIG_VINE_SKIN_OWNED_GUIDE)</span>
+<span id="L579" class="line"><a href="#L579">579</a>		end</span>
+<span id="L580" class="line"><a href="#L580">580</a>	end, 0.35)</span>
+<span id="L581" class="line"><a href="#L581">581</a>end</span>
+<span id="L582" class="line"><a href="#L582">582</a></span>
+<span id="L583" class="line"><a href="#L583">583</a>function Manager:isEnabled()</span>
+<span id="L584" class="line"><a href="#L584">584</a>    return self:getModel():isDataEnabled() and self:isInMainTime()</span>
+<span id="L585" class="line"><a href="#L585">585</a>end</span>
+<span id="L586" class="line"><a href="#L586">586</a></span>
+<span id="L587" class="line"><a href="#L587">587</a>function Manager:isEnabled2()</span>
+<span id="L588" class="line"><a href="#L588">588</a>    return self:getModel():isDataEnabled()</span>
+<span id="L589" class="line"><a href="#L589">589</a>end</span>
+<span id="L590" class="line"><a href="#L590">590</a></span>
+<span id="L591" class="line"><a href="#L591">591</a>-- 预热期</span>
+<span id="L592" class="line"><a href="#L592">592</a>function Manager:isInPreTime()</span>
+<span id="L593" class="line"><a href="#L593">593</a>    return self:getModel():isInPreheatTime()</span>
+<span id="L594" class="line"><a href="#L594">594</a>end</span>
+<span id="L595" class="line"><a href="#L595">595</a></span>
+<span id="L596" class="line"><a href="#L596">596</a>-- 是否是主活动期</span>
+<span id="L597" class="line"><a href="#L597">597</a>function Manager:isInMainTime()</span>
+<span id="L598" class="line"><a href="#L598">598</a>    return self:getModel():isInMainTime()</span>
+<span id="L599" class="line"><a href="#L599">599</a>end</span>
+<span id="L600" class="line"><a href="#L600">600</a></span>
+<span id="L601" class="line"><a href="#L601">601</a>-- 是否是领奖期</span>
+<span id="L602" class="line"><a href="#L602">602</a>function Manager:isInRewardTime()</span>
+<span id="L603" class="line"><a href="#L603">603</a>    return self:getModel():isInRewardTime()</span>
+<span id="L604" class="line"><a href="#L604">604</a>end</span>
+<span id="L605" class="line"><a href="#L605">605</a></span>
+<span id="L606" class="line"><a href="#L606">606</a>function Manager:isResEnabled()</span>
+<span id="L607" class="line"><a href="#L607">607</a>    if EnvUtil:isCocos() then return true end</span>
+<span id="L608" class="line"><a href="#L608">608</a>    local labels = self:getConst().downloadLabels</span>
+<span id="L609" class="line"><a href="#L609">609</a>    if not labels or table.isEmpty(labels) then return true end</span>
+<span id="L610" class="line"><a href="#L610">610</a>    return self:callDownloadFunc(&quot;checkDownloadSuccess&quot;)</span>
+<span id="L611" class="line"><a href="#L611">611</a>end</span>
+<span id="L612" class="line"><a href="#L612">612</a></span>
+<span id="L613" class="line"><a href="#L613">613</a>-- 同步所有数据</span>
+<span id="L614" class="line"><a href="#L614">614</a>function Manager:updateData(data, skipSaveLocal, fromServer)</span>
+<span id="L615" class="line"><a href="#L615">615</a>    if not data then return end</span>
+<span id="L616" class="line"><a href="#L616">616</a></span>
+<span id="L617" class="line"><a href="#L617">617</a>    self:getModel():fromServer(data, skipSaveLocal)</span>
+<span id="L618" class="line"><a href="#L618">618</a>    if fromServer == true then</span>
+<span id="L619" class="line"><a href="#L619">619</a>        self.hasGetDataFromServer = true</span>
+<span id="L620" class="line"><a href="#L620">620</a>    end</span>
+<span id="L621" class="line"><a href="#L621">621</a>end</span>
+<span id="L622" class="line"><a href="#L622">622</a></span>
+<span id="L623" class="line"><a href="#L623">623</a>-- 打点</span>
+<span id="L624" class="line"><a href="#L624">624</a>function Manager:dc(category, subCategory, panel_id, t1, t2, t3, t4, extraData)</span>
+<span id="L625" class="line"><a href="#L625">625</a>    local params = {</span>
+<span id="L626" class="line"><a href="#L626">626</a>        game_type = &quot;stage&quot;,</span>
+<span id="L627" class="line"><a href="#L627">627</a>        game_name = self:getConst().GAME_NAME,</span>
+<span id="L628" class="line"><a href="#L628">628</a>        category = category,</span>
+<span id="L629" class="line"><a href="#L629">629</a>        sub_category = subCategory,</span>
+<span id="L630" class="line"><a href="#L630">630</a>        panel_id = panel_id,</span>
+<span id="L631" class="line"><a href="#L631">631</a>        t1 = t1,</span>
+<span id="L632" class="line"><a href="#L632">632</a>        t2 = t2,</span>
+<span id="L633" class="line"><a href="#L633">633</a>        t3 = t3,</span>
+<span id="L634" class="line"><a href="#L634">634</a>        t4 = t4,</span>
+<span id="L635" class="line"><a href="#L635">635</a>    }</span>
+<span id="L636" class="line"><a href="#L636">636</a></span>
+<span id="L637" class="line"><a href="#L637">637</a>    for k, v in pairs(extraData or {}) do</span>
+<span id="L638" class="line"><a href="#L638">638</a>        params[k] = v</span>
+<span id="L639" class="line"><a href="#L639">639</a>    end</span>
+<span id="L640" class="line"><a href="#L640">640</a>    DcUtil:UserTrack(params)</span>
+<span id="L641" class="line"><a href="#L641">641</a>end</span>
+<span id="L642" class="line"><a href="#L642">642</a></span>
+<span id="L643" class="line"><a href="#L643">643</a>function Manager:hasQualifyDCToday()</span>
+<span id="L644" class="line"><a href="#L644">644</a>    return self:getModel():getFlagFromLocalByKey(QualifyDCCacheKey, true)</span>
+<span id="L645" class="line"><a href="#L645">645</a>end</span>
+<span id="L646" class="line"><a href="#L646">646</a></span>
+<span id="L647" class="line"><a href="#L647">647</a>function Manager:markQualifyDCToday()</span>
+<span id="L648" class="line"><a href="#L648">648</a>    self:getModel():saveFlagToLocalByKey(QualifyDCCacheKey, true, true)</span>
+<span id="L649" class="line"><a href="#L649">649</a>end</span>
+<span id="L650" class="line"><a href="#L650">650</a></span>
+<span id="L651" class="line"><a href="#L651">651</a>function Manager:tryJoinDC()</span>
+<span id="L652" class="line"><a href="#L652">652</a>    if self:getModel():getFlagFromLocalByKey(JoinDCCacheKey, true) then return end</span>
+<span id="L653" class="line"><a href="#L653">653</a></span>
+<span id="L654" class="line"><a href="#L654">654</a>    self:dc(&quot;canyu&quot;, &quot;join&quot;, nil, nil, nil, nil, nil, {actid = self:getConst().actId})</span>
+<span id="L655" class="line"><a href="#L655">655</a>    self:getModel():saveFlagToLocalByKey(JoinDCCacheKey, true, true)</span>
+<span id="L656" class="line"><a href="#L656">656</a>end</span>
+<span id="L657" class="line"><a href="#L657">657</a></span>
+<span id="L658" class="line"><a href="#L658">658</a>-- 是否是活动正式期最后一天</span>
+<span id="L659" class="line"><a href="#L659">659</a>function Manager:isLastDay()</span>
+<span id="L660" class="line"><a href="#L660">660</a>    local todayStartTime = getDayStartTimeByTS(TimeKit:timeInSec())</span>
+<span id="L661" class="line"><a href="#L661">661</a>    local lastDayStartTime = getDayStartTimeByTS(math.floor(self:getModel():getMainEndTime()/1000))</span>
+<span id="L662" class="line"><a href="#L662">662</a>    return todayStartTime == lastDayStartTime</span>
+<span id="L663" class="line"><a href="#L663">663</a>end</span>
+<span id="L664" class="line"><a href="#L664">664</a></span>
+<span id="L665" class="line"><a href="#L665">665</a>-- 获取服务器时间是活动周期内的第几天</span>
+<span id="L666" class="line"><a href="#L666">666</a>function Manager:getDayFromActOpen(time)</span>
+<span id="L667" class="line"><a href="#L667">667</a>    if not self:isEnabled() then return 0 end</span>
+<span id="L668" class="line"><a href="#L668">668</a>    local startTime = getDayStartTimeByTS(math.floor(self:getModel():getMainBeginTime()/1000))</span>
+<span id="L669" class="line"><a href="#L669">669</a>    local curTime = getDayStartTimeByTS(time or TimeKit:timeInSec())</span>
+<span id="L670" class="line"><a href="#L670">670</a>    return math.floor((curTime - startTime) / 86400) + 1</span>
+<span id="L671" class="line"><a href="#L671">671</a>end</span>
+<span id="L672" class="line"><a href="#L672">672</a></span>
+<span id="L673" class="line"><a href="#L673">673</a>function Manager:getDayFrom1970(time)</span>
+<span id="L674" class="line"><a href="#L674">674</a>    local curDayStartTime = getDayStartTimeByTS(time or TimeKit:timeInSec())</span>
+<span id="L675" class="line"><a href="#L675">675</a>    return math.ceil(curDayStartTime / 86400)</span>
+<span id="L676" class="line"><a href="#L676">676</a>end</span>
+<span id="L677" class="line"><a href="#L677">677</a></span>
+<span id="L678" class="line"><a href="#L678">678</a>-- 检测引导标记</span>
+<span id="L679" class="line"><a href="#L679">679</a>function Manager:hasGuideIndex(index, checkLocalData)</span>
+<span id="L680" class="line"><a href="#L680">680</a>    local hasIndex = self:getModel():hasGuide(index)</span>
+<span id="L681" class="line"><a href="#L681">681</a></span>
+<span id="L682" class="line"><a href="#L682">682</a>    if checkLocalData == nil then checkLocalData = true end</span>
+<span id="L683" class="line"><a href="#L683">683</a>    if checkLocalData then</span>
+<span id="L684" class="line"><a href="#L684">684</a>        local hasLocal = self:getModel():getFlagFromLocalByKey(&quot;LocalGuideId&quot; .. index, false)</span>
+<span id="L685" class="line"><a href="#L685">685</a>        if hasLocal then</span>
+<span id="L686" class="line"><a href="#L686">686</a>            if not hasIndex then self:addGuideIndex(index) end</span>
+<span id="L687" class="line"><a href="#L687">687</a>            hasIndex = true</span>
+<span id="L688" class="line"><a href="#L688">688</a>        end</span>
+<span id="L689" class="line"><a href="#L689">689</a>    end</span>
+<span id="L690" class="line"><a href="#L690">690</a>    return hasIndex</span>
+<span id="L691" class="line"><a href="#L691">691</a>end</span>
+<span id="L692" class="line"><a href="#L692">692</a></span>
+<span id="L693" class="line"><a href="#L693">693</a>-- 设置引导标记</span>
+<span id="L694" class="line"><a href="#L694">694</a>function Manager:addGuideIndex(index, needSaveLocal)</span>
+<span id="L695" class="line"><a href="#L695">695</a>    self:getModel():setGuide(index)</span>
+<span id="L696" class="line"><a href="#L696">696</a></span>
+<span id="L697" class="line"><a href="#L697">697</a>    if needSaveLocal == nil then needSaveLocal = true end</span>
+<span id="L698" class="line"><a href="#L698">698</a>    if needSaveLocal then</span>
+<span id="L699" class="line"><a href="#L699">699</a>        self:getModel():saveFlagToLocalByKey(&quot;LocalGuideId&quot; .. index, false, true)</span>
+<span id="L700" class="line"><a href="#L700">700</a>    end</span>
+<span id="L701" class="line"><a href="#L701">701</a></span>
+<span id="L702" class="line"><a href="#L702">702</a>    local ActCommonHttp = require &quot;amf.middleware.activity.http.ActCommonHttp&quot;</span>
+<span id="L703" class="line"><a href="#L703">703</a>    ActCommonHttp:setActGuideFlag(self:getConst().actId, index)</span>
+<span id="L704" class="line"><a href="#L704">704</a>end</span>
+<span id="L705" class="line"><a href="#L705">705</a></span>
+<span id="L706" class="line"><a href="#L706">706</a>function Manager:onActPassDay()</span>
+<span id="L707" class="line"><a href="#L707">707</a>	if not self:isEnabled2() then return end</span>
+<span id="L708" class="line"><a href="#L708">708</a>    self:clearDoubleBuffNode()</span>
+<span id="L709" class="line"><a href="#L709">709</a>    if not self:isEnabled() then return end</span>
+<span id="L710" class="line"><a href="#L710">710</a>	self:getModel():passDayClear()</span>
+<span id="L711" class="line"><a href="#L711">711</a>end</span>
+<span id="L712" class="line"><a href="#L712">712</a></span>
+<span id="L713" class="line"><a href="#L713">713</a>-- 主icon奖字</span>
+<span id="L714" class="line"><a href="#L714">714</a>function Manager:hasRewards()</span>
+<span id="L715" class="line"><a href="#L715">715</a>    return self:hasReward()</span>
+<span id="L716" class="line"><a href="#L716">716</a>end</span>
+<span id="L717" class="line"><a href="#L717">717</a></span>
+<span id="L718" class="line"><a href="#L718">718</a>function Manager:hasReward()</span>
+<span id="L719" class="line"><a href="#L719">719</a>    if not self:isEnabled2() then return false end</span>
+<span id="L720" class="line"><a href="#L720">720</a>    return self:getMaxCanRewardTaskId() &gt; 0</span>
+<span id="L721" class="line"><a href="#L721">721</a>end</span>
+<span id="L722" class="line"><a href="#L722">722</a></span>
+<span id="L723" class="line"><a href="#L723">723</a>-- 普通的addRewards,开宝箱之类的</span>
+<span id="L724" class="line"><a href="#L724">724</a>function Manager:addRewardsNormal(rewardItems, params)</span>
+<span id="L725" class="line"><a href="#L725">725</a>    self:callPlug(&quot;Rewards&quot;, &quot;addRewardsNormal&quot;, rewardItems, params)</span>
+<span id="L726" class="line"><a href="#L726">726</a>end</span>
+<span id="L727" class="line"><a href="#L727">727</a></span>
+<span id="L728" class="line"><a href="#L728">728</a>function Manager:addActItem(reward)</span>
+<span id="L729" class="line"><a href="#L729">729</a>end</span>
+<span id="L730" class="line"><a href="#L730">730</a></span>
+<span id="L731" class="line"><a href="#L731">731</a>function Manager:getProgress()</span>
+<span id="L732" class="line"><a href="#L732">732</a>    return self:getModel():getDataByKey(&quot;periodInfo.progress&quot;, 0)</span>
+<span id="L733" class="line"><a href="#L733">733</a>end</span>
+<span id="L734" class="line"><a href="#L734">734</a></span>
+<span id="L735" class="line"><a href="#L735">735</a>function Manager:setProgress(progress)</span>
+<span id="L736" class="line"><a href="#L736">736</a>    progress = tonumber(progress) or 0</span>
+<span id="L737" class="line"><a href="#L737">737</a>    self:getModel():setDataByKey(&quot;periodInfo.progress&quot;, progress)</span>
+<span id="L738" class="line"><a href="#L738">738</a>end</span>
+<span id="L739" class="line"><a href="#L739">739</a></span>
+<span id="L740" class="line"><a href="#L740">740</a>function Manager:getShareCloseAct()</span>
+<span id="L741" class="line"><a href="#L741">741</a>    return self.shareCloseAct</span>
+<span id="L742" class="line"><a href="#L742">742</a>end</span>
+<span id="L743" class="line"><a href="#L743">743</a></span>
+<span id="L744" class="line"><a href="#L744">744</a>function Manager:setShareCloseAct(value)</span>
+<span id="L745" class="line"><a href="#L745">745</a>    self.shareCloseAct = value</span>
+<span id="L746" class="line"><a href="#L746">746</a>end</span>
+<span id="L747" class="line"><a href="#L747">747</a></span>
+<span id="L748" class="line"><a href="#L748">748</a>function Manager:hasDailyDoubleRemain()</span>
+<span id="L749" class="line"><a href="#L749">749</a>    return self:getDailyDoubleRemain() &gt; 0</span>
+<span id="L750" class="line"><a href="#L750">750</a>end</span>
+<span id="L751" class="line"><a href="#L751">751</a></span>
+<span id="L752" class="line"><a href="#L752">752</a>function Manager:getDailyDoubleRemain()</span>
+<span id="L753" class="line"><a href="#L753">753</a>    return tonumber(self:getModel():getDataByKey(&quot;dailyInfo.doubleRemain&quot;, 0)) or 0</span>
+<span id="L754" class="line"><a href="#L754">754</a>end</span>
+<span id="L755" class="line"><a href="#L755">755</a></span>
+<span id="L756" class="line"><a href="#L756">756</a>function Manager:consumeDailyDoubleRemain()</span>
+<span id="L757" class="line"><a href="#L757">757</a>    local doubleRemain = tonumber(self:getModel():getDataByKey(&quot;dailyInfo.doubleRemain&quot;, 0)) or 0</span>
+<span id="L758" class="line"><a href="#L758">758</a>    if doubleRemain &lt;= 0 then</span>
+<span id="L759" class="line"><a href="#L759">759</a>        return false</span>
+<span id="L760" class="line"><a href="#L760">760</a>    end</span>
+<span id="L761" class="line"><a href="#L761">761</a>    self:getModel():setDataByKey(&quot;dailyInfo.doubleRemain&quot;, doubleRemain - 1)</span>
+<span id="L762" class="line"><a href="#L762">762</a>    return true</span>
+<span id="L763" class="line"><a href="#L763">763</a>end</span>
+<span id="L764" class="line"><a href="#L764">764</a></span>
+<span id="L765" class="line"><a href="#L765">765</a>function Manager:checkBeHelped()</span>
+<span id="L766" class="line"><a href="#L766">766</a>    local beHelpedRemain = tonumber(self:getModel():getDataByKey(&quot;dailyInfo.beHelpedRemain&quot;, 1)) or 1</span>
+<span id="L767" class="line"><a href="#L767">767</a>    return beHelpedRemain &lt;= 0</span>
+<span id="L768" class="line"><a href="#L768">768</a>end</span>
+<span id="L769" class="line"><a href="#L769">769</a></span>
+<span id="L770" class="line"><a href="#L770">770</a>function Manager:isReturnUser()</span>
+<span id="L771" class="line"><a href="#L771">771</a>    return tonumber(self:getModel():getDataByKey(&quot;periodInfo.userType&quot;, 1)) == 2</span>
+<span id="L772" class="line"><a href="#L772">772</a>end</span>
+<span id="L773" class="line"><a href="#L773">773</a></span>
+<span id="L774" class="line"><a href="#L774">774</a>function Manager:isTopUser()</span>
+<span id="L775" class="line"><a href="#L775">775</a>    return self:getModel():getDataByKey(&quot;topPlayer&quot;, false)</span>
+<span id="L776" class="line"><a href="#L776">776</a>end</span>
+<span id="L777" class="line"><a href="#L777">777</a></span>
+<span id="L778" class="line"><a href="#L778">778</a>function Manager:onActBeforeStartLevel()</span>
+<span id="L779" class="line"><a href="#L779">779</a>    if not self:isEnabled() then return end</span>
+<span id="L780" class="line"><a href="#L780">780</a>    self:clearIconTipProgressCache()</span>
+<span id="L781" class="line"><a href="#L781">781</a>    if self:isTopUser() and self.needPlayTopAnim then</span>
+<span id="L782" class="line"><a href="#L782">782</a>        self.needPlayTopAnim = nil</span>
+<span id="L783" class="line"><a href="#L783">783</a>    end</span>
+<span id="L784" class="line"><a href="#L784">784</a>    local beHelpedRemain = tonumber(self:getModel():getDataByKey(&quot;dailyInfo.beHelpedRemain&quot;, 1)) or 1</span>
+<span id="L785" class="line"><a href="#L785">785</a>    local helpDoubleTimes = tonumber(self:getModel():getConfigByKey(&quot;beHelpedDoubleTimes&quot;)) or 5</span>
+<span id="L786" class="line"><a href="#L786">786</a>    if beHelpedRemain &lt;= 0 and self:getDailyDoubleRemain() &lt;= helpDoubleTimes and self.needPlayHelpAnim then</span>
+<span id="L787" class="line"><a href="#L787">787</a>        self.needPlayHelpAnim = nil</span>
+<span id="L788" class="line"><a href="#L788">788</a>        local day = self:getDayFromActOpen()</span>
+<span id="L789" class="line"><a href="#L789">789</a>        self:addGuideIndex(day, false)</span>
+<span id="L790" class="line"><a href="#L790">790</a>    end</span>
+<span id="L791" class="line"><a href="#L791">791</a>end</span>
+<span id="L792" class="line"><a href="#L792">792</a></span>
+<span id="L793" class="line"><a href="#L793">793</a>function Manager:shouldShowRecallInLevelToast()</span>
+<span id="L794" class="line"><a href="#L794">794</a>    return not LocalDB:getBool(getRecallInLevelToastShownCacheKey(self), false)</span>
+<span id="L795" class="line"><a href="#L795">795</a>end</span>
+<span id="L796" class="line"><a href="#L796">796</a></span>
+<span id="L797" class="line"><a href="#L797">797</a>function Manager:markRecallInLevelToastShown()</span>
+<span id="L798" class="line"><a href="#L798">798</a>    LocalDB:setBool(getRecallInLevelToastShownCacheKey(self), true, true)</span>
+<span id="L799" class="line"><a href="#L799">799</a>end</span>
+<span id="L800" class="line"><a href="#L800">800</a></span>
+<span id="L801" class="line"><a href="#L801">801</a>function Manager:getMainPanelTipPopCount()</span>
+<span id="L802" class="line"><a href="#L802">802</a>    return self:getModel():getFlagFromLocalByKeyInt(MainPanelTipPopCountCacheKey, false, true, 0)</span>
+<span id="L803" class="line"><a href="#L803">803</a>end</span>
+<span id="L804" class="line"><a href="#L804">804</a></span>
+<span id="L805" class="line"><a href="#L805">805</a>function Manager:addMainPanelTipPopCount()</span>
+<span id="L806" class="line"><a href="#L806">806</a>    local count = self:getMainPanelTipPopCount() + 1</span>
+<span id="L807" class="line"><a href="#L807">807</a>    self:getModel():saveFlagToLocalByKeyInt(MainPanelTipPopCountCacheKey, false, count, true)</span>
+<span id="L808" class="line"><a href="#L808">808</a>end</span>
+<span id="L809" class="line"><a href="#L809">809</a></span>
+<span id="L810" class="line"><a href="#L810">810</a>function Manager:canPopMainPanelTip()</span>
+<span id="L811" class="line"><a href="#L811">811</a>    return self:getMainPanelTipPopCount() &lt;= 2</span>
+<span id="L812" class="line"><a href="#L812">812</a>end</span>
+<span id="L813" class="line"><a href="#L813">813</a></span>
+<span id="L814" class="line"><a href="#L814">814</a>-- 关内在确认本关产生有效进度后、组装 passLevel 数据前调用。</span>
+<span id="L815" class="line"><a href="#L815">815</a>-- 此接口只读取当前翻倍状态，不消费翻倍次数；次数统一在 updatePassLevelData 中消费。</span>
+<span id="L816" class="line"><a href="#L816">816</a>---@param levelId number 本次结算的关卡 ID，预留给按关卡判断翻倍资格的规则。</span>
+<span id="L817" class="line"><a href="#L817">817</a>---@param levelScene string 本次结算的关卡场景，预留给按场景判断翻倍资格的规则。</span>
+<span id="L818" class="line"><a href="#L818">818</a>---@return boolean 本次有效进度是否翻倍。</span>
+<span id="L819" class="line"><a href="#L819">819</a>function Manager:isPassLevelDoubleProgress(levelId, levelScene)</span>
+<span id="L820" class="line"><a href="#L820">820</a>    if not self:isEnabled() then return false end</span>
+<span id="L821" class="line"><a href="#L821">821</a>    if not self:hasDailyDoubleRemain() then return false end</span>
+<span id="L822" class="line"><a href="#L822">822</a></span>
+<span id="L823" class="line"><a href="#L823">823</a>    if LevelSceneFunc:isFullLevelLib(levelScene) then</span>
+<span id="L824" class="line"><a href="#L824">824</a>        return true</span>
+<span id="L825" class="line"><a href="#L825">825</a>    end</span>
+<span id="L826" class="line"><a href="#L826">826</a></span>
+<span id="L827" class="line"><a href="#L827">827</a>    local levelAreaManager = _G.amfBean(&quot;LevelAreaManager&quot;)</span>
+<span id="L828" class="line"><a href="#L828">828</a>    local scoreNode = levelAreaManager and levelAreaManager:getUserScore(levelId, levelScene) or {}</span>
+<span id="L829" class="line"><a href="#L829">829</a>    local star = tonumber(scoreNode.star) or 0</span>
+<span id="L830" class="line"><a href="#L830">830</a></span>
+<span id="L831" class="line"><a href="#L831">831</a>    if LevelSceneFunc:isHideLevel(levelScene) then</span>
+<span id="L832" class="line"><a href="#L832">832</a>        return star ~= 3</span>
+<span id="L833" class="line"><a href="#L833">833</a>    end</span>
+<span id="L834" class="line"><a href="#L834">834</a></span>
+<span id="L835" class="line"><a href="#L835">835</a>    if LevelSceneFunc:isMainLevel(levelScene) then</span>
+<span id="L836" class="line"><a href="#L836">836</a>        local topPassedLevelId = _G.getTopPassedLevelId()</span>
+<span id="L837" class="line"><a href="#L837">837</a>        if not topPassedLevelId then return false end</span>
+<span id="L838" class="line"><a href="#L838">838</a></span>
+<span id="L839" class="line"><a href="#L839">839</a>        if self:getLocalLevelStatus() == 1 then</span>
+<span id="L840" class="line"><a href="#L840">840</a>            return tonumber(levelId) == topPassedLevelId + 1</span>
+<span id="L841" class="line"><a href="#L841">841</a>        else</span>
+<span id="L842" class="line"><a href="#L842">842</a>            return star ~= 4</span>
+<span id="L843" class="line"><a href="#L843">843</a>        end</span>
+<span id="L844" class="line"><a href="#L844">844</a>    end</span>
+<span id="L845" class="line"><a href="#L845">845</a></span>
+<span id="L846" class="line"><a href="#L846">846</a>    return false</span>
+<span id="L847" class="line"><a href="#L847">847</a>end</span>
+<span id="L848" class="line"><a href="#L848">848</a></span>
+<span id="L849" class="line"><a href="#L849">849</a>function Manager:tryAddTopPlayerExtraDailyDoubleTimes(currentPassLevelId, jump)</span>
+<span id="L850" class="line"><a href="#L850">850</a>    if self:isReturnUser() then return end</span>
+<span id="L851" class="line"><a href="#L851">851</a>    if self:isTopUser() then return end</span>
+<span id="L852" class="line"><a href="#L852">852</a></span>
+<span id="L853" class="line"><a href="#L853">853</a>    if not currentPassLevelId then return end</span>
+<span id="L854" class="line"><a href="#L854">854</a>    local configMaxLevel = amfBean(&quot;UnlockManager&quot;):getUserMaxLevelId()</span>
+<span id="L855" class="line"><a href="#L855">855</a>    if not configMaxLevel then return end</span>
+<span id="L856" class="line"><a href="#L856">856</a></span>
+<span id="L857" class="line"><a href="#L857">857</a>    local levelOffset = math.abs(tonumber(self:getModel():getConfigByKey(&quot;topPlayerLevelOffset&quot;)) or 90)</span>
+<span id="L858" class="line"><a href="#L858">858</a>    local topLevelOffsetId = configMaxLevel - levelOffset</span>
+<span id="L859" class="line"><a href="#L859">859</a>    local oldPassedLabelId = _G.getTopPassedLevelId()</span>
+<span id="L860" class="line"><a href="#L860">860</a>    if oldPassedLabelId == nil then oldPassedLabelId = 1 end</span>
+<span id="L861" class="line"><a href="#L861">861</a>    local oldCheck = (oldPassedLabelId + 1 == currentPassLevelId) or jump</span>
+<span id="L862" class="line"><a href="#L862">862</a>    if not (currentPassLevelId == topLevelOffsetId and oldCheck) then return end</span>
+<span id="L863" class="line"><a href="#L863">863</a></span>
+<span id="L864" class="line"><a href="#L864">864</a>    local extraDoubleTimes = tonumber(self:getModel():getConfigByKey(&quot;topPlayerExtraDailyDoubleTimes&quot;)) or 0</span>
+<span id="L865" class="line"><a href="#L865">865</a>    if extraDoubleTimes &lt;= 0 then return end</span>
+<span id="L866" class="line"><a href="#L866">866</a></span>
+<span id="L867" class="line"><a href="#L867">867</a>    local doubleTotal = tonumber(self:getModel():getDataByKey(&quot;dailyInfo.doubleTotal&quot;, 0)) or 0</span>
+<span id="L868" class="line"><a href="#L868">868</a>    local doubleRemain = tonumber(self:getModel():getDataByKey(&quot;dailyInfo.doubleRemain&quot;, 0)) or 0</span>
+<span id="L869" class="line"><a href="#L869">869</a>    self:getModel():setDataByKey(&quot;dailyInfo.doubleTotal&quot;, doubleTotal + extraDoubleTimes)</span>
+<span id="L870" class="line"><a href="#L870">870</a>    self:getModel():setDataByKey(&quot;dailyInfo.doubleRemain&quot;, doubleRemain + extraDoubleTimes)</span>
+<span id="L871" class="line"><a href="#L871">871</a>    self:getModel():setDataByKey(&quot;topPlayer&quot;, true)</span>
+<span id="L872" class="line"><a href="#L872">872</a>    self.needPlayTopAnim = true</span>
+<span id="L873" class="line"><a href="#L873">873</a>end</span>
+<span id="L874" class="line"><a href="#L874">874</a></span>
+<span id="L875" class="line"><a href="#L875">875</a>-- 当前任务档位，从1开始，全部完成返回最后一个档位</span>
+<span id="L876" class="line"><a href="#L876">876</a>function Manager:getCurrentRewardIndex()</span>
+<span id="L877" class="line"><a href="#L877">877</a>    local rewardStates = self:getModel():getDataByKey(&quot;rewardStates&quot;, {}) or {}</span>
+<span id="L878" class="line"><a href="#L878">878</a>    local progress = tonumber(self:getProgress()) or 0</span>
+<span id="L879" class="line"><a href="#L879">879</a>    local ret = 1</span>
+<span id="L880" class="line"><a href="#L880">880</a>    for index, rewardState in ipairs(rewardStates) do</span>
+<span id="L881" class="line"><a href="#L881">881</a>        ret = index</span>
+<span id="L882" class="line"><a href="#L882">882</a>        if progress &lt; (tonumber(rewardState.needProgress) or 0) then</span>
+<span id="L883" class="line"><a href="#L883">883</a>            break</span>
+<span id="L884" class="line"><a href="#L884">884</a>        end</span>
+<span id="L885" class="line"><a href="#L885">885</a>    end</span>
+<span id="L886" class="line"><a href="#L886">886</a>    return ret</span>
+<span id="L887" class="line"><a href="#L887">887</a>end</span>
+<span id="L888" class="line"><a href="#L888">888</a></span>
+<span id="L889" class="line"><a href="#L889">889</a>function Manager:getCurrentRewardNeedProgress()</span>
+<span id="L890" class="line"><a href="#L890">890</a>    local rewardStates = self:getModel():getDataByKey(&quot;rewardStates&quot;, {}) or {}</span>
+<span id="L891" class="line"><a href="#L891">891</a>    local currentIndex = self:getCurrentRewardIndex()</span>
+<span id="L892" class="line"><a href="#L892">892</a>    local rewardState = rewardStates[currentIndex]</span>
+<span id="L893" class="line"><a href="#L893">893</a>    local needProgress = rewardState and (tonumber(rewardState.needProgress) or 0) or 0</span>
+<span id="L894" class="line"><a href="#L894">894</a>    local lastNeedProgress = 0</span>
+<span id="L895" class="line"><a href="#L895">895</a>    if currentIndex &gt; 1 then</span>
+<span id="L896" class="line"><a href="#L896">896</a>        lastNeedProgress = tonumber(rewardStates[currentIndex - 1] and rewardStates[currentIndex - 1].needProgress) or 0</span>
+<span id="L897" class="line"><a href="#L897">897</a>    end</span>
+<span id="L898" class="line"><a href="#L898">898</a>    return math.max(needProgress - lastNeedProgress, 0)</span>
+<span id="L899" class="line"><a href="#L899">899</a>end</span>
+<span id="L900" class="line"><a href="#L900">900</a></span>
+<span id="L901" class="line"><a href="#L901">901</a>function Manager:getCurrentRewardProgress()</span>
+<span id="L902" class="line"><a href="#L902">902</a>    local rewardStates = self:getModel():getDataByKey(&quot;rewardStates&quot;, {}) or {}</span>
+<span id="L903" class="line"><a href="#L903">903</a>    local currentIndex = self:getCurrentRewardIndex()</span>
+<span id="L904" class="line"><a href="#L904">904</a>    local progress = tonumber(self:getProgress()) or 0</span>
+<span id="L905" class="line"><a href="#L905">905</a>    local lastNeedProgress = 0</span>
+<span id="L906" class="line"><a href="#L906">906</a>    if currentIndex &gt; 1 then</span>
+<span id="L907" class="line"><a href="#L907">907</a>        lastNeedProgress = tonumber(rewardStates[currentIndex - 1] and rewardStates[currentIndex - 1].needProgress) or 0</span>
+<span id="L908" class="line"><a href="#L908">908</a>    end</span>
+<span id="L909" class="line"><a href="#L909">909</a>    return math.max(progress - lastNeedProgress, 0)</span>
+<span id="L910" class="line"><a href="#L910">910</a>end</span>
+<span id="L911" class="line"><a href="#L911">911</a></span>
+<span id="L912" class="line"><a href="#L912">912</a>function Manager:getRewardStageProgressList()</span>
+<span id="L913" class="line"><a href="#L913">913</a>    local rewardStates = self:getModel():getDataByKey(&quot;rewardStates&quot;, {}) or {}</span>
+<span id="L914" class="line"><a href="#L914">914</a>    local progress = tonumber(self:getProgress()) or 0</span>
+<span id="L915" class="line"><a href="#L915">915</a>    local ret = {}</span>
+<span id="L916" class="line"><a href="#L916">916</a>    local lastNeedProgress = 0</span>
+<span id="L917" class="line"><a href="#L917">917</a></span>
+<span id="L918" class="line"><a href="#L918">918</a>    for index, rewardState in ipairs(rewardStates) do</span>
+<span id="L919" class="line"><a href="#L919">919</a>        local needProgress = tonumber(rewardState.needProgress) or 0</span>
+<span id="L920" class="line"><a href="#L920">920</a>        local stageNeedProgress = math.max(needProgress - lastNeedProgress, 0)</span>
+<span id="L921" class="line"><a href="#L921">921</a>        local stageProgress = math.max(math.min(progress - lastNeedProgress, stageNeedProgress), 0)</span>
+<span id="L922" class="line"><a href="#L922">922</a>        table.insert(ret, {</span>
+<span id="L923" class="line"><a href="#L923">923</a>            index = index,</span>
+<span id="L924" class="line"><a href="#L924">924</a>            rewardId = rewardState.rewardId,</span>
+<span id="L925" class="line"><a href="#L925">925</a>            progress = stageProgress,</span>
+<span id="L926" class="line"><a href="#L926">926</a>            needProgress = stageNeedProgress,</span>
+<span id="L927" class="line"><a href="#L927">927</a>            status = rewardState.status,</span>
+<span id="L928" class="line"><a href="#L928">928</a>        })</span>
+<span id="L929" class="line"><a href="#L929">929</a>        lastNeedProgress = needProgress</span>
+<span id="L930" class="line"><a href="#L930">930</a>    end</span>
+<span id="L931" class="line"><a href="#L931">931</a></span>
+<span id="L932" class="line"><a href="#L932">932</a>    return ret</span>
+<span id="L933" class="line"><a href="#L933">933</a>end</span>
+<span id="L934" class="line"><a href="#L934">934</a></span>
+<span id="L935" class="line"><a href="#L935">935</a>function Manager:getMaxCanRewardTaskId()</span>
+<span id="L936" class="line"><a href="#L936">936</a>    local rewardStates = self:getModel():getDataByKey(&quot;rewardStates&quot;, {}) or {}</span>
+<span id="L937" class="line"><a href="#L937">937</a>    local taskId = 0</span>
+<span id="L938" class="line"><a href="#L938">938</a>    for index, rewardState in ipairs(rewardStates) do</span>
+<span id="L939" class="line"><a href="#L939">939</a>        if tonumber(rewardState.status) == 1 then</span>
+<span id="L940" class="line"><a href="#L940">940</a>            taskId = math.max(taskId, tonumber(rewardState.rewardId) or index)</span>
+<span id="L941" class="line"><a href="#L941">941</a>        end</span>
+<span id="L942" class="line"><a href="#L942">942</a>    end</span>
+<span id="L943" class="line"><a href="#L943">943</a>    return taskId</span>
+<span id="L944" class="line"><a href="#L944">944</a>end</span>
+<span id="L945" class="line"><a href="#L945">945</a></span>
+<span id="L946" class="line"><a href="#L946">946</a>function Manager:isLastRewardReceived()</span>
+<span id="L947" class="line"><a href="#L947">947</a>    local rewardStates = self:getModel():getDataByKey(&quot;rewardStates&quot;, {}) or {}</span>
+<span id="L948" class="line"><a href="#L948">948</a>    if table.isEmpty(rewardStates) then return false end</span>
+<span id="L949" class="line"><a href="#L949">949</a></span>
+<span id="L950" class="line"><a href="#L950">950</a>    local lastRewardState = rewardStates[#rewardStates]</span>
+<span id="L951" class="line"><a href="#L951">951</a>    return tonumber(lastRewardState and lastRewardState.status) == 2</span>
+<span id="L952" class="line"><a href="#L952">952</a>end</span>
+<span id="L953" class="line"><a href="#L953">953</a></span>
+<span id="L954" class="line"><a href="#L954">954</a>function Manager:removeActivityIcon()</span>
+<span id="L955" class="line"><a href="#L955">955</a>    local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L956" class="line"><a href="#L956">956</a>    ActivityEventCenter:dispatch(ActivityEvent.REMOVE_ACTIVITY,{actId = self:getConst().actId})</span>
+<span id="L957" class="line"><a href="#L957">957</a>    self:clearDoubleBuffNode()</span>
+<span id="L958" class="line"><a href="#L958">958</a>end</span>
+<span id="L959" class="line"><a href="#L959">959</a></span>
+<span id="L960" class="line"><a href="#L960">960</a>function Manager:getRewardByTaskId(taskId)</span>
+<span id="L961" class="line"><a href="#L961">961</a>    taskId = tonumber(taskId)</span>
+<span id="L962" class="line"><a href="#L962">962</a>    if not taskId then return end</span>
+<span id="L963" class="line"><a href="#L963">963</a></span>
+<span id="L964" class="line"><a href="#L964">964</a>    local rewardMetas = self:getModel():getConfigByKey(&quot;rewardMetas&quot;, {}) or {}</span>
+<span id="L965" class="line"><a href="#L965">965</a>    for _, rewardMeta in ipairs(rewardMetas) do</span>
+<span id="L966" class="line"><a href="#L966">966</a>        if tonumber(rewardMeta.rewardId) == taskId then</span>
+<span id="L967" class="line"><a href="#L967">967</a>            local reward = rewardMeta.reward or {}</span>
+<span id="L968" class="line"><a href="#L968">968</a>            return {</span>
+<span id="L969" class="line"><a href="#L969">969</a>                itemId = reward.itemId,</span>
+<span id="L970" class="line"><a href="#L970">970</a>                num = reward.num,</span>
+<span id="L971" class="line"><a href="#L971">971</a>            }</span>
+<span id="L972" class="line"><a href="#L972">972</a>        end</span>
+<span id="L973" class="line"><a href="#L973">973</a>    end</span>
+<span id="L974" class="line"><a href="#L974">974</a>end</span>
+<span id="L975" class="line"><a href="#L975">975</a></span>
+<span id="L976" class="line"><a href="#L976">976</a>function Manager:createVineSkinRewardIcon(reward)</span>
+<span id="L977" class="line"><a href="#L977">977</a>    if not reward or not reward.itemId then return end</span>
+<span id="L978" class="line"><a href="#L978">978</a></span>
+<span id="L979" class="line"><a href="#L979">979</a>    local dayNum = tonumber(reward.num) or 0</span>
+<span id="L980" class="line"><a href="#L980">980</a>    local rewardIcon = GameItemCreator:createProp({</span>
+<span id="L981" class="line"><a href="#L981">981</a>        itemId = reward.itemId,</span>
+<span id="L982" class="line"><a href="#L982">982</a>    })</span>
+<span id="L983" class="line"><a href="#L983">983</a>    if rewardIcon and dayNum &gt; 0 then</span>
+<span id="L984" class="line"><a href="#L984">984</a>        rewardIcon:setItemType(UEPropIcon_ItemType.TimeLimit)</span>
+<span id="L985" class="line"><a href="#L985">985</a>        rewardIcon:setLeftTopText(tostring(dayNum) .. &quot;天&quot;)</span>
+<span id="L986" class="line"><a href="#L986">986</a>    end</span>
+<span id="L987" class="line"><a href="#L987">987</a>    return rewardIcon</span>
+<span id="L988" class="line"><a href="#L988">988</a>end</span>
+<span id="L989" class="line"><a href="#L989">989</a></span>
+<span id="L990" class="line"><a href="#L990">990</a>function Manager:getRewardCountByTaskId(taskId)</span>
+<span id="L991" class="line"><a href="#L991">991</a>    taskId = tonumber(taskId)</span>
+<span id="L992" class="line"><a href="#L992">992</a>    if not taskId then return 0 end</span>
+<span id="L993" class="line"><a href="#L993">993</a></span>
+<span id="L994" class="line"><a href="#L994">994</a>    local rewardCounts = self:getModel():getValue(&quot;userInfo.rewardCounts&quot;) or {}</span>
+<span id="L995" class="line"><a href="#L995">995</a>    for _, rewardCount in ipairs(rewardCounts) do</span>
+<span id="L996" class="line"><a href="#L996">996</a>        if tonumber(rewardCount.rewardId) == taskId then</span>
+<span id="L997" class="line"><a href="#L997">997</a>            return tonumber(rewardCount.count) or 0</span>
+<span id="L998" class="line"><a href="#L998">998</a>        end</span>
+<span id="L999" class="line"><a href="#L999">999</a>    end</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>    return 0</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>end</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a></span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>function Manager:getRewardCounts()</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>    return self:getModel():getValue(&quot;userInfo.rewardCounts&quot;) or {}</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>end</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a></span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>function Manager:updateRewardStatesByProgress(progress)</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>    progress = tonumber(progress) or 0</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>    local rewardStates = self:getModel():getDataByKey(&quot;rewardStates&quot;, {}) or {}</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>    local rewardMetas = self:getModel():getConfigByKey(&quot;rewardMetas&quot;, {}) or {}</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>    local newRewardStates = {}</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a></span>
+<span id="L1013" class="line"><a href="#L1013">1013</a>    if table.isEmpty(rewardStates) then</span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>        for _, rewardMeta in ipairs(rewardMetas) do</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>            table.insert(newRewardStates, {</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a>                rewardId = rewardMeta.rewardId,</span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>                needProgress = rewardMeta.needProgress,</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>                status = progress &gt;= (tonumber(rewardMeta.needProgress) or 0) and 1 or 0,</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a>            })</span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>        end</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>    else</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>        for _, rewardState in ipairs(rewardStates) do</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>            local status = tonumber(rewardState.status) or 0</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>            if status ~= 2 then</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>                status = progress &gt;= (tonumber(rewardState.needProgress) or 0) and 1 or 0</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>            end</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>            table.insert(newRewardStates, {</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>                rewardId = rewardState.rewardId,</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>                needProgress = rewardState.needProgress,</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>                status = status,</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>            })</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>        end</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>    end</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a></span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>    self:getModel():setDataByKey(&quot;rewardStates&quot;, newRewardStates)</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>end</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a></span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>function Manager:getMaxProgress()</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>    local rewardStates = self:getModel():getDataByKey(&quot;rewardStates&quot;, {}) or {}</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>    local maxProgress = 0</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>    for _, rewardState in ipairs(rewardStates) do</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>        maxProgress = math.max(maxProgress, tonumber(rewardState.needProgress) or 0)</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>    end</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>    return maxProgress</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>end</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a></span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>-- 打关结束时更新数据</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>-- 关内通过 passLevelData.progressIncrement 传递本关进度增量：0 不计进度、1 普通进度、2 双倍进度。</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a>-- 该参数的本地数据更新逻辑由关外活动维护方接入。</span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>function Manager:updatePassLevelData(data, collectionCount, collectionMap, passLevelData)</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>    if not self:isEnabled() then return end</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>    </span>
+<span id="L1053" class="line"><a href="#L1053">1053</a>    local addProgress = tonumber(passLevelData and passLevelData.progressIncrement) or 0</span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>    local oldDoubleRemain = self:getDailyDoubleRemain()</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>    if addProgress &gt; 0 then</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>        local cacheAddProgress = tonumber(self.cacheAddProgress) or 0</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>        if cacheAddProgress &lt;= 0 then</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>            self.cacheProgressBeforeAdd = tonumber(self:getProgress()) or 0</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>        end</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>        self.cacheAddProgress = cacheAddProgress + addProgress</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>        self:refreshLocalActInfo(addProgress)</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>    else</span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>        self:clearIconTipProgressCache()</span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>    end</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a></span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>    if addProgress &gt; 1 then</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a>        self:tryJoinDC()</span>
+<span id="L1068" class="line"><a href="#L1068">1068</a>    end</span>
+<span id="L1069" class="line"><a href="#L1069">1069</a></span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>    self._pendingDoubleBuffNodeDecrease = nil</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>    if addProgress &gt;= 2 then</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>        local newDoubleRemain = self:getDailyDoubleRemain()</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a>        if oldDoubleRemain &gt; newDoubleRemain then</span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>            self._pendingDoubleBuffNodeDecrease = {</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>                from = oldDoubleRemain,</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>                to = newDoubleRemain,</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>            }</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>        end</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a>    end</span>
+<span id="L1080" class="line"><a href="#L1080">1080</a></span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>    if (addProgress &gt; 0) and LevelSceneFunc:isMainLevel(data.levelInfo.levelScene) then</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>        local levelId = data and data.levelInfo and data.levelInfo.levelId</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>        self:tryAddTopPlayerExtraDailyDoubleTimes(levelId)</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a>    end</span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>end</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a></span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>function Manager:onActJumpLevelSuccess(evt)</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>    if not self:isEnabled() then return end</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a></span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>    local data = evt:getData()</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a>    local levelId = data and data.levelId</span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>    if not levelId then return end</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>    if not LevelSceneFunc:isMainLevel(data.levelScene) then return end</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>    self:tryAddTopPlayerExtraDailyDoubleTimes(levelId, true)</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>end</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a></span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>function Manager:refreshLocalActInfo(addProgress)</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>    if addProgress &gt;= 2 then</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>        self:consumeDailyDoubleRemain()</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>    end</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>    local oldProgress = self:getProgress()</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a>    local maxProgress = self:getMaxProgress()</span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>    if maxProgress &gt; 0 and oldProgress &gt;= maxProgress then return end</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a></span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>    local current = oldProgress + addProgress</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>    if maxProgress &gt; 0 then</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>        current = math.min(current, maxProgress)</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a>    end</span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>    self:setProgress(current)</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>    self:updateRewardStatesByProgress(current)</span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>    self:updateTipView()</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>end</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a></span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>-- 返回1，2，3，对应普通主线、补星、关卡库</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a>function Manager:getLocalLevelStatus(passLevel)</span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>    local userState = _G.amfBean(&quot;UserStateManager&quot;):getUserSegmentState()</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a>    if (userState == _G.UserStateConst.UserSegmentState.FMZ) or (userState == _G.UserStateConst.UserSegmentState.MHZC) then</span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>        return 3</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>    end</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a></span>
+<span id="L1121" class="line"><a href="#L1121">1121</a>    if userState == _G.UserStateConst.UserSegmentState.FMJ then</span>
+<span id="L1122" class="line"><a href="#L1122">1122</a>        return 1</span>
+<span id="L1123" class="line"><a href="#L1123">1123</a>    else</span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>        return 2</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>    end</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a>end</span>
+<span id="L1127" class="line"><a href="#L1127">1127</a></span>
+<span id="L1128" class="line"><a href="#L1128">1128</a>------------------------------- 关卡外 -------------------------------</span>
+<span id="L1129" class="line"><a href="#L1129">1129</a></span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>function Manager:updateTipView()</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>end</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a></span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>function Manager:checkDoubleBuffNodeEnabled()</span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>    return self:isEnabled() and self:hasDailyDoubleRemain() and (not self:isLastRewardReceived())</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a>end</span>
+<span id="L1136" class="line"><a href="#L1136">1136</a></span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>function Manager:loadDoubleBuffNodeRes(callback, failCallback)</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>    if EnvUtil:isApp() then</span>
+<span id="L1139" class="line"><a href="#L1139">1139</a>        safeRunCall(callback)</span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>        return</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>    end</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a></span>
+<span id="L1143" class="line"><a href="#L1143">1143</a>    if self._isDoubleBuffNodeResReady then</span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>        safeRunCall(callback)</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a>        return</span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>    end</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a></span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>    local resList = self:getConst().doubleBuffNodeResList or {}</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>    if table.isEmpty(resList) then</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>        self._isDoubleBuffNodeResReady = true</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>        safeRunCall(callback)</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>        return</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a>    end</span>
+<span id="L1154" class="line"><a href="#L1154">1154</a></span>
+<span id="L1155" class="line"><a href="#L1155">1155</a>    self._doubleBuffNodeResCallbackList = self._doubleBuffNodeResCallbackList or {}</span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>    table.insert(self._doubleBuffNodeResCallbackList, {callback = callback, failCallback = failCallback})</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a></span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>    if self._isDoubleBuffNodeResLoading then return end</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a>    self._isDoubleBuffNodeResLoading = true</span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>    AssetsUtil:loadMiniFiles(resList):next(function()</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a>        self._isDoubleBuffNodeResLoading = nil</span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>        self._isDoubleBuffNodeResReady = true</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a>        local callbackList = self._doubleBuffNodeResCallbackList or {}</span>
+<span id="L1164" class="line"><a href="#L1164">1164</a>        self._doubleBuffNodeResCallbackList = nil</span>
+<span id="L1165" class="line"><a href="#L1165">1165</a>        for _, callbackInfo in ipairs(callbackList) do</span>
+<span id="L1166" class="line"><a href="#L1166">1166</a>            safeRunCall(callbackInfo.callback)</span>
+<span id="L1167" class="line"><a href="#L1167">1167</a>        end</span>
+<span id="L1168" class="line"><a href="#L1168">1168</a>    end, function()</span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>        self._isDoubleBuffNodeResLoading = nil</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a>        local callbackList = self._doubleBuffNodeResCallbackList or {}</span>
+<span id="L1171" class="line"><a href="#L1171">1171</a>        self._doubleBuffNodeResCallbackList = nil</span>
+<span id="L1172" class="line"><a href="#L1172">1172</a>        for _, callbackInfo in ipairs(callbackList) do</span>
+<span id="L1173" class="line"><a href="#L1173">1173</a>            safeRunCall(callbackInfo.failCallback)</span>
+<span id="L1174" class="line"><a href="#L1174">1174</a>        end</span>
+<span id="L1175" class="line"><a href="#L1175">1175</a>    end)</span>
+<span id="L1176" class="line"><a href="#L1176">1176</a>end</span>
+<span id="L1177" class="line"><a href="#L1177">1177</a></span>
+<span id="L1178" class="line"><a href="#L1178">1178</a>function Manager:updateDoubleBuffNode(canPlayAnim, callback)</span>
+<span id="L1179" class="line"><a href="#L1179">1179</a>    local finished = false</span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>    local function finish()</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a>        if finished then return end</span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>        finished = true</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a>        safeRunCall(callback)</span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>    end</span>
+<span id="L1185" class="line"><a href="#L1185">1185</a></span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>    if not SceneTopBannerContext or not SceneTopBannerConst then</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a>        finish()</span>
+<span id="L1188" class="line"><a href="#L1188">1188</a>        return</span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>    end</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a></span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>    local pendingDecrease = self._pendingDoubleBuffNodeDecrease</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a>    if not self:checkDoubleBuffNodeEnabled() and not pendingDecrease then</span>
+<span id="L1193" class="line"><a href="#L1193">1193</a>        self:clearDoubleBuffNode()</span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>        finish()</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>        return</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a>    end</span>
+<span id="L1197" class="line"><a href="#L1197">1197</a></span>
+<span id="L1198" class="line"><a href="#L1198">1198</a>    local mgrContext = self</span>
+<span id="L1199" class="line"><a href="#L1199">1199</a>    local updateStarted = false</span>
+<span id="L1200" class="line"><a href="#L1200">1200</a>    local updateNodeFunction = function(node)</span>
+<span id="L1201" class="line"><a href="#L1201">1201</a>        updateStarted = true</span>
+<span id="L1202" class="line"><a href="#L1202">1202</a>        if not (isSafeCocosObj(node) and node.updateView) then</span>
+<span id="L1203" class="line"><a href="#L1203">1203</a>            finish()</span>
+<span id="L1204" class="line"><a href="#L1204">1204</a>            return</span>
+<span id="L1205" class="line"><a href="#L1205">1205</a>        end</span>
+<span id="L1206" class="line"><a href="#L1206">1206</a>        local decreaseInfo = mgrContext._pendingDoubleBuffNodeDecrease</span>
+<span id="L1207" class="line"><a href="#L1207">1207</a>        if not decreaseInfo and ((not mgrContext.needPlayTopAnim and not mgrContext.needPlayHelpAnim) or (not canPlayAnim)) then</span>
+<span id="L1208" class="line"><a href="#L1208">1208</a>            mgrContext._pendingDoubleBuffNodeDecrease = nil</span>
+<span id="L1209" class="line"><a href="#L1209">1209</a>            node:updateView()</span>
+<span id="L1210" class="line"><a href="#L1210">1210</a>            finish()</span>
+<span id="L1211" class="line"><a href="#L1211">1211</a>            return</span>
+<span id="L1212" class="line"><a href="#L1212">1212</a>        end</span>
+<span id="L1213" class="line"><a href="#L1213">1213</a></span>
+<span id="L1214" class="line"><a href="#L1214">1214</a>        local AsyncRunner = require &quot;amf.script.sugar.AsyncRunner&quot;</span>
+<span id="L1215" class="line"><a href="#L1215">1215</a>        local asyncRunner = AsyncRunner:create()</span>
+<span id="L1216" class="line"><a href="#L1216">1216</a>        if decreaseInfo then</span>
+<span id="L1217" class="line"><a href="#L1217">1217</a>            asyncRunner:add(function(done)</span>
+<span id="L1218" class="line"><a href="#L1218">1218</a>                if isSafeCocosObj(node) and node.playDoubleRemainDecreaseAnim then</span>
+<span id="L1219" class="line"><a href="#L1219">1219</a>                    node:playDoubleRemainDecreaseAnim(decreaseInfo.from, decreaseInfo.to, done)</span>
+<span id="L1220" class="line"><a href="#L1220">1220</a>                else</span>
+<span id="L1221" class="line"><a href="#L1221">1221</a>                    safeRunCall(done)</span>
+<span id="L1222" class="line"><a href="#L1222">1222</a>                end</span>
+<span id="L1223" class="line"><a href="#L1223">1223</a>            end)</span>
+<span id="L1224" class="line"><a href="#L1224">1224</a></span>
+<span id="L1225" class="line"><a href="#L1225">1225</a>            asyncRunner:add(function(done)</span>
+<span id="L1226" class="line"><a href="#L1226">1226</a>                mgrContext._pendingDoubleBuffNodeDecrease = nil</span>
+<span id="L1227" class="line"><a href="#L1227">1227</a>                safeRunCall(done)</span>
+<span id="L1228" class="line"><a href="#L1228">1228</a>            end)</span>
+<span id="L1229" class="line"><a href="#L1229">1229</a>        end</span>
+<span id="L1230" class="line"><a href="#L1230">1230</a>        if canPlayAnim and mgrContext.needPlayTopAnim then</span>
+<span id="L1231" class="line"><a href="#L1231">1231</a>            asyncRunner:add(function(done)</span>
+<span id="L1232" class="line"><a href="#L1232">1232</a>                if isSafeCocosObj(node) and node.updateView then</span>
+<span id="L1233" class="line"><a href="#L1233">1233</a>                    local playAnimNum = tonumber(self:getModel():getConfigByKey(&quot;topPlayerExtraDailyDoubleTimes&quot;)) or 5</span>
+<span id="L1234" class="line"><a href="#L1234">1234</a>                    local playAnimStr = string.format(&quot;冲顶福利，额外%d关&quot;, playAnimNum)</span>
+<span id="L1235" class="line"><a href="#L1235">1235</a>                    node:updateView(playAnimStr, playAnimNum)</span>
+<span id="L1236" class="line"><a href="#L1236">1236</a>                end</span>
+<span id="L1237" class="line"><a href="#L1237">1237</a>                setTimeOut(done, 3)</span>
+<span id="L1238" class="line"><a href="#L1238">1238</a>            end)</span>
+<span id="L1239" class="line"><a href="#L1239">1239</a></span>
+<span id="L1240" class="line"><a href="#L1240">1240</a>            asyncRunner:add(function(done)</span>
+<span id="L1241" class="line"><a href="#L1241">1241</a>                mgrContext.needPlayTopAnim = nil</span>
+<span id="L1242" class="line"><a href="#L1242">1242</a>                safeRunCall(done)</span>
+<span id="L1243" class="line"><a href="#L1243">1243</a>            end)</span>
+<span id="L1244" class="line"><a href="#L1244">1244</a>        end</span>
+<span id="L1245" class="line"><a href="#L1245">1245</a>        if canPlayAnim and mgrContext.needPlayHelpAnim then</span>
+<span id="L1246" class="line"><a href="#L1246">1246</a>            asyncRunner:add(function(done)</span>
+<span id="L1247" class="line"><a href="#L1247">1247</a>                if isSafeCocosObj(node) and node.updateView then</span>
+<span id="L1248" class="line"><a href="#L1248">1248</a>                    local playAnimNum = tonumber(self:getModel():getConfigByKey(&quot;beHelpedDoubleTimes&quot;)) or 5</span>
+<span id="L1249" class="line"><a href="#L1249">1249</a>                    local playAnimStr = string.format(&quot;求助成功，额外%d关&quot;, playAnimNum)</span>
+<span id="L1250" class="line"><a href="#L1250">1250</a>                    node:updateView(playAnimStr, playAnimNum)</span>
+<span id="L1251" class="line"><a href="#L1251">1251</a>                end</span>
+<span id="L1252" class="line"><a href="#L1252">1252</a>                setTimeOut(done, 3)</span>
+<span id="L1253" class="line"><a href="#L1253">1253</a>            end)</span>
+<span id="L1254" class="line"><a href="#L1254">1254</a></span>
+<span id="L1255" class="line"><a href="#L1255">1255</a>            asyncRunner:add(function(done)</span>
+<span id="L1256" class="line"><a href="#L1256">1256</a>                mgrContext.needPlayHelpAnim = nil</span>
+<span id="L1257" class="line"><a href="#L1257">1257</a>                local day = mgrContext:getDayFromActOpen()</span>
+<span id="L1258" class="line"><a href="#L1258">1258</a>                mgrContext:addGuideIndex(day, false)</span>
+<span id="L1259" class="line"><a href="#L1259">1259</a>                safeRunCall(done)</span>
+<span id="L1260" class="line"><a href="#L1260">1260</a>            end)</span>
+<span id="L1261" class="line"><a href="#L1261">1261</a>        end</span>
+<span id="L1262" class="line"><a href="#L1262">1262</a>        asyncRunner:add(function(done)</span>
+<span id="L1263" class="line"><a href="#L1263">1263</a>            local currentDoubleRemain = mgrContext:getDailyDoubleRemain()</span>
+<span id="L1264" class="line"><a href="#L1264">1264</a>            if currentDoubleRemain == 0 then</span>
+<span id="L1265" class="line"><a href="#L1265">1265</a>                if isSafeCocosObj(node) and node.playDisappearAnim then</span>
+<span id="L1266" class="line"><a href="#L1266">1266</a>                    node:playDisappearAnim(function()</span>
+<span id="L1267" class="line"><a href="#L1267">1267</a>                        mgrContext:clearDoubleBuffNode()</span>
+<span id="L1268" class="line"><a href="#L1268">1268</a>                        safeRunCall(done)</span>
+<span id="L1269" class="line"><a href="#L1269">1269</a>                    end)</span>
+<span id="L1270" class="line"><a href="#L1270">1270</a>                else</span>
+<span id="L1271" class="line"><a href="#L1271">1271</a>                    mgrContext:clearDoubleBuffNode()</span>
+<span id="L1272" class="line"><a href="#L1272">1272</a>                    safeRunCall(done)</span>
+<span id="L1273" class="line"><a href="#L1273">1273</a>                end</span>
+<span id="L1274" class="line"><a href="#L1274">1274</a>                return</span>
+<span id="L1275" class="line"><a href="#L1275">1275</a>            end</span>
+<span id="L1276" class="line"><a href="#L1276">1276</a></span>
+<span id="L1277" class="line"><a href="#L1277">1277</a>            safeRunCall(done)</span>
+<span id="L1278" class="line"><a href="#L1278">1278</a>        end)</span>
+<span id="L1279" class="line"><a href="#L1279">1279</a>        asyncRunner:add(function(done)</span>
+<span id="L1280" class="line"><a href="#L1280">1280</a>            finish()</span>
+<span id="L1281" class="line"><a href="#L1281">1281</a>            safeRunCall(done)</span>
+<span id="L1282" class="line"><a href="#L1282">1282</a>        end)</span>
+<span id="L1283" class="line"><a href="#L1283">1283</a>        asyncRunner:run()</span>
+<span id="L1284" class="line"><a href="#L1284">1284</a>    end</span>
+<span id="L1285" class="line"><a href="#L1285">1285</a></span>
+<span id="L1286" class="line"><a href="#L1286">1286</a>    local handler = _G.amfBean(&quot;SceneTopBannerHandler&quot;)</span>
+<span id="L1287" class="line"><a href="#L1287">1287</a>    local node = handler and handler:getShowBanner(SceneTopBannerConst.Priority.BIG_VINE_SKIN)</span>
+<span id="L1288" class="line"><a href="#L1288">1288</a>    if isSafeCocosObj(node) then</span>
+<span id="L1289" class="line"><a href="#L1289">1289</a>        safeRunCall(updateNodeFunction, node)</span>
+<span id="L1290" class="line"><a href="#L1290">1290</a>        return</span>
+<span id="L1291" class="line"><a href="#L1291">1291</a>    end</span>
+<span id="L1292" class="line"><a href="#L1292">1292</a></span>
+<span id="L1293" class="line"><a href="#L1293">1293</a>    local context = SceneTopBannerContext.new()</span>
+<span id="L1294" class="line"><a href="#L1294">1294</a>        :setPriority(SceneTopBannerConst.Priority.BIG_VINE_SKIN)</span>
+<span id="L1295" class="line"><a href="#L1295">1295</a>        :setBannerCreator(function()</span>
+<span id="L1296" class="line"><a href="#L1296">1296</a>            local VineSkinDoubleBuffNode = require &quot;amf.feature.localactivity.bigvineskinact.view.VineSkinDoubleBuffNode&quot;</span>
+<span id="L1297" class="line"><a href="#L1297">1297</a>            return VineSkinDoubleBuffNode:create()</span>
+<span id="L1298" class="line"><a href="#L1298">1298</a>        end)</span>
+<span id="L1299" class="line"><a href="#L1299">1299</a>        :setAutoDisappear(false)</span>
+<span id="L1300" class="line"><a href="#L1300">1300</a>        :setCallbacks(function(node)</span>
+<span id="L1301" class="line"><a href="#L1301">1301</a>            if isSafeCocosObj(node) then</span>
+<span id="L1302" class="line"><a href="#L1302">1302</a>                safeRunCall(updateNodeFunction, node)</span>
+<span id="L1303" class="line"><a href="#L1303">1303</a>            else</span>
+<span id="L1304" class="line"><a href="#L1304">1304</a>                finish()</span>
+<span id="L1305" class="line"><a href="#L1305">1305</a>            end</span>
+<span id="L1306" class="line"><a href="#L1306">1306</a>        end)</span>
+<span id="L1307" class="line"><a href="#L1307">1307</a></span>
+<span id="L1308" class="line"><a href="#L1308">1308</a>    _G.amfTransaction(TransactionEvent.SCENE_TOP_BANNER, context)</span>
+<span id="L1309" class="line"><a href="#L1309">1309</a>    setTimeOut(function()</span>
+<span id="L1310" class="line"><a href="#L1310">1310</a>        if not updateStarted then</span>
+<span id="L1311" class="line"><a href="#L1311">1311</a>            finish()</span>
+<span id="L1312" class="line"><a href="#L1312">1312</a>        end</span>
+<span id="L1313" class="line"><a href="#L1313">1313</a>    end, 1)</span>
+<span id="L1314" class="line"><a href="#L1314">1314</a>    setTimeOut(function()</span>
+<span id="L1315" class="line"><a href="#L1315">1315</a>        if updateStarted then</span>
+<span id="L1316" class="line"><a href="#L1316">1316</a>            finish()</span>
+<span id="L1317" class="line"><a href="#L1317">1317</a>        end</span>
+<span id="L1318" class="line"><a href="#L1318">1318</a>    end, 3)</span>
+<span id="L1319" class="line"><a href="#L1319">1319</a>end</span>
+<span id="L1320" class="line"><a href="#L1320">1320</a></span>
+<span id="L1321" class="line"><a href="#L1321">1321</a>function Manager:clearDoubleBuffNode()</span>
+<span id="L1322" class="line"><a href="#L1322">1322</a>    if not SceneTopBannerContext or not SceneTopBannerConst then return end</span>
+<span id="L1323" class="line"><a href="#L1323">1323</a>    local context = SceneTopBannerContext.new()</span>
+<span id="L1324" class="line"><a href="#L1324">1324</a>        :setPriority(SceneTopBannerConst.Priority.BIG_VINE_SKIN)</span>
+<span id="L1325" class="line"><a href="#L1325">1325</a>        :setRemove(true)</span>
+<span id="L1326" class="line"><a href="#L1326">1326</a>    _G.amfTransaction(TransactionEvent.SCENE_TOP_BANNER, context)</span>
+<span id="L1327" class="line"><a href="#L1327">1327</a>end</span>
+<span id="L1328" class="line"><a href="#L1328">1328</a></span>
+<span id="L1329" class="line"><a href="#L1329">1329</a>function Manager:onMarkPreOpenEvent(evt)</span>
+<span id="L1330" class="line"><a href="#L1330">1330</a>    if not self:checkMarkBannerEnable() then return end</span>
+<span id="L1331" class="line"><a href="#L1331">1331</a></span>
+<span id="L1332" class="line"><a href="#L1332">1332</a>    local contextList = evt:getData() or {}</span>
+<span id="L1333" class="line"><a href="#L1333">1333</a>    local context = MarkPreOpenContext.new()</span>
+<span id="L1334" class="line"><a href="#L1334">1334</a>        :setPriority(ActFestivalConst.Priority.LINK_ACTIVITY)</span>
+<span id="L1335" class="line"><a href="#L1335">1335</a>        :setExtLoadFiles({</span>
+<span id="L1336" class="line"><a href="#L1336">1336</a>            &quot;amf/activity/bigvineskinact/materials/vineBannerBg.png&quot;,</span>
+<span id="L1337" class="line"><a href="#L1337">1337</a>        })</span>
+<span id="L1338" class="line"><a href="#L1338">1338</a>        :setEnabledCheckFunc(function()</span>
+<span id="L1339" class="line"><a href="#L1339">1339</a>            return self:checkMarkBannerEnable()</span>
+<span id="L1340" class="line"><a href="#L1340">1340</a>        end)</span>
+<span id="L1341" class="line"><a href="#L1341">1341</a>        :setPreOpenFunc(function(callback)</span>
+<span id="L1342" class="line"><a href="#L1342">1342</a>            safeRunCall(callback)</span>
+<span id="L1343" class="line"><a href="#L1343">1343</a>        end)</span>
+<span id="L1344" class="line"><a href="#L1344">1344</a>        :setBannerCreator(function()</span>
+<span id="L1345" class="line"><a href="#L1345">1345</a>            local uiData = require &quot;amf.feature.localactivity.bigvineskinact.view.uisource.VineSignInBanner_UI&quot;</span>
+<span id="L1346" class="line"><a href="#L1346">1346</a>            local banner, mbsMap = UIBuilder.new(uiData):buildUIWithData()</span>
+<span id="L1347" class="line"><a href="#L1347">1347</a>            banner:setAnchorPoint(ccp(0, 0))</span>
+<span id="L1348" class="line"><a href="#L1348">1348</a>            banner:setPositionXY(0, 0)</span>
+<span id="L1349" class="line"><a href="#L1349">1349</a></span>
+<span id="L1350" class="line"><a href="#L1350">1350</a>            local bannerNode = mbsMap and mbsMap.bannerNode or banner:findChildByName(&quot;bannerNode&quot;)</span>
+<span id="L1351" class="line"><a href="#L1351">1351</a>            if isSafeCocosObj(bannerNode) then</span>
+<span id="L1352" class="line"><a href="#L1352">1352</a>                local bg = UICreateUtil:createSpriteFile(&quot;amf/activity/bigvineskinact/materials/vineBannerBg.png&quot;, true)</span>
+<span id="L1353" class="line"><a href="#L1353">1353</a>                if bg then</span>
+<span id="L1354" class="line"><a href="#L1354">1354</a>                    bg:setAnchorPoint(ccp(0.5, 0.5))</span>
+<span id="L1355" class="line"><a href="#L1355">1355</a>                    bannerNode:addChild(bg)</span>
+<span id="L1356" class="line"><a href="#L1356">1356</a>                end</span>
+<span id="L1357" class="line"><a href="#L1357">1357</a>            end</span>
+<span id="L1358" class="line"><a href="#L1358">1358</a></span>
+<span id="L1359" class="line"><a href="#L1359">1359</a>            local timeText = mbsMap and mbsMap.timeText or banner:findChildByName(&quot;timeText&quot;)</span>
+<span id="L1360" class="line"><a href="#L1360">1360</a>            if isSafeCocosObj(timeText) then</span>
+<span id="L1361" class="line"><a href="#L1361">1361</a>                local TimeUtil = require &quot;amf.middleware.ui.util.TimeUtil&quot;</span>
+<span id="L1362" class="line"><a href="#L1362">1362</a>                TimeUtil:countDownLabel(timeText, TimeKit:tryConvertMsToSec(self:getModel():getMainEndTime()), nil, &quot;已结束&quot;, nil, YH_REF_MAP.noEarClock_t)</span>
+<span id="L1363" class="line"><a href="#L1363">1363</a>            end</span>
+<span id="L1364" class="line"><a href="#L1364">1364</a></span>
+<span id="L1365" class="line"><a href="#L1365">1365</a>            local btnPosNode = mbsMap and mbsMap.btnPosNode or banner:findChildByName(&quot;btnPosNode&quot;)</span>
+<span id="L1366" class="line"><a href="#L1366">1366</a>            if isSafeCocosObj(btnPosNode) then</span>
+<span id="L1367" class="line"><a href="#L1367">1367</a>                local UIButton = require &quot;amf.middleware.ui.kit.component.button.UIButton&quot;</span>
+<span id="L1368" class="line"><a href="#L1368">1368</a>                local btn = UIButton:createButton({</span>
+<span id="L1369" class="line"><a href="#L1369">1369</a>                    scaleMode = UIButtonConfig.BtnScales.k50,</span>
+<span id="L1370" class="line"><a href="#L1370">1370</a>                    str = &quot;去看看&quot;,</span>
+<span id="L1371" class="line"><a href="#L1371">1371</a>                    touchFunc = function()</span>
+<span id="L1372" class="line"><a href="#L1372">1372</a>                        if not self:checkMarkBannerEnable() then</span>
+<span id="L1373" class="line"><a href="#L1373">1373</a>                            CommonTip:showTip(self:getConst().actChName .. &quot;活动已结束!&quot;)</span>
+<span id="L1374" class="line"><a href="#L1374">1374</a>                            return</span>
+<span id="L1375" class="line"><a href="#L1375">1375</a>                        end</span>
+<span id="L1376" class="line"><a href="#L1376">1376</a>                        _G.amfBean(&quot;AutoPopupMgr&quot;):resetPopup()</span>
+<span id="L1377" class="line"><a href="#L1377">1377</a>                        MarkEventCenter:dispatch(MarkEvent.MARK_CLOSE)</span>
+<span id="L1378" class="line"><a href="#L1378">1378</a>                        self:openActivity(nil, {from = &quot;sign_in&quot;}, true)</span>
+<span id="L1379" class="line"><a href="#L1379">1379</a>                    end,</span>
+<span id="L1380" class="line"><a href="#L1380">1380</a>                })</span>
+<span id="L1381" class="line"><a href="#L1381">1381</a>                btnPosNode:addChild(btn)</span>
+<span id="L1382" class="line"><a href="#L1382">1382</a>            end</span>
+<span id="L1383" class="line"><a href="#L1383">1383</a></span>
+<span id="L1384" class="line"><a href="#L1384">1384</a>            return banner</span>
+<span id="L1385" class="line"><a href="#L1385">1385</a>        end, ccp(0, 2))</span>
+<span id="L1386" class="line"><a href="#L1386">1386</a>    table.insert(contextList, context)</span>
+<span id="L1387" class="line"><a href="#L1387">1387</a>end</span>
+<span id="L1388" class="line"><a href="#L1388">1388</a></span>
+<span id="L1389" class="line"><a href="#L1389">1389</a>function Manager:checkMarkBannerEnable()</span>
+<span id="L1390" class="line"><a href="#L1390">1390</a>    return self:isEnabled() and (not self:isLastRewardReceived())</span>
+<span id="L1391" class="line"><a href="#L1391">1391</a>end</span>
+<span id="L1392" class="line"><a href="#L1392">1392</a></span>
+<span id="L1393" class="line"><a href="#L1393">1393</a>function Manager:getActInfo()</span>
+<span id="L1394" class="line"><a href="#L1394">1394</a>    return _G.amfBean(&quot;ActivityMgr&quot;):getActInfo(self:getConst().actId)</span>
+<span id="L1395" class="line"><a href="#L1395">1395</a>end</span>
+<span id="L1396" class="line"><a href="#L1396">1396</a></span>
+<span id="L1397" class="line"><a href="#L1397">1397</a>-- 主icon数字</span>
+<span id="L1398" class="line"><a href="#L1398">1398</a>function Manager:getShowMsgNum()</span>
+<span id="L1399" class="line"><a href="#L1399">1399</a>    return self:getMsgNum()</span>
+<span id="L1400" class="line"><a href="#L1400">1400</a>end</span>
+<span id="L1401" class="line"><a href="#L1401">1401</a></span>
+<span id="L1402" class="line"><a href="#L1402">1402</a>function Manager:getMsgNum()</span>
+<span id="L1403" class="line"><a href="#L1403">1403</a>    return 0</span>
+<span id="L1404" class="line"><a href="#L1404">1404</a>end</span>
+<span id="L1405" class="line"><a href="#L1405">1405</a></span>
+<span id="L1406" class="line"><a href="#L1406">1406</a>function Manager:checkCanReward()</span>
+<span id="L1407" class="line"><a href="#L1407">1407</a>    if not self:isEnabled() then return false end</span>
+<span id="L1408" class="line"><a href="#L1408">1408</a>    return self:getMaxCanRewardTaskId() &gt; 0</span>
+<span id="L1409" class="line"><a href="#L1409">1409</a>end</span>
+<span id="L1410" class="line"><a href="#L1410">1410</a></span>
+<span id="L1411" class="line"><a href="#L1411">1411</a>function Manager:tryOpenGetRewardPanel(sucCallback, failCallback, checkSkinGuide)</span>
+<span id="L1412" class="line"><a href="#L1412">1412</a>    local rewardId = self:getMaxCanRewardTaskId()</span>
+<span id="L1413" class="line"><a href="#L1413">1413</a>    if rewardId &lt;= 0 then</span>
+<span id="L1414" class="line"><a href="#L1414">1414</a>        return false</span>
+<span id="L1415" class="line"><a href="#L1415">1415</a>    end</span>
+<span id="L1416" class="line"><a href="#L1416">1416</a></span>
+<span id="L1417" class="line"><a href="#L1417">1417</a>    local callback = sucCallback</span>
+<span id="L1418" class="line"><a href="#L1418">1418</a>    if checkSkinGuide then</span>
+<span id="L1419" class="line"><a href="#L1419">1419</a>        callback = function()</span>
+<span id="L1420" class="line"><a href="#L1420">1420</a>            if self:checkCanPopOwnedSkinGuide() then</span>
+<span id="L1421" class="line"><a href="#L1421">1421</a>                self:popOwnedSkinGuide(sucCallback)</span>
+<span id="L1422" class="line"><a href="#L1422">1422</a>            else</span>
+<span id="L1423" class="line"><a href="#L1423">1423</a>                safeRunCall(sucCallback)</span>
+<span id="L1424" class="line"><a href="#L1424">1424</a>            end</span>
+<span id="L1425" class="line"><a href="#L1425">1425</a>        end</span>
+<span id="L1426" class="line"><a href="#L1426">1426</a>    end</span>
+<span id="L1427" class="line"><a href="#L1427">1427</a></span>
+<span id="L1428" class="line"><a href="#L1428">1428</a>    -- 领奖成功应该设置actInfo没奖状态</span>
+<span id="L1429" class="line"><a href="#L1429">1429</a>    self:requestReward(rewardId, callback, failCallback)</span>
+<span id="L1430" class="line"><a href="#L1430">1430</a>    return true</span>
+<span id="L1431" class="line"><a href="#L1431">1431</a>end</span>
+<span id="L1432" class="line"><a href="#L1432">1432</a></span>
+<span id="L1433" class="line"><a href="#L1433">1433</a>function Manager:getRequestRewardDCRewardIndexString(rewardId)</span>
+<span id="L1434" class="line"><a href="#L1434">1434</a>    rewardId = tonumber(rewardId) or 0</span>
+<span id="L1435" class="line"><a href="#L1435">1435</a>    local rewardStates = self:getModel():getDataByKey(&quot;rewardStates&quot;, {}) or {}</span>
+<span id="L1436" class="line"><a href="#L1436">1436</a>    local rewardIndexList = {}</span>
+<span id="L1437" class="line"><a href="#L1437">1437</a></span>
+<span id="L1438" class="line"><a href="#L1438">1438</a>    for index, rewardState in ipairs(rewardStates) do</span>
+<span id="L1439" class="line"><a href="#L1439">1439</a>        local stateRewardId = tonumber(rewardState.rewardId) or index</span>
+<span id="L1440" class="line"><a href="#L1440">1440</a>        if stateRewardId &lt;= rewardId and tonumber(rewardState.status) == 1 then</span>
+<span id="L1441" class="line"><a href="#L1441">1441</a>            table.insert(rewardIndexList, tostring(index))</span>
+<span id="L1442" class="line"><a href="#L1442">1442</a>        end</span>
+<span id="L1443" class="line"><a href="#L1443">1443</a>    end</span>
+<span id="L1444" class="line"><a href="#L1444">1444</a></span>
+<span id="L1445" class="line"><a href="#L1445">1445</a>    if table.isEmpty(rewardIndexList) then return end</span>
+<span id="L1446" class="line"><a href="#L1446">1446</a>    return table.concat(rewardIndexList, &quot;_&quot;)</span>
+<span id="L1447" class="line"><a href="#L1447">1447</a>end</span>
+<span id="L1448" class="line"><a href="#L1448">1448</a></span>
+<span id="L1449" class="line"><a href="#L1449">1449</a>function Manager:requestReward(rewardId, successCallback, failCallback, closeActCallback)</span>
+<span id="L1450" class="line"><a href="#L1450">1450</a>    self:tryJoinDC()</span>
+<span id="L1451" class="line"><a href="#L1451">1451</a>    local rewardDCIndexString = self:getRequestRewardDCRewardIndexString(rewardId)</span>
+<span id="L1452" class="line"><a href="#L1452">1452</a>    if rewardDCIndexString then</span>
+<span id="L1453" class="line"><a href="#L1453">1453</a>        self:dc(&quot;vine_decorate&quot;, &quot;main_panel_reward&quot;, nil, rewardDCIndexString)</span>
+<span id="L1454" class="line"><a href="#L1454">1454</a>    end</span>
+<span id="L1455" class="line"><a href="#L1455">1455</a></span>
+<span id="L1456" class="line"><a href="#L1456">1456</a>    return self:getModel():requestReward({</span>
+<span id="L1457" class="line"><a href="#L1457">1457</a>        rewardId = rewardId,</span>
+<span id="L1458" class="line"><a href="#L1458">1458</a>    }):next(function(response)</span>
+<span id="L1459" class="line"><a href="#L1459">1459</a>        -- response.data: { rewardItems = { itemId, num, expireTime }, rewardStates = { { rewardId, needProgress, status }, ... } }</span>
+<span id="L1460" class="line"><a href="#L1460">1460</a>        local data = response:getData() or {}</span>
+<span id="L1461" class="line"><a href="#L1461">1461</a>        if data.rewardStates then</span>
+<span id="L1462" class="line"><a href="#L1462">1462</a>            self:getModel():setDataByKey(&quot;rewardStates&quot;, data.rewardStates)</span>
+<span id="L1463" class="line"><a href="#L1463">1463</a>        end</span>
+<span id="L1464" class="line"><a href="#L1464">1464</a>        self:callPlug(&quot;Act&quot;, &quot;updateTipView&quot;)</span>
+<span id="L1465" class="line"><a href="#L1465">1465</a></span>
+<span id="L1466" class="line"><a href="#L1466">1466</a>        if self:isLastRewardReceived() then</span>
+<span id="L1467" class="line"><a href="#L1467">1467</a>            self:removeActivityIcon()</span>
+<span id="L1468" class="line"><a href="#L1468">1468</a>        end</span>
+<span id="L1469" class="line"><a href="#L1469">1469</a></span>
+<span id="L1470" class="line"><a href="#L1470">1470</a>        local rewardItems = data.rewardItems or {}</span>
+<span id="L1471" class="line"><a href="#L1471">1471</a>        if not table.isEmpty(rewardItems) then</span>
+<span id="L1472" class="line"><a href="#L1472">1472</a>            self:callPlug(&quot;Rewards&quot;, &quot;addRewardsNormal&quot;, rewardItems, {</span>
+<span id="L1473" class="line"><a href="#L1473">1473</a>                dcExtra = {</span>
+<span id="L1474" class="line"><a href="#L1474">1474</a>                    dcFeature = self:getConst().dcFeature,</span>
+<span id="L1475" class="line"><a href="#L1475">1475</a>                    dcSource = &quot;main_panel_reward&quot;,</span>
+<span id="L1476" class="line"><a href="#L1476">1476</a>                },</span>
+<span id="L1477" class="line"><a href="#L1477">1477</a>            })</span>
+<span id="L1478" class="line"><a href="#L1478">1478</a></span>
+<span id="L1479" class="line"><a href="#L1479">1479</a>            local trialState = self:getTrialSkinState()</span>
+<span id="L1480" class="line"><a href="#L1480">1480</a>            if trialState then</span>
+<span id="L1481" class="line"><a href="#L1481">1481</a>                for _, reward in ipairs(rewardItems) do</span>
+<span id="L1482" class="line"><a href="#L1482">1482</a>                    if tonumber(reward.itemId) == trialState.skinId then</span>
+<span id="L1483" class="line"><a href="#L1483">1483</a>                        self:updateTrialUsingSkinState(trialState.skinId)</span>
+<span id="L1484" class="line"><a href="#L1484">1484</a>                        break</span>
+<span id="L1485" class="line"><a href="#L1485">1485</a>                    end</span>
+<span id="L1486" class="line"><a href="#L1486">1486</a>                end</span>
+<span id="L1487" class="line"><a href="#L1487">1487</a>            end</span>
+<span id="L1488" class="line"><a href="#L1488">1488</a>        end</span>
+<span id="L1489" class="line"><a href="#L1489">1489</a></span>
+<span id="L1490" class="line"><a href="#L1490">1490</a>        local rewardItem</span>
+<span id="L1491" class="line"><a href="#L1491">1491</a>        if not table.isEmpty(rewardItems) then</span>
+<span id="L1492" class="line"><a href="#L1492">1492</a>            rewardItem = table.clone(rewardItems[#rewardItems])</span>
+<span id="L1493" class="line"><a href="#L1493">1493</a>        end</span>
+<span id="L1494" class="line"><a href="#L1494">1494</a>        self:openGetVineSkinPanel({</span>
+<span id="L1495" class="line"><a href="#L1495">1495</a>            rewardItem = rewardItem,</span>
+<span id="L1496" class="line"><a href="#L1496">1496</a>            rewardId = rewardId,</span>
+<span id="L1497" class="line"><a href="#L1497">1497</a>            closeCallback = successCallback,</span>
+<span id="L1498" class="line"><a href="#L1498">1498</a>            shareCallback = function()</span>
+<span id="L1499" class="line"><a href="#L1499">1499</a>                self:setShareCloseAct(true)</span>
+<span id="L1500" class="line"><a href="#L1500">1500</a>                safeRunCall(closeActCallback)</span>
+<span id="L1501" class="line"><a href="#L1501">1501</a>            end,</span>
+<span id="L1502" class="line"><a href="#L1502">1502</a>            putOnCallback = function()</span>
+<span id="L1503" class="line"><a href="#L1503">1503</a>                self:setShareCloseAct(true)</span>
+<span id="L1504" class="line"><a href="#L1504">1504</a>                safeRunCall(closeActCallback)</span>
+<span id="L1505" class="line"><a href="#L1505">1505</a>            end,</span>
+<span id="L1506" class="line"><a href="#L1506">1506</a>        })</span>
+<span id="L1507" class="line"><a href="#L1507">1507</a>    end, function(response)</span>
+<span id="L1508" class="line"><a href="#L1508">1508</a>        if response and not response:isCancel() then</span>
+<span id="L1509" class="line"><a href="#L1509">1509</a>            CommonTip:showErrorTip(response)</span>
+<span id="L1510" class="line"><a href="#L1510">1510</a>        end</span>
+<span id="L1511" class="line"><a href="#L1511">1511</a>        safeRunCall(failCallback, response)</span>
+<span id="L1512" class="line"><a href="#L1512">1512</a>    end)</span>
+<span id="L1513" class="line"><a href="#L1513">1513</a>end</span>
+<span id="L1514" class="line"><a href="#L1514">1514</a></span>
+<span id="L1515" class="line"><a href="#L1515">1515</a>function Manager:createGetVineSkinPanel(delegate)</span>
+<span id="L1516" class="line"><a href="#L1516">1516</a>    local PanelVM = require &quot;amf.feature.localactivity.bigvineskinact.view.GetVineSkinPanelVM&quot;</span>
+<span id="L1517" class="line"><a href="#L1517">1517</a>    return PanelVM:create(delegate or {})</span>
+<span id="L1518" class="line"><a href="#L1518">1518</a>end</span>
+<span id="L1519" class="line"><a href="#L1519">1519</a></span>
+<span id="L1520" class="line"><a href="#L1520">1520</a>function Manager:openGetVineSkinPanel(delegate)</span>
+<span id="L1521" class="line"><a href="#L1521">1521</a>    local vm = self:createGetVineSkinPanel(delegate)</span>
+<span id="L1522" class="line"><a href="#L1522">1522</a>    vm:popout()</span>
+<span id="L1523" class="line"><a href="#L1523">1523</a>    return vm</span>
+<span id="L1524" class="line"><a href="#L1524">1524</a>end</span>
+<span id="L1525" class="line"><a href="#L1525">1525</a></span>
+<span id="L1526" class="line"><a href="#L1526">1526</a>function Manager:onActActInfoUpdate(event)</span>
+<span id="L1527" class="line"><a href="#L1527">1527</a>    local data = event:getData()</span>
+<span id="L1528" class="line"><a href="#L1528">1528</a>    local actInfos = data.actInfos or {}</span>
+<span id="L1529" class="line"><a href="#L1529">1529</a>    local fromServer = data.fromServer</span>
+<span id="L1530" class="line"><a href="#L1530">1530</a>    local actInfo = actInfos[tostring(self:getConst().actId)]</span>
+<span id="L1531" class="line"><a href="#L1531">1531</a>    if not (fromServer and actInfo) then return end</span>
+<span id="L1532" class="line"><a href="#L1532">1532</a></span>
+<span id="L1533" class="line"><a href="#L1533">1533</a>    if self:isEnabled() and actInfo.extra then</span>
+<span id="L1534" class="line"><a href="#L1534">1534</a>        local extra = type(actInfo.extra) == &quot;string&quot; and table.deserialize(actInfo.extra) or actInfo.extra</span>
+<span id="L1535" class="line"><a href="#L1535">1535</a>        if extra then</span>
+<span id="L1536" class="line"><a href="#L1536">1536</a>            if extra.progress then</span>
+<span id="L1537" class="line"><a href="#L1537">1537</a>                self:setProgress(extra.progress)</span>
+<span id="L1538" class="line"><a href="#L1538">1538</a>            end</span>
+<span id="L1539" class="line"><a href="#L1539">1539</a></span>
+<span id="L1540" class="line"><a href="#L1540">1540</a>            local doubleUsed = tonumber(extra.doubleUsed)</span>
+<span id="L1541" class="line"><a href="#L1541">1541</a>            local doubleTotal = tonumber(extra.doubleTotal)</span>
+<span id="L1542" class="line"><a href="#L1542">1542</a>            if doubleTotal then</span>
+<span id="L1543" class="line"><a href="#L1543">1543</a>                self:getModel():setDataByKey(&quot;dailyInfo.doubleTotal&quot;, doubleTotal)</span>
+<span id="L1544" class="line"><a href="#L1544">1544</a>            end</span>
+<span id="L1545" class="line"><a href="#L1545">1545</a>            if doubleUsed and doubleTotal then</span>
+<span id="L1546" class="line"><a href="#L1546">1546</a>                self:getModel():setDataByKey(&quot;dailyInfo.doubleRemain&quot;, math.max(doubleTotal - doubleUsed, 0))</span>
+<span id="L1547" class="line"><a href="#L1547">1547</a>            end</span>
+<span id="L1548" class="line"><a href="#L1548">1548</a></span>
+<span id="L1549" class="line"><a href="#L1549">1549</a>            local actInfoBehelpRemain = extra.beHelpedRemain or 1</span>
+<span id="L1550" class="line"><a href="#L1550">1550</a>            if actInfoBehelpRemain then</span>
+<span id="L1551" class="line"><a href="#L1551">1551</a>                self:getModel():setDataByKey(&quot;dailyInfo.beHelpedRemain&quot;, actInfoBehelpRemain)</span>
+<span id="L1552" class="line"><a href="#L1552">1552</a>            end</span>
+<span id="L1553" class="line"><a href="#L1553">1553</a>        end</span>
+<span id="L1554" class="line"><a href="#L1554">1554</a>    end</span>
+<span id="L1555" class="line"><a href="#L1555">1555</a></span>
+<span id="L1556" class="line"><a href="#L1556">1556</a>    if self:isEnabled2() and not self:isResEnabled() then</span>
+<span id="L1557" class="line"><a href="#L1557">1557</a>        self:callDownloadFunc(&quot;startDownload&quot;)</span>
+<span id="L1558" class="line"><a href="#L1558">1558</a>    end</span>
+<span id="L1559" class="line"><a href="#L1559">1559</a></span>
+<span id="L1560" class="line"><a href="#L1560">1560</a>    self:updateTipView()</span>
+<span id="L1561" class="line"><a href="#L1561">1561</a>end</span>
+<span id="L1562" class="line"><a href="#L1562">1562</a></span>
+<span id="L1563" class="line"><a href="#L1563">1563</a>function Manager:onActEnterMainScene(evt)</span>
+<span id="L1564" class="line"><a href="#L1564">1564</a>    if self:isEnabled2() and not self:isResEnabled() then</span>
+<span id="L1565" class="line"><a href="#L1565">1565</a>        self:callDownloadFunc(&quot;startDownload&quot;)</span>
+<span id="L1566" class="line"><a href="#L1566">1566</a>    end</span>
+<span id="L1567" class="line"><a href="#L1567">1567</a>    self:updateTipView()</span>
+<span id="L1568" class="line"><a href="#L1568">1568</a>end</span>
+<span id="L1569" class="line"><a href="#L1569">1569</a></span>
+<span id="L1570" class="line"><a href="#L1570">1570</a>function Manager:openActivity(closeCallback, extra, userClick)</span>
+<span id="L1571" class="line"><a href="#L1571">1571</a>    extra = extra or {}</span>
+<span id="L1572" class="line"><a href="#L1572">1572</a>    self:callPlug(&quot;Act&quot;, &quot;openActivity&quot;, {</span>
+<span id="L1573" class="line"><a href="#L1573">1573</a>        actId = self:getConst().actId,</span>
+<span id="L1574" class="line"><a href="#L1574">1574</a>        extra = extra,</span>
+<span id="L1575" class="line"><a href="#L1575">1575</a>        failCallback = closeCallback,</span>
+<span id="L1576" class="line"><a href="#L1576">1576</a>        endCallback = closeCallback,</span>
+<span id="L1577" class="line"><a href="#L1577">1577</a>        userClick = userClick,</span>
+<span id="L1578" class="line"><a href="#L1578">1578</a>    })</span>
+<span id="L1579" class="line"><a href="#L1579">1579</a>end</span>
+<span id="L1580" class="line"><a href="#L1580">1580</a></span>
+<span id="L1581" class="line"><a href="#L1581">1581</a>function Manager:putOnNewSkin(itemId, callback, dontQueryFlowerChange)</span>
+<span id="L1582" class="line"><a href="#L1582">1582</a>    local mgr = _G.amfBean(&quot;PersonalCenterManager&quot;)</span>
+<span id="L1583" class="line"><a href="#L1583">1583</a>    if not mgr then</span>
+<span id="L1584" class="line"><a href="#L1584">1584</a>        safeRunCall(callback)</span>
+<span id="L1585" class="line"><a href="#L1585">1585</a>        return</span>
+<span id="L1586" class="line"><a href="#L1586">1586</a>    end</span>
+<span id="L1587" class="line"><a href="#L1587">1587</a>    mgr:setVineSkinType(itemId, callback, dontQueryFlowerChange)</span>
+<span id="L1588" class="line"><a href="#L1588">1588</a>end</span>
+<span id="L1589" class="line"><a href="#L1589">1589</a></span>
+<span id="L1590" class="line"><a href="#L1590">1590</a>function Manager:getDoubleBuffNodeShowRemain()</span>
+<span id="L1591" class="line"><a href="#L1591">1591</a>    local remain = self:getDailyDoubleRemain()</span>
+<span id="L1592" class="line"><a href="#L1592">1592</a>    self:calNeedPlayHelpAnim()</span>
+<span id="L1593" class="line"><a href="#L1593">1593</a>    if self.needPlayHelpAnim then</span>
+<span id="L1594" class="line"><a href="#L1594">1594</a>        local helpDoubleTimes = tonumber(self:getModel():getConfigByKey(&quot;beHelpedDoubleTimes&quot;)) or 5</span>
+<span id="L1595" class="line"><a href="#L1595">1595</a>        remain = remain-helpDoubleTimes</span>
+<span id="L1596" class="line"><a href="#L1596">1596</a>    end</span>
+<span id="L1597" class="line"><a href="#L1597">1597</a>    if self.needPlayTopAnim then</span>
+<span id="L1598" class="line"><a href="#L1598">1598</a>        local extraDoubleTimes = tonumber(self:getModel():getConfigByKey(&quot;topPlayerExtraDailyDoubleTimes&quot;)) or 5</span>
+<span id="L1599" class="line"><a href="#L1599">1599</a>        remain = remain-extraDoubleTimes</span>
+<span id="L1600" class="line"><a href="#L1600">1600</a>    end</span>
+<span id="L1601" class="line"><a href="#L1601">1601</a>    return remain</span>
+<span id="L1602" class="line"><a href="#L1602">1602</a>end</span>
+<span id="L1603" class="line"><a href="#L1603">1603</a></span>
+<span id="L1604" class="line"><a href="#L1604">1604</a>function Manager:checkCanPopBonusAnim()</span>
+<span id="L1605" class="line"><a href="#L1605">1605</a>    if not self:isEnabled() then return false end</span>
+<span id="L1606" class="line"><a href="#L1606">1606</a>    self:calNeedPlayHelpAnim()</span>
+<span id="L1607" class="line"><a href="#L1607">1607</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L1608" class="line"><a href="#L1608">1608</a>        printx(42, &quot;checkCanPopBonusAnim help, top, doubledecrease&quot;, self.needPlayHelpAnim, self.needPlayTopAnim, tts(self._pendingDoubleBuffNodeDecrease))</span>
+<span id="L1609" class="line"><a href="#L1609">1609</a>    end</span>
+<span id="L1610" class="line"><a href="#L1610">1610</a>    return self.needPlayHelpAnim or self.needPlayTopAnim or self._pendingDoubleBuffNodeDecrease</span>
+<span id="L1611" class="line"><a href="#L1611">1611</a>end</span>
+<span id="L1612" class="line"><a href="#L1612">1612</a></span>
+<span id="L1613" class="line"><a href="#L1613">1613</a>function Manager:popBonusAnim(onPopOver)</span>
+<span id="L1614" class="line"><a href="#L1614">1614</a>    if not self:checkCanPopBonusAnim() then</span>
+<span id="L1615" class="line"><a href="#L1615">1615</a>        safeRunCall(onPopOver)</span>
+<span id="L1616" class="line"><a href="#L1616">1616</a>        return</span>
+<span id="L1617" class="line"><a href="#L1617">1617</a>    end</span>
+<span id="L1618" class="line"><a href="#L1618">1618</a></span>
+<span id="L1619" class="line"><a href="#L1619">1619</a>    self:loadDoubleBuffNodeRes(function()</span>
+<span id="L1620" class="line"><a href="#L1620">1620</a>        self:updateDoubleBuffNode(true, onPopOver)</span>
+<span id="L1621" class="line"><a href="#L1621">1621</a>    end, onPopOver)</span>
+<span id="L1622" class="line"><a href="#L1622">1622</a>end</span>
+<span id="L1623" class="line"><a href="#L1623">1623</a></span>
+<span id="L1624" class="line"><a href="#L1624">1624</a>function Manager:onHandlePassLevelBonusAnim(event)</span>
+<span id="L1625" class="line"><a href="#L1625">1625</a>    local function redeliver()</span>
+<span id="L1626" class="line"><a href="#L1626">1626</a>        event:redeliver()</span>
+<span id="L1627" class="line"><a href="#L1627">1627</a>    end</span>
+<span id="L1628" class="line"><a href="#L1628">1628</a></span>
+<span id="L1629" class="line"><a href="#L1629">1629</a>    if not self:checkCanPopBonusAnim() then</span>
+<span id="L1630" class="line"><a href="#L1630">1630</a>        redeliver()</span>
+<span id="L1631" class="line"><a href="#L1631">1631</a>        return</span>
+<span id="L1632" class="line"><a href="#L1632">1632</a>    end</span>
+<span id="L1633" class="line"><a href="#L1633">1633</a></span>
+<span id="L1634" class="line"><a href="#L1634">1634</a>    _G.amfBean(&quot;AutoPopupMgr&quot;):blockPassLevelSkip()</span>
+<span id="L1635" class="line"><a href="#L1635">1635</a>    self:popBonusAnim()</span>
+<span id="L1636" class="line"><a href="#L1636">1636</a></span>
+<span id="L1637" class="line"><a href="#L1637">1637</a>    local delayTime = 0</span>
+<span id="L1638" class="line"><a href="#L1638">1638</a>    if self._pendingDoubleBuffNodeDecrease then</span>
+<span id="L1639" class="line"><a href="#L1639">1639</a>        delayTime = delayTime + 1</span>
+<span id="L1640" class="line"><a href="#L1640">1640</a>    end</span>
+<span id="L1641" class="line"><a href="#L1641">1641</a>    if self.needPlayTopAnim then</span>
+<span id="L1642" class="line"><a href="#L1642">1642</a>        delayTime = delayTime + 2</span>
+<span id="L1643" class="line"><a href="#L1643">1643</a>    end</span>
+<span id="L1644" class="line"><a href="#L1644">1644</a>    if self.needPlayHelpAnim then</span>
+<span id="L1645" class="line"><a href="#L1645">1645</a>        delayTime = delayTime + 2</span>
+<span id="L1646" class="line"><a href="#L1646">1646</a>    end</span>
+<span id="L1647" class="line"><a href="#L1647">1647</a></span>
+<span id="L1648" class="line"><a href="#L1648">1648</a>    if delayTime &lt;= 0 then</span>
+<span id="L1649" class="line"><a href="#L1649">1649</a>        redeliver()</span>
+<span id="L1650" class="line"><a href="#L1650">1650</a>        return</span>
+<span id="L1651" class="line"><a href="#L1651">1651</a>    end</span>
+<span id="L1652" class="line"><a href="#L1652">1652</a></span>
+<span id="L1653" class="line"><a href="#L1653">1653</a>    setTimeOut(redeliver, delayTime)</span>
+<span id="L1654" class="line"><a href="#L1654">1654</a>end</span>
+<span id="L1655" class="line"><a href="#L1655">1655</a></span>
+<span id="L1656" class="line"><a href="#L1656">1656</a>return Manager</span></pre></main></html>

@@ -1,0 +1,66 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/activity/config/ActivityConst.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="6528d146bdf5.lua" download>下载Lua原文</a></p><h1>amf/middleware/activity/config/ActivityConst.lua</h1><p>SHA256 1abf94ec04b8218c370d4a99eeccde1122e04232ce67cb4d3cfcc736e63aa9f0</p><pre><span id="L1" class="line"><a href="#L1">1</a>ActivityConst = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>ActivityConst.ActState = {</span>
+<span id="L4" class="line"><a href="#L4">4</a>    INVALID = 0,    --非法/初始状态</span>
+<span id="L5" class="line"><a href="#L5">5</a>    WAITING = 1,    --未到活动开启时间</span>
+<span id="L6" class="line"><a href="#L6">6</a>    RUNNING = 2,    --活动运行中</span>
+<span id="L7" class="line"><a href="#L7">7</a>    EXPIRED = 3,    --活动已过期</span>
+<span id="L8" class="line"><a href="#L8">8</a>}</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>ActivityConst.ConfigError = {</span>
+<span id="L11" class="line"><a href="#L11">11</a>    OK = 0,</span>
+<span id="L12" class="line"><a href="#L12">12</a>    DOWNLOAD_ERROR = 1,</span>
+<span id="L13" class="line"><a href="#L13">13</a>    PARSE_ERROR = 2,</span>
+<span id="L14" class="line"><a href="#L14">14</a>}</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>--活动状态</span>
+<span id="L17" class="line"><a href="#L17">17</a>ActivityConst.ActivityPeriod = {</span>
+<span id="L18" class="line"><a href="#L18">18</a>    BEFORE_BEGIN = 1,</span>
+<span id="L19" class="line"><a href="#L19">19</a>    PREHEAT = 2,</span>
+<span id="L20" class="line"><a href="#L20">20</a>    MAIN = 3,</span>
+<span id="L21" class="line"><a href="#L21">21</a>    AWARD = 4,</span>
+<span id="L22" class="line"><a href="#L22">22</a>    END = 5</span>
+<span id="L23" class="line"><a href="#L23">23</a>}</span>
+<span id="L24" class="line"><a href="#L24">24</a></span>
+<span id="L25" class="line"><a href="#L25">25</a>ActivityConst.DownloadType = {</span>
+<span id="L26" class="line"><a href="#L26">26</a>    --下全部</span>
+<span id="L27" class="line"><a href="#L27">27</a>	COMPLETE = &quot;complete&quot;,</span>
+<span id="L28" class="line"><a href="#L28">28</a>	--下启动器(代码以及icon资源)  app端只下载Config.lua</span>
+<span id="L29" class="line"><a href="#L29">29</a>    LAUNCHER = &quot;launcher&quot;,</span>
+<span id="L30" class="line"><a href="#L30">30</a>    ICON = &quot;icon&quot;,</span>
+<span id="L31" class="line"><a href="#L31">31</a>    CODE = &quot;code&quot;,</span>
+<span id="L32" class="line"><a href="#L32">32</a>}</span>
+<span id="L33" class="line"><a href="#L33">33</a></span>
+<span id="L34" class="line"><a href="#L34">34</a>--liteStart的状态</span>
+<span id="L35" class="line"><a href="#L35">35</a>ActivityConst.LiteStartState = {</span>
+<span id="L36" class="line"><a href="#L36">36</a>	IGNORE = &quot;ignore&quot;,</span>
+<span id="L37" class="line"><a href="#L37">37</a>	NOT_YET = &quot;not_yet&quot;,</span>
+<span id="L38" class="line"><a href="#L38">38</a>	HANDLING = &quot;handling&quot;,</span>
+<span id="L39" class="line"><a href="#L39">39</a>	DONE = &quot;done&quot;,</span>
+<span id="L40" class="line"><a href="#L40">40</a>}</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>-- 强弹类型</span>
+<span id="L43" class="line"><a href="#L43">43</a>ActivityConst.PopType = {</span>
+<span id="L44" class="line"><a href="#L44">44</a>    MAIN_PANEL = 1,</span>
+<span id="L45" class="line"><a href="#L45">45</a>    CUSTOMIZE = 2,</span>
+<span id="L46" class="line"><a href="#L46">46</a>}</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>ActivityConst.PopLimit = {</span>
+<span id="L49" class="line"><a href="#L49">49</a>    MAIN_PANEL = 1,</span>
+<span id="L50" class="line"><a href="#L50">50</a>    CUSTOMIZE_STAGE_3 = 3,</span>
+<span id="L51" class="line"><a href="#L51">51</a>    CUSTOMIZE_STAGE_4 = 3,</span>
+<span id="L52" class="line"><a href="#L52">52</a>}</span>
+<span id="L53" class="line"><a href="#L53">53</a></span>
+<span id="L54" class="line"><a href="#L54">54</a>ActivityConst.UnityUseActivityConfigLocal = false</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>if not EnvUtil:isDevelopMode() then</span>
+<span id="L57" class="line"><a href="#L57">57</a>    ActivityConst.UnityUseActivityConfigLocal = false</span>
+<span id="L58" class="line"><a href="#L58">58</a>end</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>-- 微信开发者工具固定读取 activity_config_local.lua；人工开关用于其它调试环境强制走同一本地配置。</span>
+<span id="L61" class="line"><a href="#L61">61</a>-- 配置加载和版本选择必须共用该判定，避免本地配置误取 versionTJ* 等平台版本字段。</span>
+<span id="L62" class="line"><a href="#L62">62</a>function ActivityConst.shouldUseLocalActivityConfig()</span>
+<span id="L63" class="line"><a href="#L63">63</a>    return ActivityConst.UnityUseActivityConfigLocal or EnvUtil:isMiniGameDev()</span>
+<span id="L64" class="line"><a href="#L64">64</a>end</span>
+<span id="L65" class="line"><a href="#L65">65</a></span>
+<span id="L66" class="line"><a href="#L66">66</a>ActivityConst.ActivityConfigName = EnvUtil:isMiniGame() and &quot;activity_config_h5&quot; or &quot;activity_config2024&quot;</span></pre></main></html>

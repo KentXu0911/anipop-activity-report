@@ -1,0 +1,848 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/energyfund/EnergyFundManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="ccc9f6f8d1ee.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/energyfund/EnergyFundManager.lua</h1><p>SHA256 217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureManager = require &quot;amf.middleware.activity.base.BaseFeatureManager&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local PropEventCenter = require &quot;amf.middleware.prop.event.PropEventCenter&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local CircularTitle = require &quot;amf.middleware.ui.kit.component.CircularTitle&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local ProgressBar = require &quot;amf.middleware.ui.kit.component.ProgressBar&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local AsyncRunner = require &quot;amf.script.sugar.AsyncRunner&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>local Manager = class(&quot;EnergyFundManager&quot;, BaseFeatureManager)</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>-- 获取需要启动的额外功能列表</span>
+<span id="L11" class="line"><a href="#L11">11</a>function Manager:_getExtraPlugsConfigList()</span>
+<span id="L12" class="line"><a href="#L12">12</a>    return {{</span>
+<span id="L13" class="line"><a href="#L13">13</a>        key = &quot;Download&quot;</span>
+<span id="L14" class="line"><a href="#L14">14</a>    }, {</span>
+<span id="L15" class="line"><a href="#L15">15</a>        key = &quot;Panel&quot;</span>
+<span id="L16" class="line"><a href="#L16">16</a>    }, {</span>
+<span id="L17" class="line"><a href="#L17">17</a>        key = &quot;Rewards&quot;</span>
+<span id="L18" class="line"><a href="#L18">18</a>    }}</span>
+<span id="L19" class="line"><a href="#L19">19</a>end</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>function Manager:_getConstPath() return &quot;amf.feature.localactivity.energyfund.const.EnergyFundConst&quot; end</span>
+<span id="L22" class="line"><a href="#L22">22</a>function Manager:_getModelPath() return &quot;amf.feature.localactivity.energyfund.model.EnergyFundModel&quot; end</span>
+<span id="L23" class="line"><a href="#L23">23</a>function Manager:_getDCPath() return &quot;amf.feature.localactivity.energyfund.dc.EnergyFundDC&quot; end</span>
+<span id="L24" class="line"><a href="#L24">24</a></span>
+<span id="L25" class="line"><a href="#L25">25</a>function Manager:_init()</span>
+<span id="L26" class="line"><a href="#L26">26</a>    self._dc = require(self:_getDCPath())</span>
+<span id="L27" class="line"><a href="#L27">27</a>    _G.amfEC:registerFeature(self)</span>
+<span id="L28" class="line"><a href="#L28">28</a>    _G.amfEC:registerSystem(self)</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self:registerEvents()</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self:registerActProps()</span>
+<span id="L31" class="line"><a href="#L31">31</a>end</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>function Manager:setLevelAreaManager(levelAreaManager)</span>
+<span id="L34" class="line"><a href="#L34">34</a>    self._levelAreaManager = levelAreaManager</span>
+<span id="L35" class="line"><a href="#L35">35</a>end</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>function Manager:setUserEnergyManager(userEnergyManager)</span>
+<span id="L38" class="line"><a href="#L38">38</a>    self._userEnergyManager = userEnergyManager</span>
+<span id="L39" class="line"><a href="#L39">39</a>end</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>function Manager:setIconManager(iconManager)</span>
+<span id="L42" class="line"><a href="#L42">42</a>    self._iconManager = iconManager</span>
+<span id="L43" class="line"><a href="#L43">43</a>end</span>
+<span id="L44" class="line"><a href="#L44">44</a></span>
+<span id="L45" class="line"><a href="#L45">45</a>function Manager:registerActProps()</span>
+<span id="L46" class="line"><a href="#L46">46</a>    require(&quot;amf.feature.localactivity.energyfund.prop.AMFProp_58096&quot;)</span>
+<span id="L47" class="line"><a href="#L47">47</a>end</span>
+<span id="L48" class="line"><a href="#L48">48</a></span>
+<span id="L49" class="line"><a href="#L49">49</a>function Manager:getDC() return self._dc end</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>function Manager:registerEvents()</span>
+<span id="L52" class="line"><a href="#L52">52</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)</span>
+<span id="L53" class="line"><a href="#L53">53</a>    PropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)</span>
+<span id="L54" class="line"><a href="#L54">54</a>end</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>function Manager:updateData(data) </span>
+<span id="L57" class="line"><a href="#L57">57</a>    self:getModel():assignData(data) </span>
+<span id="L58" class="line"><a href="#L58">58</a>    self:refreshEnergy()</span>
+<span id="L59" class="line"><a href="#L59">59</a>end</span>
+<span id="L60" class="line"><a href="#L60">60</a></span>
+<span id="L61" class="line"><a href="#L61">61</a>function Manager:passDayRefreshData()</span>
+<span id="L62" class="line"><a href="#L62">62</a>    if not self:isEnabled() then return end</span>
+<span id="L63" class="line"><a href="#L63">63</a>    --todo</span>
+<span id="L64" class="line"><a href="#L64">64</a>end</span>
+<span id="L65" class="line"><a href="#L65">65</a>----------------------------------------------功能-------------------------------------------------------</span>
+<span id="L66" class="line"><a href="#L66">66</a></span>
+<span id="L67" class="line"><a href="#L67">67</a>function Manager:getPeriod()</span>
+<span id="L68" class="line"><a href="#L68">68</a>    if not self:isEnabled() then return 0 end</span>
+<span id="L69" class="line"><a href="#L69">69</a>    return self:getModel():getPeriod()</span>
+<span id="L70" class="line"><a href="#L70">70</a>end</span>
+<span id="L71" class="line"><a href="#L71">71</a></span>
+<span id="L72" class="line"><a href="#L72">72</a>function Manager:getIsInSpecialLevel()</span>
+<span id="L73" class="line"><a href="#L73">73</a>    if not self:isEnabled() then return false end</span>
+<span id="L74" class="line"><a href="#L74">74</a>    local passedTopLevel = self._levelAreaManager:getTopPassedLevel()</span>
+<span id="L75" class="line"><a href="#L75">75</a>    local specialLevel = self:getModel():getSpecialLevel()</span>
+<span id="L76" class="line"><a href="#L76">76</a>    return passedTopLevel &gt;= specialLevel</span>
+<span id="L77" class="line"><a href="#L77">77</a>end</span>
+<span id="L78" class="line"><a href="#L78">78</a></span>
+<span id="L79" class="line"><a href="#L79">79</a>function Manager:refreshEnergy()</span>
+<span id="L80" class="line"><a href="#L80">80</a>    self._userEnergyManager:refreshEnergy()</span>
+<span id="L81" class="line"><a href="#L81">81</a>    if UserLocalLogic then</span>
+<span id="L82" class="line"><a href="#L82">82</a>        UserLocalLogic:refreshEnergy()</span>
+<span id="L83" class="line"><a href="#L83">83</a>    end</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>    local energyButton</span>
+<span id="L86" class="line"><a href="#L86">86</a>    if HomeScene then</span>
+<span id="L87" class="line"><a href="#L87">87</a>        energyButton = HomeScene:sharedInstance().energyButton</span>
+<span id="L88" class="line"><a href="#L88">88</a>    else</span>
+<span id="L89" class="line"><a href="#L89">89</a>        local iconLayer = self._iconManager:getIconLayer()</span>
+<span id="L90" class="line"><a href="#L90">90</a>        energyButton = iconLayer and iconLayer.topButtonLayout and iconLayer.topButtonLayout.energyButton</span>
+<span id="L91" class="line"><a href="#L91">91</a>    end</span>
+<span id="L92" class="line"><a href="#L92">92</a>    </span>
+<span id="L93" class="line"><a href="#L93">93</a>    if energyButton then</span>
+<span id="L94" class="line"><a href="#L94">94</a>        energyButton:updateView()</span>
+<span id="L95" class="line"><a href="#L95">95</a>    end</span>
+<span id="L96" class="line"><a href="#L96">96</a>end</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>function Manager:setTodayCheckFirstPage()</span>
+<span id="L99" class="line"><a href="#L99">99</a>    self:setFlagToLocalByKey(&quot;todayCheckFirstPage&quot;, true, true)</span>
+<span id="L100" class="line"><a href="#L100">100</a>end</span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a>function Manager:getTodayCheckFirstPage()</span>
+<span id="L103" class="line"><a href="#L103">103</a>    return self:getFlagFromLocalByKey(&quot;todayCheckFirstPage&quot;, true)</span>
+<span id="L104" class="line"><a href="#L104">104</a>end</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>function Manager:hasRewardInDayIndex(dayIndex)</span>
+<span id="L107" class="line"><a href="#L107">107</a>    if not self:isEnabled() then return end</span>
+<span id="L108" class="line"><a href="#L108">108</a>    local tasks = self:getModel():getAllTaskInfo()</span>
+<span id="L109" class="line"><a href="#L109">109</a>    if not tasks then</span>
+<span id="L110" class="line"><a href="#L110">110</a>        return false</span>
+<span id="L111" class="line"><a href="#L111">111</a>    end</span>
+<span id="L112" class="line"><a href="#L112">112</a>    for k, v in pairs(tasks) do</span>
+<span id="L113" class="line"><a href="#L113">113</a>        if v.day == dayIndex then</span>
+<span id="L114" class="line"><a href="#L114">114</a>            if self:getModel():getTaskCanGetReward(v.id) then</span>
+<span id="L115" class="line"><a href="#L115">115</a>                return true</span>
+<span id="L116" class="line"><a href="#L116">116</a>            end</span>
+<span id="L117" class="line"><a href="#L117">117</a>        end</span>
+<span id="L118" class="line"><a href="#L118">118</a>    end</span>
+<span id="L119" class="line"><a href="#L119">119</a>    return false</span>
+<span id="L120" class="line"><a href="#L120">120</a>end</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>function Manager:hasRewardInMainTime()</span>
+<span id="L123" class="line"><a href="#L123">123</a>    if not self:isEnabled() then return end</span>
+<span id="L124" class="line"><a href="#L124">124</a>    for k = 1,7 do</span>
+<span id="L125" class="line"><a href="#L125">125</a>        if self:hasRewardInDayIndex(k) then</span>
+<span id="L126" class="line"><a href="#L126">126</a>            return true</span>
+<span id="L127" class="line"><a href="#L127">127</a>        end</span>
+<span id="L128" class="line"><a href="#L128">128</a>    end</span>
+<span id="L129" class="line"><a href="#L129">129</a>    return false</span>
+<span id="L130" class="line"><a href="#L130">130</a>end</span>
+<span id="L131" class="line"><a href="#L131">131</a></span>
+<span id="L132" class="line"><a href="#L132">132</a>function Manager:getExtraMaxEnergy()</span>
+<span id="L133" class="line"><a href="#L133">133</a>    return self:getModel():getExtraMaxEnergy()</span>
+<span id="L134" class="line"><a href="#L134">134</a>end</span>
+<span id="L135" class="line"><a href="#L135">135</a></span>
+<span id="L136" class="line"><a href="#L136">136</a>function Manager:hasBuyVip()</span>
+<span id="L137" class="line"><a href="#L137">137</a>    if not self:isEnabled() then return false end</span>
+<span id="L138" class="line"><a href="#L138">138</a>    return self:getModel():hasBuyVip()</span>
+<span id="L139" class="line"><a href="#L139">139</a>end</span>
+<span id="L140" class="line"><a href="#L140">140</a></span>
+<span id="L141" class="line"><a href="#L141">141</a>function Manager:getDayFromActOpen()</span>
+<span id="L142" class="line"><a href="#L142">142</a>    if not self:isEnabled() then return 0 end</span>
+<span id="L143" class="line"><a href="#L143">143</a>    return self:getModel():getDayFromActOpen()</span>
+<span id="L144" class="line"><a href="#L144">144</a>end</span>
+<span id="L145" class="line"><a href="#L145">145</a></span>
+<span id="L146" class="line"><a href="#L146">146</a>----领奖期间是否有奖励</span>
+<span id="L147" class="line"><a href="#L147">147</a>function Manager:hasRewardInAwardTime()</span>
+<span id="L148" class="line"><a href="#L148">148</a>    if not self:isEnabled() then return end</span>
+<span id="L149" class="line"><a href="#L149">149</a>    if not self:isInRewardTime() then</span>
+<span id="L150" class="line"><a href="#L150">150</a>        return false</span>
+<span id="L151" class="line"><a href="#L151">151</a>    end</span>
+<span id="L152" class="line"><a href="#L152">152</a>    local hasRewards = self:getDataByKey(&quot;canPostReward&quot;)</span>
+<span id="L153" class="line"><a href="#L153">153</a>    if self:getDataByKey(&quot;exchangeRewardGot&quot;) then ---已经领过奖了</span>
+<span id="L154" class="line"><a href="#L154">154</a>        return false</span>
+<span id="L155" class="line"><a href="#L155">155</a>    elseif hasRewards then ---领奖期间有奖励</span>
+<span id="L156" class="line"><a href="#L156">156</a>        return true</span>
+<span id="L157" class="line"><a href="#L157">157</a>    else</span>
+<span id="L158" class="line"><a href="#L158">158</a>        return false</span>
+<span id="L159" class="line"><a href="#L159">159</a>    end</span>
+<span id="L160" class="line"><a href="#L160">160</a>end</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>function Manager:setHasGetRewardInAwardTime()</span>
+<span id="L163" class="line"><a href="#L163">163</a>    if not self:isEnabled() then return end</span>
+<span id="L164" class="line"><a href="#L164">164</a>    self:getModel():setDataByKey(&quot;exchangeRewardGot&quot;,true)</span>
+<span id="L165" class="line"><a href="#L165">165</a>end</span>
+<span id="L166" class="line"><a href="#L166">166</a></span>
+<span id="L167" class="line"><a href="#L167">167</a>function Manager:getAllTaskInfo()</span>
+<span id="L168" class="line"><a href="#L168">168</a>    return self:getModel():getAllTaskInfo()</span>
+<span id="L169" class="line"><a href="#L169">169</a>end</span>
+<span id="L170" class="line"><a href="#L170">170</a></span>
+<span id="L171" class="line"><a href="#L171">171</a>function Manager:getTaskInfo(taskId)</span>
+<span id="L172" class="line"><a href="#L172">172</a>    return self:getModel():getTaskInfo(taskId)</span>
+<span id="L173" class="line"><a href="#L173">173</a>end</span>
+<span id="L174" class="line"><a href="#L174">174</a></span>
+<span id="L175" class="line"><a href="#L175">175</a>function Manager:setTaskInfo(taskId, data)</span>
+<span id="L176" class="line"><a href="#L176">176</a>    self:getModel():setTaskInfo(taskId, data)</span>
+<span id="L177" class="line"><a href="#L177">177</a>end</span>
+<span id="L178" class="line"><a href="#L178">178</a></span>
+<span id="L179" class="line"><a href="#L179">179</a>function Manager:showIconTip(delegate,done)</span>
+<span id="L180" class="line"><a href="#L180">180</a>    </span>
+<span id="L181" class="line"><a href="#L181">181</a>    if not _G.HomeIconTipsFactory then</span>
+<span id="L182" class="line"><a href="#L182">182</a>        safeRunCall(done)</span>
+<span id="L183" class="line"><a href="#L183">183</a>        return</span>
+<span id="L184" class="line"><a href="#L184">184</a>    end</span>
+<span id="L185" class="line"><a href="#L185">185</a></span>
+<span id="L186" class="line"><a href="#L186">186</a>    local icon = self.actPlug:getActIcon()</span>
+<span id="L187" class="line"><a href="#L187">187</a>    if icon then</span>
+<span id="L188" class="line"><a href="#L188">188</a>        if delegate.type == self:getConst().showTipType.kShowTipType_Get then</span>
+<span id="L189" class="line"><a href="#L189">189</a>            _G.HomeIconTipsFactory:createTextTips(icon,&quot;有可领取的奖励哦!&quot;,{</span>
+<span id="L190" class="line"><a href="#L190">190</a>                duration = 3,</span>
+<span id="L191" class="line"><a href="#L191">191</a>                endCallback = done})</span>
+<span id="L192" class="line"><a href="#L192">192</a>        elseif delegate.type == self:getConst().showTipType.kShowTipType_Energy then</span>
+<span id="L193" class="line"><a href="#L193">193</a>            _G.HomeIconTipsFactory:createTextTips(icon,&quot;过关可领大量精力!&quot;,{duration = 3,</span>
+<span id="L194" class="line"><a href="#L194">194</a>                endCallback = done})</span>
+<span id="L195" class="line"><a href="#L195">195</a>        elseif delegate.type == self:getConst().showTipType.kShowTipType_NotFull then</span>
+<span id="L196" class="line"><a href="#L196">196</a>            _G.HomeIconTipsFactory:createProgressTips(icon,{</span>
+<span id="L197" class="line"><a href="#L197">197</a>                min = 0,</span>
+<span id="L198" class="line"><a href="#L198">198</a>                max = delegate.max,</span>
+<span id="L199" class="line"><a href="#L199">199</a>                targetValue = delegate.max,</span>
+<span id="L200" class="line"><a href="#L200">200</a>                value = delegate.value,</span>
+<span id="L201" class="line"><a href="#L201">201</a>                labelPrefixes = self:getIsInSpecialLevel() and &quot;完成关卡:&quot; or &quot;闯最高关:&quot;,</span>
+<span id="L202" class="line"><a href="#L202">202</a>                progressChangeTime = 1,</span>
+<span id="L203" class="line"><a href="#L203">203</a>                textMode = ProgressBar.TextMode.kFrection,</span>
+<span id="L204" class="line"><a href="#L204">204</a>                endCallback = done</span>
+<span id="L205" class="line"><a href="#L205">205</a>            })</span>
+<span id="L206" class="line"><a href="#L206">206</a>        elseif delegate.type == self:getConst().showTipType.kShowTipType_Full then</span>
+<span id="L207" class="line"><a href="#L207">207</a>            _G.HomeIconTipsFactory:createProgressTips(icon,{</span>
+<span id="L208" class="line"><a href="#L208">208</a>                min = 0,</span>
+<span id="L209" class="line"><a href="#L209">209</a>                max = delegate.max,</span>
+<span id="L210" class="line"><a href="#L210">210</a>                targetValue = delegate.max,</span>
+<span id="L211" class="line"><a href="#L211">211</a>                value = delegate.value,</span>
+<span id="L212" class="line"><a href="#L212">212</a>                labelPrefixes = &quot;补彩星:&quot;,</span>
+<span id="L213" class="line"><a href="#L213">213</a>                progressChangeTime = 1,</span>
+<span id="L214" class="line"><a href="#L214">214</a>                textMode = ProgressBar.TextMode.kFrection,</span>
+<span id="L215" class="line"><a href="#L215">215</a>                endCallback = done</span>
+<span id="L216" class="line"><a href="#L216">216</a>            })</span>
+<span id="L217" class="line"><a href="#L217">217</a>        elseif delegate.type == self:getConst().showTipType.kShowTipType_Random then</span>
+<span id="L218" class="line"><a href="#L218">218</a>            _G.HomeIconTipsFactory:createProgressTips(icon,{</span>
+<span id="L219" class="line"><a href="#L219">219</a>                min = 0,</span>
+<span id="L220" class="line"><a href="#L220">220</a>                max = delegate.max,</span>
+<span id="L221" class="line"><a href="#L221">221</a>                targetValue = delegate.max,</span>
+<span id="L222" class="line"><a href="#L222">222</a>                value = delegate.value,</span>
+<span id="L223" class="line"><a href="#L223">223</a>                labelPrefixes = &quot;随机挑战:&quot;,</span>
+<span id="L224" class="line"><a href="#L224">224</a>                progressChangeTime = 1,</span>
+<span id="L225" class="line"><a href="#L225">225</a>                textMode = ProgressBar.TextMode.kFrection,</span>
+<span id="L226" class="line"><a href="#L226">226</a>                endCallback = done</span>
+<span id="L227" class="line"><a href="#L227">227</a>            })</span>
+<span id="L228" class="line"><a href="#L228">228</a>        else</span>
+<span id="L229" class="line"><a href="#L229">229</a>            safeRunCall(done)</span>
+<span id="L230" class="line"><a href="#L230">230</a>        end</span>
+<span id="L231" class="line"><a href="#L231">231</a>    else</span>
+<span id="L232" class="line"><a href="#L232">232</a>        safeRunCall(done)</span>
+<span id="L233" class="line"><a href="#L233">233</a>    end</span>
+<span id="L234" class="line"><a href="#L234">234</a>end</span>
+<span id="L235" class="line"><a href="#L235">235</a></span>
+<span id="L236" class="line"><a href="#L236">236</a>----------------------------------------------事件-------------------------------------------------------</span>
+<span id="L237" class="line"><a href="#L237">237</a>function Manager:onActPassDay()</span>
+<span id="L238" class="line"><a href="#L238">238</a>    BaseFeatureManager.onActPassDay(self)</span>
+<span id="L239" class="line"><a href="#L239">239</a>    self:updateIcon()</span>
+<span id="L240" class="line"><a href="#L240">240</a>    self:refreshEnergy()</span>
+<span id="L241" class="line"><a href="#L241">241</a>end</span>
+<span id="L242" class="line"><a href="#L242">242</a></span>
+<span id="L243" class="line"><a href="#L243">243</a>function Manager:checkAndRunEnterStage2()</span>
+<span id="L244" class="line"><a href="#L244">244</a>    if self:canPopOnStage2() then</span>
+<span id="L245" class="line"><a href="#L245">245</a>        self:popOnStage2()</span>
+<span id="L246" class="line"><a href="#L246">246</a>    end</span>
+<span id="L247" class="line"><a href="#L247">247</a>end</span>
+<span id="L248" class="line"><a href="#L248">248</a></span>
+<span id="L249" class="line"><a href="#L249">249</a>function Manager:onActEnterStage2(evt)</span>
+<span id="L250" class="line"><a href="#L250">250</a>    if not self:isEnabled2() then</span>
+<span id="L251" class="line"><a href="#L251">251</a>        return</span>
+<span id="L252" class="line"><a href="#L252">252</a>    end</span>
+<span id="L253" class="line"><a href="#L253">253</a></span>
+<span id="L254" class="line"><a href="#L254">254</a>    self:updateIcon()</span>
+<span id="L255" class="line"><a href="#L255">255</a>    self:checkAndRunEnterStage2()</span>
+<span id="L256" class="line"><a href="#L256">256</a>end</span>
+<span id="L257" class="line"><a href="#L257">257</a></span>
+<span id="L258" class="line"><a href="#L258">258</a>function Manager:onActEnterMainScene(event)</span>
+<span id="L259" class="line"><a href="#L259">259</a>    local data = event:getData()</span>
+<span id="L260" class="line"><a href="#L260">260</a>    if data.firstEnter then</span>
+<span id="L261" class="line"><a href="#L261">261</a>        local maxEnergy = self._userEnergyManager:getMaxEnergy()</span>
+<span id="L262" class="line"><a href="#L262">262</a>        self:getDC():dcLogin(maxEnergy)</span>
+<span id="L263" class="line"><a href="#L263">263</a>    end</span>
+<span id="L264" class="line"><a href="#L264">264</a>end</span>
+<span id="L265" class="line"><a href="#L265">265</a></span>
+<span id="L266" class="line"><a href="#L266">266</a>function Manager:onActActInfoUpdate(event)</span>
+<span id="L267" class="line"><a href="#L267">267</a>    local data = event:getData()</span>
+<span id="L268" class="line"><a href="#L268">268</a>    local actInfos = data.actInfos or {}</span>
+<span id="L269" class="line"><a href="#L269">269</a>    local fromServer = data.fromServer</span>
+<span id="L270" class="line"><a href="#L270">270</a>    local actInfo = actInfos[tostring(self:getConst().actId)]</span>
+<span id="L271" class="line"><a href="#L271">271</a></span>
+<span id="L272" class="line"><a href="#L272">272</a>    if actInfo and fromServer then </span>
+<span id="L273" class="line"><a href="#L273">273</a>        self:getModel():assignActInfo(actInfo) </span>
+<span id="L274" class="line"><a href="#L274">274</a>        self:refreshEnergy()</span>
+<span id="L275" class="line"><a href="#L275">275</a>    end</span>
+<span id="L276" class="line"><a href="#L276">276</a>end</span>
+<span id="L277" class="line"><a href="#L277">277</a></span>
+<span id="L278" class="line"><a href="#L278">278</a>function Manager:onActBeforePlayLevelEnd(event)</span>
+<span id="L279" class="line"><a href="#L279">279</a>    if not self:isEnabled2() then return end</span>
+<span id="L280" class="line"><a href="#L280">280</a></span>
+<span id="L281" class="line"><a href="#L281">281</a>    local data = event:getData()</span>
+<span id="L282" class="line"><a href="#L282">282</a>    local sourceId = self:getConst().actId</span>
+<span id="L283" class="line"><a href="#L283">283</a>    data.jsonTable[tostring(sourceId)] = {fullLevel = self:getIsInSpecialLevel()}</span>
+<span id="L284" class="line"><a href="#L284">284</a>end</span>
+<span id="L285" class="line"><a href="#L285">285</a></span>
+<span id="L286" class="line"><a href="#L286">286</a>function Manager:onActPlayLevelEnd(event)</span>
+<span id="L287" class="line"><a href="#L287">287</a>    if not self:isEnabled2() then return end</span>
+<span id="L288" class="line"><a href="#L288">288</a></span>
+<span id="L289" class="line"><a href="#L289">289</a>    local data = event:getData()</span>
+<span id="L290" class="line"><a href="#L290">290</a>    self:getModel():setTempData(&quot;nowLevelIsPassed&quot;, data.isWin)</span>
+<span id="L291" class="line"><a href="#L291">291</a></span>
+<span id="L292" class="line"><a href="#L292">292</a>    local startLevelType = self:getModel():getTempData(&quot;startLevelType&quot;) </span>
+<span id="L293" class="line"><a href="#L293">293</a>    if not startLevelType or not data.isWin then return end</span>
+<span id="L294" class="line"><a href="#L294">294</a>    if startLevelType == self:getConst().startLevelType.UnfinishedStarLevel and data.star ~= 4 then return end</span>
+<span id="L295" class="line"><a href="#L295">295</a></span>
+<span id="L296" class="line"><a href="#L296">296</a>    local taskList = self:getModel():getAllTaskInfo()</span>
+<span id="L297" class="line"><a href="#L297">297</a>    for k, v in pairs(taskList) do</span>
+<span id="L298" class="line"><a href="#L298">298</a>        if v.taskType == self:getConst().taskType.kComplete</span>
+<span id="L299" class="line"><a href="#L299">299</a>            and v.current &lt; v.total </span>
+<span id="L300" class="line"><a href="#L300">300</a>        then</span>
+<span id="L301" class="line"><a href="#L301">301</a>            v.current = v.current + 1</span>
+<span id="L302" class="line"><a href="#L302">302</a>        end</span>
+<span id="L303" class="line"><a href="#L303">303</a>    end</span>
+<span id="L304" class="line"><a href="#L304">304</a>    self:getModel():setAllTaskInfo(taskList)</span>
+<span id="L305" class="line"><a href="#L305">305</a>end</span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>function Manager:onActBeforeStartLevel(event)</span>
+<span id="L308" class="line"><a href="#L308">308</a>    if not self:isEnabled2() then return end</span>
+<span id="L309" class="line"><a href="#L309">309</a></span>
+<span id="L310" class="line"><a href="#L310">310</a>    local data = event:getData()</span>
+<span id="L311" class="line"><a href="#L311">311</a>    local levelId = data.levelId</span>
+<span id="L312" class="line"><a href="#L312">312</a>    local levelScene = data.levelScene</span>
+<span id="L313" class="line"><a href="#L313">313</a></span>
+<span id="L314" class="line"><a href="#L314">314</a>    self:getModel():setTempData(&quot;startLevelType&quot;, nil)</span>
+<span id="L315" class="line"><a href="#L315">315</a></span>
+<span id="L316" class="line"><a href="#L316">316</a>    if not UBFLevelSceneFunc:isMainLevel(levelScene) and not UBFLevelSceneFunc:isFullLevelLib(levelScene) then</span>
+<span id="L317" class="line"><a href="#L317">317</a>        return</span>
+<span id="L318" class="line"><a href="#L318">318</a>    end</span>
+<span id="L319" class="line"><a href="#L319">319</a></span>
+<span id="L320" class="line"><a href="#L320">320</a>    local topLevelId = self._levelAreaManager:getTopPassedLevel()</span>
+<span id="L321" class="line"><a href="#L321">321</a>    if topLevelId + 1 == levelId then---没有满级且闯关和最高关相同：最高关</span>
+<span id="L322" class="line"><a href="#L322">322</a>        self:getModel():setTempData(&quot;startLevelType&quot;, self:getConst().startLevelType.TopLevel)</span>
+<span id="L323" class="line"><a href="#L323">323</a>    elseif self:getIsInSpecialLevel() then</span>
+<span id="L324" class="line"><a href="#L324">324</a>        if UBFLevelSceneFunc:isFullLevelLib(levelScene) then---是关卡库</span>
+<span id="L325" class="line"><a href="#L325">325</a>            self:getModel():setTempData(&quot;startLevelType&quot;, self:getConst().startLevelType.LevelLib)</span>
+<span id="L326" class="line"><a href="#L326">326</a>        elseif not self._levelAreaManager:isMainLevelFullColor(levelId) then----去补星</span>
+<span id="L327" class="line"><a href="#L327">327</a>            self:getModel():setTempData(&quot;startLevelType&quot;, self:getConst().startLevelType.UnfinishedStarLevel)</span>
+<span id="L328" class="line"><a href="#L328">328</a>        end</span>
+<span id="L329" class="line"><a href="#L329">329</a>    end</span>
+<span id="L330" class="line"><a href="#L330">330</a></span>
+<span id="L331" class="line"><a href="#L331">331</a>    if self:getModel():getTempData(&quot;startLevelType&quot;) then</span>
+<span id="L332" class="line"><a href="#L332">332</a>        local taskList = self:getModel():getAllTaskInfo()</span>
+<span id="L333" class="line"><a href="#L333">333</a>        for k, v in pairs(taskList) do</span>
+<span id="L334" class="line"><a href="#L334">334</a>            if v.taskType == self:getConst().taskType.kBeginTry </span>
+<span id="L335" class="line"><a href="#L335">335</a>                and v.current &lt; v.total </span>
+<span id="L336" class="line"><a href="#L336">336</a>            then</span>
+<span id="L337" class="line"><a href="#L337">337</a>                v.current = v.current + 1</span>
+<span id="L338" class="line"><a href="#L338">338</a>            end</span>
+<span id="L339" class="line"><a href="#L339">339</a>        end</span>
+<span id="L340" class="line"><a href="#L340">340</a>        self:getModel():setAllTaskInfo(taskList)</span>
+<span id="L341" class="line"><a href="#L341">341</a>    end</span>
+<span id="L342" class="line"><a href="#L342">342</a>    </span>
+<span id="L343" class="line"><a href="#L343">343</a>    local sourceId = self:getConst().actId</span>
+<span id="L344" class="line"><a href="#L344">344</a>    data.jsonTable[tostring(sourceId)] = {fullLevel = self:getIsInSpecialLevel()}</span>
+<span id="L345" class="line"><a href="#L345">345</a>end</span>
+<span id="L346" class="line"><a href="#L346">346</a></span>
+<span id="L347" class="line"><a href="#L347">347</a>function Manager:onActCrashResumeFailed(event)</span>
+<span id="L348" class="line"><a href="#L348">348</a>    -- if not self:isEnabled() then return end</span>
+<span id="L349" class="line"><a href="#L349">349</a>    </span>
+<span id="L350" class="line"><a href="#L350">350</a>end</span>
+<span id="L351" class="line"><a href="#L351">351</a></span>
+<span id="L352" class="line"><a href="#L352">352</a>function Manager:onActReceiveEmergency(evt)</span>
+<span id="L353" class="line"><a href="#L353">353</a>    -- local eventData = evt:getData()</span>
+<span id="L354" class="line"><a href="#L354">354</a></span>
+<span id="L355" class="line"><a href="#L355">355</a>    -- if eventData and eventData.endPoint == EmergencyConst.MAGIC_1V1_EVENT_BEAN and eventData.data then</span>
+<span id="L356" class="line"><a href="#L356">356</a>    --     local cacheData = table.clone(eventData.data)</span>
+<span id="L357" class="line"><a href="#L357">357</a>    --     local score = cacheData.enemyScore</span>
+<span id="L358" class="line"><a href="#L358">358</a></span>
+<span id="L359" class="line"><a href="#L359">359</a>    --     if score then</span>
+<span id="L360" class="line"><a href="#L360">360</a>    --         self:getModel():setEnemyScore(score)</span>
+<span id="L361" class="line"><a href="#L361">361</a>    --         -- 更新Icon</span>
+<span id="L362" class="line"><a href="#L362">362</a>    --         self:updateIcon()</span>
+<span id="L363" class="line"><a href="#L363">363</a>    --     end</span>
+<span id="L364" class="line"><a href="#L364">364</a>    -- end</span>
+<span id="L365" class="line"><a href="#L365">365</a>end</span>
+<span id="L366" class="line"><a href="#L366">366</a></span>
+<span id="L367" class="line"><a href="#L367">367</a>----------------------------------------------通用-------------------------------------------------------</span>
+<span id="L368" class="line"><a href="#L368">368</a>function Manager:isEnabled() </span>
+<span id="L369" class="line"><a href="#L369">369</a>    return self:getModel():isDataEnabled() and (self:isInMainTime() or self:isInRewardTime())</span>
+<span id="L370" class="line"><a href="#L370">370</a>end</span>
+<span id="L371" class="line"><a href="#L371">371</a></span>
+<span id="L372" class="line"><a href="#L372">372</a>function Manager:isEnabled2()</span>
+<span id="L373" class="line"><a href="#L373">373</a>    return self:getModel():isDataEnabled() and self:isInMainTime()</span>
+<span id="L374" class="line"><a href="#L374">374</a>end</span>
+<span id="L375" class="line"><a href="#L375">375</a></span>
+<span id="L376" class="line"><a href="#L376">376</a>function Manager:getBeginTime() return self:getModel():getBeginTime() end</span>
+<span id="L377" class="line"><a href="#L377">377</a></span>
+<span id="L378" class="line"><a href="#L378">378</a>function Manager:getEndTime() return self:getModel():getEndTime() end</span>
+<span id="L379" class="line"><a href="#L379">379</a></span>
+<span id="L380" class="line"><a href="#L380">380</a>function Manager:getMainBeginTime() return self:getModel():getMainBeginTime() end</span>
+<span id="L381" class="line"><a href="#L381">381</a></span>
+<span id="L382" class="line"><a href="#L382">382</a>function Manager:getMainEndTime() return self:getModel():getMainEndTime() end</span>
+<span id="L383" class="line"><a href="#L383">383</a></span>
+<span id="L384" class="line"><a href="#L384">384</a>function Manager:isInMainTime() return self:getModel():isInMainTime() end</span>
+<span id="L385" class="line"><a href="#L385">385</a></span>
+<span id="L386" class="line"><a href="#L386">386</a>function Manager:isInRewardTime() return self:getModel():isInRewardTime() end</span>
+<span id="L387" class="line"><a href="#L387">387</a></span>
+<span id="L388" class="line"><a href="#L388">388</a>function Manager:getMatchEndTime() </span>
+<span id="L389" class="line"><a href="#L389">389</a>    if not self:isRacing() then return 0 end</span>
+<span id="L390" class="line"><a href="#L390">390</a>    return self:getModel():getMatchEndTime() </span>
+<span id="L391" class="line"><a href="#L391">391</a>end</span>
+<span id="L392" class="line"><a href="#L392">392</a></span>
+<span id="L393" class="line"><a href="#L393">393</a>function Manager:isLastDay() return self:getModel():isLastDay() end</span>
+<span id="L394" class="line"><a href="#L394">394</a></span>
+<span id="L395" class="line"><a href="#L395">395</a>function Manager:getDataByKey(key) return self:getModel():getDataByKey(key) end</span>
+<span id="L396" class="line"><a href="#L396">396</a>function Manager:setDataByKey(key, value) return self:getModel():setDataByKey(key, value, true) end</span>
+<span id="L397" class="line"><a href="#L397">397</a></span>
+<span id="L398" class="line"><a href="#L398">398</a>function Manager:getConfigByKey(key) return self:getModel():getConfigByKey(key) end</span>
+<span id="L399" class="line"><a href="#L399">399</a></span>
+<span id="L400" class="line"><a href="#L400">400</a>function Manager:getLocalCache(key, defaultValue) return self:getModel():getLocalCache(key, defaultValue) end</span>
+<span id="L401" class="line"><a href="#L401">401</a></span>
+<span id="L402" class="line"><a href="#L402">402</a>function Manager:setLocalCache(key, value) return self:getModel():setLocalCache(key, value) end</span>
+<span id="L403" class="line"><a href="#L403">403</a></span>
+<span id="L404" class="line"><a href="#L404">404</a>function Manager:getLocalKey(key,needTime)</span>
+<span id="L405" class="line"><a href="#L405">405</a>    if needTime then </span>
+<span id="L406" class="line"><a href="#L406">406</a>        return key .. tostring(TimeKit:getDayStartTimeByTS(TimeKit:timeInSec()))</span>
+<span id="L407" class="line"><a href="#L407">407</a>    else</span>
+<span id="L408" class="line"><a href="#L408">408</a>        return key </span>
+<span id="L409" class="line"><a href="#L409">409</a>    end </span>
+<span id="L410" class="line"><a href="#L410">410</a>end</span>
+<span id="L411" class="line"><a href="#L411">411</a></span>
+<span id="L412" class="line"><a href="#L412">412</a>function Manager:setFlagToLocalByKey(key, needTime, value)</span>
+<span id="L413" class="line"><a href="#L413">413</a>    if not key then return end</span>
+<span id="L414" class="line"><a href="#L414">414</a>    if value == nil then value = true end</span>
+<span id="L415" class="line"><a href="#L415">415</a>    local keyStr = self:getLocalKey(key,needTime)</span>
+<span id="L416" class="line"><a href="#L416">416</a>    self:getModel():setLocalCache(keyStr, value)</span>
+<span id="L417" class="line"><a href="#L417">417</a>end</span>
+<span id="L418" class="line"><a href="#L418">418</a></span>
+<span id="L419" class="line"><a href="#L419">419</a>function Manager:getFlagFromLocalByKey(key, needTime)</span>
+<span id="L420" class="line"><a href="#L420">420</a>    local keyStr = self:getLocalKey(key,needTime)</span>
+<span id="L421" class="line"><a href="#L421">421</a>    return self:getModel():getLocalCache(keyStr)</span>
+<span id="L422" class="line"><a href="#L422">422</a>end</span>
+<span id="L423" class="line"><a href="#L423">423</a></span>
+<span id="L424" class="line"><a href="#L424">424</a>function Manager:addIntToLocalByKey(key, needTime, addNum)</span>
+<span id="L425" class="line"><a href="#L425">425</a>    if not key then return end</span>
+<span id="L426" class="line"><a href="#L426">426</a>    if addNum == nil then addNum = 1 end</span>
+<span id="L427" class="line"><a href="#L427">427</a>    local keyStr = self:getLocalKey(key, needTime)</span>
+<span id="L428" class="line"><a href="#L428">428</a>    local beforeNum = self:getModel():getLocalCache(keyStr) or 0</span>
+<span id="L429" class="line"><a href="#L429">429</a>    self:getModel():setLocalCache(keyStr, beforeNum + addNum)</span>
+<span id="L430" class="line"><a href="#L430">430</a>end</span>
+<span id="L431" class="line"><a href="#L431">431</a></span>
+<span id="L432" class="line"><a href="#L432">432</a>function Manager:setIntFromLocalByKey(key, needTime, setNum)</span>
+<span id="L433" class="line"><a href="#L433">433</a>    if not key then return end</span>
+<span id="L434" class="line"><a href="#L434">434</a>    if setNum == nil then setNum = 0 end</span>
+<span id="L435" class="line"><a href="#L435">435</a>    local keyStr = self:getLocalKey(key,needTime)</span>
+<span id="L436" class="line"><a href="#L436">436</a>    self:getModel():setLocalCache(keyStr, setNum)</span>
+<span id="L437" class="line"><a href="#L437">437</a>end</span>
+<span id="L438" class="line"><a href="#L438">438</a></span>
+<span id="L439" class="line"><a href="#L439">439</a>function Manager:getIntFromLocalByKey(key, needTime)</span>
+<span id="L440" class="line"><a href="#L440">440</a>    local keyStr = self:getLocalKey(key,needTime)</span>
+<span id="L441" class="line"><a href="#L441">441</a>    return self:getModel():getLocalCache(keyStr) or 0</span>
+<span id="L442" class="line"><a href="#L442">442</a>end</span>
+<span id="L443" class="line"><a href="#L443">443</a>------引导标记</span>
+<span id="L444" class="line"><a href="#L444">444</a>function Manager:addGuideIndex(index)</span>
+<span id="L445" class="line"><a href="#L445">445</a>    local guideSet = self:getDataByKey(&quot;guideIds&quot;) or {}</span>
+<span id="L446" class="line"><a href="#L446">446</a>    table.insert(guideSet, index)</span>
+<span id="L447" class="line"><a href="#L447">447</a>    self:setDataByKey(&quot;guideIds&quot;, guideSet)</span>
+<span id="L448" class="line"><a href="#L448">448</a>    local ActCommonHttp = require &quot;amf.middleware.activity.http.ActCommonHttp&quot;</span>
+<span id="L449" class="line"><a href="#L449">449</a>    ActCommonHttp:setActGuideFlag(self:getConst().actId, index, true)</span>
+<span id="L450" class="line"><a href="#L450">450</a>end</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>function Manager:hasGuideIndex(index)</span>
+<span id="L453" class="line"><a href="#L453">453</a>    local guideSet = self:getDataByKey(&quot;guideIds&quot;) or {}</span>
+<span id="L454" class="line"><a href="#L454">454</a>    for _, v in ipairs(guideSet) do</span>
+<span id="L455" class="line"><a href="#L455">455</a>        if v == index then</span>
+<span id="L456" class="line"><a href="#L456">456</a>            return true</span>
+<span id="L457" class="line"><a href="#L457">457</a>        end</span>
+<span id="L458" class="line"><a href="#L458">458</a>    end</span>
+<span id="L459" class="line"><a href="#L459">459</a>    return false</span>
+<span id="L460" class="line"><a href="#L460">460</a>end</span>
+<span id="L461" class="line"><a href="#L461">461</a></span>
+<span id="L462" class="line"><a href="#L462">462</a>function Manager:hasReward()</span>
+<span id="L463" class="line"><a href="#L463">463</a>    --todo</span>
+<span id="L464" class="line"><a href="#L464">464</a>    if not self:isEnabled() then return end</span>
+<span id="L465" class="line"><a href="#L465">465</a>    if self:isInMainTime() then</span>
+<span id="L466" class="line"><a href="#L466">466</a>        return self:hasRewardInMainTime()</span>
+<span id="L467" class="line"><a href="#L467">467</a>    elseif self:isInRewardTime() then</span>
+<span id="L468" class="line"><a href="#L468">468</a>        return self:hasRewardInAwardTime()</span>
+<span id="L469" class="line"><a href="#L469">469</a>    else</span>
+<span id="L470" class="line"><a href="#L470">470</a>        return false</span>
+<span id="L471" class="line"><a href="#L471">471</a>    end</span>
+<span id="L472" class="line"><a href="#L472">472</a>end</span>
+<span id="L473" class="line"><a href="#L473">473</a></span>
+<span id="L474" class="line"><a href="#L474">474</a>function Manager:getMsgNum() </span>
+<span id="L475" class="line"><a href="#L475">475</a>    return 0</span>
+<span id="L476" class="line"><a href="#L476">476</a>end</span>
+<span id="L477" class="line"><a href="#L477">477</a></span>
+<span id="L478" class="line"><a href="#L478">478</a>-- 更新icon</span>
+<span id="L479" class="line"><a href="#L479">479</a>function Manager:updateIcon()</span>
+<span id="L480" class="line"><a href="#L480">480</a>    local icon = self.actPlug:getActIcon()</span>
+<span id="L481" class="line"><a href="#L481">481</a>    if icon and (not icon.isDisposed) then </span>
+<span id="L482" class="line"><a href="#L482">482</a>        icon:updateState() </span>
+<span id="L483" class="line"><a href="#L483">483</a>        self.actPlug:updateTipView()</span>
+<span id="L484" class="line"><a href="#L484">484</a>    end</span>
+<span id="L485" class="line"><a href="#L485">485</a>end</span>
+<span id="L486" class="line"><a href="#L486">486</a>----------------------------------------------领奖-------------------------------------------------------</span>
+<span id="L487" class="line"><a href="#L487">487</a>function Manager:addEnergyMaxItem(num)</span>
+<span id="L488" class="line"><a href="#L488">488</a>    local curMaxNum = self:getDataByKey(&quot;plusMaxEnergyNums&quot;) or 0</span>
+<span id="L489" class="line"><a href="#L489">489</a>    self:setDataByKey(&quot;plusMaxEnergyNums&quot;, curMaxNum + num or 0)</span>
+<span id="L490" class="line"><a href="#L490">490</a>    self:setDataByKey(&quot;energyMax10EndTs&quot;, self:getMainEndTime() * 1000)</span>
+<span id="L491" class="line"><a href="#L491">491</a>    self:refreshEnergy()</span>
+<span id="L492" class="line"><a href="#L492">492</a>end</span>
+<span id="L493" class="line"><a href="#L493">493</a></span>
+<span id="L494" class="line"><a href="#L494">494</a>-- 普通的addRewards,开宝箱之类的</span>
+<span id="L495" class="line"><a href="#L495">495</a>function Manager:addRewardsNormal(rewardItems, params)</span>
+<span id="L496" class="line"><a href="#L496">496</a>    self:_addRewards(rewardItems, nil, params)</span>
+<span id="L497" class="line"><a href="#L497">497</a>end</span>
+<span id="L498" class="line"><a href="#L498">498</a></span>
+<span id="L499" class="line"><a href="#L499">499</a>-- 不要调用，但需要修改业务逻辑相关添加</span>
+<span id="L500" class="line"><a href="#L500">500</a>function Manager:_addRewards(rewardItems, payType, params)</span>
+<span id="L501" class="line"><a href="#L501">501</a>    local dcFeature, dcSource</span>
+<span id="L502" class="line"><a href="#L502">502</a>    if params and params.dcFeature and params.dcSource then</span>
+<span id="L503" class="line"><a href="#L503">503</a>        dcFeature, dcSource = params.dcFeature, params.dcSource</span>
+<span id="L504" class="line"><a href="#L504">504</a>    end</span>
+<span id="L505" class="line"><a href="#L505">505</a></span>
+<span id="L506" class="line"><a href="#L506">506</a>    _G.GainPropData:create()</span>
+<span id="L507" class="line"><a href="#L507">507</a>        :setFeature(dcFeature)</span>
+<span id="L508" class="line"><a href="#L508">508</a>        :setSource(dcSource)</span>
+<span id="L509" class="line"><a href="#L509">509</a>        :setProps(rewardItems)</span>
+<span id="L510" class="line"><a href="#L510">510</a>        :execute()</span>
+<span id="L511" class="line"><a href="#L511">511</a>end</span>
+<span id="L512" class="line"><a href="#L512">512</a>------解锁的任务中有未完成的任务</span>
+<span id="L513" class="line"><a href="#L513">513</a>function Manager:hasUnfinishedTaskUnLocked()</span>
+<span id="L514" class="line"><a href="#L514">514</a>    local tasks = self:getModel():getUnLockTasks()</span>
+<span id="L515" class="line"><a href="#L515">515</a>    for k, v in pairs(tasks) do</span>
+<span id="L516" class="line"><a href="#L516">516</a>        if not self:getModel():getTaskFinished(v.id) then</span>
+<span id="L517" class="line"><a href="#L517">517</a>            return true</span>
+<span id="L518" class="line"><a href="#L518">518</a>        end</span>
+<span id="L519" class="line"><a href="#L519">519</a>    end</span>
+<span id="L520" class="line"><a href="#L520">520</a>    return false</span>
+<span id="L521" class="line"><a href="#L521">521</a>end</span>
+<span id="L522" class="line"><a href="#L522">522</a></span>
+<span id="L523" class="line"><a href="#L523">523</a>------完成的总任务数</span>
+<span id="L524" class="line"><a href="#L524">524</a>function Manager:getFinishedTaskNum()</span>
+<span id="L525" class="line"><a href="#L525">525</a>    local tasks = self:getModel():getAllTaskInfo()</span>
+<span id="L526" class="line"><a href="#L526">526</a>    local sum = 0</span>
+<span id="L527" class="line"><a href="#L527">527</a>    for _, v in pairs(tasks) do</span>
+<span id="L528" class="line"><a href="#L528">528</a>        if self:getModel():getTaskFinished(v.id) then</span>
+<span id="L529" class="line"><a href="#L529">529</a>            sum = sum + 1</span>
+<span id="L530" class="line"><a href="#L530">530</a>        end</span>
+<span id="L531" class="line"><a href="#L531">531</a>    end</span>
+<span id="L532" class="line"><a href="#L532">532</a>    return sum</span>
+<span id="L533" class="line"><a href="#L533">533</a>end</span>
+<span id="L534" class="line"><a href="#L534">534</a></span>
+<span id="L535" class="line"><a href="#L535">535</a>function Manager:getAllTaskNum()</span>
+<span id="L536" class="line"><a href="#L536">536</a>    return table.count(self:getModel():getAllTaskInfo())</span>
+<span id="L537" class="line"><a href="#L537">537</a>end</span>
+<span id="L538" class="line"><a href="#L538">538</a></span>
+<span id="L539" class="line"><a href="#L539">539</a>----------------------------------------------强弹-------------------------------------------------------</span>
+<span id="L540" class="line"><a href="#L540">540</a></span>
+<span id="L541" class="line"><a href="#L541">541</a>function Manager:setMainPanelOpened()</span>
+<span id="L542" class="line"><a href="#L542">542</a>    self:setLocalCache(&quot;mainPanelOpened&quot;, true)</span>
+<span id="L543" class="line"><a href="#L543">543</a>end</span>
+<span id="L544" class="line"><a href="#L544">544</a></span>
+<span id="L545" class="line"><a href="#L545">545</a>function Manager:getMainPanelOpened()</span>
+<span id="L546" class="line"><a href="#L546">546</a>    return self:getLocalCache(&quot;mainPanelOpened&quot;) or false</span>
+<span id="L547" class="line"><a href="#L547">547</a>end</span>
+<span id="L548" class="line"><a href="#L548">548</a></span>
+<span id="L549" class="line"><a href="#L549">549</a>function Manager:setMainPopStage4FromType(type)</span>
+<span id="L550" class="line"><a href="#L550">550</a>    self:setLocalCache(&quot;mainPopStage4FromType&quot;..type, true)</span>
+<span id="L551" class="line"><a href="#L551">551</a>end</span>
+<span id="L552" class="line"><a href="#L552">552</a></span>
+<span id="L553" class="line"><a href="#L553">553</a>function Manager:getMainPopStage4FromType(type)</span>
+<span id="L554" class="line"><a href="#L554">554</a>    return self:getLocalCache(&quot;mainPopStage4FromType&quot;..type) or false</span>
+<span id="L555" class="line"><a href="#L555">555</a>end</span>
+<span id="L556" class="line"><a href="#L556">556</a></span>
+<span id="L557" class="line"><a href="#L557">557</a>function Manager:canPopMainPanelStage4(needSave)</span>
+<span id="L558" class="line"><a href="#L558">558</a>    local ret = false</span>
+<span id="L559" class="line"><a href="#L559">559</a></span>
+<span id="L560" class="line"><a href="#L560">560</a>    if self:getModel():getCanPopMainPanelGroup() </span>
+<span id="L561" class="line"><a href="#L561">561</a>        and not self:getMainPanelOpened() </span>
+<span id="L562" class="line"><a href="#L562">562</a>        and not self:getMainPopStage4FromType(1) </span>
+<span id="L563" class="line"><a href="#L563">563</a>    then</span>
+<span id="L564" class="line"><a href="#L564">564</a>        ret = true</span>
+<span id="L565" class="line"><a href="#L565">565</a>        self:getModel():setTempData(&quot;popMainType&quot;,1)</span>
+<span id="L566" class="line"><a href="#L566">566</a>        if needSave then self:setMainPopStage4FromType(1) end</span>
+<span id="L567" class="line"><a href="#L567">567</a>    end</span>
+<span id="L568" class="line"><a href="#L568">568</a></span>
+<span id="L569" class="line"><a href="#L569">569</a>    if self._userEnergyManager:getEnergy() &lt; 5 </span>
+<span id="L570" class="line"><a href="#L570">570</a>        and not self:hasBuyVip()</span>
+<span id="L571" class="line"><a href="#L571">571</a>        and not self:getMainPopStage4FromType(2) </span>
+<span id="L572" class="line"><a href="#L572">572</a>    then</span>
+<span id="L573" class="line"><a href="#L573">573</a>        ret = true</span>
+<span id="L574" class="line"><a href="#L574">574</a>        self:getModel():setTempData(&quot;popMainType&quot;,2)</span>
+<span id="L575" class="line"><a href="#L575">575</a>        if needSave then self:setMainPopStage4FromType(2) end</span>
+<span id="L576" class="line"><a href="#L576">576</a>    end</span>
+<span id="L577" class="line"><a href="#L577">577</a></span>
+<span id="L578" class="line"><a href="#L578">578</a>    return ret</span>
+<span id="L579" class="line"><a href="#L579">579</a>end</span>
+<span id="L580" class="line"><a href="#L580">580</a></span>
+<span id="L581" class="line"><a href="#L581">581</a>----检查是否可领取大量精力</span>
+<span id="L582" class="line"><a href="#L582">582</a>function Manager:canPopGetMuchEnergy(popInfos)</span>
+<span id="L583" class="line"><a href="#L583">583</a>    local popOneDay = self:getFlagFromLocalByKey(self:getConst().popGetMuchEnergyTimesOneDay,true)</span>
+<span id="L584" class="line"><a href="#L584">584</a>    local popAll = self:getFlagFromLocalByKey(self:getConst().popGetMuchEnergyAllTimes) or 0</span>
+<span id="L585" class="line"><a href="#L585">585</a>    if popOneDay or popAll&gt;=3 then---今天有弹出精力提醒</span>
+<span id="L586" class="line"><a href="#L586">586</a>        return false</span>
+<span id="L587" class="line"><a href="#L587">587</a>    else--没弹</span>
+<span id="L588" class="line"><a href="#L588">588</a>        if self:hasUnfinishedTaskUnLocked() and self:getFinishedTaskNum() &lt;= self:getAllTaskNum()/2 then</span>
+<span id="L589" class="line"><a href="#L589">589</a>            popInfos.popMuchEnergy = true</span>
+<span id="L590" class="line"><a href="#L590">590</a>            return true</span>
+<span id="L591" class="line"><a href="#L591">591</a>        else</span>
+<span id="L592" class="line"><a href="#L592">592</a>            return false</span>
+<span id="L593" class="line"><a href="#L593">593</a>        end</span>
+<span id="L594" class="line"><a href="#L594">594</a>    end</span>
+<span id="L595" class="line"><a href="#L595">595</a>end</span>
+<span id="L596" class="line"><a href="#L596">596</a></span>
+<span id="L597" class="line"><a href="#L597">597</a>function Manager:checkCurTimeCanPop()</span>
+<span id="L598" class="line"><a href="#L598">598</a>    local topLv = _G.amfBean(&quot;LevelUnLockManager&quot;):getLocalTopLevel(false)</span>
+<span id="L599" class="line"><a href="#L599">599</a>    local myTopLv = _G.getTopPassedLevelId()</span>
+<span id="L600" class="line"><a href="#L600">600</a>    if topLv - myTopLv &lt;= 45 then</span>
+<span id="L601" class="line"><a href="#L601">601</a>        local lastOpenTime = _G.amfBean(&quot;LevelUnLockManager&quot;):getLastOpenNewLevelTime()</span>
+<span id="L602" class="line"><a href="#L602">602</a>        if lastOpenTime then</span>
+<span id="L603" class="line"><a href="#L603">603</a>            local diffTime = TimeKit:timeInSec() - lastOpenTime</span>
+<span id="L604" class="line"><a href="#L604">604</a>            if diffTime &gt;= 0 and diffTime &lt; 4 * 3600 then</span>
+<span id="L605" class="line"><a href="#L605">605</a>                return false</span>
+<span id="L606" class="line"><a href="#L606">606</a>            end</span>
+<span id="L607" class="line"><a href="#L607">607</a>        end</span>
+<span id="L608" class="line"><a href="#L608">608</a>    end</span>
+<span id="L609" class="line"><a href="#L609">609</a>    return true</span>
+<span id="L610" class="line"><a href="#L610">610</a>end</span>
+<span id="L611" class="line"><a href="#L611">611</a></span>
+<span id="L612" class="line"><a href="#L612">612</a>------获取一系列已经显示过的页签</span>
+<span id="L613" class="line"><a href="#L613">613</a>function Manager:hasShowTask(id)</span>
+<span id="L614" class="line"><a href="#L614">614</a>    local showTasks = self:getLocalCache(&quot;showTasks&quot;) or {}</span>
+<span id="L615" class="line"><a href="#L615">615</a>    return table.exist(showTasks, id)</span>
+<span id="L616" class="line"><a href="#L616">616</a>end</span>
+<span id="L617" class="line"><a href="#L617">617</a></span>
+<span id="L618" class="line"><a href="#L618">618</a>function Manager:setShowTask(id)</span>
+<span id="L619" class="line"><a href="#L619">619</a>    local showTasks = self:getLocalCache(&quot;showTasks&quot;) or {}</span>
+<span id="L620" class="line"><a href="#L620">620</a>    table.insert(showTasks, id)</span>
+<span id="L621" class="line"><a href="#L621">621</a>    self:setLocalCache(&quot;showTasks&quot;, showTasks)</span>
+<span id="L622" class="line"><a href="#L622">622</a>end</span>
+<span id="L623" class="line"><a href="#L623">623</a></span>
+<span id="L624" class="line"><a href="#L624">624</a>------检测是否推送过任务</span>
+<span id="L625" class="line"><a href="#L625">625</a>function Manager:hasPopedTasks(id)</span>
+<span id="L626" class="line"><a href="#L626">626</a>    return self:hasGuideIndex(id)</span>
+<span id="L627" class="line"><a href="#L627">627</a>end</span>
+<span id="L628" class="line"><a href="#L628">628</a></span>
+<span id="L629" class="line"><a href="#L629">629</a>function Manager:setHasPoped(popInfos)</span>
+<span id="L630" class="line"><a href="#L630">630</a>    for k, v in pairs(popInfos) do</span>
+<span id="L631" class="line"><a href="#L631">631</a>        self:addGuideIndex(v.id)</span>
+<span id="L632" class="line"><a href="#L632">632</a>    end</span>
+<span id="L633" class="line"><a href="#L633">633</a>end</span>
+<span id="L634" class="line"><a href="#L634">634</a></span>
+<span id="L635" class="line"><a href="#L635">635</a>----检查有可领取的奖励哦</span>
+<span id="L636" class="line"><a href="#L636">636</a>function Manager:canPopHasRewardEnergy2(ret)</span>
+<span id="L637" class="line"><a href="#L637">637</a>    local unGetFreeRewars = self:getModel():getUnLockTasks()</span>
+<span id="L638" class="line"><a href="#L638">638</a>    -- local hasShowTab = self:getHasShowTab()</span>
+<span id="L639" class="line"><a href="#L639">639</a>    table.sort(unGetFreeRewars, function(a, b)</span>
+<span id="L640" class="line"><a href="#L640">640</a>        return a.id &gt; b.id  -- a 应该排在 b 前面时返回 true</span>
+<span id="L641" class="line"><a href="#L641">641</a>    end)</span>
+<span id="L642" class="line"><a href="#L642">642</a>    local popInfos = {}</span>
+<span id="L643" class="line"><a href="#L643">643</a>    for k, v in ipairs(unGetFreeRewars) do</span>
+<span id="L644" class="line"><a href="#L644">644</a>        if v.id ~= 1 then</span>
+<span id="L645" class="line"><a href="#L645">645</a>            if not self:hasShowTask(v.id) and not self:hasPopedTasks(v.id) and self:getModel():getTaskCanGetReward(v.id) then---如果没有显示过Tab且没有推送过</span>
+<span id="L646" class="line"><a href="#L646">646</a>                table.insert(popInfos, v)</span>
+<span id="L647" class="line"><a href="#L647">647</a>            end</span>
+<span id="L648" class="line"><a href="#L648">648</a>        end</span>
+<span id="L649" class="line"><a href="#L649">649</a>    end</span>
+<span id="L650" class="line"><a href="#L650">650</a>    if not table.isEmpty(popInfos) then</span>
+<span id="L651" class="line"><a href="#L651">651</a>        ret.popHasRewardEnergy2 = popInfos</span>
+<span id="L652" class="line"><a href="#L652">652</a>    end</span>
+<span id="L653" class="line"><a href="#L653">653</a>end</span>
+<span id="L654" class="line"><a href="#L654">654</a></span>
+<span id="L655" class="line"><a href="#L655">655</a>function Manager:canPopHasRewardEnergy34(ret)</span>
+<span id="L656" class="line"><a href="#L656">656</a>    local unGetFreeRewars = self:getModel():getUnLockTasks()</span>
+<span id="L657" class="line"><a href="#L657">657</a>    -- local hasShowTab = self:getHasShowTab()</span>
+<span id="L658" class="line"><a href="#L658">658</a>    table.sort(unGetFreeRewars, function(a, b)</span>
+<span id="L659" class="line"><a href="#L659">659</a>        return a.id &gt; b.id  -- a 应该排在 b 前面时返回 true</span>
+<span id="L660" class="line"><a href="#L660">660</a>    end)</span>
+<span id="L661" class="line"><a href="#L661">661</a>    local popInfos = {}</span>
+<span id="L662" class="line"><a href="#L662">662</a>    for k, v in ipairs(unGetFreeRewars) do</span>
+<span id="L663" class="line"><a href="#L663">663</a>        if v.id ~= 1 then</span>
+<span id="L664" class="line"><a href="#L664">664</a>            if not self:hasShowTask(v.id) and not self:hasPopedTasks(v.id) and self:getModel():getTaskCanGetReward(v.id) then---如果没有显示过Tab且没有推送过</span>
+<span id="L665" class="line"><a href="#L665">665</a>                table.insert(popInfos, v)</span>
+<span id="L666" class="line"><a href="#L666">666</a>            end</span>
+<span id="L667" class="line"><a href="#L667">667</a>        end</span>
+<span id="L668" class="line"><a href="#L668">668</a>    end</span>
+<span id="L669" class="line"><a href="#L669">669</a>    if not table.isEmpty(popInfos) then</span>
+<span id="L670" class="line"><a href="#L670">670</a>        ret.popHasRewardEnergy34 = popInfos</span>
+<span id="L671" class="line"><a href="#L671">671</a>    end</span>
+<span id="L672" class="line"><a href="#L672">672</a>end</span>
+<span id="L673" class="line"><a href="#L673">673</a></span>
+<span id="L674" class="line"><a href="#L674">674</a>function Manager:canPopOnStage4()</span>
+<span id="L675" class="line"><a href="#L675">675</a>    self.popInfos4 = {}</span>
+<span id="L676" class="line"><a href="#L676">676</a>    if not self:isInMainTime() then</span>
+<span id="L677" class="line"><a href="#L677">677</a>        return false</span>
+<span id="L678" class="line"><a href="#L678">678</a>    end</span>
+<span id="L679" class="line"><a href="#L679">679</a>    if not self:checkCurTimeCanPop() then</span>
+<span id="L680" class="line"><a href="#L680">680</a>        return false</span>
+<span id="L681" class="line"><a href="#L681">681</a>    end</span>
+<span id="L682" class="line"><a href="#L682">682</a>    if self:canPopMainPanelStage4() then</span>
+<span id="L683" class="line"><a href="#L683">683</a>        return true</span>
+<span id="L684" class="line"><a href="#L684">684</a>    end</span>
+<span id="L685" class="line"><a href="#L685">685</a>    self:canPopGetMuchEnergy(self.popInfos4)</span>
+<span id="L686" class="line"><a href="#L686">686</a>    self:canPopHasRewardEnergy34(self.popInfos4)</span>
+<span id="L687" class="line"><a href="#L687">687</a>    return not table.isEmpty(self.popInfos4)</span>
+<span id="L688" class="line"><a href="#L688">688</a>end</span>
+<span id="L689" class="line"><a href="#L689">689</a></span>
+<span id="L690" class="line"><a href="#L690">690</a>function Manager:popOnStage4(callback)</span>
+<span id="L691" class="line"><a href="#L691">691</a></span>
+<span id="L692" class="line"><a href="#L692">692</a>    if self:canPopMainPanelStage4(true) then</span>
+<span id="L693" class="line"><a href="#L693">693</a>        self.actPlug:openActivity({</span>
+<span id="L694" class="line"><a href="#L694">694</a>            actId = self:getConst().actId,</span>
+<span id="L695" class="line"><a href="#L695">695</a>            endCallback = callback,</span>
+<span id="L696" class="line"><a href="#L696">696</a>            failCallback = callback,</span>
+<span id="L697" class="line"><a href="#L697">697</a>            userClick = false,</span>
+<span id="L698" class="line"><a href="#L698">698</a>            extra = {popType = self:getModel():getTempData(&quot;popMainType&quot;)}</span>
+<span id="L699" class="line"><a href="#L699">699</a>        })</span>
+<span id="L700" class="line"><a href="#L700">700</a>        return</span>
+<span id="L701" class="line"><a href="#L701">701</a>    end</span>
+<span id="L702" class="line"><a href="#L702">702</a></span>
+<span id="L703" class="line"><a href="#L703">703</a>    if self.popInfos4 then</span>
+<span id="L704" class="line"><a href="#L704">704</a>        local asyncRunner = AsyncRunner:create()</span>
+<span id="L705" class="line"><a href="#L705">705</a>        if self.popInfos4.popMuchEnergy then</span>
+<span id="L706" class="line"><a href="#L706">706</a>            asyncRunner:add(function(done)</span>
+<span id="L707" class="line"><a href="#L707">707</a>                self:setFlagToLocalByKey(self:getConst().popGetMuchEnergyTimesOneDay,true,true)</span>
+<span id="L708" class="line"><a href="#L708">708</a>                self:addIntToLocalByKey(self:getConst().popGetMuchEnergyAllTimes,false, 1)</span>
+<span id="L709" class="line"><a href="#L709">709</a>                self:showIconTip({</span>
+<span id="L710" class="line"><a href="#L710">710</a>                    type = self:getConst().showTipType.kShowTipType_Energy,</span>
+<span id="L711" class="line"><a href="#L711">711</a>                },done)</span>
+<span id="L712" class="line"><a href="#L712">712</a>            end)</span>
+<span id="L713" class="line"><a href="#L713">713</a>        end</span>
+<span id="L714" class="line"><a href="#L714">714</a>        if self.popInfos4.popHasRewardEnergy34 and not table.isEmpty(self.popInfos4.popHasRewardEnergy34) then</span>
+<span id="L715" class="line"><a href="#L715">715</a>            asyncRunner:add(function(done)</span>
+<span id="L716" class="line"><a href="#L716">716</a>                local nowLevelIsPassed = self:getModel():getTempData(&quot;nowLevelIsPassed&quot;)</span>
+<span id="L717" class="line"><a href="#L717">717</a>                if nowLevelIsPassed then--过关了</span>
+<span id="L718" class="line"><a href="#L718">718</a>                    self:showIconTip({</span>
+<span id="L719" class="line"><a href="#L719">719</a>                        type = self:getIconTipType(),</span>
+<span id="L720" class="line"><a href="#L720">720</a>                        max = self.popInfos4.popHasRewardEnergy34[1].total,</span>
+<span id="L721" class="line"><a href="#L721">721</a>                        value = self.popInfos4.popHasRewardEnergy34[1].total-1,</span>
+<span id="L722" class="line"><a href="#L722">722</a>                    },done)</span>
+<span id="L723" class="line"><a href="#L723">723</a>                else---没过关</span>
+<span id="L724" class="line"><a href="#L724">724</a>                    self:showIconTip({</span>
+<span id="L725" class="line"><a href="#L725">725</a>                        type = self:getConst().showTipType.kShowTipType_Get,</span>
+<span id="L726" class="line"><a href="#L726">726</a>                    },done)</span>
+<span id="L727" class="line"><a href="#L727">727</a>                end</span>
+<span id="L728" class="line"><a href="#L728">728</a>                self:setHasPoped(self.popInfos4.popHasRewardEnergy34)</span>
+<span id="L729" class="line"><a href="#L729">729</a>            end)</span>
+<span id="L730" class="line"><a href="#L730">730</a>        end</span>
+<span id="L731" class="line"><a href="#L731">731</a>        asyncRunner:add(function(done)</span>
+<span id="L732" class="line"><a href="#L732">732</a>            safeRunCall(callback)</span>
+<span id="L733" class="line"><a href="#L733">733</a>            done()</span>
+<span id="L734" class="line"><a href="#L734">734</a>        end)</span>
+<span id="L735" class="line"><a href="#L735">735</a>        asyncRunner:run()</span>
+<span id="L736" class="line"><a href="#L736">736</a>    else</span>
+<span id="L737" class="line"><a href="#L737">737</a>        safeRunCall(callback)</span>
+<span id="L738" class="line"><a href="#L738">738</a>    end</span>
+<span id="L739" class="line"><a href="#L739">739</a>end</span>
+<span id="L740" class="line"><a href="#L740">740</a></span>
+<span id="L741" class="line"><a href="#L741">741</a>function Manager:canPopOnStage2()</span>
+<span id="L742" class="line"><a href="#L742">742</a>    self.popInfos2 = {}</span>
+<span id="L743" class="line"><a href="#L743">743</a>    if not self:isInMainTime() then</span>
+<span id="L744" class="line"><a href="#L744">744</a>        return false</span>
+<span id="L745" class="line"><a href="#L745">745</a>    end</span>
+<span id="L746" class="line"><a href="#L746">746</a>    if not self:checkCurTimeCanPop() then</span>
+<span id="L747" class="line"><a href="#L747">747</a>        return false</span>
+<span id="L748" class="line"><a href="#L748">748</a>    end</span>
+<span id="L749" class="line"><a href="#L749">749</a>    self:canPopGetMuchEnergy(self.popInfos2)</span>
+<span id="L750" class="line"><a href="#L750">750</a>    self:canPopHasRewardEnergy2(self.popInfos2)</span>
+<span id="L751" class="line"><a href="#L751">751</a>    return not table.isEmpty(self.popInfos2)</span>
+<span id="L752" class="line"><a href="#L752">752</a>end</span>
+<span id="L753" class="line"><a href="#L753">753</a></span>
+<span id="L754" class="line"><a href="#L754">754</a>function Manager:popOnStage2(callback)</span>
+<span id="L755" class="line"><a href="#L755">755</a>    if self.popInfos2 then</span>
+<span id="L756" class="line"><a href="#L756">756</a>        local asyncRunner = AsyncRunner:create()</span>
+<span id="L757" class="line"><a href="#L757">757</a>        if self.popInfos2.popMuchEnergy then</span>
+<span id="L758" class="line"><a href="#L758">758</a>            asyncRunner:add(function(done)</span>
+<span id="L759" class="line"><a href="#L759">759</a>                self:setFlagToLocalByKey(self:getConst().popGetMuchEnergyTimesOneDay,true,true)</span>
+<span id="L760" class="line"><a href="#L760">760</a>                self:addIntToLocalByKey(self:getConst().popGetMuchEnergyAllTimes,false, 1)</span>
+<span id="L761" class="line"><a href="#L761">761</a>                self:showIconTip({</span>
+<span id="L762" class="line"><a href="#L762">762</a>                    type = self:getConst().showTipType.kShowTipType_Energy,</span>
+<span id="L763" class="line"><a href="#L763">763</a>                },done)</span>
+<span id="L764" class="line"><a href="#L764">764</a>            end)</span>
+<span id="L765" class="line"><a href="#L765">765</a>        end</span>
+<span id="L766" class="line"><a href="#L766">766</a>        if self.popInfos2.popHasRewardEnergy2 and not table.isEmpty(self.popInfos2.popHasRewardEnergy2) then</span>
+<span id="L767" class="line"><a href="#L767">767</a>            asyncRunner:add(function(done)</span>
+<span id="L768" class="line"><a href="#L768">768</a>                self:showIconTip({</span>
+<span id="L769" class="line"><a href="#L769">769</a>                    type = self:getConst().showTipType.kShowTipType_Get,</span>
+<span id="L770" class="line"><a href="#L770">770</a>                    max = self.popInfos2.popHasRewardEnergy2[1].total,</span>
+<span id="L771" class="line"><a href="#L771">771</a>                    value = self.popInfos2.popHasRewardEnergy2[1].total-1,</span>
+<span id="L772" class="line"><a href="#L772">772</a>                },done)</span>
+<span id="L773" class="line"><a href="#L773">773</a>                self:setHasPoped(self.popInfos2.popHasRewardEnergy2)</span>
+<span id="L774" class="line"><a href="#L774">774</a>            end)</span>
+<span id="L775" class="line"><a href="#L775">775</a>        end</span>
+<span id="L776" class="line"><a href="#L776">776</a>        asyncRunner:add(function(done)</span>
+<span id="L777" class="line"><a href="#L777">777</a>            safeRunCall(callback)</span>
+<span id="L778" class="line"><a href="#L778">778</a>            done()</span>
+<span id="L779" class="line"><a href="#L779">779</a>        end)</span>
+<span id="L780" class="line"><a href="#L780">780</a>        asyncRunner:run()</span>
+<span id="L781" class="line"><a href="#L781">781</a>    else</span>
+<span id="L782" class="line"><a href="#L782">782</a>        safeRunCall(callback)</span>
+<span id="L783" class="line"><a href="#L783">783</a>    end</span>
+<span id="L784" class="line"><a href="#L784">784</a>end</span>
+<span id="L785" class="line"><a href="#L785">785</a></span>
+<span id="L786" class="line"><a href="#L786">786</a>function Manager:canPopOnStage3()</span>
+<span id="L787" class="line"><a href="#L787">787</a>    self.popInfos3 = {}</span>
+<span id="L788" class="line"><a href="#L788">788</a>    if not self:isInMainTime() then</span>
+<span id="L789" class="line"><a href="#L789">789</a>        return false</span>
+<span id="L790" class="line"><a href="#L790">790</a>    end</span>
+<span id="L791" class="line"><a href="#L791">791</a>    if not self:checkCurTimeCanPop() then</span>
+<span id="L792" class="line"><a href="#L792">792</a>        return false</span>
+<span id="L793" class="line"><a href="#L793">793</a>    end</span>
+<span id="L794" class="line"><a href="#L794">794</a>    self:canPopHasRewardEnergy34(self.popInfos3)</span>
+<span id="L795" class="line"><a href="#L795">795</a>    return not table.isEmpty(self.popInfos3)</span>
+<span id="L796" class="line"><a href="#L796">796</a>end</span>
+<span id="L797" class="line"><a href="#L797">797</a></span>
+<span id="L798" class="line"><a href="#L798">798</a>function Manager:getIconTipType()</span>
+<span id="L799" class="line"><a href="#L799">799</a>    local startLevelType = self:getModel():getTempData(&quot;startLevelType&quot;)</span>
+<span id="L800" class="line"><a href="#L800">800</a>    if startLevelType == self:getConst().startLevelType.TopLevel then--最高关</span>
+<span id="L801" class="line"><a href="#L801">801</a>        return self:getConst().showTipType.kShowTipType_NotFull</span>
+<span id="L802" class="line"><a href="#L802">802</a>    elseif startLevelType == self:getConst().startLevelType.LevelLib then</span>
+<span id="L803" class="line"><a href="#L803">803</a>        return self:getConst().showTipType.kShowTipType_Random</span>
+<span id="L804" class="line"><a href="#L804">804</a>    else</span>
+<span id="L805" class="line"><a href="#L805">805</a>        return self:getConst().showTipType.kShowTipType_Full</span>
+<span id="L806" class="line"><a href="#L806">806</a>    end</span>
+<span id="L807" class="line"><a href="#L807">807</a>end</span>
+<span id="L808" class="line"><a href="#L808">808</a></span>
+<span id="L809" class="line"><a href="#L809">809</a>function Manager:popOnStage3(callback)</span>
+<span id="L810" class="line"><a href="#L810">810</a>    if self.popInfos3 then</span>
+<span id="L811" class="line"><a href="#L811">811</a>        local asyncRunner = AsyncRunner:create()</span>
+<span id="L812" class="line"><a href="#L812">812</a>        if self.popInfos3.popHasRewardEnergy34 and not table.isEmpty(self.popInfos3.popHasRewardEnergy34) then</span>
+<span id="L813" class="line"><a href="#L813">813</a>            asyncRunner:add(function(done)</span>
+<span id="L814" class="line"><a href="#L814">814</a>                local nowLevelIsPassed = self:getModel():getTempData(&quot;nowLevelIsPassed&quot;)</span>
+<span id="L815" class="line"><a href="#L815">815</a>                if nowLevelIsPassed then--过关了</span>
+<span id="L816" class="line"><a href="#L816">816</a>                    self:showIconTip({</span>
+<span id="L817" class="line"><a href="#L817">817</a>                        type = self:getIconTipType(),</span>
+<span id="L818" class="line"><a href="#L818">818</a>                        max = self.popInfos3.popHasRewardEnergy34[1].total,</span>
+<span id="L819" class="line"><a href="#L819">819</a>                        value = self.popInfos3.popHasRewardEnergy34[1].total-1,</span>
+<span id="L820" class="line"><a href="#L820">820</a>                    },done)</span>
+<span id="L821" class="line"><a href="#L821">821</a>                else---没过关</span>
+<span id="L822" class="line"><a href="#L822">822</a>                    self:showIconTip({</span>
+<span id="L823" class="line"><a href="#L823">823</a>                        type = self:getConst().showTipType.kShowTipType_Get,</span>
+<span id="L824" class="line"><a href="#L824">824</a>                    },done)</span>
+<span id="L825" class="line"><a href="#L825">825</a>                end</span>
+<span id="L826" class="line"><a href="#L826">826</a>                self:setHasPoped(self.popInfos3.popHasRewardEnergy34)</span>
+<span id="L827" class="line"><a href="#L827">827</a>            end)</span>
+<span id="L828" class="line"><a href="#L828">828</a>        end</span>
+<span id="L829" class="line"><a href="#L829">829</a>        asyncRunner:add(function(done)</span>
+<span id="L830" class="line"><a href="#L830">830</a>            safeRunCall(callback)</span>
+<span id="L831" class="line"><a href="#L831">831</a>            done()</span>
+<span id="L832" class="line"><a href="#L832">832</a>        end)</span>
+<span id="L833" class="line"><a href="#L833">833</a>        asyncRunner:run()</span>
+<span id="L834" class="line"><a href="#L834">834</a>    else</span>
+<span id="L835" class="line"><a href="#L835">835</a>        safeRunCall(callback)</span>
+<span id="L836" class="line"><a href="#L836">836</a>    end</span>
+<span id="L837" class="line"><a href="#L837">837</a>end</span>
+<span id="L838" class="line"><a href="#L838">838</a></span>
+<span id="L839" class="line"><a href="#L839">839</a>---------------------------------- CUSTOM_GAIN ----------------------------------</span>
+<span id="L840" class="line"><a href="#L840">840</a></span>
+<span id="L841" class="line"><a href="#L841">841</a>function Manager:_onCustomGain(event)</span>
+<span id="L842" class="line"><a href="#L842">842</a>    local reward = event:getData()</span>
+<span id="L843" class="line"><a href="#L843">843</a>    if reward.itemId == self:getConst().maxEnergyItemId then</span>
+<span id="L844" class="line"><a href="#L844">844</a>        self:addEnergyMaxItem(reward.num)</span>
+<span id="L845" class="line"><a href="#L845">845</a>    end</span>
+<span id="L846" class="line"><a href="#L846">846</a>end</span>
+<span id="L847" class="line"><a href="#L847">847</a></span>
+<span id="L848" class="line"><a href="#L848">848</a>return Manager</span></pre></main></html>

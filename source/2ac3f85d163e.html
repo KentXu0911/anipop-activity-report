@@ -1,0 +1,17 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/sprintrealprize2/config/AMFProp_SprintRealPrize.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="2ac3f85d163e.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/sprintrealprize2/config/AMFProp_SprintRealPrize.lua</h1><p>SHA256 88a970bfbd2a360f2d3f648d8a18b6dac6f1739a2763944f79da8f7f9b0af7b8</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Meta = require &quot;amf.feature.localactivity.sprintrealprize2.config.SprintRealPrizeConst&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>return AMFPropBuilder.create(Meta.REAL_PROP_ID)</span>
+<span id="L4" class="line"><a href="#L4">4</a>    :setCategory(AMFPropConst.Category.ACTIVITY)</span>
+<span id="L5" class="line"><a href="#L5">5</a>    :setMergable(false)</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>    -- icon</span>
+<span id="L8" class="line"><a href="#L8">8</a>    :startComponent(AMFPropConst.ComponentId.ICON)</span>
+<span id="L9" class="line"><a href="#L9">9</a>    :setCreator(function()</span>
+<span id="L10" class="line"><a href="#L10">10</a>        local icon = UICreateUtil:createSpriteFile(&quot;activity/sprintrealprize2/res/materials/shiwu.png&quot;)</span>
+<span id="L11" class="line"><a href="#L11">11</a>        local flag = Sprite:createWithSpriteFrameName(&quot;other/commonV2/other_Z_commonV2_Z_Label_grade4_v2&quot;)</span>
+<span id="L12" class="line"><a href="#L12">12</a>        flag:setPositionXY(175, 90)</span>
+<span id="L13" class="line"><a href="#L13">13</a>        icon:addChild(flag)</span>
+<span id="L14" class="line"><a href="#L14">14</a>        return icon</span>
+<span id="L15" class="line"><a href="#L15">15</a>    end)</span>
+<span id="L16" class="line"><a href="#L16">16</a>    :endComponent()</span>
+<span id="L17" class="line"><a href="#L17">17</a>    :buildAndRegister()</span></pre></main></html>

@@ -1,0 +1,438 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/winningstreak/module/bottle/WinningStreakBottleManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="c5d9f6ba2a27.lua" download>下载Lua原文</a></p><h1>amf/feature/winningstreak/module/bottle/WinningStreakBottleManager.lua</h1><p>SHA256 ed870d01dfbc575bf57e9b8e93682245234c53372a321978fff3e9dd00fad06d</p><pre><span id="L1" class="line"><a href="#L1">1</a>require &quot;amf.feature.winningstreak.module.bottle.config.WinningStreakBottleConst&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local WinningStreakBottleModel = require &quot;amf.feature.winningstreak.module.bottle.model.WinningStreakBottleModel&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local IconEventCenter = require &quot;amf.feature.mainscene.module.icon.event.IconEventCenter&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local IconTipEventCenter = require &quot;amf.feature.icontip.event.IconTipEventCenter&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local HomeIconTipsFactory = require &quot;amf.feature.icontip.module.display.HomeIconTipsFactory&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>local WinningStreakBottleManager = class(&quot;WinningStreakBottleManager&quot;)</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>local _instance</span>
+<span id="L11" class="line"><a href="#L11">11</a>function WinningStreakBottleManager:getInstance()</span>
+<span id="L12" class="line"><a href="#L12">12</a>    if not _instance then</span>
+<span id="L13" class="line"><a href="#L13">13</a>        _instance = WinningStreakBottleManager.new()</span>
+<span id="L14" class="line"><a href="#L14">14</a>        _instance:init()</span>
+<span id="L15" class="line"><a href="#L15">15</a>    end</span>
+<span id="L16" class="line"><a href="#L16">16</a>    return _instance</span>
+<span id="L17" class="line"><a href="#L17">17</a>end</span>
+<span id="L18" class="line"><a href="#L18">18</a></span>
+<span id="L19" class="line"><a href="#L19">19</a>function WinningStreakBottleManager:init()</span>
+<span id="L20" class="line"><a href="#L20">20</a>    self._assetsUtil = _G.amfBean(&quot;AssetsUtil&quot;)</span>
+<span id="L21" class="line"><a href="#L21">21</a>    self._levelUnlockMgr =  _G.amfBean(&quot;LevelUnLockManager&quot;)</span>
+<span id="L22" class="line"><a href="#L22">22</a></span>
+<span id="L23" class="line"><a href="#L23">23</a>    self._icon = nil</span>
+<span id="L24" class="line"><a href="#L24">24</a>    self._isCreatingIcon = false</span>
+<span id="L25" class="line"><a href="#L25">25</a></span>
+<span id="L26" class="line"><a href="#L26">26</a>    self._model = WinningStreakBottleModel:create()</span>
+<span id="L27" class="line"><a href="#L27">27</a>    self:registerModelFunc()</span>
+<span id="L28" class="line"><a href="#L28">28</a></span>
+<span id="L29" class="line"><a href="#L29">29</a>    _G.amfEC:registerFeature(self)</span>
+<span id="L30" class="line"><a href="#L30">30</a>    IconTipEventCenter:register(IconTipEvent.CHECK_ICON_TIP, self.onActCheckIconTip, self)</span>
+<span id="L31" class="line"><a href="#L31">31</a>end</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>function WinningStreakBottleManager:registerModelFunc()</span>
+<span id="L34" class="line"><a href="#L34">34</a>    local funcList = {</span>
+<span id="L35" class="line"><a href="#L35">35</a>        &quot;getWinningNum&quot;,</span>
+<span id="L36" class="line"><a href="#L36">36</a>        &quot;getMainConfig&quot;,</span>
+<span id="L37" class="line"><a href="#L37">37</a>        &quot;getEndTime&quot;,</span>
+<span id="L38" class="line"><a href="#L38">38</a>        &quot;getBeginTime&quot;,</span>
+<span id="L39" class="line"><a href="#L39">39</a>        &quot;getMetaId&quot;,</span>
+<span id="L40" class="line"><a href="#L40">40</a>        &quot;getTargetWinNum&quot;,</span>
+<span id="L41" class="line"><a href="#L41">41</a>        &quot;getAddPercent&quot;,</span>
+<span id="L42" class="line"><a href="#L42">42</a>        &quot;getAvailable&quot;,</span>
+<span id="L43" class="line"><a href="#L43">43</a>        &quot;getBuffState&quot;,</span>
+<span id="L44" class="line"><a href="#L44">44</a>        &quot;getActiveBuffLevelCount&quot;,</span>
+<span id="L45" class="line"><a href="#L45">45</a>        &quot;getLatestShowWinCnt&quot;,</span>
+<span id="L46" class="line"><a href="#L46">46</a>        &quot;checkIsFullShow&quot;,</span>
+<span id="L47" class="line"><a href="#L47">47</a>        &quot;checkCanSkipFullShow&quot;,</span>
+<span id="L48" class="line"><a href="#L48">48</a>        &quot;setWinningNum&quot;,</span>
+<span id="L49" class="line"><a href="#L49">49</a>        &quot;setIsFullShow&quot;,</span>
+<span id="L50" class="line"><a href="#L50">50</a>        &quot;setCanSkipFullShow&quot;,</span>
+<span id="L51" class="line"><a href="#L51">51</a>        &quot;setLatestShowWinCnt&quot;,</span>
+<span id="L52" class="line"><a href="#L52">52</a>        &quot;addWinningNum&quot;,</span>
+<span id="L53" class="line"><a href="#L53">53</a>        &quot;fillWinningNum&quot;,</span>
+<span id="L54" class="line"><a href="#L54">54</a>    }</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>    for _, funcName in ipairs(funcList) do</span>
+<span id="L57" class="line"><a href="#L57">57</a>        self[funcName] = function(context, ...)</span>
+<span id="L58" class="line"><a href="#L58">58</a>            return self._model[funcName](self._model, ...)</span>
+<span id="L59" class="line"><a href="#L59">59</a>        end</span>
+<span id="L60" class="line"><a href="#L60">60</a>    end</span>
+<span id="L61" class="line"><a href="#L61">61</a>end</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>------------------------------------------------------------------------------</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>function WinningStreakBottleManager:requestMainConfig()</span>
+<span id="L66" class="line"><a href="#L66">66</a>    local promise = deferred.new()</span>
+<span id="L67" class="line"><a href="#L67">67</a></span>
+<span id="L68" class="line"><a href="#L68">68</a>    self._model:requestGetBottleMainInfo():next(function(response)</span>
+<span id="L69" class="line"><a href="#L69">69</a>        self:checkIcon()</span>
+<span id="L70" class="line"><a href="#L70">70</a>        promise:resolve()</span>
+<span id="L71" class="line"><a href="#L71">71</a>    end, function(response)</span>
+<span id="L72" class="line"><a href="#L72">72</a>        promise:reject()</span>
+<span id="L73" class="line"><a href="#L73">73</a>    end)</span>
+<span id="L74" class="line"><a href="#L74">74</a></span>
+<span id="L75" class="line"><a href="#L75">75</a>    return promise</span>
+<span id="L76" class="line"><a href="#L76">76</a>end</span>
+<span id="L77" class="line"><a href="#L77">77</a></span>
+<span id="L78" class="line"><a href="#L78">78</a>function WinningStreakBottleManager:syncMainConfigByActInfo(actInfo)</span>
+<span id="L79" class="line"><a href="#L79">79</a>    self._model:syncMainConfigByActInfo(actInfo)</span>
+<span id="L80" class="line"><a href="#L80">80</a>    self:checkIcon()</span>
+<span id="L81" class="line"><a href="#L81">81</a>end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>function WinningStreakBottleManager:isEnabled()</span>
+<span id="L84" class="line"><a href="#L84">84</a>    if not self._model then return false end</span>
+<span id="L85" class="line"><a href="#L85">85</a></span>
+<span id="L86" class="line"><a href="#L86">86</a>    local mainConfig = self:getMainConfig()</span>
+<span id="L87" class="line"><a href="#L87">87</a>    if not mainConfig or not mainConfig.metaId then return false end</span>
+<span id="L88" class="line"><a href="#L88">88</a></span>
+<span id="L89" class="line"><a href="#L89">89</a>    if TimeKit:timeInMillis() &gt;= mainConfig.endTs </span>
+<span id="L90" class="line"><a href="#L90">90</a>        or TimeKit:timeInMillis() &lt; mainConfig.beginTs</span>
+<span id="L91" class="line"><a href="#L91">91</a>    then return false end</span>
+<span id="L92" class="line"><a href="#L92">92</a></span>
+<span id="L93" class="line"><a href="#L93">93</a>    if not self:isUserStateValid() then return false end</span>
+<span id="L94" class="line"><a href="#L94">94</a></span>
+<span id="L95" class="line"><a href="#L95">95</a>    return true</span>
+<span id="L96" class="line"><a href="#L96">96</a>end</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>function WinningStreakBottleManager:isUserStateValid()</span>
+<span id="L99" class="line"><a href="#L99">99</a>    return not _G.amfBean(&quot;UserStateManager&quot;):isColorfulStarFull() </span>
+<span id="L100" class="line"><a href="#L100">100</a>end</span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a>function WinningStreakBottleManager:isAvailableLevel(levelId, levelScene)</span>
+<span id="L103" class="line"><a href="#L103">103</a>    local isMainLevel = LevelConfigBridge:isLevelTypeByID(levelId, GameLevelType.kMainLevel, levelScene)</span>
+<span id="L104" class="line"><a href="#L104">104</a>    if not isMainLevel then return false end</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>    local userStateManager = _G.amfBean(&quot;UserStateManager&quot;)</span>
+<span id="L107" class="line"><a href="#L107">107</a>    if not userStateManager then return false end</span>
+<span id="L108" class="line"><a href="#L108">108</a></span>
+<span id="L109" class="line"><a href="#L109">109</a>    if userStateManager:isFMJ() then </span>
+<span id="L110" class="line"><a href="#L110">110</a>        local toplevelId = _G.getTopLevelId()</span>
+<span id="L111" class="line"><a href="#L111">111</a>        return toplevelId == levelId </span>
+<span id="L112" class="line"><a href="#L112">112</a>	end</span>
+<span id="L113" class="line"><a href="#L113">113</a></span>
+<span id="L114" class="line"><a href="#L114">114</a>    return not userStateManager:isColorfulStarFull() </span>
+<span id="L115" class="line"><a href="#L115">115</a>end</span>
+<span id="L116" class="line"><a href="#L116">116</a></span>
+<span id="L117" class="line"><a href="#L117">117</a>function WinningStreakBottleManager:updatePassLevelData(levelContext)</span>
+<span id="L118" class="line"><a href="#L118">118</a>    if not self:isEnabled() then return end</span>
+<span id="L119" class="line"><a href="#L119">119</a></span>
+<span id="L120" class="line"><a href="#L120">120</a>    if levelContext.isLevelPass then</span>
+<span id="L121" class="line"><a href="#L121">121</a>        self:addWinningNum()</span>
+<span id="L122" class="line"><a href="#L122">122</a>        return</span>
+<span id="L123" class="line"><a href="#L123">123</a>    end</span>
+<span id="L124" class="line"><a href="#L124">124</a></span>
+<span id="L125" class="line"><a href="#L125">125</a>    if self:getAvailable() then</span>
+<span id="L126" class="line"><a href="#L126">126</a>        self:setWinningNum(0)</span>
+<span id="L127" class="line"><a href="#L127">127</a>        self:setIsFullShow(false)</span>
+<span id="L128" class="line"><a href="#L128">128</a>    end</span>
+<span id="L129" class="line"><a href="#L129">129</a></span>
+<span id="L130" class="line"><a href="#L130">130</a>    self:updateIcon()</span>
+<span id="L131" class="line"><a href="#L131">131</a>end</span>
+<span id="L132" class="line"><a href="#L132">132</a></span>
+<span id="L133" class="line"><a href="#L133">133</a>function WinningStreakBottleManager:dc(category, subCategory, t1, t2, t3, t4, extraData)</span>
+<span id="L134" class="line"><a href="#L134">134</a>    local params = {</span>
+<span id="L135" class="line"><a href="#L135">135</a>        game_type = &quot;stage&quot;,</span>
+<span id="L136" class="line"><a href="#L136">136</a>        game_name = &quot;combobottle&quot;,</span>
+<span id="L137" class="line"><a href="#L137">137</a>        category = category,</span>
+<span id="L138" class="line"><a href="#L138">138</a>        sub_category = subCategory,</span>
+<span id="L139" class="line"><a href="#L139">139</a>        t1 = t1,</span>
+<span id="L140" class="line"><a href="#L140">140</a>        t2 = t2,</span>
+<span id="L141" class="line"><a href="#L141">141</a>        t3 = t3,</span>
+<span id="L142" class="line"><a href="#L142">142</a>        t4 = t4,</span>
+<span id="L143" class="line"><a href="#L143">143</a>    }</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>    for i, v in pairs(extraData or {}) do</span>
+<span id="L146" class="line"><a href="#L146">146</a>        params[i] = v</span>
+<span id="L147" class="line"><a href="#L147">147</a>    end</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>    DcUtil:dcForUserTrack(params)</span>
+<span id="L150" class="line"><a href="#L150">150</a>end</span>
+<span id="L151" class="line"><a href="#L151">151</a></span>
+<span id="L152" class="line"><a href="#L152">152</a>----------------------------- icon --------------------------------</span>
+<span id="L153" class="line"><a href="#L153">153</a>function WinningStreakBottleManager:createIcon()</span>
+<span id="L154" class="line"><a href="#L154">154</a>    local promise = deferred.new()</span>
+<span id="L155" class="line"><a href="#L155">155</a>    if self._isCreatingIcon then</span>
+<span id="L156" class="line"><a href="#L156">156</a>        return promise:resolve()</span>
+<span id="L157" class="line"><a href="#L157">157</a>    end</span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>    if self._icon then</span>
+<span id="L160" class="line"><a href="#L160">160</a>        self:updateIcon()</span>
+<span id="L161" class="line"><a href="#L161">161</a>        return promise:resolve()</span>
+<span id="L162" class="line"><a href="#L162">162</a>    end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>    self._isCreatingIcon = true</span>
+<span id="L165" class="line"><a href="#L165">165</a></span>
+<span id="L166" class="line"><a href="#L166">166</a>    self._assetsUtil:loadMiniFiles(_G.WinningStreakBottleConst.ICON_RES):next(function()</span>
+<span id="L167" class="line"><a href="#L167">167</a>        self:_createIconWithResReady()</span>
+<span id="L168" class="line"><a href="#L168">168</a>        self._isCreatingIcon = false</span>
+<span id="L169" class="line"><a href="#L169">169</a>        promise:resolve()</span>
+<span id="L170" class="line"><a href="#L170">170</a>    end, function()</span>
+<span id="L171" class="line"><a href="#L171">171</a>        self._isCreatingIcon = false</span>
+<span id="L172" class="line"><a href="#L172">172</a>        promise:reject()</span>
+<span id="L173" class="line"><a href="#L173">173</a>    end)</span>
+<span id="L174" class="line"><a href="#L174">174</a></span>
+<span id="L175" class="line"><a href="#L175">175</a>    return promise</span>
+<span id="L176" class="line"><a href="#L176">176</a>end</span>
+<span id="L177" class="line"><a href="#L177">177</a></span>
+<span id="L178" class="line"><a href="#L178">178</a>function WinningStreakBottleManager:_createIconWithResReady()</span>
+<span id="L179" class="line"><a href="#L179">179</a>    local Icon = require &quot;amf.feature.winningstreak.module.bottle.view.icon.Icon&quot;</span>
+<span id="L180" class="line"><a href="#L180">180</a>    self._icon = Icon:create()</span>
+<span id="L181" class="line"><a href="#L181">181</a>    IconEventCenter:addIconEvent(self._icon)</span>
+<span id="L182" class="line"><a href="#L182">182</a>    self:updateIcon()</span>
+<span id="L183" class="line"><a href="#L183">183</a>end</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>function WinningStreakBottleManager:checkIcon()</span>
+<span id="L186" class="line"><a href="#L186">186</a>    if self:isEnabled() then</span>
+<span id="L187" class="line"><a href="#L187">187</a>        self:createIcon()</span>
+<span id="L188" class="line"><a href="#L188">188</a>    else</span>
+<span id="L189" class="line"><a href="#L189">189</a>        self:removeIcon()</span>
+<span id="L190" class="line"><a href="#L190">190</a>    end</span>
+<span id="L191" class="line"><a href="#L191">191</a>end</span>
+<span id="L192" class="line"><a href="#L192">192</a></span>
+<span id="L193" class="line"><a href="#L193">193</a>function WinningStreakBottleManager:getIcon()</span>
+<span id="L194" class="line"><a href="#L194">194</a>    return self._icon</span>
+<span id="L195" class="line"><a href="#L195">195</a>end</span>
+<span id="L196" class="line"><a href="#L196">196</a></span>
+<span id="L197" class="line"><a href="#L197">197</a>function WinningStreakBottleManager:updateIcon()</span>
+<span id="L198" class="line"><a href="#L198">198</a>    if self._icon then</span>
+<span id="L199" class="line"><a href="#L199">199</a>        self._icon:updateIcon()</span>
+<span id="L200" class="line"><a href="#L200">200</a>    end</span>
+<span id="L201" class="line"><a href="#L201">201</a>end</span>
+<span id="L202" class="line"><a href="#L202">202</a></span>
+<span id="L203" class="line"><a href="#L203">203</a>function WinningStreakBottleManager:removeIcon()</span>
+<span id="L204" class="line"><a href="#L204">204</a>    IconEventCenter:removeIconEvent(_G.IconKey.kWinningStreakBottle)</span>
+<span id="L205" class="line"><a href="#L205">205</a>    self._icon = nil</span>
+<span id="L206" class="line"><a href="#L206">206</a>end</span>
+<span id="L207" class="line"><a href="#L207">207</a></span>
+<span id="L208" class="line"><a href="#L208">208</a>-------------------------------- 面板 ------------------------------------------</span>
+<span id="L209" class="line"><a href="#L209">209</a></span>
+<span id="L210" class="line"><a href="#L210">210</a>function WinningStreakBottleManager:showMainPanel()</span>
+<span id="L211" class="line"><a href="#L211">211</a>    local promise = deferred.new()</span>
+<span id="L212" class="line"><a href="#L212">212</a></span>
+<span id="L213" class="line"><a href="#L213">213</a>    local recallManager = _G.amfBean(&quot;Recall2025Manager&quot;)</span>
+<span id="L214" class="line"><a href="#L214">214</a>    local recallEnable = recallManager and recallManager:isEnabled() and recallManager:isIconEnabled()</span>
+<span id="L215" class="line"><a href="#L215">215</a>    local recallMaxCount = recallManager and recallManager:getMaxBonusCount() or 0</span>
+<span id="L216" class="line"><a href="#L216">216</a>    local WinningStreakScoreBottlePanelVM = require &quot;amf.feature.winningstreak.module.bottle.view.WinningStreakScoreBottlePanelVM&quot;</span>
+<span id="L217" class="line"><a href="#L217">217</a>    local panel = WinningStreakScoreBottlePanelVM.Builder.new()</span>
+<span id="L218" class="line"><a href="#L218">218</a>        :setIsKeepWinActivate(self:getAvailable())</span>
+<span id="L219" class="line"><a href="#L219">219</a>        :setProgressWinCnt(self:getWinningNum())</span>
+<span id="L220" class="line"><a href="#L220">220</a>        :setKeepWinCnt(self:getActiveBuffLevelCount())</span>
+<span id="L221" class="line"><a href="#L221">221</a>        :setNeedWinNum(self:getTargetWinNum())</span>
+<span id="L222" class="line"><a href="#L222">222</a>        :setLatestShowWinCnt(self:getLatestShowWinCnt())</span>
+<span id="L223" class="line"><a href="#L223">223</a>        :setRecallData(recallEnable, recallMaxCount)</span>
+<span id="L224" class="line"><a href="#L224">224</a>        :setCloseCallback(function()</span>
+<span id="L225" class="line"><a href="#L225">225</a>            promise:resolve()</span>
+<span id="L226" class="line"><a href="#L226">226</a>        end)</span>
+<span id="L227" class="line"><a href="#L227">227</a>        :setLoadResFailCallback(function()</span>
+<span id="L228" class="line"><a href="#L228">228</a>            promise:reject()</span>
+<span id="L229" class="line"><a href="#L229">229</a>        end)</span>
+<span id="L230" class="line"><a href="#L230">230</a>        :build()</span>
+<span id="L231" class="line"><a href="#L231">231</a></span>
+<span id="L232" class="line"><a href="#L232">232</a>    panel:popout()</span>
+<span id="L233" class="line"><a href="#L233">233</a></span>
+<span id="L234" class="line"><a href="#L234">234</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L235" class="line"><a href="#L235">235</a>        local TestUtils = require &quot;amf.feature.winningstreak.module.bottle.view.TestUtils&quot;</span>
+<span id="L236" class="line"><a href="#L236">236</a>        local testUtils = TestUtils.new()</span>
+<span id="L237" class="line"><a href="#L237">237</a>        testUtils:showTest(panel)</span>
+<span id="L238" class="line"><a href="#L238">238</a>        testUtils.testButtonCtrl.onTapped()</span>
+<span id="L239" class="line"><a href="#L239">239</a></span>
+<span id="L240" class="line"><a href="#L240">240</a>        local promise2 = deferred.new()</span>
+<span id="L241" class="line"><a href="#L241">241</a>        promise:next(function()</span>
+<span id="L242" class="line"><a href="#L242">242</a>            testUtils:close()</span>
+<span id="L243" class="line"><a href="#L243">243</a>            promise2:resolve()</span>
+<span id="L244" class="line"><a href="#L244">244</a>        end, function()</span>
+<span id="L245" class="line"><a href="#L245">245</a>            testUtils:close()</span>
+<span id="L246" class="line"><a href="#L246">246</a>            promise2:reject()</span>
+<span id="L247" class="line"><a href="#L247">247</a>        end)</span>
+<span id="L248" class="line"><a href="#L248">248</a></span>
+<span id="L249" class="line"><a href="#L249">249</a>        return promise2</span>
+<span id="L250" class="line"><a href="#L250">250</a>    end</span>
+<span id="L251" class="line"><a href="#L251">251</a></span>
+<span id="L252" class="line"><a href="#L252">252</a>    return promise</span>
+<span id="L253" class="line"><a href="#L253">253</a>end</span>
+<span id="L254" class="line"><a href="#L254">254</a></span>
+<span id="L255" class="line"><a href="#L255">255</a>function WinningStreakBottleManager:showFullBottlePanel()</span>
+<span id="L256" class="line"><a href="#L256">256</a>    local promise = deferred.new()</span>
+<span id="L257" class="line"><a href="#L257">257</a></span>
+<span id="L258" class="line"><a href="#L258">258</a>    local FullBottleAnimPanelVM = require &quot;amf.feature.winningstreak.module.bottle.view.FullBottleAnimPanelVM&quot;</span>
+<span id="L259" class="line"><a href="#L259">259</a>    local panel = FullBottleAnimPanelVM.Builder.new()</span>
+<span id="L260" class="line"><a href="#L260">260</a>        :setCloseCallback(function()</span>
+<span id="L261" class="line"><a href="#L261">261</a>            self:updateIcon()</span>
+<span id="L262" class="line"><a href="#L262">262</a>            promise:resolve()</span>
+<span id="L263" class="line"><a href="#L263">263</a>        end)</span>
+<span id="L264" class="line"><a href="#L264">264</a>        :setLoadResFailCallback(function()</span>
+<span id="L265" class="line"><a href="#L265">265</a>            promise:reject()</span>
+<span id="L266" class="line"><a href="#L266">266</a>        end)</span>
+<span id="L267" class="line"><a href="#L267">267</a>        :build()</span>
+<span id="L268" class="line"><a href="#L268">268</a></span>
+<span id="L269" class="line"><a href="#L269">269</a>    panel:popout(nil, true, nil, 0)</span>
+<span id="L270" class="line"><a href="#L270">270</a></span>
+<span id="L271" class="line"><a href="#L271">271</a>    return promise</span>
+<span id="L272" class="line"><a href="#L272">272</a>end</span>
+<span id="L273" class="line"><a href="#L273">273</a></span>
+<span id="L274" class="line"><a href="#L274">274</a>--------------------------------------- 事件 ---------------------------------------------</span>
+<span id="L275" class="line"><a href="#L275">275</a></span>
+<span id="L276" class="line"><a href="#L276">276</a>function WinningStreakBottleManager:onActEnterStage3()</span>
+<span id="L277" class="line"><a href="#L277">277</a>    if not self:isEnabled() then return end</span>
+<span id="L278" class="line"><a href="#L278">278</a>    if not self:getAvailable() then return end</span>
+<span id="L279" class="line"><a href="#L279">279</a>    if self:checkIsFullShow() then return end </span>
+<span id="L280" class="line"><a href="#L280">280</a></span>
+<span id="L281" class="line"><a href="#L281">281</a>    local levelId = _G.getTopLevelId()</span>
+<span id="L282" class="line"><a href="#L282">282</a>    if self._levelUnlockMgr:isInNewLevelTime() and self._levelUnlockMgr:isTopNewMainOrHideLevel(levelId) then</span>
+<span id="L283" class="line"><a href="#L283">283</a>        self:setIsFullShow(true)</span>
+<span id="L284" class="line"><a href="#L284">284</a>        self:updateIcon()</span>
+<span id="L285" class="line"><a href="#L285">285</a>        return</span>
+<span id="L286" class="line"><a href="#L286">286</a>    end</span>
+<span id="L287" class="line"><a href="#L287">287</a></span>
+<span id="L288" class="line"><a href="#L288">288</a>    local function onHandleOver()</span>
+<span id="L289" class="line"><a href="#L289">289</a>        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.COMBO_BOTTLE)</span>
+<span id="L290" class="line"><a href="#L290">290</a>    end</span>
+<span id="L291" class="line"><a href="#L291">291</a></span>
+<span id="L292" class="line"><a href="#L292">292</a>    _G.amfBean(&quot;AutoPopupMgr&quot;):addPopupConfig(PopupCheckPoint.COMBO_BOTTLE, function ( ... )</span>
+<span id="L293" class="line"><a href="#L293">293</a>        self:showFullBottlePanel():next(function()</span>
+<span id="L294" class="line"><a href="#L294">294</a>            self:popIconTipAfterActivate(onHandleOver)</span>
+<span id="L295" class="line"><a href="#L295">295</a>        end, function()</span>
+<span id="L296" class="line"><a href="#L296">296</a>            onHandleOver()</span>
+<span id="L297" class="line"><a href="#L297">297</a>        end)</span>
+<span id="L298" class="line"><a href="#L298">298</a>    end)</span>
+<span id="L299" class="line"><a href="#L299">299</a>end</span>
+<span id="L300" class="line"><a href="#L300">300</a></span>
+<span id="L301" class="line"><a href="#L301">301</a>function WinningStreakBottleManager:onActOnlineUnlockOver()</span>
+<span id="L302" class="line"><a href="#L302">302</a>    self:requestMainConfig()</span>
+<span id="L303" class="line"><a href="#L303">303</a>end</span>
+<span id="L304" class="line"><a href="#L304">304</a></span>
+<span id="L305" class="line"><a href="#L305">305</a>-- 闪退恢复失败</span>
+<span id="L306" class="line"><a href="#L306">306</a>function WinningStreakBottleManager:onActCrashResumeFailed(eventData)</span>
+<span id="L307" class="line"><a href="#L307">307</a>    if not self:isEnabled() then return end</span>
+<span id="L308" class="line"><a href="#L308">308</a>    </span>
+<span id="L309" class="line"><a href="#L309">309</a>    local data = eventData.data</span>
+<span id="L310" class="line"><a href="#L310">310</a>    if data and data.levelId then</span>
+<span id="L311" class="line"><a href="#L311">311</a>        if self:isAvailableLevel(data.levelId, data.levelScene) and self:getAvailable() then</span>
+<span id="L312" class="line"><a href="#L312">312</a>            self:setWinningNum(0)</span>
+<span id="L313" class="line"><a href="#L313">313</a>            self:setIsFullShow(false)</span>
+<span id="L314" class="line"><a href="#L314">314</a></span>
+<span id="L315" class="line"><a href="#L315">315</a>            self:updateIcon()</span>
+<span id="L316" class="line"><a href="#L316">316</a>            -- HttpBase:offlinePost(&#x27;opNotifyOffline&#x27;, {type = OpNotifyOfflineType.kCloseResumePanel, param = Manager.ACT_ID})</span>
+<span id="L317" class="line"><a href="#L317">317</a>        end</span>
+<span id="L318" class="line"><a href="#L318">318</a>    end</span>
+<span id="L319" class="line"><a href="#L319">319</a>end</span>
+<span id="L320" class="line"><a href="#L320">320</a></span>
+<span id="L321" class="line"><a href="#L321">321</a>function WinningStreakBottleManager:onActCheckIconTip(evt)</span>
+<span id="L322" class="line"><a href="#L322">322</a>    if not self:isEnabled() then return end</span>
+<span id="L323" class="line"><a href="#L323">323</a></span>
+<span id="L324" class="line"><a href="#L324">324</a>    local data = evt:getData()</span>
+<span id="L325" class="line"><a href="#L325">325</a>    local stage = data.stage</span>
+<span id="L326" class="line"><a href="#L326">326</a>    if stage ~= &quot;STAGE_TWO&quot; then return end</span>
+<span id="L327" class="line"><a href="#L327">327</a></span>
+<span id="L328" class="line"><a href="#L328">328</a>    self:checkIconTipDaily()</span>
+<span id="L329" class="line"><a href="#L329">329</a></span>
+<span id="L330" class="line"><a href="#L330">330</a>    -- 由于弹出时机不符合需求，此条不走框架</span>
+<span id="L331" class="line"><a href="#L331">331</a>    -- self:checkIconTipPermanent()</span>
+<span id="L332" class="line"><a href="#L332">332</a>end</span>
+<span id="L333" class="line"><a href="#L333">333</a></span>
+<span id="L334" class="line"><a href="#L334">334</a>------------------------------------ iconTip --------------------------------------</span>
+<span id="L335" class="line"><a href="#L335">335</a></span>
+<span id="L336" class="line"><a href="#L336">336</a>function WinningStreakBottleManager:checkIconTipDaily()</span>
+<span id="L337" class="line"><a href="#L337">337</a></span>
+<span id="L338" class="line"><a href="#L338">338</a>    if not self:isEnabled() then return end</span>
+<span id="L339" class="line"><a href="#L339">339</a></span>
+<span id="L340" class="line"><a href="#L340">340</a>    local winNum = self:getWinningNum()</span>
+<span id="L341" class="line"><a href="#L341">341</a>    local available = self:getAvailable()</span>
+<span id="L342" class="line"><a href="#L342">342</a>    local text, typeIndex</span>
+<span id="L343" class="line"><a href="#L343">343</a>    if not available and winNum &gt;= 2 then</span>
+<span id="L344" class="line"><a href="#L344">344</a>       text = string.format(&quot;再过%d关，激活加分瓶&quot;, self:getTargetWinNum() - winNum)</span>
+<span id="L345" class="line"><a href="#L345">345</a>       typeIndex = 1</span>
+<span id="L346" class="line"><a href="#L346">346</a>    elseif available and winNum &gt;= 10 then</span>
+<span id="L347" class="line"><a href="#L347">347</a>        text = &quot;保持连胜，加分不停！&quot;</span>
+<span id="L348" class="line"><a href="#L348">348</a>        typeIndex = 2</span>
+<span id="L349" class="line"><a href="#L349">349</a>    end</span>
+<span id="L350" class="line"><a href="#L350">350</a></span>
+<span id="L351" class="line"><a href="#L351">351</a>    if text then</span>
+<span id="L352" class="line"><a href="#L352">352</a>        local IconTipEventCenter = require &quot;amf.feature.icontip.event.IconTipEventCenter&quot;</span>
+<span id="L353" class="line"><a href="#L353">353</a>        IconTipEventCenter:dispatch(IconTipEvent.ADD_ICON_TIP, {</span>
+<span id="L354" class="line"><a href="#L354">354</a>            iconKey = _G.IconKey.kWinningStreakBottle,</span>
+<span id="L355" class="line"><a href="#L355">355</a>            iconType = IconTipType.MESSAGE,</span>
+<span id="L356" class="line"><a href="#L356">356</a>            creatorDelegate = {</span>
+<span id="L357" class="line"><a href="#L357">357</a>                text = text,</span>
+<span id="L358" class="line"><a href="#L358">358</a>                tipsType = HomeIconTipsType.ONLY_TEXT,</span>
+<span id="L359" class="line"><a href="#L359">359</a>            },</span>
+<span id="L360" class="line"><a href="#L360">360</a>            typeIndex = typeIndex,</span>
+<span id="L361" class="line"><a href="#L361">361</a>            config = {</span>
+<span id="L362" class="line"><a href="#L362">362</a>                type = 1,</span>
+<span id="L363" class="line"><a href="#L363">363</a>                stage = {2},</span>
+<span id="L364" class="line"><a href="#L364">364</a>                priority = &quot;A&quot;,</span>
+<span id="L365" class="line"><a href="#L365">365</a>                giftPriority = 0,</span>
+<span id="L366" class="line"><a href="#L366">366</a>                limit = 1,</span>
+<span id="L367" class="line"><a href="#L367">367</a>                daily = true,</span>
+<span id="L368" class="line"><a href="#L368">368</a>                ignoreNewLevel = true,</span>
+<span id="L369" class="line"><a href="#L369">369</a>            },</span>
+<span id="L370" class="line"><a href="#L370">370</a>        })</span>
+<span id="L371" class="line"><a href="#L371">371</a>    end</span>
+<span id="L372" class="line"><a href="#L372">372</a>end</span>
+<span id="L373" class="line"><a href="#L373">373</a></span>
+<span id="L374" class="line"><a href="#L374">374</a>function WinningStreakBottleManager:checkIconTipPermanent()</span>
+<span id="L375" class="line"><a href="#L375">375</a>    if not self:isEnabled() then return end</span>
+<span id="L376" class="line"><a href="#L376">376</a>    if self:getAvailable() then</span>
+<span id="L377" class="line"><a href="#L377">377</a>        local IconTipEventCenter = require &quot;amf.feature.icontip.event.IconTipEventCenter&quot;</span>
+<span id="L378" class="line"><a href="#L378">378</a>        IconTipEventCenter:dispatch(IconTipEvent.ADD_ICON_TIP, {</span>
+<span id="L379" class="line"><a href="#L379">379</a>            iconKey = _G.IconKey.kWinningStreakBottle,</span>
+<span id="L380" class="line"><a href="#L380">380</a>            iconType = IconTipType.MESSAGE,</span>
+<span id="L381" class="line"><a href="#L381">381</a>            creatorDelegate = {</span>
+<span id="L382" class="line"><a href="#L382">382</a>                text = &quot;保持连胜，加分不停！&quot;,</span>
+<span id="L383" class="line"><a href="#L383">383</a>                tipsType = HomeIconTipsType.ONLY_TEXT,</span>
+<span id="L384" class="line"><a href="#L384">384</a>            },</span>
+<span id="L385" class="line"><a href="#L385">385</a>            typeIndex = 3,</span>
+<span id="L386" class="line"><a href="#L386">386</a>            config = {</span>
+<span id="L387" class="line"><a href="#L387">387</a>                type = 1,</span>
+<span id="L388" class="line"><a href="#L388">388</a>                stage = {2},</span>
+<span id="L389" class="line"><a href="#L389">389</a>                priority = &quot;A&quot;,</span>
+<span id="L390" class="line"><a href="#L390">390</a>                giftPriority = 0,</span>
+<span id="L391" class="line"><a href="#L391">391</a>                limit = 1,</span>
+<span id="L392" class="line"><a href="#L392">392</a>                daily = false,</span>
+<span id="L393" class="line"><a href="#L393">393</a>                ignoreNewLevel = true,</span>
+<span id="L394" class="line"><a href="#L394">394</a>            },</span>
+<span id="L395" class="line"><a href="#L395">395</a>        })</span>
+<span id="L396" class="line"><a href="#L396">396</a>    end</span>
+<span id="L397" class="line"><a href="#L397">397</a>end</span>
+<span id="L398" class="line"><a href="#L398">398</a></span>
+<span id="L399" class="line"><a href="#L399">399</a>function WinningStreakBottleManager:popIconTipAfterActivate(done)</span>
+<span id="L400" class="line"><a href="#L400">400</a>    local icon = self:getIcon()</span>
+<span id="L401" class="line"><a href="#L401">401</a>    if not icon or icon.isDisposed then </span>
+<span id="L402" class="line"><a href="#L402">402</a>        safeRunCall(done)</span>
+<span id="L403" class="line"><a href="#L403">403</a>        return </span>
+<span id="L404" class="line"><a href="#L404">404</a>    end</span>
+<span id="L405" class="line"><a href="#L405">405</a></span>
+<span id="L406" class="line"><a href="#L406">406</a>    if self._model:checkIsFullShowTip() then</span>
+<span id="L407" class="line"><a href="#L407">407</a>        safeRunCall(done)</span>
+<span id="L408" class="line"><a href="#L408">408</a>        return</span>
+<span id="L409" class="line"><a href="#L409">409</a>    end</span>
+<span id="L410" class="line"><a href="#L410">410</a></span>
+<span id="L411" class="line"><a href="#L411">411</a>    self._model:setIsFullShowTip(true)</span>
+<span id="L412" class="line"><a href="#L412">412</a></span>
+<span id="L413" class="line"><a href="#L413">413</a>    IconTipEventCenter:dispatch(IconTipEvent.HIDE_ICON_TIP, {</span>
+<span id="L414" class="line"><a href="#L414">414</a>        iconKey = _G.IconKey.kWinningStreakBottle,</span>
+<span id="L415" class="line"><a href="#L415">415</a>    })</span>
+<span id="L416" class="line"><a href="#L416">416</a></span>
+<span id="L417" class="line"><a href="#L417">417</a>    local iconTip = HomeIconTipsFactory:createTextTips(icon,&quot;保持连胜，加分不停！&quot;,{</span>
+<span id="L418" class="line"><a href="#L418">418</a>        endCallback = function() </span>
+<span id="L419" class="line"><a href="#L419">419</a>            safeRunCall(done) </span>
+<span id="L420" class="line"><a href="#L420">420</a>        end,</span>
+<span id="L421" class="line"><a href="#L421">421</a>        duration = 2.5,</span>
+<span id="L422" class="line"><a href="#L422">422</a>    })</span>
+<span id="L423" class="line"><a href="#L423">423</a></span>
+<span id="L424" class="line"><a href="#L424">424</a>    if not iconTip then</span>
+<span id="L425" class="line"><a href="#L425">425</a>        safeRunCall(done)</span>
+<span id="L426" class="line"><a href="#L426">426</a>        return</span>
+<span id="L427" class="line"><a href="#L427">427</a>    end</span>
+<span id="L428" class="line"><a href="#L428">428</a></span>
+<span id="L429" class="line"><a href="#L429">429</a>    iconTip:playCutInAnim(function() </span>
+<span id="L430" class="line"><a href="#L430">430</a>        iconTip:playIdleAnim(function()</span>
+<span id="L431" class="line"><a href="#L431">431</a>            iconTip:playCutOutAnim(function()</span>
+<span id="L432" class="line"><a href="#L432">432</a>                iconTip:remove()</span>
+<span id="L433" class="line"><a href="#L433">433</a>            end)</span>
+<span id="L434" class="line"><a href="#L434">434</a>        end)</span>
+<span id="L435" class="line"><a href="#L435">435</a>    end)</span>
+<span id="L436" class="line"><a href="#L436">436</a>end</span>
+<span id="L437" class="line"><a href="#L437">437</a></span>
+<span id="L438" class="line"><a href="#L438">438</a>return WinningStreakBottleManager</span></pre></main></html>

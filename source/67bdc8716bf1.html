@@ -1,0 +1,343 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/pengpeng2026/PengPeng2026Manager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="67bdc8716bf1.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/pengpeng2026/PengPeng2026Manager.lua</h1><p>SHA256 affd43951c5f623b16f4c288176fda2997fa04c0e8920e4b976688473f3c65d0</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureManager = require &quot;amf.middleware.activity.base.BaseFeatureManager&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local PropEventCenter = require &quot;amf.middleware.prop.event.PropEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local OperationQueue = require &quot;amf.feature.localactivity.pengpeng2026.module.PengPeng2026OperationQueue&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local AttractPanelHelper = require &quot;amf.feature.localactivity.pengpeng2026.module.PengPeng2026AttractPanelHelper&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local Meta = require &quot;amf.feature.localactivity.pengpeng2026.config.PengPeng2026Config&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local Log = require &quot;amf.feature.localactivity.pengpeng2026.config.PengPeng2026Log&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>local Manager = class(&quot;PengPeng2026Manager&quot;, BaseFeatureManager)</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>-- Manager 初始化入口：只装配活动级子模块，不在这里拉取后端数据。</span>
+<span id="L11" class="line"><a href="#L11">11</a>function Manager:_init()</span>
+<span id="L12" class="line"><a href="#L12">12</a>    self:initSubFunction()</span>
+<span id="L13" class="line"><a href="#L13">13</a></span>
+<span id="L14" class="line"><a href="#L14">14</a>    PropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)</span>
+<span id="L15" class="line"><a href="#L15">15</a>    PropEventCenter:register(PropEvent.RESOLVE_ICON, self._onResolveIcon, self)</span>
+<span id="L16" class="line"><a href="#L16">16</a>end</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>-- 初始化本地操作队列；队列只缓存操作，真实协议由 Manager 后续统一触发。</span>
+<span id="L19" class="line"><a href="#L19">19</a>function Manager:initSubFunction()</span>
+<span id="L20" class="line"><a href="#L20">20</a>    self.operationQueue = OperationQueue:create(self)</span>
+<span id="L21" class="line"><a href="#L21">21</a>    self.operationQueue:initOperationList()</span>
+<span id="L22" class="line"><a href="#L22">22</a>end</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>-- 返回活动常量路径，供 BaseFeatureManager 初始化 Config。</span>
+<span id="L25" class="line"><a href="#L25">25</a>function Manager:_getConstPath()</span>
+<span id="L26" class="line"><a href="#L26">26</a>    return &quot;amf.feature.localactivity.pengpeng2026.config.PengPeng2026Config&quot;</span>
+<span id="L27" class="line"><a href="#L27">27</a>end</span>
+<span id="L28" class="line"><a href="#L28">28</a></span>
+<span id="L29" class="line"><a href="#L29">29</a>-- 返回活动数据模型路径，供 BaseFeatureManager 初始化 Model。</span>
+<span id="L30" class="line"><a href="#L30">30</a>function Manager:_getModelPath()</span>
+<span id="L31" class="line"><a href="#L31">31</a>    return &quot;amf.feature.localactivity.pengpeng2026.model.PengPeng2026Model&quot;</span>
+<span id="L32" class="line"><a href="#L32">32</a>end</span>
+<span id="L33" class="line"><a href="#L33">33</a></span>
+<span id="L34" class="line"><a href="#L34">34</a>function Manager:setAutoPopupMgr(manager)</span>
+<span id="L35" class="line"><a href="#L35">35</a>    self.autoPopupMgr = manager</span>
+<span id="L36" class="line"><a href="#L36">36</a>end</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>-- 声明基础活动插件；协议和操作队列先按 module 管理，避免和 Plug 职责混在一起。</span>
+<span id="L39" class="line"><a href="#L39">39</a>function Manager:_getExtraPlugsConfigList()</span>
+<span id="L40" class="line"><a href="#L40">40</a>    return {</span>
+<span id="L41" class="line"><a href="#L41">41</a>        {key = &quot;Panel&quot;},</span>
+<span id="L42" class="line"><a href="#L42">42</a>        {key = &quot;AutoPop&quot;},</span>
+<span id="L43" class="line"><a href="#L43">43</a>        {key = &quot;Download&quot;},</span>
+<span id="L44" class="line"><a href="#L44">44</a>        {key = &quot;Rewards&quot;},</span>
+<span id="L45" class="line"><a href="#L45">45</a>        {</span>
+<span id="L46" class="line"><a href="#L46">46</a>            key = &quot;ActSend&quot;,</span>
+<span id="L47" class="line"><a href="#L47">47</a>            path = {</span>
+<span id="L48" class="line"><a href="#L48">48</a>                plugPath = &quot;amf.feature.localactivity.pengpeng2026.plug.PengPeng2026SendPlug&quot;,</span>
+<span id="L49" class="line"><a href="#L49">49</a>            },</span>
+<span id="L50" class="line"><a href="#L50">50</a>        },</span>
+<span id="L51" class="line"><a href="#L51">51</a>    }</span>
+<span id="L52" class="line"><a href="#L52">52</a>end</span>
+<span id="L53" class="line"><a href="#L53">53</a></span>
+<span id="L54" class="line"><a href="#L54">54</a>function Manager:_getAutoPopConfigList()</span>
+<span id="L55" class="line"><a href="#L55">55</a>    local PCP = _G.PopupCheckPoint</span>
+<span id="L56" class="line"><a href="#L56">56</a>    local PopStage = AutoPopupConst.PopStage</span>
+<span id="L57" class="line"><a href="#L57">57</a></span>
+<span id="L58" class="line"><a href="#L58">58</a>    return {</span>
+<span id="L59" class="line"><a href="#L59">59</a>        -- 主面板在条件类中紧随开心对对碰场景4引流，每日仅在场景4强弹1次。</span>
+<span id="L60" class="line"><a href="#L60">60</a>        {</span>
+<span id="L61" class="line"><a href="#L61">61</a>            checkPoint = PCP.PENGPENG2026_MAIN_PANEL_STAGE4,</span>
+<span id="L62" class="line"><a href="#L62">62</a>            stages = {PopStage.STAGE_FOUR},</span>
+<span id="L63" class="line"><a href="#L63">63</a>            check = function()</span>
+<span id="L64" class="line"><a href="#L64">64</a>                return self:checkCanPopMainPanelStage4()</span>
+<span id="L65" class="line"><a href="#L65">65</a>            end,</span>
+<span id="L66" class="line"><a href="#L66">66</a>            creator = function(_, onPopOver)</span>
+<span id="L67" class="line"><a href="#L67">67</a>                return function()</span>
+<span id="L68" class="line"><a href="#L68">68</a>                    self:popMainPanelStage4(onPopOver)</span>
+<span id="L69" class="line"><a href="#L69">69</a>                end</span>
+<span id="L70" class="line"><a href="#L70">70</a>            end,</span>
+<span id="L71" class="line"><a href="#L71">71</a>        },</span>
+<span id="L72" class="line"><a href="#L72">72</a>        -- 收集物达到50时，引流面板紧随主面板，每日场景4强弹1次。</span>
+<span id="L73" class="line"><a href="#L73">73</a>        {</span>
+<span id="L74" class="line"><a href="#L74">74</a>            checkPoint = PCP.PENGPENG2026_ATTRACT_PANEL_STAGE4,</span>
+<span id="L75" class="line"><a href="#L75">75</a>            stages = {PopStage.STAGE_FOUR},</span>
+<span id="L76" class="line"><a href="#L76">76</a>            check = function()</span>
+<span id="L77" class="line"><a href="#L77">77</a>                return self:checkCanPopAttractPanel()</span>
+<span id="L78" class="line"><a href="#L78">78</a>            end,</span>
+<span id="L79" class="line"><a href="#L79">79</a>            creator = function(_, onPopOver)</span>
+<span id="L80" class="line"><a href="#L80">80</a>                return function()</span>
+<span id="L81" class="line"><a href="#L81">81</a>                    self:popAttractPanel(onPopOver)</span>
+<span id="L82" class="line"><a href="#L82">82</a>                end</span>
+<span id="L83" class="line"><a href="#L83">83</a>            end,</span>
+<span id="L84" class="line"><a href="#L84">84</a>        },</span>
+<span id="L85" class="line"><a href="#L85">85</a>    }</span>
+<span id="L86" class="line"><a href="#L86">86</a>end</span>
+<span id="L87" class="line"><a href="#L87">87</a></span>
+<span id="L88" class="line"><a href="#L88">88</a>-- 主活动期可玩判断；时间字段缺失时 Model:isInMainTime 会自然返回 false。</span>
+<span id="L89" class="line"><a href="#L89">89</a>function Manager:isEnabled()</span>
+<span id="L90" class="line"><a href="#L90">90</a>    return self:getModel():isInMainTime()</span>
+<span id="L91" class="line"><a href="#L91">91</a>end</span>
+<span id="L92" class="line"><a href="#L92">92</a></span>
+<span id="L93" class="line"><a href="#L93">93</a>-- 活动广义可见判断；主活动期和领奖期都允许入口或红点逻辑继续查询。</span>
+<span id="L94" class="line"><a href="#L94">94</a>function Manager:isEnabled2()</span>
+<span id="L95" class="line"><a href="#L95">95</a>    return self:getModel():isInMainTime() or self:getModel():isInRewardTime()</span>
+<span id="L96" class="line"><a href="#L96">96</a>end</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>function Manager:isEnabledInLevel()</span>
+<span id="L99" class="line"><a href="#L99">99</a>    return self:isEnabled()</span>
+<span id="L100" class="line"><a href="#L100">100</a>end</span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a>function Manager:getActShowName()</span>
+<span id="L103" class="line"><a href="#L103">103</a>    return self:getConst().actChName</span>
+<span id="L104" class="line"><a href="#L104">104</a>end</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>function Manager:getMainEndTime()</span>
+<span id="L107" class="line"><a href="#L107">107</a>    return self:getModel():getMainEndTime()</span>
+<span id="L108" class="line"><a href="#L108">108</a>end</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>function Manager:createActIconNode()</span>
+<span id="L111" class="line"><a href="#L111">111</a>    return UICreateUtil:createSpriteFile(&quot;amf/activity/pengpeng2026/icon.png&quot;)</span>
+<span id="L112" class="line"><a href="#L112">112</a>end</span>
+<span id="L113" class="line"><a href="#L113">113</a></span>
+<span id="L114" class="line"><a href="#L114">114</a>function Manager:getCurAvailableBuffAndEndTime()</span>
+<span id="L115" class="line"><a href="#L115">115</a>    local endTime = tonumber(self:getModel():getScoreBuff20EndTime()) or 0</span>
+<span id="L116" class="line"><a href="#L116">116</a>    if endTime &gt; TimeKit:timeInMillis() then</span>
+<span id="L117" class="line"><a href="#L117">117</a>        return 0.2, endTime</span>
+<span id="L118" class="line"><a href="#L118">118</a>    end</span>
+<span id="L119" class="line"><a href="#L119">119</a>    return 0, 0</span>
+<span id="L120" class="line"><a href="#L120">120</a>end</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>function Manager:getTimeLimitRateEndTime()</span>
+<span id="L123" class="line"><a href="#L123">123</a>    return tonumber(self:getModel():getDoubleCollectBuffEndTime()) or 0</span>
+<span id="L124" class="line"><a href="#L124">124</a>end</span>
+<span id="L125" class="line"><a href="#L125">125</a></span>
+<span id="L126" class="line"><a href="#L126">126</a>function Manager:getInLevelActData()</span>
+<span id="L127" class="line"><a href="#L127">127</a>    local endTime = self:getTimeLimitRateEndTime()</span>
+<span id="L128" class="line"><a href="#L128">128</a>    return {</span>
+<span id="L129" class="line"><a href="#L129">129</a>        hasTimeLimiteBuff = endTime &gt; TimeKit:timeInMillis(),</span>
+<span id="L130" class="line"><a href="#L130">130</a>        buffEndTime = endTime,</span>
+<span id="L131" class="line"><a href="#L131">131</a>    }</span>
+<span id="L132" class="line"><a href="#L132">132</a>end</span>
+<span id="L133" class="line"><a href="#L133">133</a></span>
+<span id="L134" class="line"><a href="#L134">134</a>function Manager:updatePassLevelData(data, collectionCount, collectionMap)</span>
+<span id="L135" class="line"><a href="#L135">135</a>    if not data or not data.settleMentState then return end</span>
+<span id="L136" class="line"><a href="#L136">136</a></span>
+<span id="L137" class="line"><a href="#L137">137</a>    AttractPanelHelper.consumeSuppressPassCount(self)</span>
+<span id="L138" class="line"><a href="#L138">138</a></span>
+<span id="L139" class="line"><a href="#L139">139</a>    local collectionId = tostring(self:getConst().inLevelCollectionId)</span>
+<span id="L140" class="line"><a href="#L140">140</a>    local count = tonumber(collectionMap and collectionMap[collectionId]) or tonumber(collectionCount) or 0</span>
+<span id="L141" class="line"><a href="#L141">141</a>    if count &gt; 0 then</span>
+<span id="L142" class="line"><a href="#L142">142</a>        -- 关卡外负责收集物的落库或换算；关卡内接入不修改任何关卡外业务字段。</span>
+<span id="L143" class="line"><a href="#L143">143</a>        self:getModel():addLaunchOpportunity(count)</span>
+<span id="L144" class="line"><a href="#L144">144</a>        self:updateTipView()</span>
+<span id="L145" class="line"><a href="#L145">145</a>    end</span>
+<span id="L146" class="line"><a href="#L146">146</a>end</span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>-- 接收活动框架下发的数据和配置，统一写入 Model。</span>
+<span id="L149" class="line"><a href="#L149">149</a>function Manager:fromServer(data, config)</span>
+<span id="L150" class="line"><a href="#L150">150</a>    if not self.downloadPlug:checkDownloadSuccess() then</span>
+<span id="L151" class="line"><a href="#L151">151</a>        self.downloadPlug:startDownload()</span>
+<span id="L152" class="line"><a href="#L152">152</a>    end</span>
+<span id="L153" class="line"><a href="#L153">153</a>    self:getModel():fromServer(data, config)</span>
+<span id="L154" class="line"><a href="#L154">154</a>end</span>
+<span id="L155" class="line"><a href="#L155">155</a></span>
+<span id="L156" class="line"><a href="#L156">156</a>-- 打开正式活动面板；面板创建和关闭回调继续走活动框架 Panel 插件。</span>
+<span id="L157" class="line"><a href="#L157">157</a>function Manager:openActivity(closeCallback, extra, userClick)</span>
+<span id="L158" class="line"><a href="#L158">158</a>    self:callActFunc(&quot;openActivity&quot;, {</span>
+<span id="L159" class="line"><a href="#L159">159</a>        failCallback = closeCallback,</span>
+<span id="L160" class="line"><a href="#L160">160</a>        endCallback = closeCallback,</span>
+<span id="L161" class="line"><a href="#L161">161</a>        extra = extra,</span>
+<span id="L162" class="line"><a href="#L162">162</a>        userClick = userClick,</span>
+<span id="L163" class="line"><a href="#L163">163</a>    })</span>
+<span id="L164" class="line"><a href="#L164">164</a>end</span>
+<span id="L165" class="line"><a href="#L165">165</a></span>
+<span id="L166" class="line"><a href="#L166">166</a>function Manager:checkCanPopMainPanelStage4()</span>
+<span id="L167" class="line"><a href="#L167">167</a>    if not self:isEnabled() then</span>
+<span id="L168" class="line"><a href="#L168">168</a>        return false</span>
+<span id="L169" class="line"><a href="#L169">169</a>    end</span>
+<span id="L170" class="line"><a href="#L170">170</a>    local minLaunchOpportunity = self:getConst().MainPanel.MIN_LAUNCH_OPPORTUNITY</span>
+<span id="L171" class="line"><a href="#L171">171</a>    local launchOpportunity = tonumber(self:getModel():getLaunchOpportunity()) or 0</span>
+<span id="L172" class="line"><a href="#L172">172</a>    return launchOpportunity &gt;= minLaunchOpportunity</span>
+<span id="L173" class="line"><a href="#L173">173</a>end</span>
+<span id="L174" class="line"><a href="#L174">174</a></span>
+<span id="L175" class="line"><a href="#L175">175</a>function Manager:popMainPanelStage4(onPopOver)</span>
+<span id="L176" class="line"><a href="#L176">176</a>    if not self:checkCanPopMainPanelStage4() then</span>
+<span id="L177" class="line"><a href="#L177">177</a>        safeRunCall(onPopOver)</span>
+<span id="L178" class="line"><a href="#L178">178</a>        return false</span>
+<span id="L179" class="line"><a href="#L179">179</a>    end</span>
+<span id="L180" class="line"><a href="#L180">180</a></span>
+<span id="L181" class="line"><a href="#L181">181</a>    -- 同组内主面板优先；只在引流项实际入队时移除并记录三关延后。</span>
+<span id="L182" class="line"><a href="#L182">182</a>    local attractCheckPoint = _G.PopupCheckPoint.PENGPENG2026_ATTRACT_PANEL_STAGE4</span>
+<span id="L183" class="line"><a href="#L183">183</a>    local attractQueue = self.autoPopupMgr:getPopupQueueByCheckPoint(attractCheckPoint)</span>
+<span id="L184" class="line"><a href="#L184">184</a>    local isAttractPanelOverlapped = attractQueue and</span>
+<span id="L185" class="line"><a href="#L185">185</a>        attractQueue[attractCheckPoint] ~= nil and</span>
+<span id="L186" class="line"><a href="#L186">186</a>        self:checkCanPopAttractPanel()</span>
+<span id="L187" class="line"><a href="#L187">187</a>    self.autoPopupMgr:removePopupConfig(attractCheckPoint)</span>
+<span id="L188" class="line"><a href="#L188">188</a>    if isAttractPanelOverlapped then</span>
+<span id="L189" class="line"><a href="#L189">189</a>        self:markAttractPanelSuppressedByMainPanelAutoPop()</span>
+<span id="L190" class="line"><a href="#L190">190</a>    end</span>
+<span id="L191" class="line"><a href="#L191">191</a>    self:openActivity(onPopOver, {from = &quot;auto_popup_stage4&quot;}, false)</span>
+<span id="L192" class="line"><a href="#L192">192</a>    return true</span>
+<span id="L193" class="line"><a href="#L193">193</a>end</span>
+<span id="L194" class="line"><a href="#L194">194</a></span>
+<span id="L195" class="line"><a href="#L195">195</a>-- 主面板同轮强弹时调用；只记录后续三次过关抑制，不计入引流面板每日弹出次数。</span>
+<span id="L196" class="line"><a href="#L196">196</a>function Manager:markAttractPanelSuppressedByMainPanelAutoPop()</span>
+<span id="L197" class="line"><a href="#L197">197</a>    return AttractPanelHelper.markSuppressedByMainPanelAutoPop(self)</span>
+<span id="L198" class="line"><a href="#L198">198</a>end</span>
+<span id="L199" class="line"><a href="#L199">199</a></span>
+<span id="L200" class="line"><a href="#L200">200</a>-- 只做引流面板可弹条件检测；不消耗过关抑制次数，也不维护框架每日次数。</span>
+<span id="L201" class="line"><a href="#L201">201</a>function Manager:checkCanPopAttractPanel()</span>
+<span id="L202" class="line"><a href="#L202">202</a>    if not self.downloadPlug:checkDownloadSuccess() then</span>
+<span id="L203" class="line"><a href="#L203">203</a>        self.downloadPlug:startDownload()</span>
+<span id="L204" class="line"><a href="#L204">204</a>        return false</span>
+<span id="L205" class="line"><a href="#L205">205</a>    end</span>
+<span id="L206" class="line"><a href="#L206">206</a>    return AttractPanelHelper.checkCanPop(self)</span>
+<span id="L207" class="line"><a href="#L207">207</a>end</span>
+<span id="L208" class="line"><a href="#L208">208</a></span>
+<span id="L209" class="line"><a href="#L209">209</a>-- 弹出前再次校验，避免旧队列项绕过三关延后状态；按钮点击进入活动主界面。</span>
+<span id="L210" class="line"><a href="#L210">210</a>function Manager:popAttractPanel(onPopOver, force)</span>
+<span id="L211" class="line"><a href="#L211">211</a>    if not self.downloadPlug:checkDownloadSuccess() then</span>
+<span id="L212" class="line"><a href="#L212">212</a>        safeRunCall(onPopOver)</span>
+<span id="L213" class="line"><a href="#L213">213</a>        return false</span>
+<span id="L214" class="line"><a href="#L214">214</a>    end</span>
+<span id="L215" class="line"><a href="#L215">215</a>    local canPop = force == true or self:checkCanPopAttractPanel()</span>
+<span id="L216" class="line"><a href="#L216">216</a>    if not canPop then</span>
+<span id="L217" class="line"><a href="#L217">217</a>        safeRunCall(onPopOver)</span>
+<span id="L218" class="line"><a href="#L218">218</a>        return false</span>
+<span id="L219" class="line"><a href="#L219">219</a>    end</span>
+<span id="L220" class="line"><a href="#L220">220</a>    return AttractPanelHelper.pop(self, onPopOver)</span>
+<span id="L221" class="line"><a href="#L221">221</a>end</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>-- 记录一条本地操作；opType 使用 PengPeng2026Config.OpType，具体业务参数放在 info。</span>
+<span id="L224" class="line"><a href="#L224">224</a>function Manager:addOperationInfo(opType, info)</span>
+<span id="L225" class="line"><a href="#L225">225</a>    self.operationQueue:addOperation(info, opType)</span>
+<span id="L226" class="line"><a href="#L226">226</a>end</span>
+<span id="L227" class="line"><a href="#L227">227</a></span>
+<span id="L228" class="line"><a href="#L228">228</a>-- 获取当前可发送的待同步操作，返回 sendIds 和 sendInfos 两个列表。</span>
+<span id="L229" class="line"><a href="#L229">229</a>function Manager:getCanSendList()</span>
+<span id="L230" class="line"><a href="#L230">230</a>    return self.operationQueue:getCanSendList()</span>
+<span id="L231" class="line"><a href="#L231">231</a>end</span>
+<span id="L232" class="line"><a href="#L232">232</a></span>
+<span id="L233" class="line"><a href="#L233">233</a>-- 返回等待发送的操作数量，供活动侧判断批量同步触发点。</span>
+<span id="L234" class="line"><a href="#L234">234</a>function Manager:getWaitToSendOperationCount()</span>
+<span id="L235" class="line"><a href="#L235">235</a>    return self.operationQueue:getWaitToSendCount()</span>
+<span id="L236" class="line"><a href="#L236">236</a>end</span>
+<span id="L237" class="line"><a href="#L237">237</a></span>
+<span id="L238" class="line"><a href="#L238">238</a>-- 标记一批操作正在发送；防止同一批操作被重复取出。</span>
+<span id="L239" class="line"><a href="#L239">239</a>function Manager:markOperationSending(sendIds)</span>
+<span id="L240" class="line"><a href="#L240">240</a>    self.operationQueue:markSending(sendIds)</span>
+<span id="L241" class="line"><a href="#L241">241</a>end</span>
+<span id="L242" class="line"><a href="#L242">242</a></span>
+<span id="L243" class="line"><a href="#L243">243</a>-- 标记一批操作发送流程结束，并从本地队列清理。</span>
+<span id="L244" class="line"><a href="#L244">244</a>function Manager:markOperationFinished(sendIds)</span>
+<span id="L245" class="line"><a href="#L245">245</a>    self.operationQueue:markSendFinished(sendIds)</span>
+<span id="L246" class="line"><a href="#L246">246</a>end</span>
+<span id="L247" class="line"><a href="#L247">247</a></span>
+<span id="L248" class="line"><a href="#L248">248</a>-- 按服务端已确认 lastSeq 重置后续新操作游标；确定性拒绝或主动丢弃本批后使用。</span>
+<span id="L249" class="line"><a href="#L249">249</a>function Manager:resetOperationSeqFromServer()</span>
+<span id="L250" class="line"><a href="#L250">250</a>    self.operationQueue:resetNextSeqFromServer()</span>
+<span id="L251" class="line"><a href="#L251">251</a>end</span>
+<span id="L252" class="line"><a href="#L252">252</a></span>
+<span id="L253" class="line"><a href="#L253">253</a>-- 标记一批操作发送失败，恢复为待发送，等待下次同步重试。</span>
+<span id="L254" class="line"><a href="#L254">254</a>function Manager:markOperationFailed(sendIds)</span>
+<span id="L255" class="line"><a href="#L255">255</a>    self.operationQueue:markSendFailed(sendIds)</span>
+<span id="L256" class="line"><a href="#L256">256</a>end</span>
+<span id="L257" class="line"><a href="#L257">257</a></span>
+<span id="L258" class="line"><a href="#L258">258</a>-- 清空本地操作队列；用于活动周期重置或后端状态强制覆盖。</span>
+<span id="L259" class="line"><a href="#L259">259</a>function Manager:clearOperationList()</span>
+<span id="L260" class="line"><a href="#L260">260</a>    self.operationQueue:clearOperationList()</span>
+<span id="L261" class="line"><a href="#L261">261</a>end</span>
+<span id="L262" class="line"><a href="#L262">262</a></span>
+<span id="L263" class="line"><a href="#L263">263</a>-- 统一同步触发点；Cocos 活动侧 Model:flushOperationList 负责真实协议发送。</span>
+<span id="L264" class="line"><a href="#L264">264</a>function Manager:flushOperationList(reason, callback)</span>
+<span id="L265" class="line"><a href="#L265">265</a>    safeRunCall(callback, false, reason)</span>
+<span id="L266" class="line"><a href="#L266">266</a>end</span>
+<span id="L267" class="line"><a href="#L267">267</a></span>
+<span id="L268" class="line"><a href="#L268">268</a>-- 协议发奖成功后写入普通奖励背包；展示动画由活动侧按 rewardList 控制。</span>
+<span id="L269" class="line"><a href="#L269">269</a>function Manager:addRewardsNormal(rewardItems, params)</span>
+<span id="L270" class="line"><a href="#L270">270</a>    self:callPlug(&quot;Rewards&quot;, &quot;addRewardsNormal&quot;, rewardItems, params)</span>
+<span id="L271" class="line"><a href="#L271">271</a>end</span>
+<span id="L272" class="line"><a href="#L272">272</a></span>
+<span id="L273" class="line"><a href="#L273">273</a>-- 输出一条活动日志；调用方传入模块 ID 和是否需要在最终输出时 tts table。</span>
+<span id="L274" class="line"><a href="#L274">274</a>function Manager:printLog(moduleId, needTts, ...)</span>
+<span id="L275" class="line"><a href="#L275">275</a>    Log.print(moduleId, needTts, ...)</span>
+<span id="L276" class="line"><a href="#L276">276</a>end</span>
+<span id="L277" class="line"><a href="#L277">277</a></span>
+<span id="L278" class="line"><a href="#L278">278</a>-- 返回活动日志模块枚举，活动侧测试工具使用枚举避免硬编码模块 ID。</span>
+<span id="L279" class="line"><a href="#L279">279</a>function Manager:getLogModule()</span>
+<span id="L280" class="line"><a href="#L280">280</a>    return Log.Module</span>
+<span id="L281" class="line"><a href="#L281">281</a>end</span>
+<span id="L282" class="line"><a href="#L282">282</a></span>
+<span id="L283" class="line"><a href="#L283">283</a>-- 输出内存日志历史；moduleId 为空时输出全部日志。</span>
+<span id="L284" class="line"><a href="#L284">284</a>function Manager:dumpLog(moduleId, needTtsOverride)</span>
+<span id="L285" class="line"><a href="#L285">285</a>    return Log.dump(moduleId, needTtsOverride)</span>
+<span id="L286" class="line"><a href="#L286">286</a>end</span>
+<span id="L287" class="line"><a href="#L287">287</a></span>
+<span id="L288" class="line"><a href="#L288">288</a>function Manager:updateTipView()</span>
+<span id="L289" class="line"><a href="#L289">289</a>    if not self:isEnabled() then return end</span>
+<span id="L290" class="line"><a href="#L290">290</a>    self.actPlug:updateTipView()</span>
+<span id="L291" class="line"><a href="#L291">291</a>end</span>
+<span id="L292" class="line"><a href="#L292">292</a></span>
+<span id="L293" class="line"><a href="#L293">293</a>function Manager:hasReward()</span>
+<span id="L294" class="line"><a href="#L294">294</a>    local model = self:getModel()</span>
+<span id="L295" class="line"><a href="#L295">295</a>    return model and model:hasProgressRewardToClaim() or false</span>
+<span id="L296" class="line"><a href="#L296">296</a>end</span>
+<span id="L297" class="line"><a href="#L297">297</a></span>
+<span id="L298" class="line"><a href="#L298">298</a>function Manager:getMsgNum()</span>
+<span id="L299" class="line"><a href="#L299">299</a>    -- Icon 角标数字只在正式期展示，预热期和领奖期统一清零。</span>
+<span id="L300" class="line"><a href="#L300">300</a>    if not self:isEnabled() then return 0 end</span>
+<span id="L301" class="line"><a href="#L301">301</a>    local model = self:getModel()</span>
+<span id="L302" class="line"><a href="#L302">302</a>    return model and math.max(0, tonumber(model:getLaunchOpportunity()) or 0) or 0</span>
+<span id="L303" class="line"><a href="#L303">303</a>end</span>
+<span id="L304" class="line"><a href="#L304">304</a></span>
+<span id="L305" class="line"><a href="#L305">305</a>function Manager:_onResolveIcon(event)</span>
+<span id="L306" class="line"><a href="#L306">306</a>    if not event then return end</span>
+<span id="L307" class="line"><a href="#L307">307</a>    local data = event:getData()</span>
+<span id="L308" class="line"><a href="#L308">308</a>    if not data or not data.callback then return end</span>
+<span id="L309" class="line"><a href="#L309">309</a></span>
+<span id="L310" class="line"><a href="#L310">310</a>    local itemId = tonumber(data.itemId)</span>
+<span id="L311" class="line"><a href="#L311">311</a>    local iconInfo = Meta.StaticItemIconInfo and Meta.StaticItemIconInfo[itemId]</span>
+<span id="L312" class="line"><a href="#L312">312</a></span>
+<span id="L313" class="line"><a href="#L313">313</a>    if iconInfo then</span>
+<span id="L314" class="line"><a href="#L314">314</a>        data.callback({</span>
+<span id="L315" class="line"><a href="#L315">315</a>            Atlas = iconInfo.Atlas or &quot;&quot;,</span>
+<span id="L316" class="line"><a href="#L316">316</a>            Frame = iconInfo.Frame,</span>
+<span id="L317" class="line"><a href="#L317">317</a>            IsPropPng = iconInfo.IsPropPng,</span>
+<span id="L318" class="line"><a href="#L318">318</a>        })</span>
+<span id="L319" class="line"><a href="#L319">319</a>        return</span>
+<span id="L320" class="line"><a href="#L320">320</a>    end</span>
+<span id="L321" class="line"><a href="#L321">321</a>end</span>
+<span id="L322" class="line"><a href="#L322">322</a></span>
+<span id="L323" class="line"><a href="#L323">323</a>function Manager:_onCustomGain(event)</span>
+<span id="L324" class="line"><a href="#L324">324</a>    if not event then return end</span>
+<span id="L325" class="line"><a href="#L325">325</a>    local reward = event:getData()</span>
+<span id="L326" class="line"><a href="#L326">326</a>    if not reward then return end</span>
+<span id="L327" class="line"><a href="#L327">327</a></span>
+<span id="L328" class="line"><a href="#L328">328</a>    local id = tonumber(reward.itemId)</span>
+<span id="L329" class="line"><a href="#L329">329</a>    local num = tonumber(reward.num) or 0</span>
+<span id="L330" class="line"><a href="#L330">330</a>    local Const = self:getConst()</span>
+<span id="L331" class="line"><a href="#L331">331</a>    local model = self:getModel()</span>
+<span id="L332" class="line"><a href="#L332">332</a></span>
+<span id="L333" class="line"><a href="#L333">333</a>    if id == Const.collectId then</span>
+<span id="L334" class="line"><a href="#L334">334</a>        model:addLaunchOpportunity(num)</span>
+<span id="L335" class="line"><a href="#L335">335</a>        self:updateTipView()</span>
+<span id="L336" class="line"><a href="#L336">336</a>    elseif id == Const.percent20Buff then</span>
+<span id="L337" class="line"><a href="#L337">337</a>        model:addScoreBuff20Time(num)</span>
+<span id="L338" class="line"><a href="#L338">338</a>    elseif id == Const.doubleBuff then</span>
+<span id="L339" class="line"><a href="#L339">339</a>        model:addDoubleCollectBuffTime(num)</span>
+<span id="L340" class="line"><a href="#L340">340</a>    end</span>
+<span id="L341" class="line"><a href="#L341">341</a>end</span>
+<span id="L342" class="line"><a href="#L342">342</a></span>
+<span id="L343" class="line"><a href="#L343">343</a>return Manager</span></pre></main></html>

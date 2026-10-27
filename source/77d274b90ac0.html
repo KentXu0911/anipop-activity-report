@@ -1,0 +1,761 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/merge/config/BoardMeta.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="77d274b90ac0.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/merge/config/BoardMeta.lua</h1><p>SHA256 23751139c507d90274047e86f3709c88470733fef3f6064bdc597e7f5a1bd596</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BoardMeta = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>BoardMeta.Chicken = 59334 --小鸡</span>
+<span id="L4" class="line"><a href="#L4">4</a>BoardMeta.Machine = 59333 --料理机</span>
+<span id="L5" class="line"><a href="#L5">5</a>BoardMeta.GuoLanItemMaker = 59337 --果蔬烂</span>
+<span id="L6" class="line"><a href="#L6">6</a>BoardMeta.ItemLanMei = 59341 --蓝莓</span>
+<span id="L7" class="line"><a href="#L7">7</a>BoardMeta.CaoMei = 59342 --草莓</span>
+<span id="L8" class="line"><a href="#L8">8</a>BoardMeta.NingMeng = 59343 --柠檬</span>
+<span id="L9" class="line"><a href="#L9">9</a>BoardMeta.ZhiBingItemMaker = 59340 --制冰机</span>
+<span id="L10" class="line"><a href="#L10">10</a>BoardMeta.XiangChang = 59358 --香肠</span>
+<span id="L11" class="line"><a href="#L11">11</a>BoardMeta.LengCangItemMaker = 59338 --冷藏箱</span>
+<span id="L12" class="line"><a href="#L12">12</a>BoardMeta.ZhiMianItemMaker = 59339--制面机</span>
+<span id="L13" class="line"><a href="#L13">13</a>BoardMeta.PeiGen = 59359 --培根</span>
+<span id="L14" class="line"><a href="#L14">14</a>BoardMeta.XiaRen = 59360 --虾</span>
+<span id="L15" class="line"><a href="#L15">15</a>BoardMeta.BingKuai = 59367 --冰块</span>
+<span id="L16" class="line"><a href="#L16">16</a>BoardMeta.BingKuaiLv2 = 59368 --冰块2级</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>BoardMeta.JiaoziLv1_v1 = 59409 --饺子1级</span>
+<span id="L19" class="line"><a href="#L19">19</a>BoardMeta.JiaoziLv2_v1 = 59410 --饺子2级</span>
+<span id="L20" class="line"><a href="#L20">20</a>BoardMeta.JiaoziLv3_v1 = 59411 --饺子3级</span>
+<span id="L21" class="line"><a href="#L21">21</a>BoardMeta.JiaoziLv4_v1 = 59412 --饺子4级</span>
+<span id="L22" class="line"><a href="#L22">22</a></span>
+<span id="L23" class="line"><a href="#L23">23</a>BoardMeta.JiaoziLv1_v2 = 59413 --饺子1级</span>
+<span id="L24" class="line"><a href="#L24">24</a>BoardMeta.JiaoziLv2_v2 = 59414 --饺子2级</span>
+<span id="L25" class="line"><a href="#L25">25</a>BoardMeta.JiaoziLv3_v2 = 59415 --饺子3级</span>
+<span id="L26" class="line"><a href="#L26">26</a>BoardMeta.JiaoziLv4_v2 = 59416 --饺子4级</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>BoardMeta.JiaoziLv1_v3 = 59417 --饺子1级</span>
+<span id="L29" class="line"><a href="#L29">29</a>BoardMeta.JiaoziLv2_v3 = 59418 --饺子2级</span>
+<span id="L30" class="line"><a href="#L30">30</a>BoardMeta.JiaoziLv3_v3 = 59419 --饺子3级</span>
+<span id="L31" class="line"><a href="#L31">31</a>BoardMeta.JiaoziLv4_v3 = 59420 --饺子4级</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>BoardMeta.ShiHeLV1 = 59424</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>BoardMeta.ZaoniGao = 59425 --枣泥</span>
+<span id="L36" class="line"><a href="#L36">36</a>BoardMeta.JuhuaCha = 59433 --菊花茶</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>BoardMeta.zixuanBox = 59421 --自选宝箱</span>
+<span id="L39" class="line"><a href="#L39">39</a></span>
+<span id="L40" class="line"><a href="#L40">40</a>BoardMeta.EnergyBottleLv1 = 59450 --1级体力瓶</span>
+<span id="L41" class="line"><a href="#L41">41</a>BoardMeta.EnergyBottleLv2 = 59451 --2级体力瓶</span>
+<span id="L42" class="line"><a href="#L42">42</a>BoardMeta.EnergyBottleLv3 = 59452 --3级体力瓶</span>
+<span id="L43" class="line"><a href="#L43">43</a>BoardMeta.EnergyBottleLv4 = 59453 --4级体力瓶</span>
+<span id="L44" class="line"><a href="#L44">44</a>BoardMeta.EnergyBottleLv5 = 59454 --5级体力瓶</span>
+<span id="L45" class="line"><a href="#L45">45</a>BoardMeta.EnergyBottleLv6 = 59455 --6级体力瓶</span>
+<span id="L46" class="line"><a href="#L46">46</a>BoardMeta.LowEnergyBox = 59456 --低级体力宝箱</span>
+<span id="L47" class="line"><a href="#L47">47</a>BoardMeta.HighEnergyBox = 59457 --高级体力宝箱</span>
+<span id="L48" class="line"><a href="#L48">48</a></span>
+<span id="L49" class="line"><a href="#L49">49</a>BoardMeta.EnergyBottleIds = {</span>
+<span id="L50" class="line"><a href="#L50">50</a>	BoardMeta.EnergyBottleLv1,</span>
+<span id="L51" class="line"><a href="#L51">51</a>	BoardMeta.EnergyBottleLv2,</span>
+<span id="L52" class="line"><a href="#L52">52</a>	BoardMeta.EnergyBottleLv3,</span>
+<span id="L53" class="line"><a href="#L53">53</a>	BoardMeta.EnergyBottleLv4,</span>
+<span id="L54" class="line"><a href="#L54">54</a>	BoardMeta.EnergyBottleLv5,</span>
+<span id="L55" class="line"><a href="#L55">55</a>	BoardMeta.EnergyBottleLv6,</span>
+<span id="L56" class="line"><a href="#L56">56</a>}</span>
+<span id="L57" class="line"><a href="#L57">57</a></span>
+<span id="L58" class="line"><a href="#L58">58</a>BoardMeta.EnergyBoxIds = {</span>
+<span id="L59" class="line"><a href="#L59">59</a>	BoardMeta.LowEnergyBox,</span>
+<span id="L60" class="line"><a href="#L60">60</a>	BoardMeta.HighEnergyBox,</span>
+<span id="L61" class="line"><a href="#L61">61</a>}</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>--棋盘区域 7*8</span>
+<span id="L64" class="line"><a href="#L64">64</a>BoardMeta.BoardWidthNum = 7</span>
+<span id="L65" class="line"><a href="#L65">65</a>BoardMeta.BoardHeightNum = 8</span>
+<span id="L66" class="line"><a href="#L66">66</a></span>
+<span id="L67" class="line"><a href="#L67">67</a>--素材图</span>
+<span id="L68" class="line"><a href="#L68">68</a>BoardMeta.BoardItemsPlistPath = &#x27;amf/activity/merge/materials/mergeItems.plist&#x27;</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>--机器展示类型</span>
+<span id="L71" class="line"><a href="#L71">71</a>BoardMeta.machineShowType = {</span>
+<span id="L72" class="line"><a href="#L72">72</a>	kLock = 0,</span>
+<span id="L73" class="line"><a href="#L73">73</a>	kNormal = 1,</span>
+<span id="L74" class="line"><a href="#L74">74</a>	kMaking = 2,</span>
+<span id="L75" class="line"><a href="#L75">75</a>	kMakeEnd = 3,</span>
+<span id="L76" class="line"><a href="#L76">76</a>}</span>
+<span id="L77" class="line"><a href="#L77">77</a></span>
+<span id="L78" class="line"><a href="#L78">78</a>--特殊区域拖动类型</span>
+<span id="L79" class="line"><a href="#L79">79</a>BoardMeta.specialAreaDragTypes = {</span>
+<span id="L80" class="line"><a href="#L80">80</a>	kChicken = 1,</span>
+<span id="L81" class="line"><a href="#L81">81</a>	kMachine = 2,</span>
+<span id="L82" class="line"><a href="#L82">82</a>}</span>
+<span id="L83" class="line"><a href="#L83">83</a></span>
+<span id="L84" class="line"><a href="#L84">84</a>--订单类型</span>
+<span id="L85" class="line"><a href="#L85">85</a>BoardMeta.orderTypes = {</span>
+<span id="L86" class="line"><a href="#L86">86</a>	kOrder1 = 1, --订单1</span>
+<span id="L87" class="line"><a href="#L87">87</a>	kOrder2 = 2, --订单2</span>
+<span id="L88" class="line"><a href="#L88">88</a>	kOrder3 = 3, --订单3</span>
+<span id="L89" class="line"><a href="#L89">89</a>}</span>
+<span id="L90" class="line"><a href="#L90">90</a></span>
+<span id="L91" class="line"><a href="#L91">91</a>--区域类型</span>
+<span id="L92" class="line"><a href="#L92">92</a>BoardMeta.BoardTypes = {</span>
+<span id="L93" class="line"><a href="#L93">93</a>	kNone = 0, --未知区域</span>
+<span id="L94" class="line"><a href="#L94">94</a>	kMainBoard = 1, --主区域</span>
+<span id="L95" class="line"><a href="#L95">95</a>	kChickenBoard = 2, --小鸡区域</span>
+<span id="L96" class="line"><a href="#L96">96</a>	kMachineBoard = 3, --机器区域</span>
+<span id="L97" class="line"><a href="#L97">97</a>}</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>--后端道具在棋盘上的状态</span>
+<span id="L100" class="line"><a href="#L100">100</a>BoardMeta.ItemStatus = {</span>
+<span id="L101" class="line"><a href="#L101">101</a>	kLock2 = 0, --盒子</span>
+<span id="L102" class="line"><a href="#L102">102</a>	kLock1 = 1, --胶条</span>
+<span id="L103" class="line"><a href="#L103">103</a>	kUnLock = 2, --解锁</span>
+<span id="L104" class="line"><a href="#L104">104</a>	kSuperBubble = 3, --高级气泡</span>
+<span id="L105" class="line"><a href="#L105">105</a>	kNormalBubble = 4, --普通气泡</span>
+<span id="L106" class="line"><a href="#L106">106</a>	kDoublePowerOpen =5, --双倍能量开启</span>
+<span id="L107" class="line"><a href="#L107">107</a>	kFirstDiscountNormalBubble = 6, --首次折扣气泡</span>
+<span id="L108" class="line"><a href="#L108">108</a>	kDiscountNormalBubble = 7, --折扣气泡</span>
+<span id="L109" class="line"><a href="#L109">109</a>	kFrozen = 8, --冰冻棋子，阶段由 frozenFoodData.phase 区分</span>
+<span id="L110" class="line"><a href="#L110">110</a>}</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>--气泡类型 前端用</span>
+<span id="L113" class="line"><a href="#L113">113</a>BoardMeta.ItemBubbleTypes = {</span>
+<span id="L114" class="line"><a href="#L114">114</a>	kNone = 0,</span>
+<span id="L115" class="line"><a href="#L115">115</a>	kNormalBubble = 1,</span>
+<span id="L116" class="line"><a href="#L116">116</a>	kSuperBubble = 2,</span>
+<span id="L117" class="line"><a href="#L117">117</a>	kFirstDiscountNormalBubble = 3, --首次折扣气泡</span>
+<span id="L118" class="line"><a href="#L118">118</a>	kDiscountNormalBubble = 4, --折扣气泡</span>
+<span id="L119" class="line"><a href="#L119">119</a></span>
+<span id="L120" class="line"><a href="#L120">120</a>}</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>--道具类型</span>
+<span id="L123" class="line"><a href="#L123">123</a>BoardMeta.ItemTypes = {</span>
+<span id="L124" class="line"><a href="#L124">124</a>	kNone = 0,</span>
+<span id="L125" class="line"><a href="#L125">125</a>	kGuoShu = 1, --果蔬</span>
+<span id="L126" class="line"><a href="#L126">126</a>	kRouLei = 2, --肉类</span>
+<span id="L127" class="line"><a href="#L127">127</a>	kNaiLei = 3, --奶类</span>
+<span id="L128" class="line"><a href="#L128">128</a>	kBingKuai = 4, --冰块</span>
+<span id="L129" class="line"><a href="#L129">129</a>	kMianShi = 5, --面粉</span>
+<span id="L130" class="line"><a href="#L130">130</a>	kCaiPin1 = 6, --菜品类型1 冰镇蓝莓汁</span>
+<span id="L131" class="line"><a href="#L131">131</a>	kCaiPin2 = 7, --菜品类型2 虾仁茄汁饭</span>
+<span id="L132" class="line"><a href="#L132">132</a>	kCaiPin3 = 8, --菜品类型3 草莓牛奶布丁</span>
+<span id="L133" class="line"><a href="#L133">133</a>	kCaiPin4 = 9, --菜品类型4 泰式芒果饭</span>
+<span id="L134" class="line"><a href="#L134">134</a>	kItemMaker = 10, --生成器</span>
+<span id="L135" class="line"><a href="#L135">135</a>	kMagicItem = 11, --魔法道具</span>
+<span id="L136" class="line"><a href="#L136">136</a>	kJiaoZi = 13, --饺子</span>
+<span id="L137" class="line"><a href="#L137">137</a>	kSpecialItem = 14, --特殊道具 自选等</span>
+<span id="L138" class="line"><a href="#L138">138</a>	kDianXin = 15, --点心</span>
+<span id="L139" class="line"><a href="#L139">139</a>	kCha = 16, --茶</span>
+<span id="L140" class="line"><a href="#L140">140</a>	kCaiPin5 = 17, --菜品类型5 山西菜</span>
+<span id="L141" class="line"><a href="#L141">141</a>}</span>
+<span id="L142" class="line"><a href="#L142">142</a></span>
+<span id="L143" class="line"><a href="#L143">143</a>--魔法道具</span>
+<span id="L144" class="line"><a href="#L144">144</a>BoardMeta.MagicItemEnergy = 59404 --无限体力</span>
+<span id="L145" class="line"><a href="#L145">145</a>BoardMeta.MagicItemJianDao = 59405 --剪刀</span>
+<span id="L146" class="line"><a href="#L146">146</a>BoardMeta.MagicItemMiaoBiao = 59406 --秒表</span>
+<span id="L147" class="line"><a href="#L147">147</a>BoardMeta.MagicItemShengji = 59407 --升级卡</span>
+<span id="L148" class="line"><a href="#L148">148</a>BoardMeta.PowerMultiplier2RewardId = 59458 --2倍体力奖励</span>
+<span id="L149" class="line"><a href="#L149">149</a>BoardMeta.PowerMultiplier4RewardId = 59459 --4倍体力奖励</span>
+<span id="L150" class="line"><a href="#L150">150</a>BoardMeta.PowerMultiplier8RewardId = 59460 --8倍体力及多倍按钮解锁奖励</span>
+<span id="L151" class="line"><a href="#L151">151</a></span>
+<span id="L152" class="line"><a href="#L152">152</a>--道具数据</span>
+<span id="L153" class="line"><a href="#L153">153</a>BoardMeta.ItemData = {</span>
+<span id="L154" class="line"><a href="#L154">154</a></span>
+<span id="L155" class="line"><a href="#L155">155</a>	--生成器</span>
+<span id="L156" class="line"><a href="#L156">156</a>	[&#x27;&#x27;..BoardMeta.GuoLanItemMaker] = { itemId = BoardMeta.GuoLanItemMaker, itemType = BoardMeta.ItemTypes.kItemMaker, makeItemList = { BoardMeta.ItemLanMei }, makeExtraItem = { id =BoardMeta.JiaoziLv1_v1, percent = 10, pkPercent = 20 }, spName = &#x27;040.png&#x27;, }, --果蔬篮 生成列表</span>
+<span id="L157" class="line"><a href="#L157">157</a>	[&#x27;&#x27;..BoardMeta.LengCangItemMaker] = { itemId = BoardMeta.LengCangItemMaker, itemType = BoardMeta.ItemTypes.kItemMaker, makeItemList = { 59350, BoardMeta.XiangChang } , makeExtraItem = { id =BoardMeta.JiaoziLv1_v1, percent = 10, pkPercent = 20 }, spName = &#x27;042.png&#x27;, }, --冷藏箱 生成列表</span>
+<span id="L158" class="line"><a href="#L158">158</a>	[&#x27;&#x27;..BoardMeta.ZhiMianItemMaker] = { itemId = BoardMeta.ZhiMianItemMaker, itemType = BoardMeta.ItemTypes.kItemMaker, makeItemList = { 59373 }, makeExtraItem = { id =BoardMeta.JiaoziLv1_v1, percent = 10, pkPercent = 20 }, spName = &#x27;043.png&#x27;, }, --制面机 生成列表</span>
+<span id="L159" class="line"><a href="#L159">159</a>	[&#x27;&#x27;..BoardMeta.ZhiBingItemMaker] = { itemId = BoardMeta.ZhiBingItemMaker, itemType = BoardMeta.ItemTypes.kItemMaker, makeItemList = { BoardMeta.BingKuai }, makeExtraItem = { id =BoardMeta.JiaoziLv1_v1, percent = 10, pkPercent = 20 }, spName = &#x27;041.png&#x27;, }, --制冰机 生成列表</span>
+<span id="L160" class="line"><a href="#L160">160</a>	[&#x27;&#x27;..BoardMeta.ShiHeLV1] = { itemId = BoardMeta.ShiHeLV1, itemType = BoardMeta.ItemTypes.kItemMaker, makeItemList = { BoardMeta.ZaoniGao, BoardMeta.JuhuaCha }, makeExtraItem = { id =BoardMeta.JiaoziLv1_v1, percent = 10, pkPercent = 20 }, spName = &#x27;102.png&#x27;, }, --食盒 生成列表</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>	--果蔬</span>
+<span id="L163" class="line"><a href="#L163">163</a>	[&#x27;&#x27;..BoardMeta.ItemLanMei] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 1 ,nextId = 59342, spName = &#x27;001.png&#x27;, }, --普通道具</span>
+<span id="L164" class="line"><a href="#L164">164</a>	[&#x27;&#x27;..BoardMeta.CaoMei] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 2, nextId = 59343, preId = BoardMeta.ItemLanMei, spName = &#x27;002.png&#x27;, }, --普通道具</span>
+<span id="L165" class="line"><a href="#L165">165</a>	[&#x27;&#x27;..BoardMeta.NingMeng] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 3, nextId = 59344, preId = 59342, spName = &#x27;003.png&#x27;, }, --普通道具</span>
+<span id="L166" class="line"><a href="#L166">166</a>	[&#x27;59344&#x27;] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 4, nextId = 59345, preId = 59343, spName = &#x27;004.png&#x27;, }, --普通道具</span>
+<span id="L167" class="line"><a href="#L167">167</a>	[&#x27;59345&#x27;] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 5, nextId = 59346, preId = 59344, spName = &#x27;005.png&#x27;, }, --普通道具</span>
+<span id="L168" class="line"><a href="#L168">168</a>	[&#x27;59346&#x27;] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 6, nextId = 59347, preId = 59345, spName = &#x27;006.png&#x27;, }, --普通道具</span>
+<span id="L169" class="line"><a href="#L169">169</a>	[&#x27;59347&#x27;] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 7, nextId = 59348, preId = 59346, spName = &#x27;007.png&#x27;, }, --普通道具</span>
+<span id="L170" class="line"><a href="#L170">170</a>	[&#x27;59348&#x27;] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 8, nextId = 59349, preId = 59347, spName = &#x27;008.png&#x27;, }, --普通道具</span>
+<span id="L171" class="line"><a href="#L171">171</a>	[&#x27;59349&#x27;] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 9, nextId = 59445, preId = 59348, spName = &#x27;009.png&#x27;, }, --普通道具</span>
+<span id="L172" class="line"><a href="#L172">172</a>	[&#x27;59445&#x27;] = { itemType = BoardMeta.ItemTypes.kGuoShu, level = 10, preId = 59349, spName = &#x27;111.png&#x27;, }, --普通道具</span>
+<span id="L173" class="line"><a href="#L173">173</a></span>
+<span id="L174" class="line"><a href="#L174">174</a>	--肉类</span>
+<span id="L175" class="line"><a href="#L175">175</a>	[&#x27;&#x27;..BoardMeta.XiangChang] = { itemType = BoardMeta.ItemTypes.kRouLei, level = 1, nextId = BoardMeta.PeiGen, spName = &#x27;010.png&#x27;, }, --普通道具</span>
+<span id="L176" class="line"><a href="#L176">176</a>	[&#x27;&#x27;..BoardMeta.PeiGen] = { itemType = BoardMeta.ItemTypes.kRouLei, level = 2, nextId = BoardMeta.XiaRen, preId = BoardMeta.XiangChang, spName = &#x27;011.png&#x27;, }, --普通道具</span>
+<span id="L177" class="line"><a href="#L177">177</a>	[&#x27;&#x27;..BoardMeta.XiaRen] = { itemType = BoardMeta.ItemTypes.kRouLei, level = 3, nextId = 59361, preId = BoardMeta.PeiGen, spName = &#x27;012.png&#x27;, }, --普通道具</span>
+<span id="L178" class="line"><a href="#L178">178</a>	[&#x27;59361&#x27;] = { itemType = BoardMeta.ItemTypes.kRouLei, level = 4, nextId = 59362, preId = BoardMeta.XiaRen, spName = &#x27;013.png&#x27;, }, --普通道具</span>
+<span id="L179" class="line"><a href="#L179">179</a>	[&#x27;59362&#x27;] = { itemType = BoardMeta.ItemTypes.kRouLei, level = 5, nextId = 59363, preId = 59361, spName = &#x27;014.png&#x27;, }, --普通道具</span>
+<span id="L180" class="line"><a href="#L180">180</a>	[&#x27;59363&#x27;] = { itemType = BoardMeta.ItemTypes.kRouLei, level = 6, nextId = 59364, preId = 59362, spName = &#x27;015.png&#x27;, }, --普通道具</span>
+<span id="L181" class="line"><a href="#L181">181</a>	[&#x27;59364&#x27;] = { itemType = BoardMeta.ItemTypes.kRouLei, level = 7, nextId = 59365, preId = 59363, spName = &#x27;016.png&#x27;, }, --普通道具</span>
+<span id="L182" class="line"><a href="#L182">182</a>	[&#x27;59365&#x27;] = { itemType = BoardMeta.ItemTypes.kRouLei, level = 8, nextId = 59366, preId = 59364, spName = &#x27;017.png&#x27;, }, --普通道具</span>
+<span id="L183" class="line"><a href="#L183">183</a>	[&#x27;59366&#x27;] = { itemType = BoardMeta.ItemTypes.kRouLei, level = 9, preId = 59365, spName = &#x27;018.png&#x27;, }, --普通道具</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>	--奶类</span>
+<span id="L186" class="line"><a href="#L186">186</a>	[&#x27;59350&#x27;] = { itemType = BoardMeta.ItemTypes.kNaiLei, level = 1, nextId = 59351, spName = &#x27;026.png&#x27;, }, --普通道具</span>
+<span id="L187" class="line"><a href="#L187">187</a>	[&#x27;59351&#x27;] = { itemType = BoardMeta.ItemTypes.kNaiLei, level = 2, nextId = 59352, preId = 59350, spName = &#x27;027.png&#x27;, }, --普通道具</span>
+<span id="L188" class="line"><a href="#L188">188</a>	[&#x27;59352&#x27;] = { itemType = BoardMeta.ItemTypes.kNaiLei, level = 3, nextId = 59353, preId = 59351, spName = &#x27;028.png&#x27;, }, --普通道具</span>
+<span id="L189" class="line"><a href="#L189">189</a>	[&#x27;59353&#x27;] = { itemType = BoardMeta.ItemTypes.kNaiLei, level = 4, nextId = 59354, preId = 59352, spName = &#x27;029.png&#x27;, }, --普通道具</span>
+<span id="L190" class="line"><a href="#L190">190</a>	[&#x27;59354&#x27;] = { itemType = BoardMeta.ItemTypes.kNaiLei, level = 5, nextId = 59355, preId = 59353, spName = &#x27;030.png&#x27;, }, --普通道具</span>
+<span id="L191" class="line"><a href="#L191">191</a>	[&#x27;59355&#x27;] = { itemType = BoardMeta.ItemTypes.kNaiLei, level = 6, nextId = 59356, preId = 59354, spName = &#x27;031.png&#x27;, }, --普通道具</span>
+<span id="L192" class="line"><a href="#L192">192</a>	[&#x27;59356&#x27;] = { itemType = BoardMeta.ItemTypes.kNaiLei, level = 7, nextId = 59357, preId = 59355, spName = &#x27;032.png&#x27;, }, --普通道具</span>
+<span id="L193" class="line"><a href="#L193">193</a>	[&#x27;59357&#x27;] = { itemType = BoardMeta.ItemTypes.kNaiLei, level = 8, nextId = 59446, preId = 59356, spName = &#x27;033.png&#x27;, }, --普通道具</span>
+<span id="L194" class="line"><a href="#L194">194</a>	[&#x27;59446&#x27;] = { itemType = BoardMeta.ItemTypes.kNaiLei, level = 9, preId = 59357, spName = &#x27;113.png&#x27;, }, --普通道具</span>
+<span id="L195" class="line"><a href="#L195">195</a></span>
+<span id="L196" class="line"><a href="#L196">196</a>	--冰块</span>
+<span id="L197" class="line"><a href="#L197">197</a>	[&#x27;&#x27;..BoardMeta.BingKuai] = { itemType = BoardMeta.ItemTypes.kBingKuai, level = 1, nextId = BoardMeta.BingKuaiLv2, spName = &#x27;034.png&#x27;, }, --普通道具</span>
+<span id="L198" class="line"><a href="#L198">198</a>	[&#x27;&#x27;..BoardMeta.BingKuaiLv2] = { itemType = BoardMeta.ItemTypes.kBingKuai, level = 2, nextId = 59369, preId = BoardMeta.BingKuai, spName = &#x27;035.png&#x27;, }, --普通道具</span>
+<span id="L199" class="line"><a href="#L199">199</a>	[&#x27;59369&#x27;] = { itemType = BoardMeta.ItemTypes.kBingKuai, level = 3, nextId = 59370, preId = BoardMeta.BingKuaiLv2, spName = &#x27;036.png&#x27;, }, --普通道具</span>
+<span id="L200" class="line"><a href="#L200">200</a>	[&#x27;59370&#x27;] = { itemType = BoardMeta.ItemTypes.kBingKuai, level = 4, nextId = 59371, preId = 59369, spName = &#x27;037.png&#x27;, }, --普通道具</span>
+<span id="L201" class="line"><a href="#L201">201</a>	[&#x27;59371&#x27;] = { itemType = BoardMeta.ItemTypes.kBingKuai, level = 5, nextId = 59372, preId = 59370, spName = &#x27;038.png&#x27;, }, --普通道具</span>
+<span id="L202" class="line"><a href="#L202">202</a>	[&#x27;59372&#x27;] = { itemType = BoardMeta.ItemTypes.kBingKuai, level = 6, nextId = 59447, preId = 59371, spName = &#x27;039.png&#x27;, }, --普通道具</span>
+<span id="L203" class="line"><a href="#L203">203</a>	[&#x27;59447&#x27;] = { itemType = BoardMeta.ItemTypes.kBingKuai, level = 7, nextId = 59448, preId = 59372, spName = &#x27;114.png&#x27;, }, --普通道具</span>
+<span id="L204" class="line"><a href="#L204">204</a>	[&#x27;59448&#x27;] = { itemType = BoardMeta.ItemTypes.kBingKuai, level = 8, preId = 59447, spName = &#x27;115.png&#x27;, }, --普通道具</span>
+<span id="L205" class="line"><a href="#L205">205</a></span>
+<span id="L206" class="line"><a href="#L206">206</a>	--面粉</span>
+<span id="L207" class="line"><a href="#L207">207</a>	[&#x27;59373&#x27;] = { itemType = BoardMeta.ItemTypes.kMianShi, level = 1, nextId = 59374, spName = &#x27;019.png&#x27;, }, --普通道具</span>
+<span id="L208" class="line"><a href="#L208">208</a>	[&#x27;59374&#x27;] = { itemType = BoardMeta.ItemTypes.kMianShi, level = 2, nextId = 59375, preId = 59373, spName = &#x27;020.png&#x27;, }, --普通道具</span>
+<span id="L209" class="line"><a href="#L209">209</a>	[&#x27;59375&#x27;] = { itemType = BoardMeta.ItemTypes.kMianShi, level = 3, nextId = 59376, preId = 59374, spName = &#x27;021.png&#x27;, }, --普通道具</span>
+<span id="L210" class="line"><a href="#L210">210</a>	[&#x27;59376&#x27;] = { itemType = BoardMeta.ItemTypes.kMianShi, level = 4, nextId = 59377, preId = 59375, spName = &#x27;022.png&#x27;, }, --普通道具</span>
+<span id="L211" class="line"><a href="#L211">211</a>	[&#x27;59377&#x27;] = { itemType = BoardMeta.ItemTypes.kMianShi, level = 5, nextId = 59378, preId = 59376, spName = &#x27;023.png&#x27;, }, --普通道具</span>
+<span id="L212" class="line"><a href="#L212">212</a>	[&#x27;59378&#x27;] = { itemType = BoardMeta.ItemTypes.kMianShi, level = 6, nextId = 59379, preId = 59377, spName = &#x27;024.png&#x27;, }, --普通道具</span>
+<span id="L213" class="line"><a href="#L213">213</a>	[&#x27;59379&#x27;] = { itemType = BoardMeta.ItemTypes.kMianShi, level = 7, nextId = 59449, preId = 59378, spName = &#x27;025.png&#x27;, }, --普通道具</span>
+<span id="L214" class="line"><a href="#L214">214</a>	[&#x27;59449&#x27;] = { itemType = BoardMeta.ItemTypes.kMianShi, level = 8, preId = 59379, spName = &#x27;112.png&#x27;, }, --普通道具</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>	--菜品1</span>
+<span id="L217" class="line"><a href="#L217">217</a>	[&#x27;59380&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin1, level = 1, spName = &#x27;044.png&#x27;, }, --菜品</span>
+<span id="L218" class="line"><a href="#L218">218</a>	[&#x27;59381&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin1, level = 2, spName = &#x27;045.png&#x27;, }, --菜品</span>
+<span id="L219" class="line"><a href="#L219">219</a>	[&#x27;59382&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin1, level = 3, spName = &#x27;046.png&#x27;, }, --菜品</span>
+<span id="L220" class="line"><a href="#L220">220</a>	[&#x27;59383&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin1, level = 4, spName = &#x27;047.png&#x27;, }, --菜品</span>
+<span id="L221" class="line"><a href="#L221">221</a>	[&#x27;59384&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin1, level = 5, spName = &#x27;048.png&#x27;, }, --菜品</span>
+<span id="L222" class="line"><a href="#L222">222</a>	[&#x27;59385&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin1, level = 6, spName = &#x27;049.png&#x27;, }, --菜品</span>
+<span id="L223" class="line"><a href="#L223">223</a></span>
+<span id="L224" class="line"><a href="#L224">224</a>	--菜品2</span>
+<span id="L225" class="line"><a href="#L225">225</a>	[&#x27;59386&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin2, level = 1, spName = &#x27;050.png&#x27;, }, --菜品</span>
+<span id="L226" class="line"><a href="#L226">226</a>	[&#x27;59387&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin2, level = 2, spName = &#x27;051.png&#x27;, }, --菜品</span>
+<span id="L227" class="line"><a href="#L227">227</a>	[&#x27;59388&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin2, level = 3, spName = &#x27;052.png&#x27;, }, --菜品</span>
+<span id="L228" class="line"><a href="#L228">228</a>	[&#x27;59389&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin2, level = 4, spName = &#x27;053.png&#x27;, }, --菜品</span>
+<span id="L229" class="line"><a href="#L229">229</a>	[&#x27;59390&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin2, level = 5, spName = &#x27;054.png&#x27;, }, --菜品</span>
+<span id="L230" class="line"><a href="#L230">230</a>	[&#x27;59391&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin2, level = 6, spName = &#x27;055.png&#x27;, }, --菜品</span>
+<span id="L231" class="line"><a href="#L231">231</a></span>
+<span id="L232" class="line"><a href="#L232">232</a>	--菜品3</span>
+<span id="L233" class="line"><a href="#L233">233</a>	[&#x27;59392&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin3, level = 1, spName = &#x27;056.png&#x27;, }, --菜品</span>
+<span id="L234" class="line"><a href="#L234">234</a>	[&#x27;59393&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin3, level = 2, spName = &#x27;057.png&#x27;, }, --菜品</span>
+<span id="L235" class="line"><a href="#L235">235</a>	[&#x27;59394&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin3, level = 3, spName = &#x27;058.png&#x27;, }, --菜品</span>
+<span id="L236" class="line"><a href="#L236">236</a>	[&#x27;59395&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin3, level = 4, spName = &#x27;059.png&#x27;, }, --菜品</span>
+<span id="L237" class="line"><a href="#L237">237</a>	[&#x27;59396&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin3, level = 5, spName = &#x27;060.png&#x27;, }, --菜品</span>
+<span id="L238" class="line"><a href="#L238">238</a>	[&#x27;59397&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin3, level = 6, spName = &#x27;061.png&#x27;, }, --菜品</span>
+<span id="L239" class="line"><a href="#L239">239</a></span>
+<span id="L240" class="line"><a href="#L240">240</a>	--菜品4</span>
+<span id="L241" class="line"><a href="#L241">241</a>	[&#x27;59398&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin4, level = 1, spName = &#x27;062.png&#x27;, }, --菜品</span>
+<span id="L242" class="line"><a href="#L242">242</a>	[&#x27;59399&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin4, level = 2, spName = &#x27;063.png&#x27;, }, --菜品</span>
+<span id="L243" class="line"><a href="#L243">243</a>	[&#x27;59400&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin4, level = 3, spName = &#x27;064.png&#x27;, }, --菜品</span>
+<span id="L244" class="line"><a href="#L244">244</a>	[&#x27;59401&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin4, level = 4, spName = &#x27;065.png&#x27;, }, --菜品</span>
+<span id="L245" class="line"><a href="#L245">245</a>	[&#x27;59402&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin4, level = 5, spName = &#x27;066.png&#x27;, }, --菜品</span>
+<span id="L246" class="line"><a href="#L246">246</a>	[&#x27;59403&#x27;] = { itemType = BoardMeta.ItemTypes.kCaiPin4, level = 6, spName = &#x27;067.png&#x27;, }, --菜品</span>
+<span id="L247" class="line"><a href="#L247">247</a></span>
+<span id="L248" class="line"><a href="#L248">248</a>	--菜品5</span>
+<span id="L249" class="line"><a href="#L249">249</a>	-- 山西菜已经清除了</span>
+<span id="L250" class="line"><a href="#L250">250</a></span>
+<span id="L251" class="line"><a href="#L251">251</a>	--特殊道具</span>
+<span id="L252" class="line"><a href="#L252">252</a>	[&#x27;&#x27;..BoardMeta.MagicItemEnergy] = { itemType = BoardMeta.ItemTypes.kMagicItem, energyTimeSec = 20, spName = &#x27;070.png&#x27;, }, --特殊道具 无限体力</span>
+<span id="L253" class="line"><a href="#L253">253</a>	[&#x27;&#x27;..BoardMeta.MagicItemJianDao]  = { itemType = BoardMeta.ItemTypes.kMagicItem, spName = &#x27;069.png&#x27;, }, --特殊道具 剪刀</span>
+<span id="L254" class="line"><a href="#L254">254</a>	[&#x27;&#x27;..BoardMeta.MagicItemMiaoBiao]  = { itemType = BoardMeta.ItemTypes.kMagicItem, spName = &#x27;068.png&#x27;, }, --特殊道具 秒表</span>
+<span id="L255" class="line"><a href="#L255">255</a>	[&#x27;&#x27;..BoardMeta.MagicItemShengji]  = { itemType = BoardMeta.ItemTypes.kMagicItem, spName = &#x27;071.png&#x27;, }, --特殊道具 升级卡</span>
+<span id="L256" class="line"><a href="#L256">256</a></span>
+<span id="L257" class="line"><a href="#L257">257</a>	--饺子</span>
+<span id="L258" class="line"><a href="#L258">258</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv1_v1] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 1, week=1, nextId = BoardMeta.JiaoziLv2_v1, spName = &#x27;116.png&#x27;, }, --普通道具</span>
+<span id="L259" class="line"><a href="#L259">259</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv2_v1] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 2, week=1, nextId = BoardMeta.JiaoziLv3_v1, preId = BoardMeta.JiaoziLv1_v1, spName = &#x27;117.png&#x27;, }, --普通道具</span>
+<span id="L260" class="line"><a href="#L260">260</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv3_v1] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 3, week=1, nextId = BoardMeta.JiaoziLv4_v1, preId = BoardMeta.JiaoziLv2_v1, spName = &#x27;118.png&#x27;, }, --普通道具</span>
+<span id="L261" class="line"><a href="#L261">261</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv4_v1] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 4, week=1, preId = BoardMeta.JiaoziLv3_v1, spName = &#x27;119.png&#x27;, }, --普通道具</span>
+<span id="L262" class="line"><a href="#L262">262</a></span>
+<span id="L263" class="line"><a href="#L263">263</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv1_v2] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 1, week=2, nextId = BoardMeta.JiaoziLv2_v2, spName = &#x27;116.png&#x27;, }, --普通道具</span>
+<span id="L264" class="line"><a href="#L264">264</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv2_v2] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 2, week=2, nextId = BoardMeta.JiaoziLv3_v2, preId = BoardMeta.JiaoziLv1_v2, spName = &#x27;117.png&#x27;, }, --普通道具</span>
+<span id="L265" class="line"><a href="#L265">265</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv3_v2] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 3, week=2, nextId = BoardMeta.JiaoziLv4_v2, preId = BoardMeta.JiaoziLv2_v2, spName = &#x27;118.png&#x27;, }, --普通道具</span>
+<span id="L266" class="line"><a href="#L266">266</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv4_v2] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 4, week=2, preId = BoardMeta.JiaoziLv3_v2, spName = &#x27;119.png&#x27;, }, --普通道具</span>
+<span id="L267" class="line"><a href="#L267">267</a></span>
+<span id="L268" class="line"><a href="#L268">268</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv1_v3] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 1, week=3, nextId = BoardMeta.JiaoziLv2_v3, spName = &#x27;116.png&#x27;, }, --普通道具</span>
+<span id="L269" class="line"><a href="#L269">269</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv2_v3] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 2, week=3, nextId = BoardMeta.JiaoziLv3_v3, preId = BoardMeta.JiaoziLv1_v3, spName = &#x27;117.png&#x27;, }, --普通道具</span>
+<span id="L270" class="line"><a href="#L270">270</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv3_v3] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 3, week=3, nextId = BoardMeta.JiaoziLv4_v3, preId = BoardMeta.JiaoziLv2_v3, spName =&#x27;118.png&#x27;, }, --普通道具</span>
+<span id="L271" class="line"><a href="#L271">271</a>	[&#x27;&#x27;..BoardMeta.JiaoziLv4_v3] = { itemType = BoardMeta.ItemTypes.kJiaoZi, level = 4, week=3, preId = BoardMeta.JiaoziLv3_v3, spName = &#x27;119.png&#x27;, }, --普通道具</span>
+<span id="L272" class="line"><a href="#L272">272</a></span>
+<span id="L273" class="line"><a href="#L273">273</a>	--自选宝箱</span>
+<span id="L274" class="line"><a href="#L274">274</a>	[&#x27;&#x27;..BoardMeta.zixuanBox ] = { itemType = BoardMeta.ItemTypes.kSpecialItem, level = 4, spName = &#x27;092.png&#x27;, }, --特殊道具</span>
+<span id="L275" class="line"><a href="#L275">275</a></span>
+<span id="L276" class="line"><a href="#L276">276</a>	--体力瓶</span>
+<span id="L277" class="line"><a href="#L277">277</a>	[&#x27;&#x27;..BoardMeta.EnergyBottleLv1] = { itemType = BoardMeta.ItemTypes.kMagicItem, level = 1, nextId = BoardMeta.EnergyBottleLv2, spName = &#x27;122.png&#x27;, }, --特殊道具</span>
+<span id="L278" class="line"><a href="#L278">278</a>	[&#x27;&#x27;..BoardMeta.EnergyBottleLv2] = { itemType = BoardMeta.ItemTypes.kMagicItem, level = 2, nextId = BoardMeta.EnergyBottleLv3, preId = BoardMeta.EnergyBottleLv1, spName = &#x27;123.png&#x27;, }, --特殊道具</span>
+<span id="L279" class="line"><a href="#L279">279</a>	[&#x27;&#x27;..BoardMeta.EnergyBottleLv3] = { itemType = BoardMeta.ItemTypes.kMagicItem, level = 3, nextId = BoardMeta.EnergyBottleLv4, preId = BoardMeta.EnergyBottleLv2, spName = &#x27;124.png&#x27;, }, --特殊道具</span>
+<span id="L280" class="line"><a href="#L280">280</a>	[&#x27;&#x27;..BoardMeta.EnergyBottleLv4] = { itemType = BoardMeta.ItemTypes.kMagicItem, level = 4, nextId = BoardMeta.EnergyBottleLv5, preId = BoardMeta.EnergyBottleLv3, spName = &#x27;125.png&#x27;, }, --特殊道具</span>
+<span id="L281" class="line"><a href="#L281">281</a>	[&#x27;&#x27;..BoardMeta.EnergyBottleLv5] = { itemType = BoardMeta.ItemTypes.kMagicItem, level = 5, nextId = BoardMeta.EnergyBottleLv6, preId = BoardMeta.EnergyBottleLv4, spName = &#x27;126.png&#x27;, }, --特殊道具</span>
+<span id="L282" class="line"><a href="#L282">282</a>	[&#x27;&#x27;..BoardMeta.EnergyBottleLv6] = { itemType = BoardMeta.ItemTypes.kMagicItem, level = 6, preId = BoardMeta.EnergyBottleLv5, spName = &#x27;127.png&#x27;, }, --特殊道具</span>
+<span id="L283" class="line"><a href="#L283">283</a></span>
+<span id="L284" class="line"><a href="#L284">284</a>	--体力宝箱</span>
+<span id="L285" class="line"><a href="#L285">285</a>	[&#x27;&#x27;..BoardMeta.LowEnergyBox] = { itemType = BoardMeta.ItemTypes.kMagicItem, level = 1, nextId = BoardMeta.HighEnergyBox, spName = &#x27;120.png&#x27;, }, --特殊道具</span>
+<span id="L286" class="line"><a href="#L286">286</a>	[&#x27;&#x27;..BoardMeta.HighEnergyBox] = { itemType = BoardMeta.ItemTypes.kMagicItem, level = 2, preId = BoardMeta.LowEnergyBox, spName = &#x27;121.png&#x27;, }, --特殊道具</span>
+<span id="L287" class="line"><a href="#L287">287</a></span>
+<span id="L288" class="line"><a href="#L288">288</a>	--枣泥</span>
+<span id="L289" class="line"><a href="#L289">289</a>	[&#x27;&#x27;..BoardMeta.ZaoniGao] = { itemType = BoardMeta.ItemTypes.kDianXin, level = 1, nextId = 59426, spName = &#x27;080.png&#x27;, }, --普通道具</span>
+<span id="L290" class="line"><a href="#L290">290</a>	[&#x27;59426&#x27;] = { itemType = BoardMeta.ItemTypes.kDianXin, level = 2, nextId = 59427, preId = BoardMeta.ZaoniGao, spName = &#x27;081.png&#x27;, }, --普通道具</span>
+<span id="L291" class="line"><a href="#L291">291</a>	[&#x27;59427&#x27;] = { itemType = BoardMeta.ItemTypes.kDianXin, level = 3, nextId = 59428, preId = 59426, spName = &#x27;082.png&#x27;, }, --普通道具</span>
+<span id="L292" class="line"><a href="#L292">292</a>	[&#x27;59428&#x27;] = { itemType = BoardMeta.ItemTypes.kDianXin, level = 4, nextId = 59429, preId = 59427, spName = &#x27;083.png&#x27;, }, --普通道具</span>
+<span id="L293" class="line"><a href="#L293">293</a>	[&#x27;59429&#x27;] = { itemType = BoardMeta.ItemTypes.kDianXin, level = 5, nextId = 59430, preId = 59428, spName = &#x27;084.png&#x27;, }, --普通道具</span>
+<span id="L294" class="line"><a href="#L294">294</a>	[&#x27;59430&#x27;] = { itemType = BoardMeta.ItemTypes.kDianXin, level = 6, nextId = 59431, preId = 59429, spName = &#x27;085.png&#x27;, }, --普通道具</span>
+<span id="L295" class="line"><a href="#L295">295</a>	[&#x27;59431&#x27;] = { itemType = BoardMeta.ItemTypes.kDianXin, level = 7, nextId = 59432, preId = 59430, spName = &#x27;086.png&#x27;, }, --普通道具</span>
+<span id="L296" class="line"><a href="#L296">296</a>	[&#x27;59432&#x27;] = { itemType = BoardMeta.ItemTypes.kDianXin, level = 8, preId = 59431, spName = &#x27;087.png&#x27;, }, --普通道具</span>
+<span id="L297" class="line"><a href="#L297">297</a></span>
+<span id="L298" class="line"><a href="#L298">298</a>	--茶</span>
+<span id="L299" class="line"><a href="#L299">299</a>	[&#x27;&#x27;..BoardMeta.JuhuaCha] = { itemType = BoardMeta.ItemTypes.kCha, level = 1, nextId = 59434, spName = &#x27;097.png&#x27;, }, --普通道具</span>
+<span id="L300" class="line"><a href="#L300">300</a>	[&#x27;59434&#x27;] = { itemType = BoardMeta.ItemTypes.kCha, level = 2, nextId = 59435, preId = BoardMeta.JuhuaCha, spName = &#x27;098.png&#x27;, }, --普通道具</span>
+<span id="L301" class="line"><a href="#L301">301</a>	[&#x27;59435&#x27;] = { itemType = BoardMeta.ItemTypes.kCha, level = 3, nextId = 59436, preId = 59434, spName = &#x27;099.png&#x27;, }, --普通道具</span>
+<span id="L302" class="line"><a href="#L302">302</a>	[&#x27;59436&#x27;] = { itemType = BoardMeta.ItemTypes.kCha, level = 4, nextId = 59437, preId = 59435, spName = &#x27;100.png&#x27;, }, --普通道具</span>
+<span id="L303" class="line"><a href="#L303">303</a>	[&#x27;59437&#x27;] = { itemType = BoardMeta.ItemTypes.kCha, level = 5, preId = 59436, spName = &#x27;101.png&#x27;, }, --普通道具</span>
+<span id="L304" class="line"><a href="#L304">304</a>}</span>
+<span id="L305" class="line"><a href="#L305">305</a></span>
+<span id="L306" class="line"><a href="#L306">306</a>--不计入图鉴的道具</span>
+<span id="L307" class="line"><a href="#L307">307</a>BoardMeta.noJoinTuJianItemIds = {</span>
+<span id="L308" class="line"><a href="#L308">308</a>	BoardMeta.JiaoziLv1_v1,</span>
+<span id="L309" class="line"><a href="#L309">309</a>	BoardMeta.JiaoziLv2_v1,</span>
+<span id="L310" class="line"><a href="#L310">310</a>	BoardMeta.JiaoziLv3_v1,</span>
+<span id="L311" class="line"><a href="#L311">311</a>	BoardMeta.JiaoziLv4_v1,</span>
+<span id="L312" class="line"><a href="#L312">312</a></span>
+<span id="L313" class="line"><a href="#L313">313</a>	BoardMeta.JiaoziLv1_v2,</span>
+<span id="L314" class="line"><a href="#L314">314</a>	BoardMeta.JiaoziLv2_v2,</span>
+<span id="L315" class="line"><a href="#L315">315</a>	BoardMeta.JiaoziLv3_v2,</span>
+<span id="L316" class="line"><a href="#L316">316</a>	BoardMeta.JiaoziLv4_v2,</span>
+<span id="L317" class="line"><a href="#L317">317</a></span>
+<span id="L318" class="line"><a href="#L318">318</a>	BoardMeta.JiaoziLv1_v3,</span>
+<span id="L319" class="line"><a href="#L319">319</a>	BoardMeta.JiaoziLv2_v3,</span>
+<span id="L320" class="line"><a href="#L320">320</a>	BoardMeta.JiaoziLv3_v3,</span>
+<span id="L321" class="line"><a href="#L321">321</a>	BoardMeta.JiaoziLv4_v3,</span>
+<span id="L322" class="line"><a href="#L322">322</a></span>
+<span id="L323" class="line"><a href="#L323">323</a>	BoardMeta.zixuanBox,</span>
+<span id="L324" class="line"><a href="#L324">324</a>	BoardMeta.EnergyBottleLv1,</span>
+<span id="L325" class="line"><a href="#L325">325</a>	BoardMeta.EnergyBottleLv2,</span>
+<span id="L326" class="line"><a href="#L326">326</a>	BoardMeta.EnergyBottleLv3,</span>
+<span id="L327" class="line"><a href="#L327">327</a>	BoardMeta.EnergyBottleLv4,</span>
+<span id="L328" class="line"><a href="#L328">328</a>	BoardMeta.EnergyBottleLv5,</span>
+<span id="L329" class="line"><a href="#L329">329</a>	BoardMeta.EnergyBottleLv6,</span>
+<span id="L330" class="line"><a href="#L330">330</a>	BoardMeta.LowEnergyBox,</span>
+<span id="L331" class="line"><a href="#L331">331</a>	BoardMeta.HighEnergyBox,</span>
+<span id="L332" class="line"><a href="#L332">332</a>}</span>
+<span id="L333" class="line"><a href="#L333">333</a></span>
+<span id="L334" class="line"><a href="#L334">334</a>BoardMeta.allJiaoziIdList = {</span>
+<span id="L335" class="line"><a href="#L335">335</a>	BoardMeta.JiaoziLv1_v1,</span>
+<span id="L336" class="line"><a href="#L336">336</a>	BoardMeta.JiaoziLv2_v1,</span>
+<span id="L337" class="line"><a href="#L337">337</a>	BoardMeta.JiaoziLv3_v1,</span>
+<span id="L338" class="line"><a href="#L338">338</a>	BoardMeta.JiaoziLv4_v1,</span>
+<span id="L339" class="line"><a href="#L339">339</a></span>
+<span id="L340" class="line"><a href="#L340">340</a>	BoardMeta.JiaoziLv1_v2,</span>
+<span id="L341" class="line"><a href="#L341">341</a>	BoardMeta.JiaoziLv2_v2,</span>
+<span id="L342" class="line"><a href="#L342">342</a>	BoardMeta.JiaoziLv3_v2,</span>
+<span id="L343" class="line"><a href="#L343">343</a>	BoardMeta.JiaoziLv4_v2,</span>
+<span id="L344" class="line"><a href="#L344">344</a></span>
+<span id="L345" class="line"><a href="#L345">345</a>	BoardMeta.JiaoziLv1_v3,</span>
+<span id="L346" class="line"><a href="#L346">346</a>	BoardMeta.JiaoziLv2_v3,</span>
+<span id="L347" class="line"><a href="#L347">347</a>	BoardMeta.JiaoziLv3_v3,</span>
+<span id="L348" class="line"><a href="#L348">348</a>	BoardMeta.JiaoziLv4_v3,</span>
+<span id="L349" class="line"><a href="#L349">349</a>}</span>
+<span id="L350" class="line"><a href="#L350">350</a></span>
+<span id="L351" class="line"><a href="#L351">351</a>BoardMeta.jiaoziLevelList = {</span>
+<span id="L352" class="line"><a href="#L352">352</a>	[1] = { BoardMeta.JiaoziLv1_v1, BoardMeta.JiaoziLv1_v2, BoardMeta.JiaoziLv1_v3 },</span>
+<span id="L353" class="line"><a href="#L353">353</a>	[2] = { BoardMeta.JiaoziLv2_v1, BoardMeta.JiaoziLv2_v2, BoardMeta.JiaoziLv2_v3 },</span>
+<span id="L354" class="line"><a href="#L354">354</a>	[3] = { BoardMeta.JiaoziLv3_v1, BoardMeta.JiaoziLv3_v2, BoardMeta.JiaoziLv3_v3 },</span>
+<span id="L355" class="line"><a href="#L355">355</a>	[4] = { BoardMeta.JiaoziLv4_v1, BoardMeta.JiaoziLv4_v2, BoardMeta.JiaoziLv4_v3 },</span>
+<span id="L356" class="line"><a href="#L356">356</a>}</span>
+<span id="L357" class="line"><a href="#L357">357</a></span>
+<span id="L358" class="line"><a href="#L358">358</a>--拖动类型</span>
+<span id="L359" class="line"><a href="#L359">359</a>BoardMeta.TouchType = {</span>
+<span id="L360" class="line"><a href="#L360">360</a>	kNone = 0,</span>
+<span id="L361" class="line"><a href="#L361">361</a>	kDrag = 1,</span>
+<span id="L362" class="line"><a href="#L362">362</a>	kClick = 2,</span>
+<span id="L363" class="line"><a href="#L363">363</a>}</span>
+<span id="L364" class="line"><a href="#L364">364</a></span>
+<span id="L365" class="line"><a href="#L365">365</a>function BoardMeta:getItemMakerCanMakeItem( itemId )</span>
+<span id="L366" class="line"><a href="#L366">366</a>	--检测发射器是否可以发射道具</span>
+<span id="L367" class="line"><a href="#L367">367</a>	local cantMakeItemIds = { }</span>
+<span id="L368" class="line"><a href="#L368">368</a></span>
+<span id="L369" class="line"><a href="#L369">369</a>	if table.exist( cantMakeItemIds, itemId ) then</span>
+<span id="L370" class="line"><a href="#L370">370</a>		return false</span>
+<span id="L371" class="line"><a href="#L371">371</a>	end</span>
+<span id="L372" class="line"><a href="#L372">372</a>	return true</span>
+<span id="L373" class="line"><a href="#L373">373</a>end</span>
+<span id="L374" class="line"><a href="#L374">374</a></span>
+<span id="L375" class="line"><a href="#L375">375</a>function BoardMeta:getItemCanMove( itemId )</span>
+<span id="L376" class="line"><a href="#L376">376</a>	--检测道具是否可以被拖动</span>
+<span id="L377" class="line"><a href="#L377">377</a>	local cantMakeItemIds = { }</span>
+<span id="L378" class="line"><a href="#L378">378</a></span>
+<span id="L379" class="line"><a href="#L379">379</a>	if table.exist( cantMakeItemIds, itemId ) then</span>
+<span id="L380" class="line"><a href="#L380">380</a>		return false</span>
+<span id="L381" class="line"><a href="#L381">381</a>	end</span>
+<span id="L382" class="line"><a href="#L382">382</a>	return true</span>
+<span id="L383" class="line"><a href="#L383">383</a>end</span>
+<span id="L384" class="line"><a href="#L384">384</a></span>
+<span id="L385" class="line"><a href="#L385">385</a>-- 根据菜品类型得到菜品/饮品/甜品文案</span>
+<span id="L386" class="line"><a href="#L386">386</a>function BoardMeta:getCaiPinNameByType( itemType )</span>
+<span id="L387" class="line"><a href="#L387">387</a>	local itemTypeName = &quot;菜品&quot;</span>
+<span id="L388" class="line"><a href="#L388">388</a>	if BoardMeta.ItemTypes.kCaiPin1 == itemType then</span>
+<span id="L389" class="line"><a href="#L389">389</a>		itemTypeName = &quot;果酱&quot;</span>
+<span id="L390" class="line"><a href="#L390">390</a>	elseif BoardMeta.ItemTypes.kCaiPin2 == itemType or BoardMeta.ItemTypes.kCaiPin4 == itemType then</span>
+<span id="L391" class="line"><a href="#L391">391</a>		itemTypeName = &quot;菜品&quot;</span>
+<span id="L392" class="line"><a href="#L392">392</a>	elseif BoardMeta.ItemTypes.kCaiPin3 == itemType then</span>
+<span id="L393" class="line"><a href="#L393">393</a>		itemTypeName = &quot;冷饮&quot;</span>
+<span id="L394" class="line"><a href="#L394">394</a>	elseif BoardMeta.ItemTypes.kCaiPin5 == itemType then</span>
+<span id="L395" class="line"><a href="#L395">395</a>		itemTypeName = &quot;菜品&quot;</span>
+<span id="L396" class="line"><a href="#L396">396</a>	end</span>
+<span id="L397" class="line"><a href="#L397">397</a>	return itemTypeName</span>
+<span id="L398" class="line"><a href="#L398">398</a>end</span>
+<span id="L399" class="line"><a href="#L399">399</a></span>
+<span id="L400" class="line"><a href="#L400">400</a>function BoardMeta:checkItemTypeIsNormalItem( itemType )</span>
+<span id="L401" class="line"><a href="#L401">401</a>	--判断是不是普通道具，菜品不是普通道具</span>
+<span id="L402" class="line"><a href="#L402">402</a>	local normalItemTypeList = { BoardMeta.ItemTypes.kGuoShu, BoardMeta.ItemTypes.kRouLei,</span>
+<span id="L403" class="line"><a href="#L403">403</a>		BoardMeta.ItemTypes.kNaiLei, BoardMeta.ItemTypes.kMianShi, BoardMeta.ItemTypes.kBingKuai, BoardMeta.ItemTypes.kJiaoZi, BoardMeta.ItemTypes.kDianXin, BoardMeta.ItemTypes.kCha  }</span>
+<span id="L404" class="line"><a href="#L404">404</a>	local bNormalItem = table.exist( normalItemTypeList, itemType )</span>
+<span id="L405" class="line"><a href="#L405">405</a>	return bNormalItem</span>
+<span id="L406" class="line"><a href="#L406">406</a>end</span>
+<span id="L407" class="line"><a href="#L407">407</a></span>
+<span id="L408" class="line"><a href="#L408">408</a>function BoardMeta:checkItemTypeIsCaiPinItem( itemType )</span>
+<span id="L409" class="line"><a href="#L409">409</a>	--是否是菜品道具</span>
+<span id="L410" class="line"><a href="#L410">410</a>	local caiPinItemTypeList = { BoardMeta.ItemTypes.kCaiPin1, BoardMeta.ItemTypes.kCaiPin2, BoardMeta.ItemTypes.kCaiPin3, BoardMeta.ItemTypes.kCaiPin4, BoardMeta.ItemTypes.kCaiPin5 }</span>
+<span id="L411" class="line"><a href="#L411">411</a>	local bCaiPinItem = table.exist( caiPinItemTypeList, itemType )</span>
+<span id="L412" class="line"><a href="#L412">412</a>	return bCaiPinItem</span>
+<span id="L413" class="line"><a href="#L413">413</a>end</span>
+<span id="L414" class="line"><a href="#L414">414</a></span>
+<span id="L415" class="line"><a href="#L415">415</a>function BoardMeta:checkItemTypeIsMagicItem( itemType )</span>
+<span id="L416" class="line"><a href="#L416">416</a>	--是否是特殊道具</span>
+<span id="L417" class="line"><a href="#L417">417</a>	local caiPinItemTypeList = { BoardMeta.ItemTypes.kMagicItem }</span>
+<span id="L418" class="line"><a href="#L418">418</a>	local bCaiPinItem = table.exist( caiPinItemTypeList, itemType )</span>
+<span id="L419" class="line"><a href="#L419">419</a>	return bCaiPinItem</span>
+<span id="L420" class="line"><a href="#L420">420</a>end</span>
+<span id="L421" class="line"><a href="#L421">421</a></span>
+<span id="L422" class="line"><a href="#L422">422</a>function BoardMeta:checkItemIsEnergyBottle( itemId )</span>
+<span id="L423" class="line"><a href="#L423">423</a>	return table.exist(BoardMeta.EnergyBottleIds, tonumber(itemId))</span>
+<span id="L424" class="line"><a href="#L424">424</a>end</span>
+<span id="L425" class="line"><a href="#L425">425</a></span>
+<span id="L426" class="line"><a href="#L426">426</a>function BoardMeta:checkItemIsEnergyBox( itemId )</span>
+<span id="L427" class="line"><a href="#L427">427</a>	return table.exist(BoardMeta.EnergyBoxIds, tonumber(itemId))</span>
+<span id="L428" class="line"><a href="#L428">428</a>end</span>
+<span id="L429" class="line"><a href="#L429">429</a></span>
+<span id="L430" class="line"><a href="#L430">430</a>function BoardMeta:checkItemIsEnergyProp( itemId )</span>
+<span id="L431" class="line"><a href="#L431">431</a>	return BoardMeta:checkItemIsEnergyBottle(itemId) or BoardMeta:checkItemIsEnergyBox(itemId)</span>
+<span id="L432" class="line"><a href="#L432">432</a>end</span>
+<span id="L433" class="line"><a href="#L433">433</a></span>
+<span id="L434" class="line"><a href="#L434">434</a>function BoardMeta:checkItemTypeIsItemMaker( itemType )</span>
+<span id="L435" class="line"><a href="#L435">435</a>	--是否是发射器</span>
+<span id="L436" class="line"><a href="#L436">436</a>	local caiPinItemTypeList = { BoardMeta.ItemTypes.kItemMaker }</span>
+<span id="L437" class="line"><a href="#L437">437</a>	local bCaiPinItem = table.exist( caiPinItemTypeList, itemType )</span>
+<span id="L438" class="line"><a href="#L438">438</a>	return bCaiPinItem</span>
+<span id="L439" class="line"><a href="#L439">439</a>end</span>
+<span id="L440" class="line"><a href="#L440">440</a></span>
+<span id="L441" class="line"><a href="#L441">441</a>function BoardMeta:checkMagicItemCanMerge( itemId )</span>
+<span id="L442" class="line"><a href="#L442">442</a>	--检测魔法道具是否可以合成</span>
+<span id="L443" class="line"><a href="#L443">443</a>	local magicItemId = tonumber(itemId)</span>
+<span id="L444" class="line"><a href="#L444">444</a>	local canMergeMagicItemIds = { BoardMeta.MagicItemJianDao, BoardMeta.MagicItemMiaoBiao, BoardMeta.MagicItemShengji }</span>
+<span id="L445" class="line"><a href="#L445">445</a>	local itemData = BoardMeta:getItemDataByItemId(magicItemId)</span>
+<span id="L446" class="line"><a href="#L446">446</a>	local energyPropCanMerge = BoardMeta:checkItemIsEnergyProp(magicItemId) and itemData.nextId ~= nil</span>
+<span id="L447" class="line"><a href="#L447">447</a>	local bCanMergeItem = table.exist( canMergeMagicItemIds, magicItemId ) or energyPropCanMerge</span>
+<span id="L448" class="line"><a href="#L448">448</a>	return bCanMergeItem</span>
+<span id="L449" class="line"><a href="#L449">449</a>end</span>
+<span id="L450" class="line"><a href="#L450">450</a></span>
+<span id="L451" class="line"><a href="#L451">451</a>function BoardMeta:checkItemTypeIsJiaoZi( itemType )</span>
+<span id="L452" class="line"><a href="#L452">452</a>	--检测检测是否是饺子类型</span>
+<span id="L453" class="line"><a href="#L453">453</a>	local jiaoziItemTypeList = { BoardMeta.ItemTypes.kJiaoZi }</span>
+<span id="L454" class="line"><a href="#L454">454</a>	local bJiaoZi = table.exist( jiaoziItemTypeList, itemType )</span>
+<span id="L455" class="line"><a href="#L455">455</a>	return bJiaoZi</span>
+<span id="L456" class="line"><a href="#L456">456</a>end</span>
+<span id="L457" class="line"><a href="#L457">457</a></span>
+<span id="L458" class="line"><a href="#L458">458</a>-- itemId是否是无限体力</span>
+<span id="L459" class="line"><a href="#L459">459</a>function BoardMeta:checkItemIsInfinitePower(itemId)</span>
+<span id="L460" class="line"><a href="#L460">460</a>	local mItemId = tonumber(itemId)</span>
+<span id="L461" class="line"><a href="#L461">461</a>	return mItemId == BoardMeta.MagicItemEnergy</span>
+<span id="L462" class="line"><a href="#L462">462</a>end</span>
+<span id="L463" class="line"><a href="#L463">463</a></span>
+<span id="L464" class="line"><a href="#L464">464</a>-- itemId是否是秒表</span>
+<span id="L465" class="line"><a href="#L465">465</a>function BoardMeta:checkItemIsClock(itemId)</span>
+<span id="L466" class="line"><a href="#L466">466</a>	local mItemId = tonumber(itemId)</span>
+<span id="L467" class="line"><a href="#L467">467</a>	return mItemId == BoardMeta.MagicItemMiaoBiao</span>
+<span id="L468" class="line"><a href="#L468">468</a>end</span>
+<span id="L469" class="line"><a href="#L469">469</a></span>
+<span id="L470" class="line"><a href="#L470">470</a>function BoardMeta:checkItemIsShiHeLV1( itemId )</span>
+<span id="L471" class="line"><a href="#L471">471</a>	--检测检测是否是1级食盒</span>
+<span id="L472" class="line"><a href="#L472">472</a>	return BoardMeta.ShiHeLV1 == itemId</span>
+<span id="L473" class="line"><a href="#L473">473</a>end</span>
+<span id="L474" class="line"><a href="#L474">474</a></span>
+<span id="L475" class="line"><a href="#L475">475</a>-- 根据道具id获取他这个对应等级的id</span>
+<span id="L476" class="line"><a href="#L476">476</a>function BoardMeta:getItemLevelIdByItemId(itemId, level)</span>
+<span id="L477" class="line"><a href="#L477">477</a>	local itemData = BoardMeta:getItemDataByItemId(itemId)</span>
+<span id="L478" class="line"><a href="#L478">478</a>	local itemInfoList = BoardMeta:getItemInfoListByType(itemData.itemType)</span>
+<span id="L479" class="line"><a href="#L479">479</a>	local itemInfo = itemInfoList[level]</span>
+<span id="L480" class="line"><a href="#L480">480</a>	if not itemInfo then</span>
+<span id="L481" class="line"><a href="#L481">481</a>		return nil</span>
+<span id="L482" class="line"><a href="#L482">482</a>	end</span>
+<span id="L483" class="line"><a href="#L483">483</a>	return itemInfo.itemId</span>
+<span id="L484" class="line"><a href="#L484">484</a>end</span>
+<span id="L485" class="line"><a href="#L485">485</a></span>
+<span id="L486" class="line"><a href="#L486">486</a>-- 根据生成物itemId获取发射器itemid</span>
+<span id="L487" class="line"><a href="#L487">487</a>function BoardMeta:getMakerIdByItemId(itemId)</span>
+<span id="L488" class="line"><a href="#L488">488</a>    local itemData = BoardMeta:getItemDataByItemId(itemId)</span>
+<span id="L489" class="line"><a href="#L489">489</a>    local itemList = BoardMeta:getItemListByType(itemData.itemType)</span>
+<span id="L490" class="line"><a href="#L490">490</a>    local firstItemId = table.find(itemList, function(v)</span>
+<span id="L491" class="line"><a href="#L491">491</a>        return BoardMeta:getItemDataByItemId(v).level == 1</span>
+<span id="L492" class="line"><a href="#L492">492</a>    end)</span>
+<span id="L493" class="line"><a href="#L493">493</a></span>
+<span id="L494" class="line"><a href="#L494">494</a>    local makerList = BoardMeta:getItemListByType(BoardMeta.ItemTypes.kItemMaker)</span>
+<span id="L495" class="line"><a href="#L495">495</a></span>
+<span id="L496" class="line"><a href="#L496">496</a>    local makerIds = {}</span>
+<span id="L497" class="line"><a href="#L497">497</a>    for i,v in ipairs(makerList) do</span>
+<span id="L498" class="line"><a href="#L498">498</a>    	if table.exist(BoardMeta:getItemDataByItemId(v).makeItemList, tonumber(firstItemId)) then</span>
+<span id="L499" class="line"><a href="#L499">499</a>    		table.insert( makerIds, v )</span>
+<span id="L500" class="line"><a href="#L500">500</a>    	end</span>
+<span id="L501" class="line"><a href="#L501">501</a></span>
+<span id="L502" class="line"><a href="#L502">502</a>    	if table.exist(BoardMeta:getItemDataByItemId(v).makeExtraItem, tonumber(firstItemId)) then</span>
+<span id="L503" class="line"><a href="#L503">503</a>    		table.insert( makerIds, v )</span>
+<span id="L504" class="line"><a href="#L504">504</a>    	end</span>
+<span id="L505" class="line"><a href="#L505">505</a>    end</span>
+<span id="L506" class="line"><a href="#L506">506</a></span>
+<span id="L507" class="line"><a href="#L507">507</a></span>
+<span id="L508" class="line"><a href="#L508">508</a>    return makerIds</span>
+<span id="L509" class="line"><a href="#L509">509</a>end</span>
+<span id="L510" class="line"><a href="#L510">510</a></span>
+<span id="L511" class="line"><a href="#L511">511</a>function BoardMeta:getItemTypeListBy( itemId )</span>
+<span id="L512" class="line"><a href="#L512">512</a>	--根据id获取他对应类型的所有道具</span>
+<span id="L513" class="line"><a href="#L513">513</a>	--如果是生成器，找出生成器生成的列表</span>
+<span id="L514" class="line"><a href="#L514">514</a>	local itemData = BoardMeta:getItemDataByItemId(itemId)</span>
+<span id="L515" class="line"><a href="#L515">515</a>	local itemType = itemData.itemType</span>
+<span id="L516" class="line"><a href="#L516">516</a></span>
+<span id="L517" class="line"><a href="#L517">517</a>	local itemInfoList = {}</span>
+<span id="L518" class="line"><a href="#L518">518</a>	if itemType == BoardMeta.ItemTypes.kItemMaker then</span>
+<span id="L519" class="line"><a href="#L519">519</a>		--生成器，要把他生成的几样物品列表都找出</span>
+<span id="L520" class="line"><a href="#L520">520</a>		local makeItemList = itemData.makeItemList</span>
+<span id="L521" class="line"><a href="#L521">521</a></span>
+<span id="L522" class="line"><a href="#L522">522</a>		for i,v in ipairs(makeItemList) do</span>
+<span id="L523" class="line"><a href="#L523">523</a>			local makeItemData = BoardMeta:getItemDataByItemId(v)</span>
+<span id="L524" class="line"><a href="#L524">524</a>			local makeItemType = makeItemData.itemType</span>
+<span id="L525" class="line"><a href="#L525">525</a></span>
+<span id="L526" class="line"><a href="#L526">526</a>			local itemList = BoardMeta:getItemListByType(makeItemType)</span>
+<span id="L527" class="line"><a href="#L527">527</a>			local typeInfoList = { itemType = makeItemType, itemList = itemList }</span>
+<span id="L528" class="line"><a href="#L528">528</a>			table.insert( itemInfoList, typeInfoList )</span>
+<span id="L529" class="line"><a href="#L529">529</a>		end</span>
+<span id="L530" class="line"><a href="#L530">530</a>	else</span>
+<span id="L531" class="line"><a href="#L531">531</a>		local itemList = BoardMeta:getItemListByType(itemType)</span>
+<span id="L532" class="line"><a href="#L532">532</a>		local typeInfoList = { itemType = itemType, itemList = itemList }</span>
+<span id="L533" class="line"><a href="#L533">533</a>		table.insert( itemInfoList, typeInfoList )</span>
+<span id="L534" class="line"><a href="#L534">534</a>	end</span>
+<span id="L535" class="line"><a href="#L535">535</a></span>
+<span id="L536" class="line"><a href="#L536">536</a>	return itemInfoList</span>
+<span id="L537" class="line"><a href="#L537">537</a>end</span>
+<span id="L538" class="line"><a href="#L538">538</a></span>
+<span id="L539" class="line"><a href="#L539">539</a>function BoardMeta:getItemMakerList(  )</span>
+<span id="L540" class="line"><a href="#L540">540</a>	--获取生成器列表</span>
+<span id="L541" class="line"><a href="#L541">541</a>	local itemList = BoardMeta:getItemListByType( BoardMeta.ItemTypes.kItemMaker)</span>
+<span id="L542" class="line"><a href="#L542">542</a>	return itemList</span>
+<span id="L543" class="line"><a href="#L543">543</a>end</span>
+<span id="L544" class="line"><a href="#L544">544</a></span>
+<span id="L545" class="line"><a href="#L545">545</a>function BoardMeta:getItemInfoListByType( itemType )</span>
+<span id="L546" class="line"><a href="#L546">546</a>	--根据类型找出所有符合的道具</span>
+<span id="L547" class="line"><a href="#L547">547</a>	local itemInfoList = {}</span>
+<span id="L548" class="line"><a href="#L548">548</a>	for i,v in pairs(BoardMeta.ItemData) do</span>
+<span id="L549" class="line"><a href="#L549">549</a>		if v.itemType == itemType then</span>
+<span id="L550" class="line"><a href="#L550">550</a>			local info = table.clone(v)</span>
+<span id="L551" class="line"><a href="#L551">551</a>			info.itemId = tonumber(i)</span>
+<span id="L552" class="line"><a href="#L552">552</a>			table.insert( itemInfoList, info )</span>
+<span id="L553" class="line"><a href="#L553">553</a>		end</span>
+<span id="L554" class="line"><a href="#L554">554</a>	end</span>
+<span id="L555" class="line"><a href="#L555">555</a></span>
+<span id="L556" class="line"><a href="#L556">556</a>	local function sortFunc(a,b)</span>
+<span id="L557" class="line"><a href="#L557">557</a>		return a.level &lt; b.level</span>
+<span id="L558" class="line"><a href="#L558">558</a>	end</span>
+<span id="L559" class="line"><a href="#L559">559</a>	table.sort(itemInfoList, sortFunc)</span>
+<span id="L560" class="line"><a href="#L560">560</a></span>
+<span id="L561" class="line"><a href="#L561">561</a>	return itemInfoList</span>
+<span id="L562" class="line"><a href="#L562">562</a>end</span>
+<span id="L563" class="line"><a href="#L563">563</a></span>
+<span id="L564" class="line"><a href="#L564">564</a>function BoardMeta:getItemListByType( itemType )</span>
+<span id="L565" class="line"><a href="#L565">565</a>	--根据类型找出所有符合的道具</span>
+<span id="L566" class="line"><a href="#L566">566</a>	local itemList = {}</span>
+<span id="L567" class="line"><a href="#L567">567</a>	for i,v in pairs(BoardMeta.ItemData) do</span>
+<span id="L568" class="line"><a href="#L568">568</a>		if v.itemType == itemType then</span>
+<span id="L569" class="line"><a href="#L569">569</a>			table.insert( itemList, tonumber(i) )</span>
+<span id="L570" class="line"><a href="#L570">570</a>		end</span>
+<span id="L571" class="line"><a href="#L571">571</a>	end</span>
+<span id="L572" class="line"><a href="#L572">572</a></span>
+<span id="L573" class="line"><a href="#L573">573</a>	return itemList</span>
+<span id="L574" class="line"><a href="#L574">574</a>end</span>
+<span id="L575" class="line"><a href="#L575">575</a></span>
+<span id="L576" class="line"><a href="#L576">576</a>function BoardMeta:getItemDataByItemId( itemId )</span>
+<span id="L577" class="line"><a href="#L577">577</a>	--根据id找出数据</span>
+<span id="L578" class="line"><a href="#L578">578</a>	if BoardMeta.ItemData[&#x27;&#x27;..itemId] then</span>
+<span id="L579" class="line"><a href="#L579">579</a>		return BoardMeta.ItemData[&#x27;&#x27;..itemId]</span>
+<span id="L580" class="line"><a href="#L580">580</a>	end</span>
+<span id="L581" class="line"><a href="#L581">581</a></span>
+<span id="L582" class="line"><a href="#L582">582</a>	if EnvUtil:isDevelopMode() then</span>
+<span id="L583" class="line"><a href="#L583">583</a>		--理论本地配置必找到</span>
+<span id="L584" class="line"><a href="#L584">584</a>		-- printx(12, &#x27;找不到这个id的配置啊 id=&#x27;,itemId)</span>
+<span id="L585" class="line"><a href="#L585">585</a>	end</span>
+<span id="L586" class="line"><a href="#L586">586</a>	return {}</span>
+<span id="L587" class="line"><a href="#L587">587</a>end</span>
+<span id="L588" class="line"><a href="#L588">588</a></span>
+<span id="L589" class="line"><a href="#L589">589</a></span>
+<span id="L590" class="line"><a href="#L590">590</a>local allItemList = {}</span>
+<span id="L591" class="line"><a href="#L591">591</a>function BoardMeta:getAllItemList(  )</span>
+<span id="L592" class="line"><a href="#L592">592</a>	--获取所有的道具列表</span>
+<span id="L593" class="line"><a href="#L593">593</a>	if table.isEmpty(allItemList) then</span>
+<span id="L594" class="line"><a href="#L594">594</a>		for i,v in pairs(BoardMeta.ItemData) do</span>
+<span id="L595" class="line"><a href="#L595">595</a>			local itemId = tonumber(i)</span>
+<span id="L596" class="line"><a href="#L596">596</a>			table.insert(allItemList, itemId)</span>
+<span id="L597" class="line"><a href="#L597">597</a>		end</span>
+<span id="L598" class="line"><a href="#L598">598</a>	end</span>
+<span id="L599" class="line"><a href="#L599">599</a></span>
+<span id="L600" class="line"><a href="#L600">600</a>	return allItemList</span>
+<span id="L601" class="line"><a href="#L601">601</a>end</span>
+<span id="L602" class="line"><a href="#L602">602</a></span>
+<span id="L603" class="line"><a href="#L603">603</a>function BoardMeta:checkIsMergeItem( itemId )</span>
+<span id="L604" class="line"><a href="#L604">604</a>	local allBoardItemList = BoardMeta:getAllItemList()</span>
+<span id="L605" class="line"><a href="#L605">605</a>	if table.exist(allBoardItemList, itemId) then</span>
+<span id="L606" class="line"><a href="#L606">606</a>		return true</span>
+<span id="L607" class="line"><a href="#L607">607</a>	end</span>
+<span id="L608" class="line"><a href="#L608">608</a>	return false</span>
+<span id="L609" class="line"><a href="#L609">609</a>end</span>
+<span id="L610" class="line"><a href="#L610">610</a></span>
+<span id="L611" class="line"><a href="#L611">611</a>local allHandBookItemList = {}</span>
+<span id="L612" class="line"><a href="#L612">612</a>function BoardMeta:getAllHandBookItemList(  )</span>
+<span id="L613" class="line"><a href="#L613">613</a>	--获取所有的图鉴道具列表</span>
+<span id="L614" class="line"><a href="#L614">614</a>	if table.isEmpty(allHandBookItemList) then</span>
+<span id="L615" class="line"><a href="#L615">615</a>		for i,v in pairs(BoardMeta.ItemData) do</span>
+<span id="L616" class="line"><a href="#L616">616</a>			local itemId = tonumber(i)</span>
+<span id="L617" class="line"><a href="#L617">617</a></span>
+<span id="L618" class="line"><a href="#L618">618</a>			if not table.exist( BoardMeta.noJoinTuJianItemIds,itemId ) then</span>
+<span id="L619" class="line"><a href="#L619">619</a>				table.insert(allHandBookItemList, itemId)</span>
+<span id="L620" class="line"><a href="#L620">620</a>			end</span>
+<span id="L621" class="line"><a href="#L621">621</a>		end</span>
+<span id="L622" class="line"><a href="#L622">622</a>	end</span>
+<span id="L623" class="line"><a href="#L623">623</a></span>
+<span id="L624" class="line"><a href="#L624">624</a>	return allHandBookItemList</span>
+<span id="L625" class="line"><a href="#L625">625</a>end</span>
+<span id="L626" class="line"><a href="#L626">626</a></span>
+<span id="L627" class="line"><a href="#L627">627</a>function BoardMeta:getMergeItemSpName( itemId, extra )</span>
+<span id="L628" class="line"><a href="#L628">628</a>	--根据id获取素材 frameName</span>
+<span id="L629" class="line"><a href="#L629">629</a>	if extra == nil then extra = {} end</span>
+<span id="L630" class="line"><a href="#L630">630</a></span>
+<span id="L631" class="line"><a href="#L631">631</a>	local weekIndex = 1</span>
+<span id="L632" class="line"><a href="#L632">632</a>	if extra.weekIndex then</span>
+<span id="L633" class="line"><a href="#L633">633</a>		weekIndex = extra.weekIndex</span>
+<span id="L634" class="line"><a href="#L634">634</a>	end</span>
+<span id="L635" class="line"><a href="#L635">635</a></span>
+<span id="L636" class="line"><a href="#L636">636</a>	local endTime = 0</span>
+<span id="L637" class="line"><a href="#L637">637</a>	if extra.endTime then</span>
+<span id="L638" class="line"><a href="#L638">638</a>		endTime = extra.endTime</span>
+<span id="L639" class="line"><a href="#L639">639</a>	end</span>
+<span id="L640" class="line"><a href="#L640">640</a></span>
+<span id="L641" class="line"><a href="#L641">641</a>	local itemData = BoardMeta:getItemDataByItemId(itemId)</span>
+<span id="L642" class="line"><a href="#L642">642</a>	if not table.isEmpty(itemData) then</span>
+<span id="L643" class="line"><a href="#L643">643</a>		local spName = itemData.spName</span>
+<span id="L644" class="line"><a href="#L644">644</a>		return &#x27;mergeItems/&#x27;..spName</span>
+<span id="L645" class="line"><a href="#L645">645</a>	else</span>
+<span id="L646" class="line"><a href="#L646">646</a>		--默认给一个</span>
+<span id="L647" class="line"><a href="#L647">647</a>		return &#x27;mergeItems/001.png&#x27;</span>
+<span id="L648" class="line"><a href="#L648">648</a>	end</span>
+<span id="L649" class="line"><a href="#L649">649</a>end</span>
+<span id="L650" class="line"><a href="#L650">650</a></span>
+<span id="L651" class="line"><a href="#L651">651</a>function BoardMeta:getMergeItemSpNameByScale(itemId, bUseScale60, weekIndex)</span>
+<span id="L652" class="line"><a href="#L652">652</a>    local name = self:getMergeItemSpName(itemId,{ weekIndex = weekIndex })</span>
+<span id="L653" class="line"><a href="#L653">653</a></span>
+<span id="L654" class="line"><a href="#L654">654</a>    --废弃了，使用一套图</span>
+<span id="L655" class="line"><a href="#L655">655</a>    -- local newItemList = {72,73,74,75}</span>
+<span id="L656" class="line"><a href="#L656">656</a>    -- if not bUseScale60 then</span>
+<span id="L657" class="line"><a href="#L657">657</a>    --     local id = string.match(name, &#x27;/(%d+)%.png&#x27;)</span>
+<span id="L658" class="line"><a href="#L658">658</a>    --     if id and not table.exist(newItemList, tonumber(id))  then</span>
+<span id="L659" class="line"><a href="#L659">659</a>    --         name = string.gsub(name, &#x27;%.png$&#x27;, &#x27;_s.png&#x27;)</span>
+<span id="L660" class="line"><a href="#L660">660</a>    --     end</span>
+<span id="L661" class="line"><a href="#L661">661</a>    -- end</span>
+<span id="L662" class="line"><a href="#L662">662</a>    return name</span>
+<span id="L663" class="line"><a href="#L663">663</a>end</span>
+<span id="L664" class="line"><a href="#L664">664</a></span>
+<span id="L665" class="line"><a href="#L665">665</a>function BoardMeta:getLockSpName( lockLv )</span>
+<span id="L666" class="line"><a href="#L666">666</a>	--获取道具锁的素材，汉堡合或者一个条</span>
+<span id="L667" class="line"><a href="#L667">667</a>	if lockLv == 1 then</span>
+<span id="L668" class="line"><a href="#L668">668</a>		return &#x27;mergeItems/073.png&#x27;</span>
+<span id="L669" class="line"><a href="#L669">669</a>	else</span>
+<span id="L670" class="line"><a href="#L670">670</a>		return &#x27;mergeItems/072.png&#x27;</span>
+<span id="L671" class="line"><a href="#L671">671</a>	end</span>
+<span id="L672" class="line"><a href="#L672">672</a>end</span>
+<span id="L673" class="line"><a href="#L673">673</a></span>
+<span id="L674" class="line"><a href="#L674">674</a></span>
+<span id="L675" class="line"><a href="#L675">675</a>function BoardMeta:posTurnToRowCol( pos )</span>
+<span id="L676" class="line"><a href="#L676">676</a>	--位置转换行列</span>
+<span id="L677" class="line"><a href="#L677">677</a>	local col = pos%BoardMeta.BoardWidthNum</span>
+<span id="L678" class="line"><a href="#L678">678</a>	if col == 0 then col = BoardMeta.BoardWidthNum end</span>
+<span id="L679" class="line"><a href="#L679">679</a></span>
+<span id="L680" class="line"><a href="#L680">680</a>	local row = math.floor( (pos-1)/BoardMeta.BoardWidthNum ) + 1</span>
+<span id="L681" class="line"><a href="#L681">681</a></span>
+<span id="L682" class="line"><a href="#L682">682</a>	return row, col</span>
+<span id="L683" class="line"><a href="#L683">683</a>end</span>
+<span id="L684" class="line"><a href="#L684">684</a></span>
+<span id="L685" class="line"><a href="#L685">685</a>function BoardMeta:rowColTurnToPos( row, col )</span>
+<span id="L686" class="line"><a href="#L686">686</a>	--行列转换 pos</span>
+<span id="L687" class="line"><a href="#L687">687</a>	if row &lt;= 0 or col &lt;= 0 then</span>
+<span id="L688" class="line"><a href="#L688">688</a>		return -1</span>
+<span id="L689" class="line"><a href="#L689">689</a>	end</span>
+<span id="L690" class="line"><a href="#L690">690</a>	if row &gt; BoardMeta.BoardHeightNum or col &gt; BoardMeta.BoardWidthNum then</span>
+<span id="L691" class="line"><a href="#L691">691</a>		return -1</span>
+<span id="L692" class="line"><a href="#L692">692</a>	end</span>
+<span id="L693" class="line"><a href="#L693">693</a></span>
+<span id="L694" class="line"><a href="#L694">694</a>	local pos = (row-1)*BoardMeta.BoardWidthNum + col</span>
+<span id="L695" class="line"><a href="#L695">695</a>	return pos</span>
+<span id="L696" class="line"><a href="#L696">696</a>end</span>
+<span id="L697" class="line"><a href="#L697">697</a></span>
+<span id="L698" class="line"><a href="#L698">698</a>function BoardMeta:trunToServerXY( row, col )</span>
+<span id="L699" class="line"><a href="#L699">699</a>	--转换成后端需要的坐标</span>
+<span id="L700" class="line"><a href="#L700">700</a>	return IntCoord:create( row-1, col-1 )</span>
+<span id="L701" class="line"><a href="#L701">701</a>end</span>
+<span id="L702" class="line"><a href="#L702">702</a></span>
+<span id="L703" class="line"><a href="#L703">703</a>function BoardMeta:trunToServerPos( row, col )</span>
+<span id="L704" class="line"><a href="#L704">704</a>	--转换成后端需要的位置</span>
+<span id="L705" class="line"><a href="#L705">705</a>	return row*10+col</span>
+<span id="L706" class="line"><a href="#L706">706</a>end</span>
+<span id="L707" class="line"><a href="#L707">707</a>--</span>
+<span id="L708" class="line"><a href="#L708">708</a></span>
+<span id="L709" class="line"><a href="#L709">709</a>-- 是否是顶级食材</span>
+<span id="L710" class="line"><a href="#L710">710</a>function BoardMeta:isTopItem(itemId)</span>
+<span id="L711" class="line"><a href="#L711">711</a>	if itemId == nil then return false end</span>
+<span id="L712" class="line"><a href="#L712">712</a>	local itemData = self:getItemDataByItemId(itemId)</span>
+<span id="L713" class="line"><a href="#L713">713</a>	local isNormalItem = self:checkItemTypeIsNormalItem(itemData.itemType)</span>
+<span id="L714" class="line"><a href="#L714">714</a>	if isNormalItem then</span>
+<span id="L715" class="line"><a href="#L715">715</a>		return itemData.nextId == nil</span>
+<span id="L716" class="line"><a href="#L716">716</a>	end</span>
+<span id="L717" class="line"><a href="#L717">717</a>	return false</span>
+<span id="L718" class="line"><a href="#L718">718</a>end</span>
+<span id="L719" class="line"><a href="#L719">719</a></span>
+<span id="L720" class="line"><a href="#L720">720</a>function BoardMeta:getJiaoziIdByWeek( week, jiaoziv1Id )</span>
+<span id="L721" class="line"><a href="#L721">721</a></span>
+<span id="L722" class="line"><a href="#L722">722</a>	local weekLv1List = self.jiaoziLevelList[1]--{ BoardMeta.JiaoziLv1_v1, BoardMeta.JiaoziLv1_v2, BoardMeta.JiaoziLv1_v3 }</span>
+<span id="L723" class="line"><a href="#L723">723</a>	local weekLv2List = self.jiaoziLevelList[2]--{ BoardMeta.JiaoziLv2_v1, BoardMeta.JiaoziLv2_v2, BoardMeta.JiaoziLv2_v3 }</span>
+<span id="L724" class="line"><a href="#L724">724</a>	local weekLv3List = self.jiaoziLevelList[3]--{ BoardMeta.JiaoziLv3_v1, BoardMeta.JiaoziLv3_v2, BoardMeta.JiaoziLv3_v3 }</span>
+<span id="L725" class="line"><a href="#L725">725</a>	local weekLv4List = self.jiaoziLevelList[4]--{ BoardMeta.JiaoziLv4_v1, BoardMeta.JiaoziLv4_v2, BoardMeta.JiaoziLv4_v3 }</span>
+<span id="L726" class="line"><a href="#L726">726</a></span>
+<span id="L727" class="line"><a href="#L727">727</a>	if table.exist( weekLv1List, jiaoziv1Id ) then</span>
+<span id="L728" class="line"><a href="#L728">728</a>		return weekLv1List[week] or weekLv1List[1]</span>
+<span id="L729" class="line"><a href="#L729">729</a>	elseif table.exist( weekLv2List, jiaoziv1Id ) then</span>
+<span id="L730" class="line"><a href="#L730">730</a>		return weekLv2List[week] or weekLv2List[1]</span>
+<span id="L731" class="line"><a href="#L731">731</a>	elseif table.exist( weekLv3List, jiaoziv1Id ) then</span>
+<span id="L732" class="line"><a href="#L732">732</a>		return weekLv3List[week] or weekLv3List[1]</span>
+<span id="L733" class="line"><a href="#L733">733</a>	elseif table.exist( weekLv4List, jiaoziv1Id ) then</span>
+<span id="L734" class="line"><a href="#L734">734</a>		return weekLv4List[week] or weekLv3List[1]</span>
+<span id="L735" class="line"><a href="#L735">735</a>	end</span>
+<span id="L736" class="line"><a href="#L736">736</a>end</span>
+<span id="L737" class="line"><a href="#L737">737</a></span>
+<span id="L738" class="line"><a href="#L738">738</a>function BoardMeta:getYuanBaoConfigIdByDumplingId(id)</span>
+<span id="L739" class="line"><a href="#L739">739</a>    if table.exist(self.jiaoziLevelList[1], id) then</span>
+<span id="L740" class="line"><a href="#L740">740</a>        return 1</span>
+<span id="L741" class="line"><a href="#L741">741</a>    elseif table.exist(self.jiaoziLevelList[2], id) then</span>
+<span id="L742" class="line"><a href="#L742">742</a>        return 2</span>
+<span id="L743" class="line"><a href="#L743">743</a>    elseif table.exist(self.jiaoziLevelList[3], id) then</span>
+<span id="L744" class="line"><a href="#L744">744</a>        return 3</span>
+<span id="L745" class="line"><a href="#L745">745</a>    elseif table.exist(self.jiaoziLevelList[4], id) then</span>
+<span id="L746" class="line"><a href="#L746">746</a>        return 4</span>
+<span id="L747" class="line"><a href="#L747">747</a>    else</span>
+<span id="L748" class="line"><a href="#L748">748</a>        return 0</span>
+<span id="L749" class="line"><a href="#L749">749</a>    end</span>
+<span id="L750" class="line"><a href="#L750">750</a>end</span>
+<span id="L751" class="line"><a href="#L751">751</a></span>
+<span id="L752" class="line"><a href="#L752">752</a>function BoardMeta:fixSpecialItemScale( itemId, srcScale )</span>
+<span id="L753" class="line"><a href="#L753">753</a>	-- local specialItemIdList = { BoardMeta.MagicItemEnergy, BoardMeta.MagicItemJianDao, BoardMeta.MagicItemMiaoBiao, BoardMeta.MagicItemShengji }</span>
+<span id="L754" class="line"><a href="#L754">754</a>	</span>
+<span id="L755" class="line"><a href="#L755">755</a>	-- if table.exist( specialItemIdList, itemId ) then</span>
+<span id="L756" class="line"><a href="#L756">756</a>	-- 	return srcScale*0.9</span>
+<span id="L757" class="line"><a href="#L757">757</a>	-- end</span>
+<span id="L758" class="line"><a href="#L758">758</a>	return srcScale</span>
+<span id="L759" class="line"><a href="#L759">759</a>end</span>
+<span id="L760" class="line"><a href="#L760">760</a></span>
+<span id="L761" class="line"><a href="#L761">761</a>return BoardMeta</span></pre></main></html>

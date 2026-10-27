@@ -1,0 +1,674 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/musicmerge/model/MusicMergeModel.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="35d894ea76fe.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/musicmerge/model/MusicMergeModel.lua</h1><p>SHA256 77188aee1e35d936873f441219393c68b0571899687a6baa58b8796387d358fd</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureModel = require &quot;amf.middleware.activity.base.BaseFeatureModel&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local WeekTaskEventCenter = require &#x27;amf.feature.localactivity.weektask.event.WeekTaskEventCenter&#x27;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local Model = class(&quot;MusicMergeModel&quot;, BaseFeatureModel)</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>local flowerBoodHandStart = 20000</span>
+<span id="L6" class="line"><a href="#L6">6</a>local flowerBoodHandEnd = 29999</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>function Model:__installPlugs()</span>
+<span id="L9" class="line"><a href="#L9">9</a>    self:installPlug(AMFDataPlugsType.STORAGE, {</span>
+<span id="L10" class="line"><a href="#L10">10</a>        fileName = &quot;MusicMergeModel&quot;</span>
+<span id="L11" class="line"><a href="#L11">11</a>    }):as(&quot;db&quot;)</span>
+<span id="L12" class="line"><a href="#L12">12</a>    self:installPlug(AMFDataPlugsType.SYNC, {</span>
+<span id="L13" class="line"><a href="#L13">13</a>        requests = {</span>
+<span id="L14" class="line"><a href="#L14">14</a>            packagepull =&#x27;amf.feature.localactivity.musicmerge.http.RequestMusicMergePackagePull&#x27;,</span>
+<span id="L15" class="line"><a href="#L15">15</a>            activityaction =&#x27;amf.feature.localactivity.musicmerge.http.RequestActivityAction&#x27;,</span>
+<span id="L16" class="line"><a href="#L16">16</a>        }</span>
+<span id="L17" class="line"><a href="#L17">17</a>    })</span>
+<span id="L18" class="line"><a href="#L18">18</a>end</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>function Model:_getConstPath()</span>
+<span id="L21" class="line"><a href="#L21">21</a>	return &quot;amf.feature.localactivity.musicmerge.const.MusicMergeConst&quot;</span>
+<span id="L22" class="line"><a href="#L22">22</a>end</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>function Model:__declare()</span>
+<span id="L25" class="line"><a href="#L25">25</a>    self.userInfo = {}</span>
+<span id="L26" class="line"><a href="#L26">26</a>    self.localConfig = {}</span>
+<span id="L27" class="line"><a href="#L27">27</a>    self.packageInfo = {}</span>
+<span id="L28" class="line"><a href="#L28">28</a>    self.clientMd5 = &quot;&quot;</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self.timeInfo = {}</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self.dayPopGift = nil</span>
+<span id="L31" class="line"><a href="#L31">31</a>    -- localKey</span>
+<span id="L32" class="line"><a href="#L32">32</a>    self.firstOpenMain = false</span>
+<span id="L33" class="line"><a href="#L33">33</a>    self.dailyOpenMain = false</span>
+<span id="L34" class="line"><a href="#L34">34</a>    self.yinLiuPopCnt = 0</span>
+<span id="L35" class="line"><a href="#L35">35</a>    self.dailyPopGift = false</span>
+<span id="L36" class="line"><a href="#L36">36</a>    self.iconTip_1 = false</span>
+<span id="L37" class="line"><a href="#L37">37</a>    self.iconTip_2 = false</span>
+<span id="L38" class="line"><a href="#L38">38</a>    self.iconTip_3 = false</span>
+<span id="L39" class="line"><a href="#L39">39</a>    self.beforeBattlePass = 0</span>
+<span id="L40" class="line"><a href="#L40">40</a>    self.NotShowToday = false</span>
+<span id="L41" class="line"><a href="#L41">41</a>    self.todayCostEnergy = 0</span>
+<span id="L42" class="line"><a href="#L42">42</a>    self.bpTipIndex = 0</span>
+<span id="L43" class="line"><a href="#L43">43</a>    self.dcQualify = false</span>
+<span id="L44" class="line"><a href="#L44">44</a>    self.dcJoin = false</span>
+<span id="L45" class="line"><a href="#L45">45</a>    self.firstBattlePassReward = false</span>
+<span id="L46" class="line"><a href="#L46">46</a>end</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>function Model:fromServer(data)</span>
+<span id="L49" class="line"><a href="#L49">49</a>    for k, v in pairs(data) do</span>
+<span id="L50" class="line"><a href="#L50">50</a>        self:setValue(k, v)</span>
+<span id="L51" class="line"><a href="#L51">51</a>    end</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>    -- printx(36, tts(self.userInfo), tts(self.localConfig))</span>
+<span id="L54" class="line"><a href="#L54">54</a>end</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>function Model:clearData()</span>
+<span id="L57" class="line"><a href="#L57">57</a>    if not self:isDataEnabled() then return end</span>
+<span id="L58" class="line"><a href="#L58">58</a>    local buff20EndTs = self:getDataByKey(&quot;buff20EndTs&quot;) or 0</span>
+<span id="L59" class="line"><a href="#L59">59</a>    local buff50EndTs = self:getDataByKey(&quot;buff50EndTs&quot;) or 0</span>
+<span id="L60" class="line"><a href="#L60">60</a>    BaseFeatureModel.clearData(self)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    self:setDataByKey(&quot;buff20EndTs&quot;, buff20EndTs)</span>
+<span id="L62" class="line"><a href="#L62">62</a>    self:setDataByKey(&quot;buff50EndTs&quot;, buff50EndTs)</span>
+<span id="L63" class="line"><a href="#L63">63</a>end</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>function Model:getConfigByKey(key, default)</span>
+<span id="L66" class="line"><a href="#L66">66</a>    local ret = BaseFeatureModel.getConfigByKey(self, key, default)</span>
+<span id="L67" class="line"><a href="#L67">67</a>    if type(ret) == &quot;table&quot; then</span>
+<span id="L68" class="line"><a href="#L68">68</a>        return table.clone(ret)</span>
+<span id="L69" class="line"><a href="#L69">69</a>    end</span>
+<span id="L70" class="line"><a href="#L70">70</a>    return ret</span>
+<span id="L71" class="line"><a href="#L71">71</a>end</span>
+<span id="L72" class="line"><a href="#L72">72</a></span>
+<span id="L73" class="line"><a href="#L73">73</a>function Model:setGuide( index )</span>
+<span id="L74" class="line"><a href="#L74">74</a>	local guideInfo = self:getDataByKey(&quot;guides&quot;, {})</span>
+<span id="L75" class="line"><a href="#L75">75</a>	table.insert(guideInfo, index)</span>
+<span id="L76" class="line"><a href="#L76">76</a>	self:setDataByKey(&quot;guides&quot;, guideInfo)</span>
+<span id="L77" class="line"><a href="#L77">77</a>end</span>
+<span id="L78" class="line"><a href="#L78">78</a></span>
+<span id="L79" class="line"><a href="#L79">79</a>function Model:hasGuide( index )</span>
+<span id="L80" class="line"><a href="#L80">80</a>	local guideInfo = self:getDataByKey(&quot;guides&quot;, {}, false)</span>
+<span id="L81" class="line"><a href="#L81">81</a>	return table.find(guideInfo, function ( v )</span>
+<span id="L82" class="line"><a href="#L82">82</a>		return v == index</span>
+<span id="L83" class="line"><a href="#L83">83</a>	end)</span>
+<span id="L84" class="line"><a href="#L84">84</a>end</span>
+<span id="L85" class="line"><a href="#L85">85</a></span>
+<span id="L86" class="line"><a href="#L86">86</a>function Model:getBeginTime()</span>
+<span id="L87" class="line"><a href="#L87">87</a>    local key = self:_getTimeKey(&quot;beginTime&quot;)</span>
+<span id="L88" class="line"><a href="#L88">88</a>    return math.floor((self:getValue(key) or 0) / 1000)</span>
+<span id="L89" class="line"><a href="#L89">89</a>end</span>
+<span id="L90" class="line"><a href="#L90">90</a></span>
+<span id="L91" class="line"><a href="#L91">91</a>function Model:getMainBeginTime()</span>
+<span id="L92" class="line"><a href="#L92">92</a>    local key = self:_getTimeKey(&quot;mainBeginTime&quot;)</span>
+<span id="L93" class="line"><a href="#L93">93</a>    return math.floor((self:getValue(key) or 0) / 1000)</span>
+<span id="L94" class="line"><a href="#L94">94</a>end</span>
+<span id="L95" class="line"><a href="#L95">95</a></span>
+<span id="L96" class="line"><a href="#L96">96</a>function Model:getEndTime()</span>
+<span id="L97" class="line"><a href="#L97">97</a>    local key = self:_getTimeKey(&quot;endTime&quot;)</span>
+<span id="L98" class="line"><a href="#L98">98</a>    return math.floor((self:getValue(key) or 0) / 1000)</span>
+<span id="L99" class="line"><a href="#L99">99</a>end</span>
+<span id="L100" class="line"><a href="#L100">100</a></span>
+<span id="L101" class="line"><a href="#L101">101</a>function Model:getMainEndTime()</span>
+<span id="L102" class="line"><a href="#L102">102</a>    local key = self:_getTimeKey(&quot;mainEndTime&quot;)</span>
+<span id="L103" class="line"><a href="#L103">103</a>    return math.floor((self:getValue(key) or 0) / 1000)</span>
+<span id="L104" class="line"><a href="#L104">104</a>end</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>function Model:updateTimeInfo(time)</span>
+<span id="L107" class="line"><a href="#L107">107</a>    self:setValue(&quot;timeInfo&quot;, time)</span>
+<span id="L108" class="line"><a href="#L108">108</a>end</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>function Model:isDataEnabled()</span>
+<span id="L111" class="line"><a href="#L111">111</a>    local localConfig = self:getValue(&quot;localConfig&quot;)</span>
+<span id="L112" class="line"><a href="#L112">112</a>    if not localConfig or table.isEmpty(localConfig) then</span>
+<span id="L113" class="line"><a href="#L113">113</a>        return false</span>
+<span id="L114" class="line"><a href="#L114">114</a>    end</span>
+<span id="L115" class="line"><a href="#L115">115</a></span>
+<span id="L116" class="line"><a href="#L116">116</a>    local userInfo = self:getValue(&quot;userInfo&quot;)</span>
+<span id="L117" class="line"><a href="#L117">117</a>	if not userInfo or not userInfo.mapData then</span>
+<span id="L118" class="line"><a href="#L118">118</a>        return false</span>
+<span id="L119" class="line"><a href="#L119">119</a>    end</span>
+<span id="L120" class="line"><a href="#L120">120</a></span>
+<span id="L121" class="line"><a href="#L121">121</a>    return true</span>
+<span id="L122" class="line"><a href="#L122">122</a>end</span>
+<span id="L123" class="line"><a href="#L123">123</a></span>
+<span id="L124" class="line"><a href="#L124">124</a>function Model:getClientMd5()</span>
+<span id="L125" class="line"><a href="#L125">125</a>    return self:getValue(&quot;clientMd5&quot;) or &quot;&quot;</span>
+<span id="L126" class="line"><a href="#L126">126</a>end</span>
+<span id="L127" class="line"><a href="#L127">127</a></span>
+<span id="L128" class="line"><a href="#L128">128</a>function Model:passDayRefreshData()</span>
+<span id="L129" class="line"><a href="#L129">129</a>    local packageId = self:getPackageIdByType(&quot;FLOW&quot;)</span>
+<span id="L130" class="line"><a href="#L130">130</a>    if packageId then</span>
+<span id="L131" class="line"><a href="#L131">131</a>        self:setDisplayablePackagesById(packageId, nil)</span>
+<span id="L132" class="line"><a href="#L132">132</a>    end</span>
+<span id="L133" class="line"><a href="#L133">133</a>    self:setTodayCostEnergy(0)</span>
+<span id="L134" class="line"><a href="#L134">134</a>end</span>
+<span id="L135" class="line"><a href="#L135">135</a></span>
+<span id="L136" class="line"><a href="#L136">136</a>function Model:getPeriodId()</span>
+<span id="L137" class="line"><a href="#L137">137</a>    return self:getDataByKey(&quot;periodId&quot;, 0)</span>
+<span id="L138" class="line"><a href="#L138">138</a>end</span>
+<span id="L139" class="line"><a href="#L139">139</a></span>
+<span id="L140" class="line"><a href="#L140">140</a>function Model:setPeriodId(id)</span>
+<span id="L141" class="line"><a href="#L141">141</a>    self:setDataByKey(&quot;periodId&quot;, id)</span>
+<span id="L142" class="line"><a href="#L142">142</a>end</span>
+<span id="L143" class="line"><a href="#L143">143</a></span>
+<span id="L144" class="line"><a href="#L144">144</a>function Model:getMapData()</span>
+<span id="L145" class="line"><a href="#L145">145</a>    return self:getDataByKey(&quot;mapData&quot;, {})</span>
+<span id="L146" class="line"><a href="#L146">146</a>end</span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>function Model:setMapData(data)</span>
+<span id="L149" class="line"><a href="#L149">149</a>    self:setDataByKey(&quot;mapData&quot;, data)</span>
+<span id="L150" class="line"><a href="#L150">150</a>end</span>
+<span id="L151" class="line"><a href="#L151">151</a></span>
+<span id="L152" class="line"><a href="#L152">152</a>function Model:getMapStage()</span>
+<span id="L153" class="line"><a href="#L153">153</a>    return self:getDataByKey(&quot;mapData.step&quot;, 0)</span>
+<span id="L154" class="line"><a href="#L154">154</a>end</span>
+<span id="L155" class="line"><a href="#L155">155</a></span>
+<span id="L156" class="line"><a href="#L156">156</a>function Model:getMapId()</span>
+<span id="L157" class="line"><a href="#L157">157</a>    return self:getDataByKey(&quot;mapData.curMapId&quot;, 0)</span>
+<span id="L158" class="line"><a href="#L158">158</a>end</span>
+<span id="L159" class="line"><a href="#L159">159</a></span>
+<span id="L160" class="line"><a href="#L160">160</a>function Model:getMapStatus()</span>
+<span id="L161" class="line"><a href="#L161">161</a>    return self:getDataByKey(&quot;mapData.mapStatus&quot;, 0)</span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>function Model:setMapStatus(status)</span>
+<span id="L165" class="line"><a href="#L165">165</a>    self:setDataByKey(&quot;mapData.mapStatus&quot;, status)</span>
+<span id="L166" class="line"><a href="#L166">166</a>end</span>
+<span id="L167" class="line"><a href="#L167">167</a></span>
+<span id="L168" class="line"><a href="#L168">168</a>function Model:getTodayCostEnergy()</span>
+<span id="L169" class="line"><a href="#L169">169</a>    return self:getFlagFromLocalByKey(&quot;todayCostEnergy&quot;,true) or 0</span>
+<span id="L170" class="line"><a href="#L170">170</a>end</span>
+<span id="L171" class="line"><a href="#L171">171</a></span>
+<span id="L172" class="line"><a href="#L172">172</a>function Model:setTodayCostEnergy(num)</span>
+<span id="L173" class="line"><a href="#L173">173</a>    self:saveFlagToLocalByKey(&quot;todayCostEnergy&quot;,true, num)</span>
+<span id="L174" class="line"><a href="#L174">174</a>end</span>
+<span id="L175" class="line"><a href="#L175">175</a></span>
+<span id="L176" class="line"><a href="#L176">176</a>function Model:getCellStatus()</span>
+<span id="L177" class="line"><a href="#L177">177</a>    return self:getDataByKey(&quot;mapData.cells&quot;, {})</span>
+<span id="L178" class="line"><a href="#L178">178</a>end</span>
+<span id="L179" class="line"><a href="#L179">179</a></span>
+<span id="L180" class="line"><a href="#L180">180</a>function Model:setCellStatusMap(data)</span>
+<span id="L181" class="line"><a href="#L181">181</a>    self:setDataByKey(&quot;mapData.cells&quot;, data)</span>
+<span id="L182" class="line"><a href="#L182">182</a>end</span>
+<span id="L183" class="line"><a href="#L183">183</a></span>
+<span id="L184" class="line"><a href="#L184">184</a>function Model:getStoreChessList()</span>
+<span id="L185" class="line"><a href="#L185">185</a>    return self:getDataByKey(&quot;mapData.storedChesses&quot;, {})</span>
+<span id="L186" class="line"><a href="#L186">186</a>end</span>
+<span id="L187" class="line"><a href="#L187">187</a></span>
+<span id="L188" class="line"><a href="#L188">188</a>function Model:popStoreChessList(clear)</span>
+<span id="L189" class="line"><a href="#L189">189</a>    local list = self:getDataByKey(&quot;mapData.storedChesses&quot;, {})</span>
+<span id="L190" class="line"><a href="#L190">190</a>    local last = list[#list]</span>
+<span id="L191" class="line"><a href="#L191">191</a>    list[#list] = nil</span>
+<span id="L192" class="line"><a href="#L192">192</a>    self:setDataByKey(&quot;mapData.storedChesses&quot;, {})</span>
+<span id="L193" class="line"><a href="#L193">193</a>    return last</span>
+<span id="L194" class="line"><a href="#L194">194</a>end</span>
+<span id="L195" class="line"><a href="#L195">195</a></span>
+<span id="L196" class="line"><a href="#L196">196</a>function Model:getHandBookData()</span>
+<span id="L197" class="line"><a href="#L197">197</a>    local finished = table.clone(self:getDataByKey(&quot;finishedBookIds&quot;, {}))</span>
+<span id="L198" class="line"><a href="#L198">198</a>    local reward = self:getDataByKey(&quot;rewardBookIds&quot;, {})</span>
+<span id="L199" class="line"><a href="#L199">199</a>    return finished, reward</span>
+<span id="L200" class="line"><a href="#L200">200</a>end</span>
+<span id="L201" class="line"><a href="#L201">201</a></span>
+<span id="L202" class="line"><a href="#L202">202</a>local function handBookIdIsFlowerType(id)</span>
+<span id="L203" class="line"><a href="#L203">203</a>    --判断是否是花的图鉴， AI求放过</span>
+<span id="L204" class="line"><a href="#L204">204</a>    if id &gt;= flowerBoodHandStart and id &lt;= flowerBoodHandEnd then</span>
+<span id="L205" class="line"><a href="#L205">205</a>        return true</span>
+<span id="L206" class="line"><a href="#L206">206</a>    end</span>
+<span id="L207" class="line"><a href="#L207">207</a>    return false</span>
+<span id="L208" class="line"><a href="#L208">208</a>end</span>
+<span id="L209" class="line"><a href="#L209">209</a></span>
+<span id="L210" class="line"><a href="#L210">210</a>function Model:addHandBookFinish(ids)</span>
+<span id="L211" class="line"><a href="#L211">211</a>    local finished = self:getDataByKey(&quot;finishedBookIds&quot;, {})</span>
+<span id="L212" class="line"><a href="#L212">212</a>    local bAdd = false</span>
+<span id="L213" class="line"><a href="#L213">213</a>    for _, id in ipairs(ids) do</span>
+<span id="L214" class="line"><a href="#L214">214</a>        if not table.includes(finished, id) then</span>
+<span id="L215" class="line"><a href="#L215">215</a>            finished[#finished + 1] = id</span>
+<span id="L216" class="line"><a href="#L216">216</a>            bAdd = true</span>
+<span id="L217" class="line"><a href="#L217">217</a></span>
+<span id="L218" class="line"><a href="#L218">218</a>            self:dcHandbookUnlock(id)</span>
+<span id="L219" class="line"><a href="#L219">219</a></span>
+<span id="L220" class="line"><a href="#L220">220</a>            if handBookIdIsFlowerType(id) then</span>
+<span id="L221" class="line"><a href="#L221">221</a>                WeekTaskEventCenter:dispatch(_G.WeekTaskEvent.ACT_TASK_COMPLETE, { type=_G.WeekTaskType.LITTLE_MERGE_UNLOCK_HANDBOOK, num=1})</span>
+<span id="L222" class="line"><a href="#L222">222</a>            end</span>
+<span id="L223" class="line"><a href="#L223">223</a>        end</span>
+<span id="L224" class="line"><a href="#L224">224</a>    end</span>
+<span id="L225" class="line"><a href="#L225">225</a></span>
+<span id="L226" class="line"><a href="#L226">226</a>    if bAdd then</span>
+<span id="L227" class="line"><a href="#L227">227</a>        self:setDataByKey(&quot;finishedBookIds&quot;, finished)</span>
+<span id="L228" class="line"><a href="#L228">228</a>    end</span>
+<span id="L229" class="line"><a href="#L229">229</a>end</span>
+<span id="L230" class="line"><a href="#L230">230</a></span>
+<span id="L231" class="line"><a href="#L231">231</a>function Model:dcHandbookUnlock(chessId)</span>
+<span id="L232" class="line"><a href="#L232">232</a>    local feature = self:getConst().dcFeature</span>
+<span id="L233" class="line"><a href="#L233">233</a>    local source = &quot;handbook_unlock&quot;</span>
+<span id="L234" class="line"><a href="#L234">234</a>    DcUtil:UserTrack({</span>
+<span id="L235" class="line"><a href="#L235">235</a>        category = feature,</span>
+<span id="L236" class="line"><a href="#L236">236</a>        sub_category = source,</span>
+<span id="L237" class="line"><a href="#L237">237</a>    })</span>
+<span id="L238" class="line"><a href="#L238">238</a></span>
+<span id="L239" class="line"><a href="#L239">239</a>    local GainPropLogic = require &quot;amf.middleware.prop.propchange.logic.GainPropLogic&quot;</span>
+<span id="L240" class="line"><a href="#L240">240</a>    local dcGain = _G.DcDataCommon:create()</span>
+<span id="L241" class="line"><a href="#L241">241</a>    dcGain:setGainProp({</span>
+<span id="L242" class="line"><a href="#L242">242</a>        itemId = chessId,</span>
+<span id="L243" class="line"><a href="#L243">243</a>        num = 1,</span>
+<span id="L244" class="line"><a href="#L244">244</a>    })</span>
+<span id="L245" class="line"><a href="#L245">245</a>    dcGain:setFeature(feature)</span>
+<span id="L246" class="line"><a href="#L246">246</a>        :setSource(source)</span>
+<span id="L247" class="line"><a href="#L247">247</a>    dcGain._extraMap = {</span>
+<span id="L248" class="line"><a href="#L248">248</a>        item_name = &quot;棋子&quot; .. chessId,</span>
+<span id="L249" class="line"><a href="#L249">249</a>    }</span>
+<span id="L250" class="line"><a href="#L250">250</a></span>
+<span id="L251" class="line"><a href="#L251">251</a>    dcGain:execute()</span>
+<span id="L252" class="line"><a href="#L252">252</a>end</span>
+<span id="L253" class="line"><a href="#L253">253</a></span>
+<span id="L254" class="line"><a href="#L254">254</a>function Model:addHandBookReward(id)</span>
+<span id="L255" class="line"><a href="#L255">255</a>    local reward = self:getDataByKey(&quot;rewardBookIds&quot;, {})</span>
+<span id="L256" class="line"><a href="#L256">256</a>    if table.includes(reward, id) then return end</span>
+<span id="L257" class="line"><a href="#L257">257</a></span>
+<span id="L258" class="line"><a href="#L258">258</a>    table.insert(reward, id)</span>
+<span id="L259" class="line"><a href="#L259">259</a>    self:setDataByKey(&quot;rewardBookIds&quot;, reward)</span>
+<span id="L260" class="line"><a href="#L260">260</a>end</span>
+<span id="L261" class="line"><a href="#L261">261</a></span>
+<span id="L262" class="line"><a href="#L262">262</a>function Model:hasHandBookReward()</span>
+<span id="L263" class="line"><a href="#L263">263</a>    local finished = self:getDataByKey(&quot;finishedBookIds&quot;, {})</span>
+<span id="L264" class="line"><a href="#L264">264</a>    local reward = self:getDataByKey(&quot;rewardBookIds&quot;, {})</span>
+<span id="L265" class="line"><a href="#L265">265</a>    return table.length(finished) &gt; table.length(reward)</span>
+<span id="L266" class="line"><a href="#L266">266</a>end</span>
+<span id="L267" class="line"><a href="#L267">267</a></span>
+<span id="L268" class="line"><a href="#L268">268</a>function Model:addScoreBuff(type, minute)</span>
+<span id="L269" class="line"><a href="#L269">269</a>    local key = type == 1 and &quot;buff20EndTs&quot; or &quot;buff50EndTs&quot;</span>
+<span id="L270" class="line"><a href="#L270">270</a>    local time = tonumber(self:getDataByKey(key, 0))</span>
+<span id="L271" class="line"><a href="#L271">271</a>    time = math.max(TimeKit:timeInMillis(), time)</span>
+<span id="L272" class="line"><a href="#L272">272</a>    time = time + minute * 60000</span>
+<span id="L273" class="line"><a href="#L273">273</a>    self:setDataByKey(key, time)</span>
+<span id="L274" class="line"><a href="#L274">274</a>end</span>
+<span id="L275" class="line"><a href="#L275">275</a></span>
+<span id="L276" class="line"><a href="#L276">276</a>function Model:getScoreBuff(type)</span>
+<span id="L277" class="line"><a href="#L277">277</a>    local key = type == 1 and &quot;buff20EndTs&quot; or &quot;buff50EndTs&quot;</span>
+<span id="L278" class="line"><a href="#L278">278</a>    return math.floor(tonumber(self:getDataByKey(key) or 0) / 1000)</span>
+<span id="L279" class="line"><a href="#L279">279</a>end</span>
+<span id="L280" class="line"><a href="#L280">280</a></span>
+<span id="L281" class="line"><a href="#L281">281</a>function Model:setbuff20EndTs(time)</span>
+<span id="L282" class="line"><a href="#L282">282</a>    self:setDataByKey(&quot;buff20EndTs&quot;, time)</span>
+<span id="L283" class="line"><a href="#L283">283</a>end</span>
+<span id="L284" class="line"><a href="#L284">284</a></span>
+<span id="L285" class="line"><a href="#L285">285</a>function Model:setbuff50EndTs(time)</span>
+<span id="L286" class="line"><a href="#L286">286</a>    self:setDataByKey(&quot;buff50EndTs&quot;, time)</span>
+<span id="L287" class="line"><a href="#L287">287</a>end</span>
+<span id="L288" class="line"><a href="#L288">288</a></span>
+<span id="L289" class="line"><a href="#L289">289</a>function Model:getCollectionNum()</span>
+<span id="L290" class="line"><a href="#L290">290</a>    return self:getDataByKey(&quot;leftEnergy&quot;, 0)</span>
+<span id="L291" class="line"><a href="#L291">291</a>end</span>
+<span id="L292" class="line"><a href="#L292">292</a></span>
+<span id="L293" class="line"><a href="#L293">293</a>function Model:setCollectionNum(num)</span>
+<span id="L294" class="line"><a href="#L294">294</a>    self:setDataByKey(&quot;leftEnergy&quot;, num)</span>
+<span id="L295" class="line"><a href="#L295">295</a>end</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>function Model:addCollectionNum(num)</span>
+<span id="L298" class="line"><a href="#L298">298</a>    if num &lt; 0 then</span>
+<span id="L299" class="line"><a href="#L299">299</a>        local cost = self:getTodayCostEnergy()</span>
+<span id="L300" class="line"><a href="#L300">300</a>        self:setTodayCostEnergy(cost - num)</span>
+<span id="L301" class="line"><a href="#L301">301</a>    end</span>
+<span id="L302" class="line"><a href="#L302">302</a></span>
+<span id="L303" class="line"><a href="#L303">303</a>    self:setDataByKey(&quot;leftEnergy&quot;, self:getCollectionNum() + num)</span>
+<span id="L304" class="line"><a href="#L304">304</a>end</span>
+<span id="L305" class="line"><a href="#L305">305</a></span>
+<span id="L306" class="line"><a href="#L306">306</a>function Model:getGotFinalReward()</span>
+<span id="L307" class="line"><a href="#L307">307</a>    return self:getDataByKey(&quot;gotFinalReward&quot;, false)</span>
+<span id="L308" class="line"><a href="#L308">308</a>end</span>
+<span id="L309" class="line"><a href="#L309">309</a></span>
+<span id="L310" class="line"><a href="#L310">310</a>function Model:setGotFinalReward()</span>
+<span id="L311" class="line"><a href="#L311">311</a>    self:setDataByKey(&quot;gotFinalReward&quot;, true)</span>
+<span id="L312" class="line"><a href="#L312">312</a>end</span>
+<span id="L313" class="line"><a href="#L313">313</a></span>
+<span id="L314" class="line"><a href="#L314">314</a>function Model:getMaxProgressId()</span>
+<span id="L315" class="line"><a href="#L315">315</a>    return self:getDataByKey(&quot;maxProgressId&quot;, 0)</span>
+<span id="L316" class="line"><a href="#L316">316</a>end</span>
+<span id="L317" class="line"><a href="#L317">317</a></span>
+<span id="L318" class="line"><a href="#L318">318</a>function Model:setMaxProgressId(id)</span>
+<span id="L319" class="line"><a href="#L319">319</a>    self:setDataByKey(&quot;maxProgressId&quot;, id)</span>
+<span id="L320" class="line"><a href="#L320">320</a>end</span>
+<span id="L321" class="line"><a href="#L321">321</a></span>
+<span id="L322" class="line"><a href="#L322">322</a>function Model:getTodayBuyEnergyTimes()</span>
+<span id="L323" class="line"><a href="#L323">323</a>    return self:getDataByKey(&quot;todayBuyEnergyTimes&quot;, 0)</span>
+<span id="L324" class="line"><a href="#L324">324</a>end</span>
+<span id="L325" class="line"><a href="#L325">325</a></span>
+<span id="L326" class="line"><a href="#L326">326</a>function Model:addTodayBuyEnergyTimes()</span>
+<span id="L327" class="line"><a href="#L327">327</a>    self:setDataByKey(&quot;todayBuyEnergyTimes&quot;, self:getTodayBuyEnergyTimes() + 1)</span>
+<span id="L328" class="line"><a href="#L328">328</a>end</span>
+<span id="L329" class="line"><a href="#L329">329</a></span>
+<span id="L330" class="line"><a href="#L330">330</a>function Model:getConvert()</span>
+<span id="L331" class="line"><a href="#L331">331</a>    return self:getDataByKey(&quot;leftEnergy&quot;, 0) &gt; 0</span>
+<span id="L332" class="line"><a href="#L332">332</a>end</span>
+<span id="L333" class="line"><a href="#L333">333</a></span>
+<span id="L334" class="line"><a href="#L334">334</a>function Model:setConvert()</span>
+<span id="L335" class="line"><a href="#L335">335</a>    self:setDataByKey(&quot;leftEnergy&quot;, 0)</span>
+<span id="L336" class="line"><a href="#L336">336</a>end</span>
+<span id="L337" class="line"><a href="#L337">337</a></span>
+<span id="L338" class="line"><a href="#L338">338</a>function Model:clearGetRewards(type)</span>
+<span id="L339" class="line"><a href="#L339">339</a>    if type == 1 then</span>
+<span id="L340" class="line"><a href="#L340">340</a>        self:clearMapReward()</span>
+<span id="L341" class="line"><a href="#L341">341</a>    else</span>
+<span id="L342" class="line"><a href="#L342">342</a>        self:clearBattlePassReward()</span>
+<span id="L343" class="line"><a href="#L343">343</a>    end</span>
+<span id="L344" class="line"><a href="#L344">344</a>end</span>
+<span id="L345" class="line"><a href="#L345">345</a></span>
+<span id="L346" class="line"><a href="#L346">346</a>function Model:hasMapReward()</span>
+<span id="L347" class="line"><a href="#L347">347</a>    local status = self:getMapStatus()</span>
+<span id="L348" class="line"><a href="#L348">348</a>    if status == self:getConst().MapStatus.FINISHED then</span>
+<span id="L349" class="line"><a href="#L349">349</a>        local maxStage = self:getStageCount()</span>
+<span id="L350" class="line"><a href="#L350">350</a>        local stage = self:getMapStage()</span>
+<span id="L351" class="line"><a href="#L351">351</a>        if stage &lt; maxStage then return false end</span>
+<span id="L352" class="line"><a href="#L352">352</a>        return not self:getGotFinalReward()</span>
+<span id="L353" class="line"><a href="#L353">353</a>    elseif status == self:getConst().MapStatus.LOCK then</span>
+<span id="L354" class="line"><a href="#L354">354</a>        local chessId = self:getStepUnlockChessId()</span>
+<span id="L355" class="line"><a href="#L355">355</a>        local finished = self:getDataByKey(&quot;finishedBookIds&quot;, {})</span>
+<span id="L356" class="line"><a href="#L356">356</a></span>
+<span id="L357" class="line"><a href="#L357">357</a>        return table.indexOf(finished, chessId)</span>
+<span id="L358" class="line"><a href="#L358">358</a>    end</span>
+<span id="L359" class="line"><a href="#L359">359</a></span>
+<span id="L360" class="line"><a href="#L360">360</a>    return false</span>
+<span id="L361" class="line"><a href="#L361">361</a>end</span>
+<span id="L362" class="line"><a href="#L362">362</a></span>
+<span id="L363" class="line"><a href="#L363">363</a>function Model:clearMapReward()</span>
+<span id="L364" class="line"><a href="#L364">364</a>    if self:hasMapReward() then</span>
+<span id="L365" class="line"><a href="#L365">365</a>        self:setMapStatus(self:getConst().MapStatus.FINISHED)</span>
+<span id="L366" class="line"><a href="#L366">366</a>    end</span>
+<span id="L367" class="line"><a href="#L367">367</a>end</span>
+<span id="L368" class="line"><a href="#L368">368</a></span>
+<span id="L369" class="line"><a href="#L369">369</a>function Model:getStepMeta(step)</span>
+<span id="L370" class="line"><a href="#L370">370</a>    step = step or self:getMapStage()</span>
+<span id="L371" class="line"><a href="#L371">371</a>    local meta = self:getConfigByKey(&quot;stepMeta&quot;, {})</span>
+<span id="L372" class="line"><a href="#L372">372</a>    return meta[step] or meta[#meta]</span>
+<span id="L373" class="line"><a href="#L373">373</a>end</span>
+<span id="L374" class="line"><a href="#L374">374</a></span>
+<span id="L375" class="line"><a href="#L375">375</a>function Model:getFinalRewards()</span>
+<span id="L376" class="line"><a href="#L376">376</a>    return self:getConfigByKey(&quot;finalRewards&quot;, {})</span>
+<span id="L377" class="line"><a href="#L377">377</a>end</span>
+<span id="L378" class="line"><a href="#L378">378</a></span>
+<span id="L379" class="line"><a href="#L379">379</a>function Model:getStepRewards(step)</span>
+<span id="L380" class="line"><a href="#L380">380</a>    local meta = self:getStepMeta(step)</span>
+<span id="L381" class="line"><a href="#L381">381</a>    return meta.rewardItems or {}</span>
+<span id="L382" class="line"><a href="#L382">382</a>end</span>
+<span id="L383" class="line"><a href="#L383">383</a></span>
+<span id="L384" class="line"><a href="#L384">384</a>function Model:getStageCount()</span>
+<span id="L385" class="line"><a href="#L385">385</a>    return #self:getConfigByKey(&quot;stepMeta&quot;, {})</span>
+<span id="L386" class="line"><a href="#L386">386</a>end</span>
+<span id="L387" class="line"><a href="#L387">387</a></span>
+<span id="L388" class="line"><a href="#L388">388</a>function Model:getStepUnlockChessId(step)</span>
+<span id="L389" class="line"><a href="#L389">389</a>    local meta = self:getStepMeta(step)</span>
+<span id="L390" class="line"><a href="#L390">390</a>    return meta.needChessId or 20001</span>
+<span id="L391" class="line"><a href="#L391">391</a>end</span>
+<span id="L392" class="line"><a href="#L392">392</a></span>
+<span id="L393" class="line"><a href="#L393">393</a>function Model:setNotShowToday(value)</span>
+<span id="L394" class="line"><a href="#L394">394</a>    self:saveFlagToLocalByKey(&quot;NotShowToday&quot;,true,value)</span>
+<span id="L395" class="line"><a href="#L395">395</a>end</span>
+<span id="L396" class="line"><a href="#L396">396</a></span>
+<span id="L397" class="line"><a href="#L397">397</a>function Model:getNotShowToday()</span>
+<span id="L398" class="line"><a href="#L398">398</a>    return self:getFlagFromLocalByKey(&quot;NotShowToday&quot;, true)</span>
+<span id="L399" class="line"><a href="#L399">399</a>end</span>
+<span id="L400" class="line"><a href="#L400">400</a></span>
+<span id="L401" class="line"><a href="#L401">401</a>-- BattlePass</span>
+<span id="L402" class="line"><a href="#L402">402</a>function Model:getBattlePass()</span>
+<span id="L403" class="line"><a href="#L403">403</a>    return self:getDataByKey(&quot;battlePass&quot;, {})</span>
+<span id="L404" class="line"><a href="#L404">404</a>end</span>
+<span id="L405" class="line"><a href="#L405">405</a></span>
+<span id="L406" class="line"><a href="#L406">406</a>function Model:setBattlePass(data)</span>
+<span id="L407" class="line"><a href="#L407">407</a>    self:setDataByKey(&quot;battlePass&quot;, data)</span>
+<span id="L408" class="line"><a href="#L408">408</a>end</span>
+<span id="L409" class="line"><a href="#L409">409</a></span>
+<span id="L410" class="line"><a href="#L410">410</a></span>
+<span id="L411" class="line"><a href="#L411">411</a>function Model:getBattlePassData(id)</span>
+<span id="L412" class="line"><a href="#L412">412</a>    local cfg = self:getConfigByKey(&quot;battlePass&quot;, {})</span>
+<span id="L413" class="line"><a href="#L413">413</a>    local idcfg = cfg[id]</span>
+<span id="L414" class="line"><a href="#L414">414</a>    return idcfg or {}</span>
+<span id="L415" class="line"><a href="#L415">415</a>end</span>
+<span id="L416" class="line"><a href="#L416">416</a></span>
+<span id="L417" class="line"><a href="#L417">417</a>---BattlePass的总数</span>
+<span id="L418" class="line"><a href="#L418">418</a>function Model:getBattlePassSum()</span>
+<span id="L419" class="line"><a href="#L419">419</a>    local cfg = self:getConfigByKey(&quot;battlePass&quot;, {})</span>
+<span id="L420" class="line"><a href="#L420">420</a>    return #cfg</span>
+<span id="L421" class="line"><a href="#L421">421</a>end</span>
+<span id="L422" class="line"><a href="#L422">422</a></span>
+<span id="L423" class="line"><a href="#L423">423</a>function Model:hasBattlePassReward()</span>
+<span id="L424" class="line"><a href="#L424">424</a>    local value = self:getBattlePassValue()</span>
+<span id="L425" class="line"><a href="#L425">425</a>    local hasVip = self:getBattlePassVip()</span>
+<span id="L426" class="line"><a href="#L426">426</a>    local vipGot = self:getBattlePassRewardsId(true)</span>
+<span id="L427" class="line"><a href="#L427">427</a>    local freeGot = self:getBattlePassRewardsId(false)</span>
+<span id="L428" class="line"><a href="#L428">428</a>    local cfg = self:getConfigByKey(&quot;battlePass&quot;, {})</span>
+<span id="L429" class="line"><a href="#L429">429</a></span>
+<span id="L430" class="line"><a href="#L430">430</a>    local canGetFree = {}</span>
+<span id="L431" class="line"><a href="#L431">431</a>    local canGetVip = {}</span>
+<span id="L432" class="line"><a href="#L432">432</a></span>
+<span id="L433" class="line"><a href="#L433">433</a>    for id, rewardCfg in ipairs(cfg) do</span>
+<span id="L434" class="line"><a href="#L434">434</a>        local need = rewardCfg.need or 0</span>
+<span id="L435" class="line"><a href="#L435">435</a>        local meetNeed = value &gt;= need</span>
+<span id="L436" class="line"><a href="#L436">436</a></span>
+<span id="L437" class="line"><a href="#L437">437</a>        if meetNeed then</span>
+<span id="L438" class="line"><a href="#L438">438</a>            if not freeGot[id] then</span>
+<span id="L439" class="line"><a href="#L439">439</a>                table.insert(canGetFree, id)</span>
+<span id="L440" class="line"><a href="#L440">440</a>            end</span>
+<span id="L441" class="line"><a href="#L441">441</a></span>
+<span id="L442" class="line"><a href="#L442">442</a>            if hasVip and not vipGot[id] then</span>
+<span id="L443" class="line"><a href="#L443">443</a>                table.insert(canGetVip, id)</span>
+<span id="L444" class="line"><a href="#L444">444</a>            end</span>
+<span id="L445" class="line"><a href="#L445">445</a>        end</span>
+<span id="L446" class="line"><a href="#L446">446</a>    end</span>
+<span id="L447" class="line"><a href="#L447">447</a></span>
+<span id="L448" class="line"><a href="#L448">448</a>    local hasReward = (#canGetFree &gt; 0) or (#canGetVip &gt; 0)</span>
+<span id="L449" class="line"><a href="#L449">449</a>    return hasReward, canGetFree, canGetVip</span>
+<span id="L450" class="line"><a href="#L450">450</a>end</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>function Model:clearBattlePassReward()</span>
+<span id="L453" class="line"><a href="#L453">453</a>    local hasReward, canGetFree, canGetVip = self:hasBattlePassReward()</span>
+<span id="L454" class="line"><a href="#L454">454</a></span>
+<span id="L455" class="line"><a href="#L455">455</a>    if not table.isEmpty(canGetFree) then</span>
+<span id="L456" class="line"><a href="#L456">456</a>        local ids = self:getDataByKey(&quot;battlePass.freeAlreadyGotIds&quot;, {})</span>
+<span id="L457" class="line"><a href="#L457">457</a>        for _, v in ipairs(canGetFree) do</span>
+<span id="L458" class="line"><a href="#L458">458</a>            table.insert(ids, v)</span>
+<span id="L459" class="line"><a href="#L459">459</a>        end</span>
+<span id="L460" class="line"><a href="#L460">460</a>        self:setDataByKey(&quot;battlePass.freeAlreadyGotIds&quot;, ids)</span>
+<span id="L461" class="line"><a href="#L461">461</a>    end</span>
+<span id="L462" class="line"><a href="#L462">462</a></span>
+<span id="L463" class="line"><a href="#L463">463</a>    if not table.isEmpty(canGetVip) then</span>
+<span id="L464" class="line"><a href="#L464">464</a>        local ids = self:getDataByKey(&quot;battlePass.vipAlreadyGotIds&quot;, {})</span>
+<span id="L465" class="line"><a href="#L465">465</a>        for _, v in ipairs(canGetVip) do</span>
+<span id="L466" class="line"><a href="#L466">466</a>            table.insert(ids, v)</span>
+<span id="L467" class="line"><a href="#L467">467</a>        end</span>
+<span id="L468" class="line"><a href="#L468">468</a>        self:setDataByKey(&quot;battlePass.vipAlreadyGotIds&quot;, ids)</span>
+<span id="L469" class="line"><a href="#L469">469</a>    end</span>
+<span id="L470" class="line"><a href="#L470">470</a>end</span>
+<span id="L471" class="line"><a href="#L471">471</a></span>
+<span id="L472" class="line"><a href="#L472">472</a>function Model:getBattlePassValue()</span>
+<span id="L473" class="line"><a href="#L473">473</a>    return self:getDataByKey(&quot;battlePass.value&quot;, 0)</span>
+<span id="L474" class="line"><a href="#L474">474</a>end</span>
+<span id="L475" class="line"><a href="#L475">475</a></span>
+<span id="L476" class="line"><a href="#L476">476</a>function Model:addBattlePassValue(value)</span>
+<span id="L477" class="line"><a href="#L477">477</a>    local curValue = self:getBattlePassValue()</span>
+<span id="L478" class="line"><a href="#L478">478</a>    self:setDataByKey(&quot;battlePass.value&quot;, curValue + value)</span>
+<span id="L479" class="line"><a href="#L479">479</a>end</span>
+<span id="L480" class="line"><a href="#L480">480</a></span>
+<span id="L481" class="line"><a href="#L481">481</a>function Model:getBattlePassVip()</span>
+<span id="L482" class="line"><a href="#L482">482</a>    return self:getDataByKey(&quot;battlePass.hasVip&quot;, false)</span>
+<span id="L483" class="line"><a href="#L483">483</a>end</span>
+<span id="L484" class="line"><a href="#L484">484</a></span>
+<span id="L485" class="line"><a href="#L485">485</a>function Model:setBattlePassVip()</span>
+<span id="L486" class="line"><a href="#L486">486</a>    self:setDataByKey(&quot;battlePass.hasVip&quot;, true)</span>
+<span id="L487" class="line"><a href="#L487">487</a>end</span>
+<span id="L488" class="line"><a href="#L488">488</a></span>
+<span id="L489" class="line"><a href="#L489">489</a>function Model:getBattlePassRewardsId(bVip)</span>
+<span id="L490" class="line"><a href="#L490">490</a>    local key = bVip and &quot;battlePass.vipAlreadyGotIds&quot; or &quot;battlePass.freeAlreadyGotIds&quot;</span>
+<span id="L491" class="line"><a href="#L491">491</a>    return self:getDataByKey(key, {})</span>
+<span id="L492" class="line"><a href="#L492">492</a>end</span>
+<span id="L493" class="line"><a href="#L493">493</a></span>
+<span id="L494" class="line"><a href="#L494">494</a>function Model:addBattlePassRewardsId(bVip, id)</span>
+<span id="L495" class="line"><a href="#L495">495</a>    local key = bVip and &quot;battlePass.vipAlreadyGotIds&quot; or &quot;battlePass.freeAlreadyGotIds&quot;</span>
+<span id="L496" class="line"><a href="#L496">496</a>    local ids = self:getDataByKey(key, {})</span>
+<span id="L497" class="line"><a href="#L497">497</a>    table.insert(ids, id)</span>
+<span id="L498" class="line"><a href="#L498">498</a>    self:setDataByKey(key, ids)</span>
+<span id="L499" class="line"><a href="#L499">499</a>end</span>
+<span id="L500" class="line"><a href="#L500">500</a></span>
+<span id="L501" class="line"><a href="#L501">501</a>-- 棋子配置</span>
+<span id="L502" class="line"><a href="#L502">502</a>function Model:getChessTypeMetas()</span>
+<span id="L503" class="line"><a href="#L503">503</a>    return self:getConfigByKey(&quot;chessTypeMetas&quot;, {})</span>
+<span id="L504" class="line"><a href="#L504">504</a>end</span>
+<span id="L505" class="line"><a href="#L505">505</a></span>
+<span id="L506" class="line"><a href="#L506">506</a>function Model:getChessTypeById(id)</span>
+<span id="L507" class="line"><a href="#L507">507</a>    local metas = self:getChessTypeMetas()</span>
+<span id="L508" class="line"><a href="#L508">508</a>    for _, meta in ipairs(metas) do</span>
+<span id="L509" class="line"><a href="#L509">509</a>        for _, v in ipairs(meta.chessMetas) do</span>
+<span id="L510" class="line"><a href="#L510">510</a>            if v.chessId == id then</span>
+<span id="L511" class="line"><a href="#L511">511</a>                return v</span>
+<span id="L512" class="line"><a href="#L512">512</a>            end</span>
+<span id="L513" class="line"><a href="#L513">513</a>        end</span>
+<span id="L514" class="line"><a href="#L514">514</a>    end</span>
+<span id="L515" class="line"><a href="#L515">515</a>end</span>
+<span id="L516" class="line"><a href="#L516">516</a></span>
+<span id="L517" class="line"><a href="#L517">517</a>function Model:getChessTypeMap()</span>
+<span id="L518" class="line"><a href="#L518">518</a>    local ret = {}</span>
+<span id="L519" class="line"><a href="#L519">519</a>    local metas = self:getChessTypeMetas()</span>
+<span id="L520" class="line"><a href="#L520">520</a>    for _, meta in ipairs(metas) do</span>
+<span id="L521" class="line"><a href="#L521">521</a>        for _, v in ipairs(meta.chessMetas) do</span>
+<span id="L522" class="line"><a href="#L522">522</a>            ret[v.chessId] = table.merge(v, {type = meta.chessType})</span>
+<span id="L523" class="line"><a href="#L523">523</a>        end</span>
+<span id="L524" class="line"><a href="#L524">524</a>    end</span>
+<span id="L525" class="line"><a href="#L525">525</a>    return ret</span>
+<span id="L526" class="line"><a href="#L526">526</a>end</span>
+<span id="L527" class="line"><a href="#L527">527</a></span>
+<span id="L528" class="line"><a href="#L528">528</a>-- 主题配置</span>
+<span id="L529" class="line"><a href="#L529">529</a>function Model:getThemeConfig()</span>
+<span id="L530" class="line"><a href="#L530">530</a>    return self:getConfigByKey(&quot;theme&quot;, {})</span>
+<span id="L531" class="line"><a href="#L531">531</a>end</span>
+<span id="L532" class="line"><a href="#L532">532</a></span>
+<span id="L533" class="line"><a href="#L533">533</a>function Model:getSkin()</span>
+<span id="L534" class="line"><a href="#L534">534</a>    local config = self:getThemeConfig()</span>
+<span id="L535" class="line"><a href="#L535">535</a>    return config.resource</span>
+<span id="L536" class="line"><a href="#L536">536</a>end</span>
+<span id="L537" class="line"><a href="#L537">537</a></span>
+<span id="L538" class="line"><a href="#L538">538</a>function Model:getThemeName()</span>
+<span id="L539" class="line"><a href="#L539">539</a>    local config = self:getThemeConfig()</span>
+<span id="L540" class="line"><a href="#L540">540</a>    return config.name</span>
+<span id="L541" class="line"><a href="#L541">541</a>end</span>
+<span id="L542" class="line"><a href="#L542">542</a></span>
+<span id="L543" class="line"><a href="#L543">543</a>-- IconTip</span>
+<span id="L544" class="line"><a href="#L544">544</a>function Model:getPopTipTime(index)</span>
+<span id="L545" class="line"><a href="#L545">545</a>    local key = &quot;iconTip_&quot; .. index</span>
+<span id="L546" class="line"><a href="#L546">546</a>    return self:getFlagFromLocalByKeyInt(key, true)</span>
+<span id="L547" class="line"><a href="#L547">547</a>end</span>
+<span id="L548" class="line"><a href="#L548">548</a></span>
+<span id="L549" class="line"><a href="#L549">549</a>function Model:addPopTipTime(index, num)</span>
+<span id="L550" class="line"><a href="#L550">550</a>    num = num or 1</span>
+<span id="L551" class="line"><a href="#L551">551</a>    local key = &quot;iconTip_&quot; .. index</span>
+<span id="L552" class="line"><a href="#L552">552</a>    local oriNum = self:getFlagFromLocalByKeyInt(key, true)</span>
+<span id="L553" class="line"><a href="#L553">553</a>    self:saveFlagToLocalByKeyInt(key, true, oriNum + num)</span>
+<span id="L554" class="line"><a href="#L554">554</a>end</span>
+<span id="L555" class="line"><a href="#L555">555</a></span>
+<span id="L556" class="line"><a href="#L556">556</a>function Model:getCanPopTipTime(index)</span>
+<span id="L557" class="line"><a href="#L557">557</a>    if index == 1 then</span>
+<span id="L558" class="line"><a href="#L558">558</a>        return self:getConfigByKey(&quot;dailyIconTipsLimit&quot;, 2)</span>
+<span id="L559" class="line"><a href="#L559">559</a>    elseif index == 3 then</span>
+<span id="L560" class="line"><a href="#L560">560</a>        return self:getConfigByKey(&quot;dailyIconPopLimit&quot;, 2)</span>
+<span id="L561" class="line"><a href="#L561">561</a>    end</span>
+<span id="L562" class="line"><a href="#L562">562</a></span>
+<span id="L563" class="line"><a href="#L563">563</a>    return 0</span>
+<span id="L564" class="line"><a href="#L564">564</a>end</span>
+<span id="L565" class="line"><a href="#L565">565</a></span>
+<span id="L566" class="line"><a href="#L566">566</a>function Model:getCanPopTipLimit()</span>
+<span id="L567" class="line"><a href="#L567">567</a>    local meta = self:getStepMeta()</span>
+<span id="L568" class="line"><a href="#L568">568</a>    return meta.iconPopWhenLeftEnergyOver or 20</span>
+<span id="L569" class="line"><a href="#L569">569</a>end</span>
+<span id="L570" class="line"><a href="#L570">570</a></span>
+<span id="L571" class="line"><a href="#L571">571</a>function Model:requestPackagepull(params)</span>
+<span id="L572" class="line"><a href="#L572">572</a>    return self.syncPlug:requestPackagepull(params)</span>
+<span id="L573" class="line"><a href="#L573">573</a>end</span>
+<span id="L574" class="line"><a href="#L574">574</a></span>
+<span id="L575" class="line"><a href="#L575">575</a>function Model:requestActivityAction(params)</span>
+<span id="L576" class="line"><a href="#L576">576</a>    return self.syncPlug:requestActivityaction(params)</span>
+<span id="L577" class="line"><a href="#L577">577</a>end</span>
+<span id="L578" class="line"><a href="#L578">578</a>-- function Model:onResponsePackagesPull()</span>
+<span id="L579" class="line"><a href="#L579">579</a>    </span>
+<span id="L580" class="line"><a href="#L580">580</a>-- end</span>
+<span id="L581" class="line"><a href="#L581">581</a></span>
+<span id="L582" class="line"><a href="#L582">582</a>--获得礼包信息</span>
+<span id="L583" class="line"><a href="#L583">583</a>function Model:getGiftPackages()</span>
+<span id="L584" class="line"><a href="#L584">584</a>    return self:getDataByKey(&quot;packageInfo&quot;, {})</span>
+<span id="L585" class="line"><a href="#L585">585</a>end</span>
+<span id="L586" class="line"><a href="#L586">586</a></span>
+<span id="L587" class="line"><a href="#L587">587</a>--现实可见礼包</span>
+<span id="L588" class="line"><a href="#L588">588</a>function Model:getDisplayablePackages()</span>
+<span id="L589" class="line"><a href="#L589">589</a>    return self:getDataByKey(&quot;packageInfo.displayablePackages&quot;) or {}</span>
+<span id="L590" class="line"><a href="#L590">590</a>end</span>
+<span id="L591" class="line"><a href="#L591">591</a></span>
+<span id="L592" class="line"><a href="#L592">592</a>function Model:getPackageMetas()</span>
+<span id="L593" class="line"><a href="#L593">593</a>    return self:getDataByKey(&quot;packageInfo.packageMetas&quot;, {})</span>
+<span id="L594" class="line"><a href="#L594">594</a>end</span>
+<span id="L595" class="line"><a href="#L595">595</a></span>
+<span id="L596" class="line"><a href="#L596">596</a>function Model:getModuleExtraMap()</span>
+<span id="L597" class="line"><a href="#L597">597</a>    return self:getDataByKey(&quot;packageInfo.moduleExtraMap&quot;, {})</span>
+<span id="L598" class="line"><a href="#L598">598</a>end</span>
+<span id="L599" class="line"><a href="#L599">599</a></span>
+<span id="L600" class="line"><a href="#L600">600</a>function Model:getPackageIdByType(type)</span>
+<span id="L601" class="line"><a href="#L601">601</a>    local packs = self:getDisplayablePackages()</span>
+<span id="L602" class="line"><a href="#L602">602</a>    -- printx(41,&quot;djaosjd&quot;,tts(packs))</span>
+<span id="L603" class="line"><a href="#L603">603</a>    for i, v in pairs(packs) do</span>
+<span id="L604" class="line"><a href="#L604">604</a>        if v.extra then</span>
+<span id="L605" class="line"><a href="#L605">605</a>            local dic = table.deserialize(v.extra)</span>
+<span id="L606" class="line"><a href="#L606">606</a>            -- printx(41,&quot;djaosjd&quot;,tts(dic))</span>
+<span id="L607" class="line"><a href="#L607">607</a>            if dic.type == type then</span>
+<span id="L608" class="line"><a href="#L608">608</a>                return v.packageId</span>
+<span id="L609" class="line"><a href="#L609">609</a>            end</span>
+<span id="L610" class="line"><a href="#L610">610</a>        end</span>
+<span id="L611" class="line"><a href="#L611">611</a>    end</span>
+<span id="L612" class="line"><a href="#L612">612</a>    return nil</span>
+<span id="L613" class="line"><a href="#L613">613</a>end</span>
+<span id="L614" class="line"><a href="#L614">614</a></span>
+<span id="L615" class="line"><a href="#L615">615</a>function Model:setDisplayablePackagesById(id, value)</span>
+<span id="L616" class="line"><a href="#L616">616</a>    local packs = self:getDisplayablePackages()</span>
+<span id="L617" class="line"><a href="#L617">617</a>    for i, v in pairs(packs) do</span>
+<span id="L618" class="line"><a href="#L618">618</a>        if v.packageId == id then</span>
+<span id="L619" class="line"><a href="#L619">619</a>            packs[i] = value</span>
+<span id="L620" class="line"><a href="#L620">620</a>            return true</span>
+<span id="L621" class="line"><a href="#L621">621</a>        end</span>
+<span id="L622" class="line"><a href="#L622">622</a>    end</span>
+<span id="L623" class="line"><a href="#L623">623</a>    return false</span>
+<span id="L624" class="line"><a href="#L624">624</a>end</span>
+<span id="L625" class="line"><a href="#L625">625</a></span>
+<span id="L626" class="line"><a href="#L626">626</a>function Model:setDisplayablePackages(packages)</span>
+<span id="L627" class="line"><a href="#L627">627</a>    self:setDataByKey(&quot;packageInfo&quot;,packages)</span>
+<span id="L628" class="line"><a href="#L628">628</a>end</span>
+<span id="L629" class="line"><a href="#L629">629</a></span>
+<span id="L630" class="line"><a href="#L630">630</a>function Model:getExtraOfGoodsById(id)</span>
+<span id="L631" class="line"><a href="#L631">631</a>    local packs = self:getDisplayablePackages()</span>
+<span id="L632" class="line"><a href="#L632">632</a>    -- printx(41,&quot;djaosjd&quot;,tts(packs))</span>
+<span id="L633" class="line"><a href="#L633">633</a>    for i, v in pairs(packs) do</span>
+<span id="L634" class="line"><a href="#L634">634</a>        if v.packageId == id then</span>
+<span id="L635" class="line"><a href="#L635">635</a>            return table.deserialize(v.extra)</span>
+<span id="L636" class="line"><a href="#L636">636</a>        end</span>
+<span id="L637" class="line"><a href="#L637">637</a>    end</span>
+<span id="L638" class="line"><a href="#L638">638</a>    return nil</span>
+<span id="L639" class="line"><a href="#L639">639</a>end</span>
+<span id="L640" class="line"><a href="#L640">640</a></span>
+<span id="L641" class="line"><a href="#L641">641</a>function Model:getMultiple()</span>
+<span id="L642" class="line"><a href="#L642">642</a>    return self:getDataByKey(&quot;multiple&quot;, 1)</span>
+<span id="L643" class="line"><a href="#L643">643</a>end</span>
+<span id="L644" class="line"><a href="#L644">644</a></span>
+<span id="L645" class="line"><a href="#L645">645</a>function Model:setMultiple(value)</span>
+<span id="L646" class="line"><a href="#L646">646</a>    self:setDataByKey(&quot;multiple&quot;, value)</span>
+<span id="L647" class="line"><a href="#L647">647</a>end</span>
+<span id="L648" class="line"><a href="#L648">648</a></span>
+<span id="L649" class="line"><a href="#L649">649</a>function Model:getBoxLv(step)</span>
+<span id="L650" class="line"><a href="#L650">650</a>    local meta = self:getStepMeta(step)</span>
+<span id="L651" class="line"><a href="#L651">651</a>    return meta.treasureChestChessId or 50001</span>
+<span id="L652" class="line"><a href="#L652">652</a>end</span>
+<span id="L653" class="line"><a href="#L653">653</a></span>
+<span id="L654" class="line"><a href="#L654">654</a>function Model:getCanShowDoubleChessId()</span>
+<span id="L655" class="line"><a href="#L655">655</a>    return self:getConfigByKey(&quot;canDoubleChessId&quot;, 20011)</span>
+<span id="L656" class="line"><a href="#L656">656</a>end</span>
+<span id="L657" class="line"><a href="#L657">657</a></span>
+<span id="L658" class="line"><a href="#L658">658</a>function Model:getMaxStageOpLimit()</span>
+<span id="L659" class="line"><a href="#L659">659</a>    return self:getConfigByKey(&quot;offlineRequestLimitCount&quot;, 10)</span>
+<span id="L660" class="line"><a href="#L660">660</a>end</span>
+<span id="L661" class="line"><a href="#L661">661</a></span>
+<span id="L662" class="line"><a href="#L662">662</a>function Model:getMergeOnlineLevel()</span>
+<span id="L663" class="line"><a href="#L663">663</a>    return self:getConfigByKey(&quot;lvLimit&quot;, 5)</span>
+<span id="L664" class="line"><a href="#L664">664</a>end</span>
+<span id="L665" class="line"><a href="#L665">665</a></span>
+<span id="L666" class="line"><a href="#L666">666</a>function Model:isFinish()</span>
+<span id="L667" class="line"><a href="#L667">667</a>    local maxStage = self:getStageCount()</span>
+<span id="L668" class="line"><a href="#L668">668</a>    local stage = self:getMapStage()</span>
+<span id="L669" class="line"><a href="#L669">669</a>    if stage &lt; maxStage then return false end</span>
+<span id="L670" class="line"><a href="#L670">670</a>    local status = self:getMapStatus()</span>
+<span id="L671" class="line"><a href="#L671">671</a>    return status == self:getConst().MapStatus.MOSAIC</span>
+<span id="L672" class="line"><a href="#L672">672</a>end</span>
+<span id="L673" class="line"><a href="#L673">673</a></span>
+<span id="L674" class="line"><a href="#L674">674</a>return Model</span></pre></main></html>

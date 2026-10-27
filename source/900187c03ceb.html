@@ -1,0 +1,154 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/ui/kit/panel/third/EnterRankingPanelVM.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="900187c03ceb.lua" download>下载Lua原文</a></p><h1>amf/middleware/ui/kit/panel/third/EnterRankingPanelVM.lua</h1><p>SHA256 5360f645717fdfa54e2bb7bedca9b7c8217254dc2ec5e228a2399f1c4cffc1f1</p><pre><span id="L1" class="line"><a href="#L1">1</a>local ThirdPanelAVM = require &quot;amf.middleware.ui.kit.panel.third.ThirdPanelAVM&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local EnterRankingPanelVM = class(&quot;EnterRankingPanelVM&quot;, ThirdPanelAVM)</span>
+<span id="L4" class="line"><a href="#L4">4</a>local Builder = newBuilder(EnterRankingPanelVM)</span>
+<span id="L5" class="line"><a href="#L5">5</a></span>
+<span id="L6" class="line"><a href="#L6">6</a>function Builder:ctor()</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>end</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>function Builder:setRewards(rewards, createFunc)</span>
+<span id="L11" class="line"><a href="#L11">11</a>    self.rewards = rewards</span>
+<span id="L12" class="line"><a href="#L12">12</a>    self.createFunc = createFunc</span>
+<span id="L13" class="line"><a href="#L13">13</a>    return self</span>
+<span id="L14" class="line"><a href="#L14">14</a>end</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>function Builder:setNeedFly(isFly)</span>
+<span id="L17" class="line"><a href="#L17">17</a>    self.isFly = isFly</span>
+<span id="L18" class="line"><a href="#L18">18</a>    return self</span>
+<span id="L19" class="line"><a href="#L19">19</a>end</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>function EnterRankingPanelVM:_createPanel(...)</span>
+<span id="L22" class="line"><a href="#L22">22</a>    local RecordPanel = require_debug &quot;amf.middleware.ui.kit.panel.third.EnterRankingPanel&quot;</span>
+<span id="L23" class="line"><a href="#L23">23</a>    return RecordPanel:create(EnterRankingPanelVM, ...)</span>
+<span id="L24" class="line"><a href="#L24">24</a>end</span>
+<span id="L25" class="line"><a href="#L25">25</a></span>
+<span id="L26" class="line"><a href="#L26">26</a>function EnterRankingPanelVM:init(delegate)</span>
+<span id="L27" class="line"><a href="#L27">27</a>    ThirdPanelAVM.init(self, delegate)</span>
+<span id="L28" class="line"><a href="#L28">28</a>    self.rewards = self.delegate.rewards</span>
+<span id="L29" class="line"><a href="#L29">29</a>	self.createFunc = self.delegate.createFunc</span>
+<span id="L30" class="line"><a href="#L30">30</a>	self.isFly = self.delegate.isFly</span>
+<span id="L31" class="line"><a href="#L31">31</a>end</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>function EnterRankingPanelVM:firstLoadCompleted()</span>
+<span id="L34" class="line"><a href="#L34">34</a>    ThirdPanelAVM.firstLoadCompleted(self)</span>
+<span id="L35" class="line"><a href="#L35">35</a>end</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>function EnterRankingPanelVM:close()</span>
+<span id="L38" class="line"><a href="#L38">38</a>	if self.isDisposed then return end</span>
+<span id="L39" class="line"><a href="#L39">39</a></span>
+<span id="L40" class="line"><a href="#L40">40</a>	if self.isFly then</span>
+<span id="L41" class="line"><a href="#L41">41</a>		self:flyFunc(function(  )</span>
+<span id="L42" class="line"><a href="#L42">42</a>			if self.isDisposed then return end</span>
+<span id="L43" class="line"><a href="#L43">43</a>			self:_close()</span>
+<span id="L44" class="line"><a href="#L44">44</a>		end)</span>
+<span id="L45" class="line"><a href="#L45">45</a>	else</span>
+<span id="L46" class="line"><a href="#L46">46</a>	    self:_close()</span>
+<span id="L47" class="line"><a href="#L47">47</a>	end</span>
+<span id="L48" class="line"><a href="#L48">48</a>end</span>
+<span id="L49" class="line"><a href="#L49">49</a></span>
+<span id="L50" class="line"><a href="#L50">50</a>function EnterRankingPanelVM:flyFunc( callback )</span>
+<span id="L51" class="line"><a href="#L51">51</a>	if self.isDisposed then return end</span>
+<span id="L52" class="line"><a href="#L52">52</a>	local RewardFlyHelper = require &#x27;amf.feature.localactivity.processgiftautopopup.RewardFlyHelper.lua&#x27;</span>
+<span id="L53" class="line"><a href="#L53">53</a>	local rewardNum = math.min(#self.rewards,3)</span>
+<span id="L54" class="line"><a href="#L54">54</a>	if rewardNum &lt;= 0 then</span>
+<span id="L55" class="line"><a href="#L55">55</a>		safeRunCall(callback)</span>
+<span id="L56" class="line"><a href="#L56">56</a>		return</span>
+<span id="L57" class="line"><a href="#L57">57</a>	end</span>
+<span id="L58" class="line"><a href="#L58">58</a>	local needFlyNum = 0</span>
+<span id="L59" class="line"><a href="#L59">59</a>	for i = 1,rewardNum,1 do</span>
+<span id="L60" class="line"><a href="#L60">60</a>		local reward = self.rewards[i]</span>
+<span id="L61" class="line"><a href="#L61">61</a>		if reward.doNotFly or not _G.amfBean(&quot;PropManager&quot;):isPropNeedFly(reward.itemId) then</span>
+<span id="L62" class="line"><a href="#L62">62</a>			reward.doNotFly = true</span>
+<span id="L63" class="line"><a href="#L63">63</a>		else</span>
+<span id="L64" class="line"><a href="#L64">64</a>			needFlyNum = needFlyNum+1</span>
+<span id="L65" class="line"><a href="#L65">65</a>		end</span>
+<span id="L66" class="line"><a href="#L66">66</a>	end</span>
+<span id="L67" class="line"><a href="#L67">67</a></span>
+<span id="L68" class="line"><a href="#L68">68</a>	if needFlyNum &lt;= 0 then</span>
+<span id="L69" class="line"><a href="#L69">69</a>		safeRunCall(callback)</span>
+<span id="L70" class="line"><a href="#L70">70</a>		return</span>
+<span id="L71" class="line"><a href="#L71">71</a>	end</span>
+<span id="L72" class="line"><a href="#L72">72</a></span>
+<span id="L73" class="line"><a href="#L73">73</a>	self:lock()</span>
+<span id="L74" class="line"><a href="#L74">74</a>	local flyEndNum = 0</span>
+<span id="L75" class="line"><a href="#L75">75</a>	local function innerFlyEndCall(  )</span>
+<span id="L76" class="line"><a href="#L76">76</a>		flyEndNum = flyEndNum+1</span>
+<span id="L77" class="line"><a href="#L77">77</a>		if flyEndNum == needFlyNum then</span>
+<span id="L78" class="line"><a href="#L78">78</a>			self:unLock()</span>
+<span id="L79" class="line"><a href="#L79">79</a>			safeRunCall(callback)</span>
+<span id="L80" class="line"><a href="#L80">80</a>		end</span>
+<span id="L81" class="line"><a href="#L81">81</a>	end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>	for i = 1,rewardNum,1 do</span>
+<span id="L84" class="line"><a href="#L84">84</a>		local startWorldPos = self:getPropWorldPosition(i)</span>
+<span id="L85" class="line"><a href="#L85">85</a>		if startWorldPos then </span>
+<span id="L86" class="line"><a href="#L86">86</a>			local reward = self.rewards[i]</span>
+<span id="L87" class="line"><a href="#L87">87</a>			if not reward.doNotFly and reward.flyFunc then</span>
+<span id="L88" class="line"><a href="#L88">88</a>				reward.flyFunc(reward,startWorldPos,1,innerFlyEndCall)</span>
+<span id="L89" class="line"><a href="#L89">89</a>			elseif not reward.doNotFly then</span>
+<span id="L90" class="line"><a href="#L90">90</a>				RewardFlyHelper:rewardFlyFunc(false,reward,startWorldPos,nil,nil,innerFlyEndCall)</span>
+<span id="L91" class="line"><a href="#L91">91</a>			end</span>
+<span id="L92" class="line"><a href="#L92">92</a>		else </span>
+<span id="L93" class="line"><a href="#L93">93</a>			safeRunCall(innerFlyEndCall)</span>
+<span id="L94" class="line"><a href="#L94">94</a>		end </span>
+<span id="L95" class="line"><a href="#L95">95</a>	end</span>
+<span id="L96" class="line"><a href="#L96">96</a></span>
+<span id="L97" class="line"><a href="#L97">97</a>	setTimeOut(function(  )</span>
+<span id="L98" class="line"><a href="#L98">98</a>		if self.isDisposed then return end</span>
+<span id="L99" class="line"><a href="#L99">99</a>		self:close()</span>
+<span id="L100" class="line"><a href="#L100">100</a>	end,6)</span>
+<span id="L101" class="line"><a href="#L101">101</a>end</span>
+<span id="L102" class="line"><a href="#L102">102</a></span>
+<span id="L103" class="line"><a href="#L103">103</a>function EnterRankingPanelVM:update(delegate)</span>
+<span id="L104" class="line"><a href="#L104">104</a>    if type(delegate) ~= &quot;table&quot; then return end</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>    if delegate.textStruct then</span>
+<span id="L107" class="line"><a href="#L107">107</a>        self:callViewFunc(&quot;setText&quot;, delegate.textStruct)</span>
+<span id="L108" class="line"><a href="#L108">108</a>    end</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>    if delegate.bottomTextStruct then</span>
+<span id="L111" class="line"><a href="#L111">111</a>        self:callViewFunc(&quot;setBottomText&quot;, delegate.bottomTextStruct, delegate.bottomTextAdjustY)</span>
+<span id="L112" class="line"><a href="#L112">112</a>    end</span>
+<span id="L113" class="line"><a href="#L113">113</a></span>
+<span id="L114" class="line"><a href="#L114">114</a>    if delegate.rewards then</span>
+<span id="L115" class="line"><a href="#L115">115</a>        self:callViewFunc(&quot;setRewards&quot;, delegate.rewards, delegate.createFunc)</span>
+<span id="L116" class="line"><a href="#L116">116</a>    end</span>
+<span id="L117" class="line"><a href="#L117">117</a></span>
+<span id="L118" class="line"><a href="#L118">118</a>    self:callViewFunc(&quot;layout&quot;)</span>
+<span id="L119" class="line"><a href="#L119">119</a>end</span>
+<span id="L120" class="line"><a href="#L120">120</a></span>
+<span id="L121" class="line"><a href="#L121">121</a>function EnterRankingPanelVM:test()</span>
+<span id="L122" class="line"><a href="#L122">122</a>	local icon = Sprite:createWithSpriteFrameName(&quot;other/common/ui_com_hongdian&quot;)</span>
+<span id="L123" class="line"><a href="#L123">123</a>	local label = {</span>
+<span id="L124" class="line"><a href="#L124">124</a>		&quot;收集&quot;,</span>
+<span id="L125" class="line"><a href="#L125">125</a>		&quot;&lt;&lt;node&gt;&gt;&quot;,</span>
+<span id="L126" class="line"><a href="#L126">126</a>		&quot;就可以获得限定动态头像框哦~&quot;,</span>
+<span id="L127" class="line"><a href="#L127">127</a>		nodes = {icon}</span>
+<span id="L128" class="line"><a href="#L128">128</a>	}</span>
+<span id="L129" class="line"><a href="#L129">129</a></span>
+<span id="L130" class="line"><a href="#L130">130</a>    local vm = EnterRankingPanelVM.Builder.new()</span>
+<span id="L131" class="line"><a href="#L131">131</a>    :setTitle(&quot;恭喜进入排行榜&quot;)</span>
+<span id="L132" class="line"><a href="#L132">132</a>    :setTopText(label)</span>
+<span id="L133" class="line"><a href="#L133">133</a>    :setBottomText(&quot;前三名可得&quot;)</span>
+<span id="L134" class="line"><a href="#L134">134</a>    :setRewards({</span>
+<span id="L135" class="line"><a href="#L135">135</a>		{itemId = HeadFrameType.kKoiBlessing2022HeadFrame_3+60000, num = 1},</span>
+<span id="L136" class="line"><a href="#L136">136</a>	})</span>
+<span id="L137" class="line"><a href="#L137">137</a>	:setButtonsConfig(</span>
+<span id="L138" class="line"><a href="#L138">138</a>		{</span>
+<span id="L139" class="line"><a href="#L139">139</a>			params = {</span>
+<span id="L140" class="line"><a href="#L140">140</a>				str = &quot;去看看&quot;,</span>
+<span id="L141" class="line"><a href="#L141">141</a>				widthMode = UIButtonConfig.Widths.kShort,</span>
+<span id="L142" class="line"><a href="#L142">142</a>				colorMode = UIButtonConfig.ColorMode.green,</span>
+<span id="L143" class="line"><a href="#L143">143</a>			},</span>
+<span id="L144" class="line"><a href="#L144">144</a>			callback = function( event )</span>
+<span id="L145" class="line"><a href="#L145">145</a>				printx(30,&quot;打开排行榜&quot;,event.context)</span>
+<span id="L146" class="line"><a href="#L146">146</a>			end</span>
+<span id="L147" class="line"><a href="#L147">147</a>		}</span>
+<span id="L148" class="line"><a href="#L148">148</a>	)</span>
+<span id="L149" class="line"><a href="#L149">149</a>    :build()</span>
+<span id="L150" class="line"><a href="#L150">150</a></span>
+<span id="L151" class="line"><a href="#L151">151</a>    vm:popout()</span>
+<span id="L152" class="line"><a href="#L152">152</a>end</span>
+<span id="L153" class="line"><a href="#L153">153</a></span>
+<span id="L154" class="line"><a href="#L154">154</a>return EnterRankingPanelVM</span></pre></main></html>

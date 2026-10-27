@@ -1,0 +1,738 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ubf/UBFActivity/actFolder/WinRepeatRank2023/views/UBFUEPlpBottomWinRepeatRank.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="2508c3045953.lua" download>下载Lua原文</a></p><h1>ubf/UBFActivity/actFolder/WinRepeatRank2023/views/UBFUEPlpBottomWinRepeatRank.lua</h1><p>SHA256 1d9da0443fedf35ace5179adb7ab07af96e10c80cf00754874448935363d0be9</p><pre><span id="L1" class="line"><a href="#L1">1</a>UBFUEPlpBottomWinRepeatRank = class2(&quot;UBFUEPlpBottomWinRepeatRank&quot;, UBFSlpPlpViewLogic)</span>
+<span id="L2" class="line"><a href="#L2">2</a>UBFDebug:monitoringClass(UBFUEPlpBottomWinRepeatRank)</span>
+<span id="L3" class="line"><a href="#L3">3</a>UBFLogicCreator:registerLogic(WinRepeatRank2023LogicId.UE_PLP_BOTTOM, UBFUEPlpBottomWinRepeatRank)</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>local FRAMETIME = 1 / 30</span>
+<span id="L6" class="line"><a href="#L6">6</a>local CELL_WIDTH = 150</span>
+<span id="L7" class="line"><a href="#L7">7</a>local CELL_CENTER_X = 75</span>
+<span id="L8" class="line"><a href="#L8">8</a>local CELL_CENTER_Y = 112</span>
+<span id="L9" class="line"><a href="#L9">9</a>local VIEW_WIDTH = 600</span>
+<span id="L10" class="line"><a href="#L10">10</a>local VIEW_HEIGHT = 231</span>
+<span id="L11" class="line"><a href="#L11">11</a>local SCROLL_VIEW_HEIGHT = 300</span>
+<span id="L12" class="line"><a href="#L12">12</a>local SCROLL_VIEW_POSITION_Y = VIEW_HEIGHT + (SCROLL_VIEW_HEIGHT - VIEW_HEIGHT) * 0.5</span>
+<span id="L13" class="line"><a href="#L13">13</a>local GIFT_BOX_ICON_SIZE = 256</span>
+<span id="L14" class="line"><a href="#L14">14</a>local RANK_SCROLL_MOVE_TIME = 0.5</span>
+<span id="L15" class="line"><a href="#L15">15</a>local OTHER_CELL_MOVE_TIME = 6 * FRAMETIME</span>
+<span id="L16" class="line"><a href="#L16">16</a>local MY_CELL_FAST_MOVE_TIME = 6 * FRAMETIME</span>
+<span id="L17" class="line"><a href="#L17">17</a>local MY_CELL_LONG_MOVE_TIME = 9 * FRAMETIME</span>
+<span id="L18" class="line"><a href="#L18">18</a>local HEAD_IMAGE_SCALE = 0.65</span>
+<span id="L19" class="line"><a href="#L19">19</a>local ActionUtil = require &quot;amf.middleware.ui.util.ActionUtil&quot;</span>
+<span id="L20" class="line"><a href="#L20">20</a>local NumberUtil = require &quot;amf.middleware.ui.util.NumberUtil&quot;</span>
+<span id="L21" class="line"><a href="#L21">21</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L22" class="line"><a href="#L22">22</a>local Meta = require(&quot;amf.feature.localactivity.winrepeatrank.meta.WinRepeatRankMeta&quot;)</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>local function _getPlpBottomData(bottomCarouselData)</span>
+<span id="L25" class="line"><a href="#L25">25</a>    return (bottomCarouselData and bottomCarouselData.data) or EMPTY_TABLE</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>local function _updateGiftBoxTouchLayer(root, giftBox)</span>
+<span id="L29" class="line"><a href="#L29">29</a>    if not isSafeCocosObj(root) or not isSafeCocosObj(giftBox) then return nil end</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>    local touchParent = giftBox.getParent and giftBox:getParent() or root</span>
+<span id="L32" class="line"><a href="#L32">32</a>    if not isSafeCocosObj(touchParent) then</span>
+<span id="L33" class="line"><a href="#L33">33</a>        touchParent = root</span>
+<span id="L34" class="line"><a href="#L34">34</a>    end</span>
+<span id="L35" class="line"><a href="#L35">35</a></span>
+<span id="L36" class="line"><a href="#L36">36</a>    local touchLayer = touchParent:getChildByName(&quot;giftBoxTouchLayer&quot;)</span>
+<span id="L37" class="line"><a href="#L37">37</a>    if not isSafeCocosObj(touchLayer) then</span>
+<span id="L38" class="line"><a href="#L38">38</a>        touchLayer = UBFLayer:create()</span>
+<span id="L39" class="line"><a href="#L39">39</a>        touchLayer:setName(&quot;giftBoxTouchLayer&quot;)</span>
+<span id="L40" class="line"><a href="#L40">40</a>        touchLayer:ignoreAnchorPointForPosition(false)</span>
+<span id="L41" class="line"><a href="#L41">41</a>        touchParent:addChild(touchLayer)</span>
+<span id="L42" class="line"><a href="#L42">42</a>    end</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>    touchLayer:setAnchorPoint(ccp(0.5, 0.5))</span>
+<span id="L45" class="line"><a href="#L45">45</a>    local giftBoxPos = giftBox:getPosition()</span>
+<span id="L46" class="line"><a href="#L46">46</a>    local giftBoxScaleX = giftBox.getScaleX and math.abs(giftBox:getScaleX()) or 1</span>
+<span id="L47" class="line"><a href="#L47">47</a>    local giftBoxScaleY = giftBox.getScaleY and math.abs(giftBox:getScaleY()) or 1</span>
+<span id="L48" class="line"><a href="#L48">48</a>    local giftBoxVisualWidth = GIFT_BOX_ICON_SIZE * giftBoxScaleX</span>
+<span id="L49" class="line"><a href="#L49">49</a>    local giftBoxVisualHeight = GIFT_BOX_ICON_SIZE * giftBoxScaleY</span>
+<span id="L50" class="line"><a href="#L50">50</a>    touchLayer:setContentSize(CCSizeMake(giftBoxVisualWidth, giftBoxVisualHeight))</span>
+<span id="L51" class="line"><a href="#L51">51</a>    touchLayer:setPositionXY(giftBoxPos.x, giftBoxPos.y)</span>
+<span id="L52" class="line"><a href="#L52">52</a>    return touchLayer</span>
+<span id="L53" class="line"><a href="#L53">53</a>end</span>
+<span id="L54" class="line"><a href="#L54">54</a></span>
+<span id="L55" class="line"><a href="#L55">55</a>function UBFUEPlpBottomWinRepeatRank.createDefaultCreateData(initParams)</span>
+<span id="L56" class="line"><a href="#L56">56</a>    local createData = UBFSlpPlpViewLogic.createDefaultCreateData(initParams)</span>
+<span id="L57" class="line"><a href="#L57">57</a>    createData.selfView = {</span>
+<span id="L58" class="line"><a href="#L58">58</a>        viewType = UBFUiViewType.UI,</span>
+<span id="L59" class="line"><a href="#L59">59</a>        lua = &quot;ubf/UBFActivity/actFolder/WinRepeatRank2023/views/UISource/UBFUEBottomWinRepeatRank_UI.lua&quot;,</span>
+<span id="L60" class="line"><a href="#L60">60</a>        position = {x = 0, y = 0},</span>
+<span id="L61" class="line"><a href="#L61">61</a>    }</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>    createData.upDownFxAnim = {</span>
+<span id="L64" class="line"><a href="#L64">64</a>        viewType = UBFUiViewType.SPINE,</span>
+<span id="L65" class="line"><a href="#L65">65</a>        skel = &quot;ubfRes/ui/mod/WinRepeatRank2023/spine/up_down_fx.skel&quot;,</span>
+<span id="L66" class="line"><a href="#L66">66</a>        anchorPoint = {x = 0.5, y = 0.5},</span>
+<span id="L67" class="line"><a href="#L67">67</a>    }</span>
+<span id="L68" class="line"><a href="#L68">68</a>    createData.extraViews = {</span>
+<span id="L69" class="line"><a href="#L69">69</a>        upDownFxAnim = {</span>
+<span id="L70" class="line"><a href="#L70">70</a>            viewType = UBFUiViewType.SPINE,</span>
+<span id="L71" class="line"><a href="#L71">71</a>            skel = createData.upDownFxAnim.skel,</span>
+<span id="L72" class="line"><a href="#L72">72</a>            anchorPoint = createData.upDownFxAnim.anchorPoint,</span>
+<span id="L73" class="line"><a href="#L73">73</a>            onlyPrepare = true,</span>
+<span id="L74" class="line"><a href="#L74">74</a>        },</span>
+<span id="L75" class="line"><a href="#L75">75</a>    }</span>
+<span id="L76" class="line"><a href="#L76">76</a></span>
+<span id="L77" class="line"><a href="#L77">77</a>    return createData</span>
+<span id="L78" class="line"><a href="#L78">78</a>end</span>
+<span id="L79" class="line"><a href="#L79">79</a></span>
+<span id="L80" class="line"><a href="#L80">80</a>function UBFUEPlpBottomWinRepeatRank:onViewCreate()</span>
+<span id="L81" class="line"><a href="#L81">81</a>    UBFSlpPlpViewLogic.onViewCreate(self)</span>
+<span id="L82" class="line"><a href="#L82">82</a>    self:initData()</span>
+<span id="L83" class="line"><a href="#L83">83</a>end</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>function UBFUEPlpBottomWinRepeatRank:onPlayEnterTransition(finishImmediately)</span>
+<span id="L86" class="line"><a href="#L86">86</a>    local promise = UBFPromise:create()</span>
+<span id="L87" class="line"><a href="#L87">87</a>    local start = function()</span>
+<span id="L88" class="line"><a href="#L88">88</a>        if not self:isViewSafe() then</span>
+<span id="L89" class="line"><a href="#L89">89</a>            promise:resolve()</span>
+<span id="L90" class="line"><a href="#L90">90</a>            return</span>
+<span id="L91" class="line"><a href="#L91">91</a>        end</span>
+<span id="L92" class="line"><a href="#L92">92</a>        self:startAnim():next(function()</span>
+<span id="L93" class="line"><a href="#L93">93</a>            promise:resolve()</span>
+<span id="L94" class="line"><a href="#L94">94</a>        end, function()</span>
+<span id="L95" class="line"><a href="#L95">95</a>            promise:resolve()</span>
+<span id="L96" class="line"><a href="#L96">96</a>        end)</span>
+<span id="L97" class="line"><a href="#L97">97</a>    end</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>    if self.contentReadyPromise then</span>
+<span id="L100" class="line"><a href="#L100">100</a>        self.contentReadyPromise:next(start, start)</span>
+<span id="L101" class="line"><a href="#L101">101</a>    else</span>
+<span id="L102" class="line"><a href="#L102">102</a>        start()</span>
+<span id="L103" class="line"><a href="#L103">103</a>    end</span>
+<span id="L104" class="line"><a href="#L104">104</a></span>
+<span id="L105" class="line"><a href="#L105">105</a>    return promise</span>
+<span id="L106" class="line"><a href="#L106">106</a>end</span>
+<span id="L107" class="line"><a href="#L107">107</a></span>
+<span id="L108" class="line"><a href="#L108">108</a>function UBFUEPlpBottomWinRepeatRank:getPlpBottomData()</span>
+<span id="L109" class="line"><a href="#L109">109</a>    return _getPlpBottomData(self.createData.bottomCarouselData)</span>
+<span id="L110" class="line"><a href="#L110">110</a>end</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>function UBFUEPlpBottomWinRepeatRank:initData()</span>
+<span id="L113" class="line"><a href="#L113">113</a>    local plpBottomData = self:getPlpBottomData()</span>
+<span id="L114" class="line"><a href="#L114">114</a>    local eventDataInfo = plpBottomData.eventDataInfo</span>
+<span id="L115" class="line"><a href="#L115">115</a>    if eventDataInfo then</span>
+<span id="L116" class="line"><a href="#L116">116</a>        self.raceType = eventDataInfo.raceType</span>
+<span id="L117" class="line"><a href="#L117">117</a>        self.lastRank = eventDataInfo.oldRank</span>
+<span id="L118" class="line"><a href="#L118">118</a>        self.myRank = eventDataInfo.newRank</span>
+<span id="L119" class="line"><a href="#L119">119</a>        self.lastScore = eventDataInfo.oldScore</span>
+<span id="L120" class="line"><a href="#L120">120</a>        self.myScore = eventDataInfo.newScore</span>
+<span id="L121" class="line"><a href="#L121">121</a>        self.oldShowScore = eventDataInfo.oldShowScore</span>
+<span id="L122" class="line"><a href="#L122">122</a>        self.oldShowRank = eventDataInfo.oldShowRank</span>
+<span id="L123" class="line"><a href="#L123">123</a>        self.hasRankUp = self.myRank &lt; self.lastRank</span>
+<span id="L124" class="line"><a href="#L124">124</a>        self.hasRankChange = (self.myRank ~= self.lastRank and self.lastRank ~= 0)</span>
+<span id="L125" class="line"><a href="#L125">125</a>        self.hasScoreChange = self.myScore &gt; self.lastScore</span>
+<span id="L126" class="line"><a href="#L126">126</a>        self.playerList = plpBottomData.rankList</span>
+<span id="L127" class="line"><a href="#L127">127</a>        self.rankRewardMap = plpBottomData.rankRewardMap or {}</span>
+<span id="L128" class="line"><a href="#L128">128</a>        self.eventDataInfo = eventDataInfo</span>
+<span id="L129" class="line"><a href="#L129">129</a>        self:initContent()</span>
+<span id="L130" class="line"><a href="#L130">130</a>    end</span>
+<span id="L131" class="line"><a href="#L131">131</a>end</span>
+<span id="L132" class="line"><a href="#L132">132</a></span>
+<span id="L133" class="line"><a href="#L133">133</a>function UBFUEPlpBottomWinRepeatRank:update(newSlpBottomData)</span>
+<span id="L134" class="line"><a href="#L134">134</a>    self.createData.bottomCarouselData = newSlpBottomData</span>
+<span id="L135" class="line"><a href="#L135">135</a>    self:initData()</span>
+<span id="L136" class="line"><a href="#L136">136</a>end</span>
+<span id="L137" class="line"><a href="#L137">137</a></span>
+<span id="L138" class="line"><a href="#L138">138</a>function UBFUEPlpBottomWinRepeatRank:initContent()</span>
+<span id="L139" class="line"><a href="#L139">139</a>    self.nodeList = {}</span>
+<span id="L140" class="line"><a href="#L140">140</a>    self.myNode = nil</span>
+<span id="L141" class="line"><a href="#L141">141</a></span>
+<span id="L142" class="line"><a href="#L142">142</a>    local contentLayer = UBFLayer:create()</span>
+<span id="L143" class="line"><a href="#L143">143</a>    contentLayer:setAnchorPoint(ccp(0, 0))</span>
+<span id="L144" class="line"><a href="#L144">144</a>    contentLayer:setName(&quot;contentView&quot;)</span>
+<span id="L145" class="line"><a href="#L145">145</a></span>
+<span id="L146" class="line"><a href="#L146">146</a>    local scrollW = math.max(VIEW_WIDTH, #self.playerList * CELL_WIDTH)</span>
+<span id="L147" class="line"><a href="#L147">147</a>    local scrollLayer = UBFLayer:create()</span>
+<span id="L148" class="line"><a href="#L148">148</a>    scrollLayer:setAnchorPoint(ccp(0, 0))</span>
+<span id="L149" class="line"><a href="#L149">149</a>    scrollLayer:setName(&quot;ScrollLayer&quot;)</span>
+<span id="L150" class="line"><a href="#L150">150</a>    contentLayer:setPositionXY(0, 0)</span>
+<span id="L151" class="line"><a href="#L151">151</a>    scrollLayer:addChild(contentLayer)</span>
+<span id="L152" class="line"><a href="#L152">152</a>    scrollLayer:setPositionXY(0, -SCROLL_VIEW_POSITION_Y)</span>
+<span id="L153" class="line"><a href="#L153">153</a>    function scrollLayer:getWidth()</span>
+<span id="L154" class="line"><a href="#L154">154</a>        if scrollLayer.isDisposed then return 0 end</span>
+<span id="L155" class="line"><a href="#L155">155</a>        return scrollW</span>
+<span id="L156" class="line"><a href="#L156">156</a>    end</span>
+<span id="L157" class="line"><a href="#L157">157</a></span>
+<span id="L158" class="line"><a href="#L158">158</a>    local HorizontalScrollable = UBFViewHelper:toolkit(&quot;HorizontalScrollable&quot;)</span>
+<span id="L159" class="line"><a href="#L159">159</a>    local scrollView = HorizontalScrollable:create(VIEW_WIDTH, SCROLL_VIEW_HEIGHT, true, true, -1000, false)</span>
+<span id="L160" class="line"><a href="#L160">160</a>    scrollView:setName(&quot;ScrollView&quot;)</span>
+<span id="L161" class="line"><a href="#L161">161</a>    scrollView:setGlobalScroll(UBFUiTouchPriority.BottomCarousel - 1)</span>
+<span id="L162" class="line"><a href="#L162">162</a>    scrollView:setIgnoreHorizontalMove(true)</span>
+<span id="L163" class="line"><a href="#L163">163</a>    scrollView:setContent(scrollLayer)</span>
+<span id="L164" class="line"><a href="#L164">164</a>    scrollView:setScrollableWidth(scrollW)</span>
+<span id="L165" class="line"><a href="#L165">165</a>    function scrollView:containsPoint(worldPos)</span>
+<span id="L166" class="line"><a href="#L166">166</a>        if scrollView.isDisposed then return false end</span>
+<span id="L167" class="line"><a href="#L167">167</a>        local relaPos = scrollView:convertToNodeSpace(worldPos)</span>
+<span id="L168" class="line"><a href="#L168">168</a>        return relaPos.x &gt;= 0</span>
+<span id="L169" class="line"><a href="#L169">169</a>            and relaPos.x &lt;= scrollView.width</span>
+<span id="L170" class="line"><a href="#L170">170</a>            and relaPos.y &lt;= 0</span>
+<span id="L171" class="line"><a href="#L171">171</a>            and relaPos.y &gt;= -scrollView.height</span>
+<span id="L172" class="line"><a href="#L172">172</a>    end</span>
+<span id="L173" class="line"><a href="#L173">173</a></span>
+<span id="L174" class="line"><a href="#L174">174</a>    scrollView:setPositionXY(0, SCROLL_VIEW_POSITION_Y)</span>
+<span id="L175" class="line"><a href="#L175">175</a>    self.scrollView = scrollView</span>
+<span id="L176" class="line"><a href="#L176">176</a>    self:addChildView(&quot;ScrollView&quot;, scrollView, &quot;horizontalContainer&quot;)</span>
+<span id="L177" class="line"><a href="#L177">177</a>    self:initScrollViewGiftBoxHitTest(scrollView)</span>
+<span id="L178" class="line"><a href="#L178">178</a></span>
+<span id="L179" class="line"><a href="#L179">179</a>    local promises = {}</span>
+<span id="L180" class="line"><a href="#L180">180</a>    for i, info in ipairs(self.playerList) do</span>
+<span id="L181" class="line"><a href="#L181">181</a>        local cellName = &quot;playerCell_&quot; .. i</span>
+<span id="L182" class="line"><a href="#L182">182</a>        local promise = self:createAndAddViewAsync({</span>
+<span id="L183" class="line"><a href="#L183">183</a>            viewType = UBFUiViewType.UI,</span>
+<span id="L184" class="line"><a href="#L184">184</a>            lua = &quot;ubf/UBFActivity/actFolder/WinRepeatRank2023/views/UISource/UBFUEBottomWinRepeatRankCell_UI.lua&quot;,</span>
+<span id="L185" class="line"><a href="#L185">185</a>            autoReference = true,</span>
+<span id="L186" class="line"><a href="#L186">186</a>        }, cellName):next(function(node)</span>
+<span id="L187" class="line"><a href="#L187">187</a>            if not self:isViewSafe() or not isSafeCocosObj(node) then return end</span>
+<span id="L188" class="line"><a href="#L188">188</a>            local cellRoot = UBFLayer:create()</span>
+<span id="L189" class="line"><a href="#L189">189</a>            cellRoot:setAnchorPoint(ccp(0.5, 0.5))</span>
+<span id="L190" class="line"><a href="#L190">190</a>            cellRoot:setName(cellName .. &quot;_Root&quot;)</span>
+<span id="L191" class="line"><a href="#L191">191</a>            cellRoot.fields = node.fields</span>
+<span id="L192" class="line"><a href="#L192">192</a>            cellRoot.info = table.clone(info)</span>
+<span id="L193" class="line"><a href="#L193">193</a>            cellRoot.cellName = cellName</span>
+<span id="L194" class="line"><a href="#L194">194</a>            node.info = cellRoot.info</span>
+<span id="L195" class="line"><a href="#L195">195</a>            node.cellName = cellName</span>
+<span id="L196" class="line"><a href="#L196">196</a>            contentLayer:addChild(cellRoot)</span>
+<span id="L197" class="line"><a href="#L197">197</a>            cellRoot:addChild(node)</span>
+<span id="L198" class="line"><a href="#L198">198</a>            cellRoot:setPositionXY((i - 0.5) * CELL_WIDTH, CELL_CENTER_Y)</span>
+<span id="L199" class="line"><a href="#L199">199</a>            node:setPositionXY(-CELL_CENTER_X, -CELL_CENTER_Y)</span>
+<span id="L200" class="line"><a href="#L200">200</a>            self:referenceView(cellName, node, true)</span>
+<span id="L201" class="line"><a href="#L201">201</a>            self:updatePlayerNode(cellRoot, info, cellName)</span>
+<span id="L202" class="line"><a href="#L202">202</a>            if info.isMe then</span>
+<span id="L203" class="line"><a href="#L203">203</a>                self.myNode = cellRoot</span>
+<span id="L204" class="line"><a href="#L204">204</a>            end</span>
+<span id="L205" class="line"><a href="#L205">205</a>            self.nodeList[i] = cellRoot</span>
+<span id="L206" class="line"><a href="#L206">206</a>        end)</span>
+<span id="L207" class="line"><a href="#L207">207</a>        table.insert(promises, promise)</span>
+<span id="L208" class="line"><a href="#L208">208</a>    end</span>
+<span id="L209" class="line"><a href="#L209">209</a></span>
+<span id="L210" class="line"><a href="#L210">210</a>    self.contentReadyPromise = deferred.all(promises):next(function()</span>
+<span id="L211" class="line"><a href="#L211">211</a>        if not self:isViewSafe() then return end</span>
+<span id="L212" class="line"><a href="#L212">212</a>        local offset = self:getScrollLabelOffsetByRank(self.hasRankUp and self.lastRank or self.myRank, true)</span>
+<span id="L213" class="line"><a href="#L213">213</a>        self.scrollView:gotoPositionX(offset, 0)</span>
+<span id="L214" class="line"><a href="#L214">214</a>        self.scrollView:setIgnoreHorizontalMove(false)</span>
+<span id="L215" class="line"><a href="#L215">215</a>    end)</span>
+<span id="L216" class="line"><a href="#L216">216</a>end</span>
+<span id="L217" class="line"><a href="#L217">217</a></span>
+<span id="L218" class="line"><a href="#L218">218</a>function UBFUEPlpBottomWinRepeatRank:initScrollViewGiftBoxHitTest(scrollView)</span>
+<span id="L219" class="line"><a href="#L219">219</a>    if not isSafeCocosObj(scrollView) or not isSafeCocosObj(scrollView.touchLayer) then return end</span>
+<span id="L220" class="line"><a href="#L220">220</a>    scrollView.touchLayer:setGlobalHitTestPoint(function(worldPos)</span>
+<span id="L221" class="line"><a href="#L221">221</a>        return scrollView:containsPoint(worldPos)</span>
+<span id="L222" class="line"><a href="#L222">222</a>    end, false)</span>
+<span id="L223" class="line"><a href="#L223">223</a>end</span>
+<span id="L224" class="line"><a href="#L224">224</a></span>
+<span id="L225" class="line"><a href="#L225">225</a>-- 播动画前我位于视野右侧，播动画后我位于视野左侧</span>
+<span id="L226" class="line"><a href="#L226">226</a>function UBFUEPlpBottomWinRepeatRank:getScrollLabelOffsetByRank(rank, beforeAnim)</span>
+<span id="L227" class="line"><a href="#L227">227</a>    if beforeAnim then</span>
+<span id="L228" class="line"><a href="#L228">228</a>        return self.scrollView.width - CELL_WIDTH * rank</span>
+<span id="L229" class="line"><a href="#L229">229</a>    else</span>
+<span id="L230" class="line"><a href="#L230">230</a>        return -CELL_WIDTH * (rank - 1) - 3</span>
+<span id="L231" class="line"><a href="#L231">231</a>    end</span>
+<span id="L232" class="line"><a href="#L232">232</a>end</span>
+<span id="L233" class="line"><a href="#L233">233</a></span>
+<span id="L234" class="line"><a href="#L234">234</a>function UBFUEPlpBottomWinRepeatRank:getCellRefs(node)</span>
+<span id="L235" class="line"><a href="#L235">235</a>    if not isSafeCocosObj(node) then return nil end</span>
+<span id="L236" class="line"><a href="#L236">236</a>    local fields = node.fields or {}</span>
+<span id="L237" class="line"><a href="#L237">237</a>    local root = fields.listItemCenter or node</span>
+<span id="L238" class="line"><a href="#L238">238</a>    local function child(parent, name)</span>
+<span id="L239" class="line"><a href="#L239">239</a>        return fields[name]</span>
+<span id="L240" class="line"><a href="#L240">240</a>    end</span>
+<span id="L241" class="line"><a href="#L241">241</a></span>
+<span id="L242" class="line"><a href="#L242">242</a>    local rankPart = child(root, &quot;rankPart&quot;)</span>
+<span id="L243" class="line"><a href="#L243">243</a>    local topOther = child(rankPart, &quot;topOther&quot;)</span>
+<span id="L244" class="line"><a href="#L244">244</a>    local headPart = child(root, &quot;headPart&quot;)</span>
+<span id="L245" class="line"><a href="#L245">245</a>    local collectPart = child(root, &quot;collectPart&quot;)</span>
+<span id="L246" class="line"><a href="#L246">246</a>    return {</span>
+<span id="L247" class="line"><a href="#L247">247</a>        root = root,</span>
+<span id="L248" class="line"><a href="#L248">248</a>        listItemBg = child(root, &quot;listItemBg&quot;),</span>
+<span id="L249" class="line"><a href="#L249">249</a>        listItemBg2 = child(root, &quot;listItemBg2&quot;),</span>
+<span id="L250" class="line"><a href="#L250">250</a>        rankPart = rankPart,</span>
+<span id="L251" class="line"><a href="#L251">251</a>        top1 = child(rankPart, &quot;top1&quot;),</span>
+<span id="L252" class="line"><a href="#L252">252</a>        top2 = child(rankPart, &quot;top2&quot;),</span>
+<span id="L253" class="line"><a href="#L253">253</a>        top3 = child(rankPart, &quot;top3&quot;),</span>
+<span id="L254" class="line"><a href="#L254">254</a>        topOther = topOther,</span>
+<span id="L255" class="line"><a href="#L255">255</a>        topOtherBg = child(topOther, &quot;topOtherBg&quot;),</span>
+<span id="L256" class="line"><a href="#L256">256</a>        topOtherBg2 = child(topOther, &quot;topOtherBg2&quot;),</span>
+<span id="L257" class="line"><a href="#L257">257</a>        topOtherLabel = child(topOther, &quot;topOtherLabel&quot;),</span>
+<span id="L258" class="line"><a href="#L258">258</a>        headPart = headPart,</span>
+<span id="L259" class="line"><a href="#L259">259</a>        headImage = child(headPart, &quot;headImage&quot;),</span>
+<span id="L260" class="line"><a href="#L260">260</a>        headFrame = child(headPart, &quot;headFrame&quot;),</span>
+<span id="L261" class="line"><a href="#L261">261</a>        headFrame2 = child(headPart, &quot;headFrame2&quot;),</span>
+<span id="L262" class="line"><a href="#L262">262</a>        collectPart = collectPart,</span>
+<span id="L263" class="line"><a href="#L263">263</a>        collectPartBg = child(collectPart, &quot;collectPartBg&quot;),</span>
+<span id="L264" class="line"><a href="#L264">264</a>        collectPartBg2 = child(collectPart, &quot;collectPartBg2&quot;),</span>
+<span id="L265" class="line"><a href="#L265">265</a>        collectPartScore = child(collectPart, &quot;collectPartScore&quot;),</span>
+<span id="L266" class="line"><a href="#L266">266</a>        giftBox = child(root, &quot;giftBox&quot;),</span>
+<span id="L267" class="line"><a href="#L267">267</a>        noPoppleTip = child(root, &quot;noPoppleTip&quot;),</span>
+<span id="L268" class="line"><a href="#L268">268</a>        effectHolder = child(root, &quot;effectHolder&quot;),</span>
+<span id="L269" class="line"><a href="#L269">269</a>    }</span>
+<span id="L270" class="line"><a href="#L270">270</a>end</span>
+<span id="L271" class="line"><a href="#L271">271</a></span>
+<span id="L272" class="line"><a href="#L272">272</a>function UBFUEPlpBottomWinRepeatRank:getReferencedCellViewName(cellName, node, viewName)</span>
+<span id="L273" class="line"><a href="#L273">273</a>    if not cellName or not isSafeCocosObj(node) then return nil end</span>
+<span id="L274" class="line"><a href="#L274">274</a>    local refs = self:getCellRefs(node)</span>
+<span id="L275" class="line"><a href="#L275">275</a>    local target = refs and refs[viewName]</span>
+<span id="L276" class="line"><a href="#L276">276</a>    if not isSafeCocosObj(target) then return nil end</span>
+<span id="L277" class="line"><a href="#L277">277</a></span>
+<span id="L278" class="line"><a href="#L278">278</a>    local prefixedName = cellName .. &quot;_&quot; .. viewName</span>
+<span id="L279" class="line"><a href="#L279">279</a>    if self:getView(prefixedName) == target then</span>
+<span id="L280" class="line"><a href="#L280">280</a>        return prefixedName</span>
+<span id="L281" class="line"><a href="#L281">281</a>    end</span>
+<span id="L282" class="line"><a href="#L282">282</a>    if self:getView(viewName) == target then</span>
+<span id="L283" class="line"><a href="#L283">283</a>        return viewName</span>
+<span id="L284" class="line"><a href="#L284">284</a>    end</span>
+<span id="L285" class="line"><a href="#L285">285</a>end</span>
+<span id="L286" class="line"><a href="#L286">286</a></span>
+<span id="L287" class="line"><a href="#L287">287</a>function UBFUEPlpBottomWinRepeatRank:updateGiftBoxItemImage(node, rank, rewards)</span>
+<span id="L288" class="line"><a href="#L288">288</a>    local giftBoxViewName = self:getReferencedCellViewName(node and node.cellName, node, &quot;giftBox&quot;)</span>
+<span id="L289" class="line"><a href="#L289">289</a>    if not giftBoxViewName then return end</span>
+<span id="L290" class="line"><a href="#L290">290</a></span>
+<span id="L291" class="line"><a href="#L291">291</a>    local updateData = {</span>
+<span id="L292" class="line"><a href="#L292">292</a>        itemId = _G._UEItemIdConvertor_NoSetID or 99999999,</span>
+<span id="L293" class="line"><a href="#L293">293</a>    }</span>
+<span id="L294" class="line"><a href="#L294">294</a>    if #rewards == 1 and rewards[1] then</span>
+<span id="L295" class="line"><a href="#L295">295</a>        local reward = rewards[1]</span>
+<span id="L296" class="line"><a href="#L296">296</a>        updateData.itemId = reward.itemId</span>
+<span id="L297" class="line"><a href="#L297">297</a>        updateData.num = reward.num</span>
+<span id="L298" class="line"><a href="#L298">298</a>    elseif #rewards &gt; 1 then</span>
+<span id="L299" class="line"><a href="#L299">299</a>        updateData.itemImage = {Frame = self:getGixtBoxSpriteFrameName(rank)}</span>
+<span id="L300" class="line"><a href="#L300">300</a>    end</span>
+<span id="L301" class="line"><a href="#L301">301</a>    self:updateView(giftBoxViewName, updateData)</span>
+<span id="L302" class="line"><a href="#L302">302</a></span>
+<span id="L303" class="line"><a href="#L303">303</a>    local refs = self:getCellRefs(node)</span>
+<span id="L304" class="line"><a href="#L304">304</a>    local giftBox = refs and refs.giftBox</span>
+<span id="L305" class="line"><a href="#L305">305</a>    if #rewards == 1 and isSafeCocosObj(giftBox) and giftBox.updateItemType then</span>
+<span id="L306" class="line"><a href="#L306">306</a>        giftBox.item = updateData</span>
+<span id="L307" class="line"><a href="#L307">307</a>        giftBox:updateItemType()</span>
+<span id="L308" class="line"><a href="#L308">308</a>    end</span>
+<span id="L309" class="line"><a href="#L309">309</a>end</span>
+<span id="L310" class="line"><a href="#L310">310</a></span>
+<span id="L311" class="line"><a href="#L311">311</a>function UBFUEPlpBottomWinRepeatRank:getShowScore(score)</span>
+<span id="L312" class="line"><a href="#L312">312</a>    if score &lt; 100000 then</span>
+<span id="L313" class="line"><a href="#L313">313</a>        return NumberUtil:formatBigNumber(score, 2)</span>
+<span id="L314" class="line"><a href="#L314">314</a>    else</span>
+<span id="L315" class="line"><a href="#L315">315</a>        return NumberUtil:formatBigNumber(score, 1)</span>
+<span id="L316" class="line"><a href="#L316">316</a>    end</span>
+<span id="L317" class="line"><a href="#L317">317</a>end</span>
+<span id="L318" class="line"><a href="#L318">318</a></span>
+<span id="L319" class="line"><a href="#L319">319</a>function UBFUEPlpBottomWinRepeatRank:createHeadData(info, replaceViewName)</span>
+<span id="L320" class="line"><a href="#L320">320</a>    local function getRandomHeadImage()</span>
+<span id="L321" class="line"><a href="#L321">321</a>        return HeadImageType.k_birth_0</span>
+<span id="L322" class="line"><a href="#L322">322</a>    end</span>
+<span id="L323" class="line"><a href="#L323">323</a></span>
+<span id="L324" class="line"><a href="#L324">324</a>    local headUrl = info.profile and info.profile.headUrl</span>
+<span id="L325" class="line"><a href="#L325">325</a>    if not info.isEmpty and not headUrl then</span>
+<span id="L326" class="line"><a href="#L326">326</a>        headUrl = getRandomHeadImage()</span>
+<span id="L327" class="line"><a href="#L327">327</a>    end</span>
+<span id="L328" class="line"><a href="#L328">328</a></span>
+<span id="L329" class="line"><a href="#L329">329</a>    return {</span>
+<span id="L330" class="line"><a href="#L330">330</a>        creator = function()</span>
+<span id="L331" class="line"><a href="#L331">331</a>            local profile = {headUrl = headUrl, uid = info.uid}</span>
+<span id="L332" class="line"><a href="#L332">332</a>            local head = HeadImage:create(profile, {</span>
+<span id="L333" class="line"><a href="#L333">333</a>                ignoreHeadFrame = true,</span>
+<span id="L334" class="line"><a href="#L334">334</a>            })</span>
+<span id="L335" class="line"><a href="#L335">335</a>            return head</span>
+<span id="L336" class="line"><a href="#L336">336</a>        end,</span>
+<span id="L337" class="line"><a href="#L337">337</a>        replaceViewName = replaceViewName,</span>
+<span id="L338" class="line"><a href="#L338">338</a>    }</span>
+<span id="L339" class="line"><a href="#L339">339</a>end</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>function UBFUEPlpBottomWinRepeatRank:updatePlayerNode(node, info, cellName)</span>
+<span id="L342" class="line"><a href="#L342">342</a>    local rank = info.rank</span>
+<span id="L343" class="line"><a href="#L343">343</a>    local isMe = info.isMe</span>
+<span id="L344" class="line"><a href="#L344">344</a>    local score = info.score</span>
+<span id="L345" class="line"><a href="#L345">345</a>    local refs = self:getCellRefs(node)</span>
+<span id="L346" class="line"><a href="#L346">346</a>    if not refs or not isSafeCocosObj(refs.rankPart) then</span>
+<span id="L347" class="line"><a href="#L347">347</a>        return</span>
+<span id="L348" class="line"><a href="#L348">348</a>    end</span>
+<span id="L349" class="line"><a href="#L349">349</a></span>
+<span id="L350" class="line"><a href="#L350">350</a>    refs.listItemBg:setVisible(not isMe)</span>
+<span id="L351" class="line"><a href="#L351">351</a>    refs.listItemBg2:setVisible(isMe)</span>
+<span id="L352" class="line"><a href="#L352">352</a>    refs.collectPartBg:setVisible(not isMe)</span>
+<span id="L353" class="line"><a href="#L353">353</a>    refs.collectPartBg2:setVisible(isMe)</span>
+<span id="L354" class="line"><a href="#L354">354</a>    refs.headFrame:setVisible(not isMe)</span>
+<span id="L355" class="line"><a href="#L355">355</a>    refs.headFrame2:setVisible(isMe)</span>
+<span id="L356" class="line"><a href="#L356">356</a>    refs.topOtherBg:setVisible(not isMe)</span>
+<span id="L357" class="line"><a href="#L357">357</a>    refs.topOtherBg2:setVisible(isMe)</span>
+<span id="L358" class="line"><a href="#L358">358</a>    refs.collectPart:setVisible(not info.isEmpty)</span>
+<span id="L359" class="line"><a href="#L359">359</a>    refs.noPoppleTip:setVisible(info.isEmpty)</span>
+<span id="L360" class="line"><a href="#L360">360</a></span>
+<span id="L361" class="line"><a href="#L361">361</a>    refs.collectPartScore:enableOutline(hex2ccc4(&quot;85450099&quot;), 2)</span>
+<span id="L362" class="line"><a href="#L362">362</a>    refs.collectPartScore:setString(self:getShowScore(score))</span>
+<span id="L363" class="line"><a href="#L363">363</a></span>
+<span id="L364" class="line"><a href="#L364">364</a>    local replaceViewName = self:getReferencedCellViewName(cellName, node, &quot;headImage&quot;)</span>
+<span id="L365" class="line"><a href="#L365">365</a>    if replaceViewName then</span>
+<span id="L366" class="line"><a href="#L366">366</a>        self:updateView(replaceViewName, {scale = HEAD_IMAGE_SCALE})</span>
+<span id="L367" class="line"><a href="#L367">367</a>        self:createAndAddViewAsync(self:createHeadData(info, replaceViewName))</span>
+<span id="L368" class="line"><a href="#L368">368</a>    end</span>
+<span id="L369" class="line"><a href="#L369">369</a></span>
+<span id="L370" class="line"><a href="#L370">370</a>    refs.top1:setVisible(rank == 1)</span>
+<span id="L371" class="line"><a href="#L371">371</a>    refs.top2:setVisible(rank == 2)</span>
+<span id="L372" class="line"><a href="#L372">372</a>    refs.top3:setVisible(rank == 3)</span>
+<span id="L373" class="line"><a href="#L373">373</a>    refs.topOther:setVisible(rank &gt; 3)</span>
+<span id="L374" class="line"><a href="#L374">374</a>    refs.topOtherLabel:setString(&quot;&quot; .. rank)</span>
+<span id="L375" class="line"><a href="#L375">375</a></span>
+<span id="L376" class="line"><a href="#L376">376</a>    local bHasReward, rewards, extraRewards, mergeRewards = self:checkHasRankRewards(rank)</span>
+<span id="L377" class="line"><a href="#L377">377</a>    if bHasReward then</span>
+<span id="L378" class="line"><a href="#L378">378</a>        self:updateGiftBoxItemImage(node, rank, mergeRewards)</span>
+<span id="L379" class="line"><a href="#L379">379</a>    end</span>
+<span id="L380" class="line"><a href="#L380">380</a>    refs.giftBox:setVisible(bHasReward)</span>
+<span id="L381" class="line"><a href="#L381">381</a>    local touchLayer = _updateGiftBoxTouchLayer(refs.root, refs.giftBox)</span>
+<span id="L382" class="line"><a href="#L382">382</a>    if touchLayer then</span>
+<span id="L383" class="line"><a href="#L383">383</a>        touchLayer:setTouchEnabled(bHasReward, -1001, true, nil, true)</span>
+<span id="L384" class="line"><a href="#L384">384</a>        touchLayer:removeAllEventListeners()</span>
+<span id="L385" class="line"><a href="#L385">385</a>        touchLayer:ad(DisplayEvents.kTouchTap, function()</span>
+<span id="L386" class="line"><a href="#L386">386</a>            self:onGiftBoxClick(node, refs.giftBox)</span>
+<span id="L387" class="line"><a href="#L387">387</a>        end)</span>
+<span id="L388" class="line"><a href="#L388">388</a>    end</span>
+<span id="L389" class="line"><a href="#L389">389</a>end</span>
+<span id="L390" class="line"><a href="#L390">390</a></span>
+<span id="L391" class="line"><a href="#L391">391</a>function UBFUEPlpBottomWinRepeatRank:onGiftBoxClick(node, giftBox)</span>
+<span id="L392" class="line"><a href="#L392">392</a>    if not self:isViewSafe() then return end</span>
+<span id="L393" class="line"><a href="#L393">393</a>    if not self.animFinished then return end</span>
+<span id="L394" class="line"><a href="#L394">394</a>    if not isSafeCocosObj(node) or not isSafeCocosObj(giftBox) then return end</span>
+<span id="L395" class="line"><a href="#L395">395</a></span>
+<span id="L396" class="line"><a href="#L396">396</a>    local cellInfo = node.info</span>
+<span id="L397" class="line"><a href="#L397">397</a>    local curRank = cellInfo and cellInfo.rank</span>
+<span id="L398" class="line"><a href="#L398">398</a>    local hasReward, rewards, extraRewards = self:checkHasRankRewards(curRank)</span>
+<span id="L399" class="line"><a href="#L399">399</a>    if not hasReward then return end</span>
+<span id="L400" class="line"><a href="#L400">400</a></span>
+<span id="L401" class="line"><a href="#L401">401</a>    local plpBottomData = self:getPlpBottomData()</span>
+<span id="L402" class="line"><a href="#L402">402</a>    local titleStr = string.format(&quot;%s结算时,第%d名可得&quot;, plpBottomData.titleName, curRank)</span>
+<span id="L403" class="line"><a href="#L403">403</a>    UBFViewHelper:showUITip({</span>
+<span id="L404" class="line"><a href="#L404">404</a>        target = giftBox,</span>
+<span id="L405" class="line"><a href="#L405">405</a>        title = titleStr,</span>
+<span id="L406" class="line"><a href="#L406">406</a>        rewards = rewards,</span>
+<span id="L407" class="line"><a href="#L407">407</a>        extraRewards = extraRewards,</span>
+<span id="L408" class="line"><a href="#L408">408</a>        disappearSec = 2</span>
+<span id="L409" class="line"><a href="#L409">409</a>    })</span>
+<span id="L410" class="line"><a href="#L410">410</a>end</span>
+<span id="L411" class="line"><a href="#L411">411</a></span>
+<span id="L412" class="line"><a href="#L412">412</a>function UBFUEPlpBottomWinRepeatRank:checkHasRankRewards(rank)</span>
+<span id="L413" class="line"><a href="#L413">413</a>    local rewardInfo = self.rankRewardMap[rank] or self.rankRewardMap[tostring(rank)]</span>
+<span id="L414" class="line"><a href="#L414">414</a>    local rewards = rewardInfo and rewardInfo.rewards or {}</span>
+<span id="L415" class="line"><a href="#L415">415</a>    local extraRewards = rewardInfo and rewardInfo.extraRewards</span>
+<span id="L416" class="line"><a href="#L416">416</a>    local mergeRewards = table.union(rewards, extraRewards)</span>
+<span id="L417" class="line"><a href="#L417">417</a>    if table.isEmpty(mergeRewards) then</span>
+<span id="L418" class="line"><a href="#L418">418</a>        return false, {}, nil</span>
+<span id="L419" class="line"><a href="#L419">419</a>    end</span>
+<span id="L420" class="line"><a href="#L420">420</a>    return true, rewards, extraRewards, mergeRewards</span>
+<span id="L421" class="line"><a href="#L421">421</a>end</span>
+<span id="L422" class="line"><a href="#L422">422</a></span>
+<span id="L423" class="line"><a href="#L423">423</a>function UBFUEPlpBottomWinRepeatRank:getGixtBoxSpriteFrameName(rank)</span>
+<span id="L424" class="line"><a href="#L424">424</a>    if self.raceType == Meta.mainPanelShowType.kMainPanel3 and rank &gt; 1 then</span>
+<span id="L425" class="line"><a href="#L425">425</a>       return &#x27;common/icon_256/icon_baoxiang_siji_256_01&#x27;</span>
+<span id="L426" class="line"><a href="#L426">426</a>    end</span>
+<span id="L427" class="line"><a href="#L427">427</a>    if rank == 1 then</span>
+<span id="L428" class="line"><a href="#L428">428</a>        return &#x27;common/icon_256/icon_baoxiang_wuji_256_01&#x27;</span>
+<span id="L429" class="line"><a href="#L429">429</a>    elseif rank == 2 then</span>
+<span id="L430" class="line"><a href="#L430">430</a>        return &#x27;common/icon_256/icon_baoxiang_sanji_256_01&#x27;</span>
+<span id="L431" class="line"><a href="#L431">431</a>    else</span>
+<span id="L432" class="line"><a href="#L432">432</a>        return &#x27;common/icon_256/icon_baoxiang_erji_256_01&#x27;</span>
+<span id="L433" class="line"><a href="#L433">433</a>    end</span>
+<span id="L434" class="line"><a href="#L434">434</a>end</span>
+<span id="L435" class="line"><a href="#L435">435</a></span>
+<span id="L436" class="line"><a href="#L436">436</a>function UBFUEPlpBottomWinRepeatRank:deferAction(target, actions)</span>
+<span id="L437" class="line"><a href="#L437">437</a>    local d = deferred.new()</span>
+<span id="L438" class="line"><a href="#L438">438</a>    if not self:isViewSafe() or not isSafeCocosObj(target) then</span>
+<span id="L439" class="line"><a href="#L439">439</a>        d:resolve()</span>
+<span id="L440" class="line"><a href="#L440">440</a>        return d</span>
+<span id="L441" class="line"><a href="#L441">441</a>    end</span>
+<span id="L442" class="line"><a href="#L442">442</a>    local sequence = {}</span>
+<span id="L443" class="line"><a href="#L443">443</a>    for _, action in ipairs(actions) do</span>
+<span id="L444" class="line"><a href="#L444">444</a>        table.insert(sequence, action)</span>
+<span id="L445" class="line"><a href="#L445">445</a>    end</span>
+<span id="L446" class="line"><a href="#L446">446</a>    table.insert(sequence, CCCallFunc:create(function()</span>
+<span id="L447" class="line"><a href="#L447">447</a>        d:resolve()</span>
+<span id="L448" class="line"><a href="#L448">448</a>    end))</span>
+<span id="L449" class="line"><a href="#L449">449</a>    target:runAction(UBFViewHelper:sequence(sequence))</span>
+<span id="L450" class="line"><a href="#L450">450</a>    return d</span>
+<span id="L451" class="line"><a href="#L451">451</a>end</span>
+<span id="L452" class="line"><a href="#L452">452</a></span>
+<span id="L453" class="line"><a href="#L453">453</a>function UBFUEPlpBottomWinRepeatRank:deferCall(func)</span>
+<span id="L454" class="line"><a href="#L454">454</a>    local d = deferred.new()</span>
+<span id="L455" class="line"><a href="#L455">455</a>    safeRunCall(func, function()</span>
+<span id="L456" class="line"><a href="#L456">456</a>        d:resolve()</span>
+<span id="L457" class="line"><a href="#L457">457</a>    end)</span>
+<span id="L458" class="line"><a href="#L458">458</a>    return d</span>
+<span id="L459" class="line"><a href="#L459">459</a>end</span>
+<span id="L460" class="line"><a href="#L460">460</a></span>
+<span id="L461" class="line"><a href="#L461">461</a>function UBFUEPlpBottomWinRepeatRank:deferDelay(delay)</span>
+<span id="L462" class="line"><a href="#L462">462</a>    local d = deferred.new()</span>
+<span id="L463" class="line"><a href="#L463">463</a>    if not self:isViewSafe() then</span>
+<span id="L464" class="line"><a href="#L464">464</a>        d:resolve()</span>
+<span id="L465" class="line"><a href="#L465">465</a>    else</span>
+<span id="L466" class="line"><a href="#L466">466</a>        setTimeOut(function()</span>
+<span id="L467" class="line"><a href="#L467">467</a>            d:resolve()</span>
+<span id="L468" class="line"><a href="#L468">468</a>        end, delay)</span>
+<span id="L469" class="line"><a href="#L469">469</a>    end</span>
+<span id="L470" class="line"><a href="#L470">470</a>    return d</span>
+<span id="L471" class="line"><a href="#L471">471</a>end</span>
+<span id="L472" class="line"><a href="#L472">472</a></span>
+<span id="L473" class="line"><a href="#L473">473</a>function UBFUEPlpBottomWinRepeatRank:playUpDownFx(parentViewName, viewName, animationName)</span>
+<span id="L474" class="line"><a href="#L474">474</a>    if not parentViewName then return end</span>
+<span id="L475" class="line"><a href="#L475">475</a>    self:createAndAddPreparedViewAsync(&quot;upDownFxAnim&quot;, viewName, {</span>
+<span id="L476" class="line"><a href="#L476">476</a>        parentViewName = parentViewName,</span>
+<span id="L477" class="line"><a href="#L477">477</a>        position = {x = 0, y = 20},</span>
+<span id="L478" class="line"><a href="#L478">478</a>    }):next(function(node)</span>
+<span id="L479" class="line"><a href="#L479">479</a>        if not self:isViewSafe() or not isSafeCocosObj(node) then return end</span>
+<span id="L480" class="line"><a href="#L480">480</a>        node:playOnceAndDispose(animationName)</span>
+<span id="L481" class="line"><a href="#L481">481</a>    end)</span>
+<span id="L482" class="line"><a href="#L482">482</a>end</span>
+<span id="L483" class="line"><a href="#L483">483</a></span>
+<span id="L484" class="line"><a href="#L484">484</a>function UBFUEPlpBottomWinRepeatRank:startAnim()</span>
+<span id="L485" class="line"><a href="#L485">485</a>    local myNode = self.myNode</span>
+<span id="L486" class="line"><a href="#L486">486</a>    if not isSafeCocosObj(myNode) then</span>
+<span id="L487" class="line"><a href="#L487">487</a>        self:finishAnim()</span>
+<span id="L488" class="line"><a href="#L488">488</a>        return deferred.success()</span>
+<span id="L489" class="line"><a href="#L489">489</a>    end</span>
+<span id="L490" class="line"><a href="#L490">490</a></span>
+<span id="L491" class="line"><a href="#L491">491</a>    local refs = self:getCellRefs(myNode)</span>
+<span id="L492" class="line"><a href="#L492">492</a>    if not refs or not isSafeCocosObj(refs.root) then</span>
+<span id="L493" class="line"><a href="#L493">493</a>        self:finishAnim()</span>
+<span id="L494" class="line"><a href="#L494">494</a>        return deferred.success()</span>
+<span id="L495" class="line"><a href="#L495">495</a>    end</span>
+<span id="L496" class="line"><a href="#L496">496</a></span>
+<span id="L497" class="line"><a href="#L497">497</a>    local flow = deferred.success()</span>
+<span id="L498" class="line"><a href="#L498">498</a>    local function addTask(task)</span>
+<span id="L499" class="line"><a href="#L499">499</a>        flow = flow:next(function()</span>
+<span id="L500" class="line"><a href="#L500">500</a>            if not self:isViewSafe() then return deferred.success() end</span>
+<span id="L501" class="line"><a href="#L501">501</a>            return task()</span>
+<span id="L502" class="line"><a href="#L502">502</a>        end)</span>
+<span id="L503" class="line"><a href="#L503">503</a>    end</span>
+<span id="L504" class="line"><a href="#L504">504</a></span>
+<span id="L505" class="line"><a href="#L505">505</a>    if self.hasScoreChange then</span>
+<span id="L506" class="line"><a href="#L506">506</a>        local label = refs.collectPartScore</span>
+<span id="L507" class="line"><a href="#L507">507</a>        addTask(function()</span>
+<span id="L508" class="line"><a href="#L508">508</a>            return self:deferAction(label, {</span>
+<span id="L509" class="line"><a href="#L509">509</a>                CCScaleTo:create(3 * FRAMETIME, 1.5, 1.5),</span>
+<span id="L510" class="line"><a href="#L510">510</a>            })</span>
+<span id="L511" class="line"><a href="#L511">511</a>        end)</span>
+<span id="L512" class="line"><a href="#L512">512</a>        addTask(function()</span>
+<span id="L513" class="line"><a href="#L513">513</a>            return self:deferCall(function(done)</span>
+<span id="L514" class="line"><a href="#L514">514</a>                if not self:isViewSafe() or not isSafeCocosObj(label) then</span>
+<span id="L515" class="line"><a href="#L515">515</a>                    done()</span>
+<span id="L516" class="line"><a href="#L516">516</a>                    return</span>
+<span id="L517" class="line"><a href="#L517">517</a>                end</span>
+<span id="L518" class="line"><a href="#L518">518</a>                ActionUtil:rollingNumber({</span>
+<span id="L519" class="line"><a href="#L519">519</a>                    label = label,</span>
+<span id="L520" class="line"><a href="#L520">520</a>                    startNumber = self.lastScore,</span>
+<span id="L521" class="line"><a href="#L521">521</a>                    endNumber = self.myScore,</span>
+<span id="L522" class="line"><a href="#L522">522</a>                    callback = done,</span>
+<span id="L523" class="line"><a href="#L523">523</a>                })</span>
+<span id="L524" class="line"><a href="#L524">524</a>            end)</span>
+<span id="L525" class="line"><a href="#L525">525</a>        end)</span>
+<span id="L526" class="line"><a href="#L526">526</a>        addTask(function()</span>
+<span id="L527" class="line"><a href="#L527">527</a>            return self:deferAction(label, {</span>
+<span id="L528" class="line"><a href="#L528">528</a>                CCDelayTime:create(10 * FRAMETIME),</span>
+<span id="L529" class="line"><a href="#L529">529</a>                CCCallFunc:create(function()</span>
+<span id="L530" class="line"><a href="#L530">530</a>                    if not self:isViewSafe() or not isSafeCocosObj(label) then return end</span>
+<span id="L531" class="line"><a href="#L531">531</a>                    label:setString(self:getShowScore(self.myScore))</span>
+<span id="L532" class="line"><a href="#L532">532</a>                end),</span>
+<span id="L533" class="line"><a href="#L533">533</a>                CCScaleTo:create(3 * FRAMETIME, 1, 1),</span>
+<span id="L534" class="line"><a href="#L534">534</a>            })</span>
+<span id="L535" class="line"><a href="#L535">535</a>        end)</span>
+<span id="L536" class="line"><a href="#L536">536</a>    end</span>
+<span id="L537" class="line"><a href="#L537">537</a></span>
+<span id="L538" class="line"><a href="#L538">538</a>    if self.hasRankChange and self.hasRankUp then</span>
+<span id="L539" class="line"><a href="#L539">539</a>        addTask(function()</span>
+<span id="L540" class="line"><a href="#L540">540</a>            return self:deferCall(function(done)</span>
+<span id="L541" class="line"><a href="#L541">541</a>                if not self:isViewSafe() then</span>
+<span id="L542" class="line"><a href="#L542">542</a>                    done()</span>
+<span id="L543" class="line"><a href="#L543">543</a>                    return</span>
+<span id="L544" class="line"><a href="#L544">544</a>                end</span>
+<span id="L545" class="line"><a href="#L545">545</a>                local offset = self:getScrollLabelOffsetByRank(self.myRank, false)</span>
+<span id="L546" class="line"><a href="#L546">546</a>                local curOffset = self.scrollView:getXOffset()</span>
+<span id="L547" class="line"><a href="#L547">547</a>                if offset &lt;= curOffset then</span>
+<span id="L548" class="line"><a href="#L548">548</a>                    done()</span>
+<span id="L549" class="line"><a href="#L549">549</a>                    return</span>
+<span id="L550" class="line"><a href="#L550">550</a>                end</span>
+<span id="L551" class="line"><a href="#L551">551</a>                self.scrollView:gotoPositionX(offset, RANK_SCROLL_MOVE_TIME)</span>
+<span id="L552" class="line"><a href="#L552">552</a>                done()</span>
+<span id="L553" class="line"><a href="#L553">553</a>            end)</span>
+<span id="L554" class="line"><a href="#L554">554</a>        end)</span>
+<span id="L555" class="line"><a href="#L555">555</a>        addTask(function()</span>
+<span id="L556" class="line"><a href="#L556">556</a>            return self:deferCall(function(done)</span>
+<span id="L557" class="line"><a href="#L557">557</a>                if not self:isViewSafe() then</span>
+<span id="L558" class="line"><a href="#L558">558</a>                    done()</span>
+<span id="L559" class="line"><a href="#L559">559</a>                    return</span>
+<span id="L560" class="line"><a href="#L560">560</a>                end</span>
+<span id="L561" class="line"><a href="#L561">561</a>                for i = self.lastRank - 1, self.myRank, -1 do</span>
+<span id="L562" class="line"><a href="#L562">562</a>                    local node = self.nodeList[i]</span>
+<span id="L563" class="line"><a href="#L563">563</a>                    local effectHolderViewName = self:getReferencedCellViewName(node and node.cellName, node, &quot;effectHolder&quot;)</span>
+<span id="L564" class="line"><a href="#L564">564</a>                    if isSafeCocosObj(node) and effectHolderViewName then</span>
+<span id="L565" class="line"><a href="#L565">565</a>                        node:runAction(UBFViewHelper:sequence({</span>
+<span id="L566" class="line"><a href="#L566">566</a>                            CCDelayTime:create(2 * FRAMETIME * (self.lastRank - i)),</span>
+<span id="L567" class="line"><a href="#L567">567</a>                            CCCallFunc:create(function()</span>
+<span id="L568" class="line"><a href="#L568">568</a>                                if not self:isViewSafe() then return end</span>
+<span id="L569" class="line"><a href="#L569">569</a>                                self:switchNodeRank(node, i + 1, i)</span>
+<span id="L570" class="line"><a href="#L570">570</a>                            end),</span>
+<span id="L571" class="line"><a href="#L571">571</a>                            CCMoveBy:create(OTHER_CELL_MOVE_TIME, ccp(CELL_WIDTH, 0)),</span>
+<span id="L572" class="line"><a href="#L572">572</a>                            CCCallFunc:create(function()</span>
+<span id="L573" class="line"><a href="#L573">573</a>                                if not self:isViewSafe() then return end</span>
+<span id="L574" class="line"><a href="#L574">574</a>                                self:playUpDownFx(effectHolderViewName, &quot;animCell_&quot; .. i, &quot;down&quot;)</span>
+<span id="L575" class="line"><a href="#L575">575</a>                            end),</span>
+<span id="L576" class="line"><a href="#L576">576</a>                        }))</span>
+<span id="L577" class="line"><a href="#L577">577</a>                    end</span>
+<span id="L578" class="line"><a href="#L578">578</a>                end</span>
+<span id="L579" class="line"><a href="#L579">579</a></span>
+<span id="L580" class="line"><a href="#L580">580</a>                refs.root:runAction(UBFViewHelper:sequence({</span>
+<span id="L581" class="line"><a href="#L581">581</a>                    CCScaleTo:create(2 * FRAMETIME, 0.99, 0.99),</span>
+<span id="L582" class="line"><a href="#L582">582</a>                    CCScaleTo:create(3 * FRAMETIME, 1.15, 1.15),</span>
+<span id="L583" class="line"><a href="#L583">583</a>                    CCScaleTo:create(((self.lastRank - self.myRank) &gt;= 4 and 22 or 15) * FRAMETIME, 1.2, 1.2),</span>
+<span id="L584" class="line"><a href="#L584">584</a>                    CCScaleTo:create(2 * FRAMETIME, 0.96, 0.96),</span>
+<span id="L585" class="line"><a href="#L585">585</a>                    CCScaleTo:create(3 * FRAMETIME, 1, 1),</span>
+<span id="L586" class="line"><a href="#L586">586</a>                    CCCallFunc:create(function()</span>
+<span id="L587" class="line"><a href="#L587">587</a>                        if self:isViewSafe() then</span>
+<span id="L588" class="line"><a href="#L588">588</a>                            local effectHolderViewName = self:getReferencedCellViewName(myNode.cellName, myNode, &quot;effectHolder&quot;)</span>
+<span id="L589" class="line"><a href="#L589">589</a>                            self:playUpDownFx(effectHolderViewName, &quot;_animCell_up&quot;, &quot;up&quot;)</span>
+<span id="L590" class="line"><a href="#L590">590</a>                        end</span>
+<span id="L591" class="line"><a href="#L591">591</a>                        done()</span>
+<span id="L592" class="line"><a href="#L592">592</a>                    end),</span>
+<span id="L593" class="line"><a href="#L593">593</a>                }))</span>
+<span id="L594" class="line"><a href="#L594">594</a></span>
+<span id="L595" class="line"><a href="#L595">595</a>                myNode:runAction(UBFViewHelper:sequence({</span>
+<span id="L596" class="line"><a href="#L596">596</a>                    CCDelayTime:create(5 * FRAMETIME),</span>
+<span id="L597" class="line"><a href="#L597">597</a>                    CCCallFunc:create(function()</span>
+<span id="L598" class="line"><a href="#L598">598</a>                        if not self:isViewSafe() then return end</span>
+<span id="L599" class="line"><a href="#L599">599</a>                        self:switchNodeRank(myNode, self.myRank, self.lastRank)</span>
+<span id="L600" class="line"><a href="#L600">600</a>                    end),</span>
+<span id="L601" class="line"><a href="#L601">601</a>                    CCMoveBy:create(((self.lastRank - self.myRank) &gt;= 4 and MY_CELL_LONG_MOVE_TIME or MY_CELL_FAST_MOVE_TIME), ccp(CELL_WIDTH * (self.myRank - self.lastRank), 0)),</span>
+<span id="L602" class="line"><a href="#L602">602</a>                }))</span>
+<span id="L603" class="line"><a href="#L603">603</a>            end)</span>
+<span id="L604" class="line"><a href="#L604">604</a>        end)</span>
+<span id="L605" class="line"><a href="#L605">605</a>    end</span>
+<span id="L606" class="line"><a href="#L606">606</a></span>
+<span id="L607" class="line"><a href="#L607">607</a>    if self.oldShowRank ~= 0 and self.oldShowRank &lt; self.myRank and not self.hasRankUp then</span>
+<span id="L608" class="line"><a href="#L608">608</a>        addTask(function()</span>
+<span id="L609" class="line"><a href="#L609">609</a>            return self:deferDelay(0.5)</span>
+<span id="L610" class="line"><a href="#L610">610</a>        end)</span>
+<span id="L611" class="line"><a href="#L611">611</a>        addTask(function()</span>
+<span id="L612" class="line"><a href="#L612">612</a>            return self:deferCall(function(done)</span>
+<span id="L613" class="line"><a href="#L613">613</a>                if self:isViewSafe() then</span>
+<span id="L614" class="line"><a href="#L614">614</a>                    local effectHolderViewName = self:getReferencedCellViewName(myNode.cellName, myNode, &quot;effectHolder&quot;)</span>
+<span id="L615" class="line"><a href="#L615">615</a>                    self:playUpDownFx(effectHolderViewName, &quot;myNodeanim&quot;, &quot;down&quot;)</span>
+<span id="L616" class="line"><a href="#L616">616</a>                end</span>
+<span id="L617" class="line"><a href="#L617">617</a>                done()</span>
+<span id="L618" class="line"><a href="#L618">618</a>            end)</span>
+<span id="L619" class="line"><a href="#L619">619</a>        end)</span>
+<span id="L620" class="line"><a href="#L620">620</a>    end</span>
+<span id="L621" class="line"><a href="#L621">621</a></span>
+<span id="L622" class="line"><a href="#L622">622</a>    return flow:next(function()</span>
+<span id="L623" class="line"><a href="#L623">623</a>        self:finishAnim()</span>
+<span id="L624" class="line"><a href="#L624">624</a>    end)</span>
+<span id="L625" class="line"><a href="#L625">625</a>end</span>
+<span id="L626" class="line"><a href="#L626">626</a></span>
+<span id="L627" class="line"><a href="#L627">627</a>function UBFUEPlpBottomWinRepeatRank:finishAnim()</span>
+<span id="L628" class="line"><a href="#L628">628</a>    if not self:isViewSafe() then return end</span>
+<span id="L629" class="line"><a href="#L629">629</a>    if self.scrollView and not self.scrollView.isDisposed then</span>
+<span id="L630" class="line"><a href="#L630">630</a>        self.scrollView:setIgnoreHorizontalMove(true)</span>
+<span id="L631" class="line"><a href="#L631">631</a>        self.scrollView:setScrollEnabled(true)</span>
+<span id="L632" class="line"><a href="#L632">632</a>    end</span>
+<span id="L633" class="line"><a href="#L633">633</a>    self.animFinished = true</span>
+<span id="L634" class="line"><a href="#L634">634</a>end</span>
+<span id="L635" class="line"><a href="#L635">635</a></span>
+<span id="L636" class="line"><a href="#L636">636</a>function UBFUEPlpBottomWinRepeatRank:switchNodeRank(node, rank, lastRank)</span>
+<span id="L637" class="line"><a href="#L637">637</a>    local refs = self:getCellRefs(node)</span>
+<span id="L638" class="line"><a href="#L638">638</a>    if not refs or not isSafeCocosObj(refs.rankPart) then return end</span>
+<span id="L639" class="line"><a href="#L639">639</a></span>
+<span id="L640" class="line"><a href="#L640">640</a>    local info = node.info</span>
+<span id="L641" class="line"><a href="#L641">641</a>    info.rank = rank</span>
+<span id="L642" class="line"><a href="#L642">642</a></span>
+<span id="L643" class="line"><a href="#L643">643</a>    local disapearUseTime = 2 * FRAMETIME</span>
+<span id="L644" class="line"><a href="#L644">644</a>    local showUseTime = 3 * FRAMETIME</span>
+<span id="L645" class="line"><a href="#L645">645</a>    local allUseTime = disapearUseTime + showUseTime</span>
+<span id="L646" class="line"><a href="#L646">646</a>    if lastRank &gt; 3 and rank &gt; 3 then</span>
+<span id="L647" class="line"><a href="#L647">647</a>        refs.topOther:runAction(UBFViewHelper:sequence({</span>
+<span id="L648" class="line"><a href="#L648">648</a>            ActionUtil:fadeToU3D(refs.topOther, disapearUseTime, 100),</span>
+<span id="L649" class="line"><a href="#L649">649</a>            CCCallFunc:create(function()</span>
+<span id="L650" class="line"><a href="#L650">650</a>                if not self:isViewSafe() then return end</span>
+<span id="L651" class="line"><a href="#L651">651</a>                refs.topOtherLabel:setString(&quot;&quot; .. rank)</span>
+<span id="L652" class="line"><a href="#L652">652</a>            end),</span>
+<span id="L653" class="line"><a href="#L653">653</a>            ActionUtil:fadeToU3D(refs.topOther, showUseTime, 255),</span>
+<span id="L654" class="line"><a href="#L654">654</a>        }))</span>
+<span id="L655" class="line"><a href="#L655">655</a>    else</span>
+<span id="L656" class="line"><a href="#L656">656</a>        if lastRank &gt; 3 then</span>
+<span id="L657" class="line"><a href="#L657">657</a>            refs.topOther:runAction(UBFViewHelper:sequence({</span>
+<span id="L658" class="line"><a href="#L658">658</a>                ActionUtil:fadeOutU3D(refs.topOther, allUseTime),</span>
+<span id="L659" class="line"><a href="#L659">659</a>            }))</span>
+<span id="L660" class="line"><a href="#L660">660</a>        else</span>
+<span id="L661" class="line"><a href="#L661">661</a>            local oldTop = refs[&quot;top&quot; .. lastRank]</span>
+<span id="L662" class="line"><a href="#L662">662</a>            if isSafeCocosObj(oldTop) then</span>
+<span id="L663" class="line"><a href="#L663">663</a>                oldTop:runAction(CCFadeOut:create(allUseTime))</span>
+<span id="L664" class="line"><a href="#L664">664</a>            end</span>
+<span id="L665" class="line"><a href="#L665">665</a>        end</span>
+<span id="L666" class="line"><a href="#L666">666</a></span>
+<span id="L667" class="line"><a href="#L667">667</a>        if rank &gt; 3 then</span>
+<span id="L668" class="line"><a href="#L668">668</a>            refs.topOtherLabel:setString(&quot;&quot; .. rank)</span>
+<span id="L669" class="line"><a href="#L669">669</a>            refs.topOther:runAction(CCFadeIn:create(allUseTime))</span>
+<span id="L670" class="line"><a href="#L670">670</a>            refs.topOther:setVisible(true)</span>
+<span id="L671" class="line"><a href="#L671">671</a>        else</span>
+<span id="L672" class="line"><a href="#L672">672</a>            local newTop = refs[&quot;top&quot; .. rank]</span>
+<span id="L673" class="line"><a href="#L673">673</a>            if isSafeCocosObj(newTop) then</span>
+<span id="L674" class="line"><a href="#L674">674</a>                newTop:runAction(CCFadeIn:create(allUseTime))</span>
+<span id="L675" class="line"><a href="#L675">675</a>                newTop:setVisible(true)</span>
+<span id="L676" class="line"><a href="#L676">676</a>            end</span>
+<span id="L677" class="line"><a href="#L677">677</a>        end</span>
+<span id="L678" class="line"><a href="#L678">678</a>    end</span>
+<span id="L679" class="line"><a href="#L679">679</a></span>
+<span id="L680" class="line"><a href="#L680">680</a>    local giftBox = refs.giftBox</span>
+<span id="L681" class="line"><a href="#L681">681</a>    local bCurHasBoxShow = giftBox:isVisible()</span>
+<span id="L682" class="line"><a href="#L682">682</a>    local bHasReward, rewards, extraRewards, mergeRewards = self:checkHasRankRewards(rank)</span>
+<span id="L683" class="line"><a href="#L683">683</a>    if bCurHasBoxShow then</span>
+<span id="L684" class="line"><a href="#L684">684</a>        giftBox:runAction(UBFViewHelper:sequence({</span>
+<span id="L685" class="line"><a href="#L685">685</a>            ActionUtil:fadeToU3D(giftBox, disapearUseTime, 100),</span>
+<span id="L686" class="line"><a href="#L686">686</a>            CCCallFunc:create(function()</span>
+<span id="L687" class="line"><a href="#L687">687</a>                if not self:isViewSafe() then return end</span>
+<span id="L688" class="line"><a href="#L688">688</a>                if bHasReward then</span>
+<span id="L689" class="line"><a href="#L689">689</a>                    self:updateGiftBoxItemImage(node, rank, mergeRewards)</span>
+<span id="L690" class="line"><a href="#L690">690</a>                    giftBox:setVisible(true)</span>
+<span id="L691" class="line"><a href="#L691">691</a>                else</span>
+<span id="L692" class="line"><a href="#L692">692</a>                    giftBox:setVisible(false)</span>
+<span id="L693" class="line"><a href="#L693">693</a>                end</span>
+<span id="L694" class="line"><a href="#L694">694</a>            end),</span>
+<span id="L695" class="line"><a href="#L695">695</a>            ActionUtil:fadeToU3D(giftBox, showUseTime, 255),</span>
+<span id="L696" class="line"><a href="#L696">696</a>        }))</span>
+<span id="L697" class="line"><a href="#L697">697</a>    elseif bHasReward then</span>
+<span id="L698" class="line"><a href="#L698">698</a>        giftBox:setVisible(true)</span>
+<span id="L699" class="line"><a href="#L699">699</a>        giftBox:setOpacity(0)</span>
+<span id="L700" class="line"><a href="#L700">700</a>        self:updateGiftBoxItemImage(node, rank, mergeRewards)</span>
+<span id="L701" class="line"><a href="#L701">701</a>        giftBox:runAction(UBFViewHelper:sequence({</span>
+<span id="L702" class="line"><a href="#L702">702</a>            CCFadeIn:create(allUseTime),</span>
+<span id="L703" class="line"><a href="#L703">703</a>        }))</span>
+<span id="L704" class="line"><a href="#L704">704</a>    end</span>
+<span id="L705" class="line"><a href="#L705">705</a>end</span>
+<span id="L706" class="line"><a href="#L706">706</a></span>
+<span id="L707" class="line"><a href="#L707">707</a>function UBFUEPlpBottomWinRepeatRank:onPrepareItemDcContext(context)</span>
+<span id="L708" class="line"><a href="#L708">708</a>end</span>
+<span id="L709" class="line"><a href="#L709">709</a></span>
+<span id="L710" class="line"><a href="#L710">710</a>function UBFUEPlpBottomWinRepeatRank:onCreateProxy(exposeMethodList)</span>
+<span id="L711" class="line"><a href="#L711">711</a>    UBFSlpPlpViewLogic.onCreateProxy(self, exposeMethodList)</span>
+<span id="L712" class="line"><a href="#L712">712</a></span>
+<span id="L713" class="line"><a href="#L713">713</a>    table.insert(exposeMethodList, &quot;onPrepareItemDcContext&quot;)</span>
+<span id="L714" class="line"><a href="#L714">714</a>end</span>
+<span id="L715" class="line"><a href="#L715">715</a></span>
+<span id="L716" class="line"><a href="#L716">716</a>-- debug</span>
+<span id="L717" class="line"><a href="#L717">717</a>function UBFUEPlpBottomWinRepeatRank:popout(plpBottomData)</span>
+<span id="L718" class="line"><a href="#L718">718</a>    local uiMgr = UBFGlobal:getLogic(UBFUiLogicId.UI_VIEW_LOGIC_MANAGER)</span>
+<span id="L719" class="line"><a href="#L719">719</a>    if uiMgr:existNode(WinRepeatRank2023NodeId.UE_PLP_BOTTOM) then</span>
+<span id="L720" class="line"><a href="#L720">720</a>        uiMgr:callNode(WinRepeatRank2023NodeId.UE_PLP_BOTTOM, &quot;exit&quot;, true, {</span>
+<span id="L721" class="line"><a href="#L721">721</a>            byOp = true,</span>
+<span id="L722" class="line"><a href="#L722">722</a>        })</span>
+<span id="L723" class="line"><a href="#L723">723</a>    end</span>
+<span id="L724" class="line"><a href="#L724">724</a></span>
+<span id="L725" class="line"><a href="#L725">725</a>    local delegate = uiMgr:newUiUpdateDelegate()</span>
+<span id="L726" class="line"><a href="#L726">726</a>    delegate.viewLogicConfig:setDefaultInitParams({</span>
+<span id="L727" class="line"><a href="#L727">727</a>        plpBottomData = plpBottomData,</span>
+<span id="L728" class="line"><a href="#L728">728</a>    })</span>
+<span id="L729" class="line"><a href="#L729">729</a>    delegate.nodeConfig:setWhole(WinRepeatRank2023NodeId.UE_PLP_BOTTOM, {</span>
+<span id="L730" class="line"><a href="#L730">730</a>        logicId = WinRepeatRank2023LogicId.UE_PLP_BOTTOM,</span>
+<span id="L731" class="line"><a href="#L731">731</a>        plpBottomData = plpBottomData,</span>
+<span id="L732" class="line"><a href="#L732">732</a>    })</span>
+<span id="L733" class="line"><a href="#L733">733</a>    delegate:createNodeAsync(WinRepeatRank2023NodeId.UE_PLP_BOTTOM):next(function(node)</span>
+<span id="L734" class="line"><a href="#L734">734</a>        delegate:clear()</span>
+<span id="L735" class="line"><a href="#L735">735</a>    end)</span>
+<span id="L736" class="line"><a href="#L736">736</a>end</span>
+<span id="L737" class="line"><a href="#L737">737</a></span>
+<span id="L738" class="line"><a href="#L738">738</a>return UBFUEPlpBottomWinRepeatRank</span></pre></main></html>

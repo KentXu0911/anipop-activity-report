@@ -1,0 +1,51 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/superbirdshare/const/Const.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="979e44d8b4fb.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/superbirdshare/const/Const.lua</h1><p>SHA256 3473985b3b85d2a6799ac441eb24e25cafbd941366a76062f038bbe0d1e15eeb</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Const = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>Const.actId = 8080</span>
+<span id="L4" class="line"><a href="#L4">4</a>-- 玩家可见的活动名：跨期 tips（onActPassMainBegin/MainEnd/ActEnd）和分享框架错误提示</span>
+<span id="L5" class="line"><a href="#L5">5</a>-- （error.tip.736432/736433 的 actName 参数）都取这里，必须和 Config 的 DISPLAY_NAME 一致。</span>
+<span id="L6" class="line"><a href="#L6">6</a>-- 目录/资源标识不是这个，用下面的 gameName。</span>
+<span id="L7" class="line"><a href="#L7">7</a>Const.actName = &quot;鸟卡接力&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>-- 本活动的分享类型。框架的&quot;分享进入游戏&quot;打点直接取 query.shareType：</span>
+<span id="L9" class="line"><a href="#L9">9</a>--   app 端 help_frame/game_into 的 t3、小游戏 vx_help/enter_game 的 t4；</span>
+<span id="L10" class="line"><a href="#L10">10</a>-- 所以必须是活动自己的标识，不能沿用通用的 help_activity。</span>
+<span id="L11" class="line"><a href="#L11">11</a>Const.shareType = &quot;bird_share&quot;</span>
+<span id="L12" class="line"><a href="#L12">12</a>Const.gameName = &quot;superbirdshare&quot;</span>
+<span id="L13" class="line"><a href="#L13">13</a>Const.dcFeature = &quot;superbirdshare&quot;</span>
+<span id="L14" class="line"><a href="#L14">14</a>Const.dcSource = &quot;act_8080&quot;</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>Const.infoPrefix = &quot;userInfo&quot;</span>
+<span id="L17" class="line"><a href="#L17">17</a>Const.configPrefix = &quot;localConfig&quot;</span>
+<span id="L18" class="line"><a href="#L18">18</a>Const.timePrefix = &quot;activityTime&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>Const.downloadLabels = {</span>
+<span id="L21" class="line"><a href="#L21">21</a>    -- TODO: 按活动资源配置填写下载标签</span>
+<span id="L22" class="line"><a href="#L22">22</a>    &quot;superbirdshare&quot;,</span>
+<span id="L23" class="line"><a href="#L23">23</a>}</span>
+<span id="L24" class="line"><a href="#L24">24</a></span>
+<span id="L25" class="line"><a href="#L25">25</a>Const.needLoadFiles = {</span>
+<span id="L26" class="line"><a href="#L26">26</a>    -- TODO: 仅在必须预加载具体文件时填写。</span>
+<span id="L27" class="line"><a href="#L27">27</a>}</span>
+<span id="L28" class="line"><a href="#L28">28</a></span>
+<span id="L29" class="line"><a href="#L29">29</a>Const.eventPrefix = &quot;onAct&quot;</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>-- TODO: 按真实业务定义本地缓存 key，示例 key 可按需删除</span>
+<span id="L32" class="line"><a href="#L32">32</a>Const.LocalCacheKey = {</span>
+<span id="L33" class="line"><a href="#L33">33</a>    GuidePrefix = &quot;Guide_&quot;,</span>
+<span id="L34" class="line"><a href="#L34">34</a>    TodayFirstOpen = &quot;TodayFirstOpen&quot;,</span>
+<span id="L35" class="line"><a href="#L35">35</a>    MainPanelOpened = &quot;MainPanelOpened&quot;,</span>
+<span id="L36" class="line"><a href="#L36">36</a>    -- 奖励强弹场景2的每日标记：needTime=true 按自然日失效，跨天自动重置</span>
+<span id="L37" class="line"><a href="#L37">37</a>    RewardMainPanelPoppedToday = &quot;RewardMainPanelPoppedToday&quot;,</span>
+<span id="L38" class="line"><a href="#L38">38</a>    -- canyu/qualify、canyu/join 的每日去重标记：needTime=true 按自然日失效，跨天自动重置</span>
+<span id="L39" class="line"><a href="#L39">39</a>    dc_has_qualify = &quot;dc_has_qualify&quot;,</span>
+<span id="L40" class="line"><a href="#L40">40</a>    dc_has_join = &quot;dc_has_join&quot;,</span>
+<span id="L41" class="line"><a href="#L41">41</a>}</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>Const.Guide = {</span>
+<span id="L44" class="line"><a href="#L44">44</a>    -- TODO: 按真实引导配置填写，例如 MainPanel = 1。</span>
+<span id="L45" class="line"><a href="#L45">45</a>}</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>Const.DC = {</span>
+<span id="L48" class="line"><a href="#L48">48</a>    -- TODO: 按真实打点填写 sub_category，例如 OpenPanel = &quot;open_panel&quot;。</span>
+<span id="L49" class="line"><a href="#L49">49</a>}</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>return Const</span></pre></main></html>

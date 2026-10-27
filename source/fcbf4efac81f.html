@@ -1,0 +1,131 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/energyactv2/EnergyActV2Mgr.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="fcbf4efac81f.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/energyactv2/EnergyActV2Mgr.lua</h1><p>SHA256 d9610d8113f10a86c7c81c5cb29aa8e47a66bbb453ebb80d8eb21c4bd4a29aef</p><pre><span id="L1" class="line"><a href="#L1">1</a>---@type EnergyActV2Meta</span>
+<span id="L2" class="line"><a href="#L2">2</a>local Meta = require &quot;amf.feature.localactivity.energyactv2.config.EnergyActV2Meta&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>---@type EnergyActV2Config</span>
+<span id="L4" class="line"><a href="#L4">4</a>local config = require &quot;amf.feature.localactivity.energyactv2.config.EnergyActV2Config&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>---@type EnergyActV2Events</span>
+<span id="L6" class="line"><a href="#L6">6</a>local Events = require &quot;amf.feature.localactivity.energyactv2.event.EnergyActV2Events&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>---@type EnergyActV2EventCenter</span>
+<span id="L8" class="line"><a href="#L8">8</a>local EventCenter = require &quot;amf.feature.localactivity.energyactv2.event.EnergyActV2EventCenter&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>local Dc = require &quot;amf.feature.localactivity.energyactv2.dc.EnergyActV2DC&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>local BaseFeatureManager = require&quot;amf.middleware.activity.base.BaseFeatureManager&quot;</span>
+<span id="L12" class="line"><a href="#L12">12</a>---@class EnergyActV2Mgr : BaseFeatureManager</span>
+<span id="L13" class="line"><a href="#L13">13</a>local Manager = class(&quot;EnergyActV2Mgr&quot;, BaseFeatureManager)</span>
+<span id="L14" class="line"><a href="#L14">14</a></span>
+<span id="L15" class="line"><a href="#L15">15</a>-- 如果有自己需要初始化的内容，覆写这个</span>
+<span id="L16" class="line"><a href="#L16">16</a>function Manager:_init()</span>
+<span id="L17" class="line"><a href="#L17">17</a>    require(&quot;amf.feature.localactivity.energyactv2.share.EnergyActV2AskHelpHandler&quot;):create()</span>
+<span id="L18" class="line"><a href="#L18">18</a>end</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>--- 请求奖励</span>
+<span id="L21" class="line"><a href="#L21">21</a>function Manager:getReward(params, successHandler, sucCb, failCb, cancelCb)</span>
+<span id="L22" class="line"><a href="#L22">22</a>    local function onSuccess(evt)</span>
+<span id="L23" class="line"><a href="#L23">23</a>        if not evt.data then return end</span>
+<span id="L24" class="line"><a href="#L24">24</a>        local rewards = evt.data.rewards or {}</span>
+<span id="L25" class="line"><a href="#L25">25</a>        self:addRewards(rewards, params.type, params.dcSource)</span>
+<span id="L26" class="line"><a href="#L26">26</a>        safeRunCall(successHandler, rewards, evt)</span>
+<span id="L27" class="line"><a href="#L27">27</a>        self:checkDataAfterHttp(evt)</span>
+<span id="L28" class="line"><a href="#L28">28</a>        local t2</span>
+<span id="L29" class="line"><a href="#L29">29</a>        if params.type == 3 then</span>
+<span id="L30" class="line"><a href="#L30">30</a>            t2 = 2</span>
+<span id="L31" class="line"><a href="#L31">31</a>        end</span>
+<span id="L32" class="line"><a href="#L32">32</a>        Dc:featureDc(&quot;help_success&quot;, params.inviteCode, t2)</span>
+<span id="L33" class="line"><a href="#L33">33</a>        safeRunCall(sucCb, rewards, params)</span>
+<span id="L34" class="line"><a href="#L34">34</a>    end</span>
+<span id="L35" class="line"><a href="#L35">35</a></span>
+<span id="L36" class="line"><a href="#L36">36</a>    local function onFail(evt)</span>
+<span id="L37" class="line"><a href="#L37">37</a>        if not params or not (params.type == 3 or params.type == 4) then</span>
+<span id="L38" class="line"><a href="#L38">38</a>            self:showErrorTip(evt)</span>
+<span id="L39" class="line"><a href="#L39">39</a>        end</span>
+<span id="L40" class="line"><a href="#L40">40</a>        local t2</span>
+<span id="L41" class="line"><a href="#L41">41</a>        if params.type == 3 then</span>
+<span id="L42" class="line"><a href="#L42">42</a>            t2 = 2</span>
+<span id="L43" class="line"><a href="#L43">43</a>        end</span>
+<span id="L44" class="line"><a href="#L44">44</a>        Dc:featureDc(&quot;help_failed&quot;, params.inviteCode, t2)</span>
+<span id="L45" class="line"><a href="#L45">45</a>        safeRunCall(failCb, evt)</span>
+<span id="L46" class="line"><a href="#L46">46</a>    end</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>    Manager:requestServerData(&quot;amf.feature.localactivity.energyactv2.http.EnergyActV2RequestShareRewards&quot;,</span>
+<span id="L49" class="line"><a href="#L49">49</a>            params, onSuccess, onFail, cancelCb)</span>
+<span id="L50" class="line"><a href="#L50">50</a>end</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a>-- 在线请求统一入口</span>
+<span id="L53" class="line"><a href="#L53">53</a>-- 强强表示必须一个协议一个Request文件，自己建request去吧</span>
+<span id="L54" class="line"><a href="#L54">54</a>function Manager:requestServerData(requestClassPath, reqParams, onSuccess, onFail, onCancel, noLoading)</span>
+<span id="L55" class="line"><a href="#L55">55</a>    if noLoading == nil then noLoading = true end</span>
+<span id="L56" class="line"><a href="#L56">56</a>    local request = require(requestClassPath)</span>
+<span id="L57" class="line"><a href="#L57">57</a>    request:post(reqParams, nil, not noLoading):next(onSuccess, function(response)</span>
+<span id="L58" class="line"><a href="#L58">58</a>        if response:isCancel() then</span>
+<span id="L59" class="line"><a href="#L59">59</a>            safeRunCall(onCancel, response)</span>
+<span id="L60" class="line"><a href="#L60">60</a>        else</span>
+<span id="L61" class="line"><a href="#L61">61</a>            safeRunCall(onFail, response)</span>
+<span id="L62" class="line"><a href="#L62">62</a>        end</span>
+<span id="L63" class="line"><a href="#L63">63</a>    end)</span>
+<span id="L64" class="line"><a href="#L64">64</a>end</span>
+<span id="L65" class="line"><a href="#L65">65</a></span>
+<span id="L66" class="line"><a href="#L66">66</a>--- 添加奖励</span>
+<span id="L67" class="line"><a href="#L67">67</a>function Manager:addRewards(rewardItems, type, source)</span>
+<span id="L68" class="line"><a href="#L68">68</a>    for _, reward in pairs(rewardItems or {}) do</span>
+<span id="L69" class="line"><a href="#L69">69</a>        if reward.itemId == Meta.ACT_ENERGY then</span>
+<span id="L70" class="line"><a href="#L70">70</a>            local oldBuff = _G.amfBean(&quot;UserEnergyManager&quot;):getInfiniteEnergyEndTime()</span>
+<span id="L71" class="line"><a href="#L71">71</a>            local newBuff = 0</span>
+<span id="L72" class="line"><a href="#L72">72</a>            if oldBuff &lt; TimeKit:time() then</span>
+<span id="L73" class="line"><a href="#L73">73</a>                newBuff = TimeKit:time() + 60 * 1000 * reward.num</span>
+<span id="L74" class="line"><a href="#L74">74</a>            else</span>
+<span id="L75" class="line"><a href="#L75">75</a>                newBuff = oldBuff + 60 * 1000 * reward.num</span>
+<span id="L76" class="line"><a href="#L76">76</a>            end</span>
+<span id="L77" class="line"><a href="#L77">77</a>            _G.amfBean(&quot;UserEnergyManager&quot;):setInfiniteEnergyEndTime(newBuff)</span>
+<span id="L78" class="line"><a href="#L78">78</a>            self:addMultiRewards({reward}, source)</span>
+<span id="L79" class="line"><a href="#L79">79</a>        elseif reward.itemId == Meta.OTHER_ENERGY then</span>
+<span id="L80" class="line"><a href="#L80">80</a>            self:addMultiRewards({{itemId = Meta.OTHER_ENERGY, num = 1}}, source)</span>
+<span id="L81" class="line"><a href="#L81">81</a>        else</span>
+<span id="L82" class="line"><a href="#L82">82</a>            local propSource = 0</span>
+<span id="L83" class="line"><a href="#L83">83</a>            _G.amfBean(&quot;UserManager&quot;):addReward(reward, propSource)</span>
+<span id="L84" class="line"><a href="#L84">84</a>            self:addMultiRewards({reward}, source)</span>
+<span id="L85" class="line"><a href="#L85">85</a>        end</span>
+<span id="L86" class="line"><a href="#L86">86</a>    end</span>
+<span id="L87" class="line"><a href="#L87">87</a>end</span>
+<span id="L88" class="line"><a href="#L88">88</a></span>
+<span id="L89" class="line"><a href="#L89">89</a>-- 前端通用奖励添加</span>
+<span id="L90" class="line"><a href="#L90">90</a>function Manager:addMultiRewards(rewards, source)</span>
+<span id="L91" class="line"><a href="#L91">91</a>    _G.GainPropData:create()</span>
+<span id="L92" class="line"><a href="#L92">92</a>      :setFeature(config.dcFeature)</span>
+<span id="L93" class="line"><a href="#L93">93</a>      :setSource(source or &quot;act_&quot; .. config.actId)</span>
+<span id="L94" class="line"><a href="#L94">94</a>      :setProps(rewards)</span>
+<span id="L95" class="line"><a href="#L95">95</a>      :execute()</span>
+<span id="L96" class="line"><a href="#L96">96</a>end</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>--- 请求后更新领奖信息</span>
+<span id="L99" class="line"><a href="#L99">99</a>function Manager:checkDataAfterHttp(evt)</span>
+<span id="L100" class="line"><a href="#L100">100</a>    local data = evt.data or {}</span>
+<span id="L101" class="line"><a href="#L101">101</a>    if data.energyRewarded ~= nil then</span>
+<span id="L102" class="line"><a href="#L102">102</a>        -- 助力导致 能量值 变化，领取状态变化</span>
+<span id="L103" class="line"><a href="#L103">103</a>        EventCenter:dispatch(Events.kEnergyRewardedChange, data.energyRewarded)</span>
+<span id="L104" class="line"><a href="#L104">104</a>    end</span>
+<span id="L105" class="line"><a href="#L105">105</a>end</span>
+<span id="L106" class="line"><a href="#L106">106</a></span>
+<span id="L107" class="line"><a href="#L107">107</a>--- 显示错误提示</span>
+<span id="L108" class="line"><a href="#L108">108</a>function Manager:showErrorTip(evt, callback)</span>
+<span id="L109" class="line"><a href="#L109">109</a>    local errCode = self:getErrorCode(evt)</span>
+<span id="L110" class="line"><a href="#L110">110</a>    if errCode then</span>
+<span id="L111" class="line"><a href="#L111">111</a>        local text = Localization:getInstance():getText(&quot;error.tip.&quot; .. tostring(errCode))</span>
+<span id="L112" class="line"><a href="#L112">112</a>        if errCode &gt;= 731776 and errCode &lt;= 731779 then</span>
+<span id="L113" class="line"><a href="#L113">113</a>            CommonTipWithBtn:showTip({</span>
+<span id="L114" class="line"><a href="#L114">114</a>                tipStr = text,</span>
+<span id="L115" class="line"><a href="#L115">115</a>                okInfo = { btnStr = &quot;知道了&quot; },</span>
+<span id="L116" class="line"><a href="#L116">116</a>                colorType = PanelColorConst.ColorType.kBlue</span>
+<span id="L117" class="line"><a href="#L117">117</a>            }, &quot;negative&quot;, nil, nil, nil, true)</span>
+<span id="L118" class="line"><a href="#L118">118</a>        else</span>
+<span id="L119" class="line"><a href="#L119">119</a>            CommonTip:showTip(text, &quot;negative&quot;, callback)</span>
+<span id="L120" class="line"><a href="#L120">120</a>        end</span>
+<span id="L121" class="line"><a href="#L121">121</a>    else</span>
+<span id="L122" class="line"><a href="#L122">122</a>        safeRunCall(callback)</span>
+<span id="L123" class="line"><a href="#L123">123</a>    end</span>
+<span id="L124" class="line"><a href="#L124">124</a>end</span>
+<span id="L125" class="line"><a href="#L125">125</a></span>
+<span id="L126" class="line"><a href="#L126">126</a>---获取消息的错误码</span>
+<span id="L127" class="line"><a href="#L127">127</a>function Manager:getErrorCode(evt)</span>
+<span id="L128" class="line"><a href="#L128">128</a>    return type(evt) == &#x27;number&#x27; and evt or (type(evt) == &#x27;table&#x27; and evt.data or nil)</span>
+<span id="L129" class="line"><a href="#L129">129</a>end</span>
+<span id="L130" class="line"><a href="#L130">130</a></span>
+<span id="L131" class="line"><a href="#L131">131</a>return Manager</span></pre></main></html>

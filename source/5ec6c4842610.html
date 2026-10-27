@@ -1,0 +1,57 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/promotelow/config/PromoteLowConst.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="5ec6c4842610.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/promotelow/config/PromoteLowConst.lua</h1><p>SHA256 5e781fd17ab707a5df64415500dc6a8bee1ebbede5bb53076ef5e4a0412c3636</p><pre><span id="L1" class="line"><a href="#L1">1</a>_G.PromoteLowConst = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>PromoteLowConst.SIGN_DAY_COUNT = 7</span>
+<span id="L4" class="line"><a href="#L4">4</a>if EnvUtil:isMiniGame() then</span>
+<span id="L5" class="line"><a href="#L5">5</a>PromoteLowConst.ACT_ID = 5067 -- 小游戏用5067</span>
+<span id="L6" class="line"><a href="#L6">6</a>else</span>
+<span id="L7" class="line"><a href="#L7">7</a>PromoteLowConst.ACT_ID = 5061</span>
+<span id="L8" class="line"><a href="#L8">8</a>end</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>PromoteLowConst.DC_FEATURE     = &quot;low_active&quot;                  -- feature</span>
+<span id="L11" class="line"><a href="#L11">11</a>PromoteLowConst.DC_SOURCE      = &quot;main_panel_reward&quot;           -- source</span>
+<span id="L12" class="line"><a href="#L12">12</a>if EnvUtil:isMiniGame() then</span>
+<span id="L13" class="line"><a href="#L13">13</a>PromoteLowConst.StarBuff_ID    = 55042  </span>
+<span id="L14" class="line"><a href="#L14">14</a>else</span>
+<span id="L15" class="line"><a href="#L15">15</a>PromoteLowConst.StarBuff_ID    = 55039</span>
+<span id="L16" class="line"><a href="#L16">16</a>end</span>
+<span id="L17" class="line"><a href="#L17">17</a>-- 文案</span>
+<span id="L18" class="line"><a href="#L18">18</a>PromoteLowConst.Desc = {</span>
+<span id="L19" class="line"><a href="#L19">19</a>    -- 按钮部分文案</span>
+<span id="L20" class="line"><a href="#L20">20</a>    FULL_DES            = &quot;&lt;color=#f36700&gt;新关发布后&lt;/c&gt;&lt;color=#c9835d&gt;，获取更多贴纸&lt;/color&gt;&quot;,</span>
+<span id="L21" class="line"><a href="#L21">21</a>    TODAY_SIGN_DES      = &quot;&lt;color=#f36700&gt;明日再来&lt;/c&gt;&lt;color=#c9835d&gt;，获取更多贴纸&lt;/color&gt;&quot;,</span>
+<span id="L22" class="line"><a href="#L22">22</a>    CANREWARD_DES       = &quot;&lt;color=#f36700&gt;贴纸已集满&lt;/c&gt;&lt;color=#c9835d&gt;，点击宝箱领取奖励~&lt;/color&gt;&quot;,</span>
+<span id="L23" class="line"><a href="#L23">23</a>    DESC_SIGN_FULL      = &quot;&lt;color=#f36700&gt;贴纸集齐&lt;/c&gt;&lt;color=#c9835d&gt;，大奖已领取&lt;/color&gt;&quot;,</span>
+<span id="L24" class="line"><a href="#L24">24</a></span>
+<span id="L25" class="line"><a href="#L25">25</a>    -- npctip文案</span>
+<span id="L26" class="line"><a href="#L26">26</a>    TODAY_SIGN_TIP      = &quot;明日再来，获取更多贴纸&quot;,</span>
+<span id="L27" class="line"><a href="#L27">27</a>    TODAY_SIGN_ANIOVER_TIP      = &quot;今日贴纸已收集，明日可获取更多贴纸~&quot;,</span>
+<span id="L28" class="line"><a href="#L28">28</a>    -- 点击空贴纸tip</span>
+<span id="L29" class="line"><a href="#L29">29</a>    TODAY_NOT_SIGN_DES  = &quot;今日闯关，获取更多贴纸&quot;,</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>    -- topDes 文案</span>
+<span id="L32" class="line"><a href="#L32">32</a>    -- TOP_DES_FMJ         = &quot;每日闯过新关收集贴纸，集满赢取超强道具！&quot;,</span>
+<span id="L33" class="line"><a href="#L33">33</a>    -- TOP_DES_MJFMX       = &quot;每日补星收集贴纸，集满赢取超强道具！&quot;,</span>
+<span id="L34" class="line"><a href="#L34">34</a>    -- TOP_DES_MJMX        = &quot;每日闯过新关收集贴纸，集满赢取超强道具！&quot;,</span>
+<span id="L35" class="line"><a href="#L35">35</a></span>
+<span id="L36" class="line"><a href="#L36">36</a>    TIP_BOX_REWARDED    = &quot;贴纸集齐，大奖已领取&quot;,</span>
+<span id="L37" class="line"><a href="#L37">37</a>    TIP_ACT_END         = &quot;每日一贴活动已结束！&quot;,</span>
+<span id="L38" class="line"><a href="#L38">38</a>    TIP_COLLECT         = &quot;再收集%s枚贴纸，就能获得奖励了~&quot;,</span>
+<span id="L39" class="line"><a href="#L39">39</a>}</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>if EnvUtil:isApp() then</span>
+<span id="L42" class="line"><a href="#L42">42</a>    PromoteLowConst.Desc.FULL_DES            = &quot;&lt;color=#C9835E&gt;新关发布后，获取更多贴纸&lt;/color&gt;&quot;</span>
+<span id="L43" class="line"><a href="#L43">43</a>    PromoteLowConst.Desc.TODAY_SIGN_DES      = &quot;&lt;color=#C9835E&gt;明日再来，获取更多贴纸&lt;/color&gt;&quot;</span>
+<span id="L44" class="line"><a href="#L44">44</a>    PromoteLowConst.Desc.CANREWARD_DES       = &quot;&lt;color=#C9835E&gt;贴纸已集满，点击宝箱领取奖励~&lt;/color&gt;&quot;</span>
+<span id="L45" class="line"><a href="#L45">45</a>    PromoteLowConst.Desc.DESC_SIGN_FULL      = &quot;&lt;color=#C9835E&gt;贴纸集齐，大奖已领取&lt;/color&gt;&quot;</span>
+<span id="L46" class="line"><a href="#L46">46</a>    PromoteLowConst.Desc.TOP_DES_FMJ         = &quot;每日闯过新关收集贴纸，集满赢取超强道具！&quot;</span>
+<span id="L47" class="line"><a href="#L47">47</a>    PromoteLowConst.Desc.TOP_DES_MJFMX       = &quot;每日补星收集贴纸，集满赢取超强道具！&quot;</span>
+<span id="L48" class="line"><a href="#L48">48</a>    PromoteLowConst.Desc.TOP_DES_MJMX        = &quot;每日闯过新关收集贴纸，集满赢取超强道具！&quot;</span>
+<span id="L49" class="line"><a href="#L49">49</a>    PromoteLowConst.Desc.TIP_ACT_END         = &quot;贴纸赢好礼活动已结束！&quot;</span>
+<span id="L50" class="line"><a href="#L50">50</a>end</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>PromoteLowConst.Error = {</span>
+<span id="L54" class="line"><a href="#L54">54</a>    [&quot;737139&quot;] = &quot;活动已结束，请关闭活动页面重试&quot;,</span>
+<span id="L55" class="line"><a href="#L55">55</a>    [&quot;737140&quot;] = &quot;贴纸数据异常，请关闭活动页面重试&quot;,</span>
+<span id="L56" class="line"><a href="#L56">56</a>    [&quot;737141&quot;] = &quot;奖励已领取过，无法重复领取&quot;,</span>
+<span id="L57" class="line"><a href="#L57">57</a>}</span></pre></main></html>

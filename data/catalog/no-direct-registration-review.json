@@ -1,0 +1,988 @@
+{
+  "scope": "60 localactivity modules minus 42 lexical registration modules; every remaining module read individually. No keyword hit is not proof of no push.",
+  "count": 18,
+  "rows": [
+    {
+      "module": "aipopup",
+      "ids": [],
+      "classification": "排序基础设施",
+      "verified_behavior": "初始化注册USER_LOGIN/前台/主场景/POPUP_WILL_SHOW并安装setPopupScheduleResolver；不自行生成活动候选。",
+      "remaining_gap": "属于共同排序服务，不计独立营销活动；具体AI逻辑已由engine lane覆盖。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/aipopup/AIPopupManager.lua",
+          "line": 24,
+          "sha256": "d857cbf0bee1206f84bddfc3582b60e2eeed5f102a22f9e744223c0c70581388",
+          "function": "function Manager:_init()",
+          "body": "function Manager:_init()\n    self._requestInFlight = false\n    self:_registerEvents()\n    self:_installResolver()\n    -- MainSceneContext 在 USER_LOGIN 通知之后创建，在线登录需要在这里补一次首拉。\n    if _G.kUserLogin then\n        self:_requestPredictionData(\"login_init\")\n    end\n\n    local targetDate = self:_getTargetDate()\n    local getPredictions = self:getModel():getPredictions()\n    -- printx(33, \"AIPopupManager:_init\", targetDate, tts(getPredictions))\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/aipopup/AIPopupManager.lua",
+          "line": 38,
+          "sha256": "d857cbf0bee1206f84bddfc3582b60e2eeed5f102a22f9e744223c0c70581388",
+          "function": "function Manager:_registerEvents()",
+          "body": "function Manager:_registerEvents()\n    if self._eventsRegistered then return end\n    _G.amfEC:registerNormal(NormalEvent.USER_LOGIN, self.onUserLogin, self)\n    _G.amfEC:registerFeature(self)\n    _G.amfEC:registerSystem(self)\n    AutoPopEventCenter:register(AutoPopEvent.POPUP_WILL_SHOW, self.onAutoPopupWillShow, self)\n    self._eventsRegistered = true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/aipopup/AIPopupManager.lua",
+          "line": 47,
+          "sha256": "d857cbf0bee1206f84bddfc3582b60e2eeed5f102a22f9e744223c0c70581388",
+          "function": "function Manager:_installResolver()",
+          "body": "function Manager:_installResolver()\n    if self._resolverInstalled then\n        return\n    end\n\n    self._autoPopupMgr:setPopupScheduleResolver(function(candidates, context)\n        return self:resolveSchedule(candidates, context)\n    end)\n    self._resolverInstalled = true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/aipopup/AIPopupManager.lua",
+          "line": 58,
+          "sha256": "d857cbf0bee1206f84bddfc3582b60e2eeed5f102a22f9e744223c0c70581388",
+          "function": "function Manager:isEnabled()",
+          "body": "function Manager:isEnabled()\n    return self:getModel():isDataEnabled()\nend\n\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "canteen",
+      "ids": [
+        3068
+      ],
+      "classification": "可调用强弹业务钩子；上游动态接线未取得",
+      "verified_behavior": "isEnabled=数据可用且下载成功。stage3须可开限时菜谱、data:canTriger且不在限时；stage4可做菜且日引流标记未置，或限时内通过次数>=3且日礼包标记未置。两者同满足先礼包再引流。",
+      "remaining_gap": "已读check/pop实现；本包没有取得活动动态Config实际将这些函数接入哪条AP配置，不能断言上线必触发。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/canteen/CanteenManager.lua",
+          "line": 320,
+          "sha256": "6db55b564b6c7dde644b8a0cf760e65cb00e0ba41070f23c47938dda3c8a40bd",
+          "function": "function Manager:isEnabled()",
+          "body": "function Manager:isEnabled()\n    local isLogicEnabled = self:getModel():isDataEnabled()\n    local isResEnabeld = self.downloadPlug:checkDownloadSuccess()\n    if isLogicEnabled and not isResEnabeld then\n        self:callPlug(\"Download\",\"startDownload\")\n    end\n    return isLogicEnabled and isResEnabeld\nend\n\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/canteen/CanteenManager.lua",
+          "line": 1274,
+          "sha256": "6db55b564b6c7dde644b8a0cf760e65cb00e0ba41070f23c47938dda3c8a40bd",
+          "function": "function Manager:checkPopFunctionStage3()",
+          "body": "function Manager:checkPopFunctionStage3()\n    if not self:isEnabled() then\n        return\n    end\n\n\n    if not self:canOpenLimitMenu() then\n        self:logD('场景 3 不能开启限时菜谱')\n        return false\n    end\n\n    if self:getData():canTriger() and not self:isInLimitTime() then\n        return true\n    end\n\n    return false\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/canteen/CanteenManager.lua",
+          "line": 1386,
+          "sha256": "6db55b564b6c7dde644b8a0cf760e65cb00e0ba41070f23c47938dda3c8a40bd",
+          "function": "function Manager:checkPopFunctionStage4()",
+          "body": "function Manager:checkPopFunctionStage4()\n    local canPopYinliu = self:canPopYinliu()\n    local canPopGiftPanel = self:canPopGiftPanel()\n    return canPopYinliu or canPopGiftPanel\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/canteen/CanteenManager.lua",
+          "line": 1392,
+          "sha256": "6db55b564b6c7dde644b8a0cf760e65cb00e0ba41070f23c47938dda3c8a40bd",
+          "function": "function Manager:canPopGiftPanel()",
+          "body": "function Manager:canPopGiftPanel()\n    if self:getData():getDailyCache(self:getConst().popGiftStage4Key,false) then\n        self:logD('场景 4 礼包 今日弹出过')\n        return false\n    end\n\n    if not self:isInLimitTime() then\n        self:logD('场景 4 礼包 不在开启时间')\n        return false\n    end\n\n\tlocal passLevelTime = self:getData():getDailyCache(self:getConst().limitTimePassLevelKey,0)\n    if passLevelTime < self:getConst().giftPopoutLimit then\n        self:logD('场景 4 礼包 过关次数不足',passLevelTime)\n        return false\n    end\n    return true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/canteen/CanteenManager.lua",
+          "line": 1411,
+          "sha256": "6db55b564b6c7dde644b8a0cf760e65cb00e0ba41070f23c47938dda3c8a40bd",
+          "function": "function Manager:canPopYinliu()",
+          "body": "function Manager:canPopYinliu()\n    if self:getData():getDailyCache(self:getConst().popYinLiuStage4Key,false) then\n        self:logD('场景 4 引流 今日弹出过')\n        return false\n    end\n\n\n    if not  self:canMakeMenu() then\n        self:logD('场景 4 引流 没法制作')\n        return false\n    end\n    return true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/canteen/CanteenManager.lua",
+          "line": 1425,
+          "sha256": "6db55b564b6c7dde644b8a0cf760e65cb00e0ba41070f23c47938dda3c8a40bd",
+          "function": "function Manager:popFunctionStage4(onHandleOver2)",
+          "body": "function Manager:popFunctionStage4(onHandleOver2)\n    if not self:isEnabled() then\n        safeRunCall(onHandleOver2)\n        return\n    end\n    local canPopYinliu = self:canPopYinliu()\n    local canPopGiftPanel = self:canPopGiftPanel()\n\n    if canPopYinliu and canPopGiftPanel then\n        self:popGiftPanelStage4(function()\n            self:popYinliuStage4(onHandleOver2)\n        end)\n    elseif canPopYinliu then\n        self:popYinliuStage4(onHandleOver2)\n    else\n        self:popGiftPanelStage4(onHandleOver2)\n    end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/canteen/CanteenManager.lua",
+          "line": 1444,
+          "sha256": "6db55b564b6c7dde644b8a0cf760e65cb00e0ba41070f23c47938dda3c8a40bd",
+          "function": "function Manager:popGiftPanelStage4(done)",
+          "body": "function Manager:popGiftPanelStage4(done)\n    if not self:isEnabled() then\n        safeRunCall(done)\n        return\n    end\n    self:getData():setDailyCache(self:getConst().popGiftStage4Key,true)\n    return self:popGiftPanel(done)\nend\n\n\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/canteen/CanteenManager.lua",
+          "line": 1455,
+          "sha256": "6db55b564b6c7dde644b8a0cf760e65cb00e0ba41070f23c47938dda3c8a40bd",
+          "function": "function Manager:popYinliuStage4(done)",
+          "body": "function Manager:popYinliuStage4(done)\n    if not self:isEnabled() then\n        safeRunCall(done)\n        return\n    end\n    self:getData():setDailyCache(self:getConst().popYinLiuStage4Key,true)\n    -- self.dcHelper:sendDC(\"chef_god\",'attract_panel_show')\n    self:showYinliuStage4(done)\n\nend\n"
+        },
+        {
+          "path": "amf/feature/localactivity/canteen/config/Meta.lua",
+          "line": 156,
+          "sha256": "3071a976d115684cd46d4dae8d278f5d73bb0a98dc8b1ecd6b00610b506a861a",
+          "excerpt": "Meta.giftPopoutLimit = 3\n\n\nMeta.materialName = {\n    [Meta.materialIds.material_N_1_1] = '鸡蛋',\n    [Meta.materialIds.material_N_1_2] = '青菜',\n    [Meta.materialIds.material_N_1_3] = '面粉',\n    [Meta.materialIds.material_N_1_4] = '蘑菇',\n    [Meta.materialIds.material_N_2_1] = '猪肉',\n    [Meta.materialIds.material_N_2_2] = '鸡肉',\n    [Meta.materialIds.material_N_3_1] = '鱼',\n    [Meta.materialIds.material_N_3_2] = '扇贝',\n    [Meta.materialIds.kSpA] = '万能食材A',\n    [Meta.materialIds.kSpB] = '万能食材B',\n\n    [Meta.materialIds.material_EX_A_12] = '蒜',\n    [Meta.materialIds.material_EX_A_13] = '葱',\n    [Meta.materialIds.material_EX_A_20] = '金针菇',\n    [Meta.materialIds.material_EX_B_12] = '虾',\n    [Meta.materialIds.material_EX_B_13] = '鸭子',\n    [Meta.materialIds.material_EX_B_20] = '肥牛',\n\n\n    [Meta.materialIds.material_EX_A_21_22] = '面团',\n    [Meta.materialIds.material_EX_B_21] = '豆沙',\n    [Meta.materialIds.material_EX_B_22] = '果仁',\n    [Meta.materialIds.material_EX_B_23] = '馅料',\n}\n\nMeta.materialDesc = {\n    [Meta.materialIds.material_N_1_1] = '闯关获得',\n    [Meta.materialIds.material_N_1_2] = '闯关获得',\n    [Meta.materialIds.material_N_1_3] = '闯关获得',\n    [Meta.materialIds.material_N_1_4] = '闯关获得',\n    [Meta.materialIds.material_N_2_1] = '三星通关获得',\n    [Meta.materialIds.material_N_2_2] = '三星通关获得',\n    [Meta.materialIds.material_N_3_1] = '彩星通关获得',\n    [Meta.materialIds.material_N_3_2] = '彩星通关获得',\n    [Meta.materialIds.kSpA] = '三星或彩星通关获得',\n    [Meta.materialIds.kSpB] = '三星或彩星通关获得',\n\n    [Meta.materialIds.material_EX_A_12] = '闯关获得',\n    [Meta.materialIds.material_EX_A_13] = '闯关获得',\n    [Meta.materialIds.material_EX_A_20] = '闯关获得',\n    [Meta.materialIds.material_EX_B_12] = '三星或彩星通关获得',\n    [Meta.materialIds.material_EX_B_13] = '三星或彩星通关获得',\n    [Meta.materialIds.material_EX_B_20] = '三星或彩星通关获得',\n\n    [Meta.materialIds.material_EX_A_21_22] = '闯关获得',\n    [Meta.materialIds.material_EX_B_21] = '三星或彩星通关获得',\n    [Meta.materialIds.material_EX_B_22] = '三星或彩星通关获得',\n    [Meta.materialIds.material_EX_B_23] = '三星或彩星通关获得',\n}\n\nMeta.materialBgRes = {\n    [Meta.materialIds.material_N_1_1] = 'level_1.png',\n    [Meta.materialIds.material_N_1_2] = 'level_1.png',\n    [Meta.materialIds.material_N_1_3] = 'level_1.png',\n    [Meta.materialIds.material_N_1_4] = 'level_1.png',\n    [Meta.materialIds.material_N_2_1] = 'level_2.png',\n    [Meta.materialIds.material_N_2_2] = 'level_2.png',\n    [Meta.materialIds.material_N_3_1] = 'level_3.png',\n    [Meta.materialIds.material_N_3_2] = 'level_4.png',\n\n    [Meta.materialIds.material_EX_A_12] = 'level_5.png',\n    [Meta.materialIds.material_EX_A_13] = 'level_5.png',\n    [Meta.materialIds.material_EX_A_20] = 'level_5.png',\n\n    [Meta.materialIds.material_EX_B_12] = 'level_6.png',\n    [Meta.materialIds.material_EX_B_13] = 'level_6.png',\n    [Meta.materialIds.material_EX_B_20] = 'level_6.png',"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "cloudmusictask",
+      "ids": [],
+      "classification": "渠道任务上报基础功能",
+      "verified_behavior": "初始化监听COMMON_LOGIN_SUCCESS及SystemOpenUrl；解析app/mini_game来源，encryptUid变更重置elapsed；已登录则上报login类型并syncTimer。",
+      "remaining_gap": "此Manager主体为渠道上报，未发现其承担弹活动面板；不能据此排除外部渠道页面。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/cloudmusictask/CloudMusicTaskReportManager.lua",
+          "line": 16,
+          "sha256": "b2d25769dcc9c2d9605a664bef310ae5b34f0cc185c2d047db1e646abbd78f14",
+          "function": "function Manager:initialize()",
+          "body": "function Manager:initialize()\n    self.model = Model:create()\n    LoginEventCenter:register(LoginEvent.Login.COMMON_LOGIN_SUCCESS, self.onLoginSuccess, self)\n    _G.amfEC:registerSystem(self)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/cloudmusictask/CloudMusicTaskReportManager.lua",
+          "line": 22,
+          "sha256": "b2d25769dcc9c2d9605a664bef310ae5b34f0cc185c2d047db1e646abbd78f14",
+          "function": "function Manager:onSystemOpenUrl(event)",
+          "body": "function Manager:onSystemOpenUrl(event)\n    local data = event:getData()\n    local launch\n    if data.source == \"app\" then\n        launch = self:parseLaunchParams(data.payload)\n    elseif data.source == \"mini_game\" then\n        launch = self:parseMiniGameLaunchParams(data.payload)\n    end\n    if not launch then return end\n    if not self.launch or self.launch.encryptUid ~= launch.encryptUid then self.elapsed = 0 end\n    self.launch = launch\n    if _G.kUserLogin then self:requestCloudMusicTaskReport2026(Const.REPORT_TYPE_LOGIN) end\n    self:syncTimer()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/cloudmusictask/CloudMusicTaskReportManager.lua",
+          "line": 37,
+          "sha256": "b2d25769dcc9c2d9605a664bef310ae5b34f0cc185c2d047db1e646abbd78f14",
+          "function": "function Manager:onLoginSuccess()",
+          "body": "function Manager:onLoginSuccess()\n    if self.launch then self:requestCloudMusicTaskReport2026(Const.REPORT_TYPE_LOGIN) end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/cloudmusictask/CloudMusicTaskReportManager.lua",
+          "line": 71,
+          "sha256": "b2d25769dcc9c2d9605a664bef310ae5b34f0cc185c2d047db1e646abbd78f14",
+          "function": "function Manager:syncTimer()",
+          "body": "function Manager:syncTimer()\n    local shouldRun = self.launch and self.foreground and self.elapsed < Const.ONLINE_SECONDS\n    if shouldRun and not self.timerId then\n        self.timerId = TimerUtil.addAlarm(function()\n            self.elapsed = self.elapsed + 1\n            if self.elapsed >= Const.ONLINE_SECONDS then\n                self:requestCloudMusicTaskReport2026(Const.REPORT_TYPE_ONLINE)\n                self:syncTimer()\n            end\n        end, 1, 0)\n    elseif not shouldRun and self.timerId then\n        TimerUtil.removeAlarm(self.timerId)\n        self.timerId = nil\n    end\nend\n\nreturn Manager\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "dailygift",
+      "ids": [
+        5320
+      ],
+      "classification": "分享回流/手动委托",
+      "verified_behavior": "初始化注册ACT_INFOS_UPDATE并创建ResponseDailyShareHandler；isEnabled要求actInfo非空。分享Handler预检Manager启用，进入后showRequestSharePanel；帮助限次接口返回2。",
+      "remaining_gap": "Handler返回2的公共统计窗未在本分支展开，不写每日2次；未闭合动态活动自动推送配置。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/dailygift/DailyGiftShareManager.lua",
+          "line": 17,
+          "sha256": "c86398083ddd50e0ba593b32005fb2f2532ad273c24d435ec8050d8886c94e8b",
+          "function": "function Manager:initialize()",
+          "body": "function Manager:initialize()\n    self:registerEvent()\n    self.dataModel = require(\"amf.feature.localactivity.dailygift.model.Model\"):create()\n\n    -- 分享\n    require (\"amf.feature.localactivity.dailygift.share.ResponseDailyShareHandler\"):create()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/dailygift/DailyGiftShareManager.lua",
+          "line": 25,
+          "sha256": "c86398083ddd50e0ba593b32005fb2f2532ad273c24d435ec8050d8886c94e8b",
+          "function": "function Manager:registerEvent()",
+          "body": "function Manager:registerEvent()\n    local ActivityEventCenter = require \"amf.middleware.activity.event.ActivityEventCenter\"\n    _G.amfEC:registerFeature(self)\n    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/dailygift/DailyGiftShareManager.lua",
+          "line": 59,
+          "sha256": "c86398083ddd50e0ba593b32005fb2f2532ad273c24d435ec8050d8886c94e8b",
+          "function": "function Manager:isEnabled()",
+          "body": "function Manager:isEnabled()\n    local actInfo = self:getActInfo()\n    return actInfo and not table.isEmpty(actInfo)\nend\n\n-- 打点\n"
+        },
+        {
+          "path": "amf/feature/localactivity/dailygift/DailyGiftShareManager.lua",
+          "line": 404,
+          "sha256": "c86398083ddd50e0ba593b32005fb2f2532ad273c24d435ec8050d8886c94e8b",
+          "function": "function Manager:showRequestSharePanel(shareKey, isMine, closeCallback, userClick)",
+          "body": "function Manager:showRequestSharePanel(shareKey, isMine, closeCallback, userClick)\n    if not self:isEnabled() or (isMine and not self:getDataModel():isDataEnabled()) then\n        if EnvUtil:isDevelopMode() then\n            CommonTip:showTip(\"data is not enabled\")\n        end\n        safeRunCall(closeCallback)\n        return\n    end\n    if not shareKey then\n        if EnvUtil:isDevelopMode() then\n            CommonTip:showTip(\"shareKey is nil\")\n        end\n        safeRunCall(closeCallback)\n        return\n    end\n    local function onRequestSuccess(data)\n        local code = data.code\n        if tonumber(code) > 0 then\n            local errStr\n            if tonumber(code) == 1 then\n                errStr = \"活动已结束～\"\n            elseif tonumber(code) == 2 then\n                errStr = \"链接失效啦，请好友重新分享吧～\"\n            elseif tonumber(code) == 3 then\n                errStr = \"已经领取过该好友的礼物啦～\"\n            elseif tonumber(code) == 4 then\n                errStr = \"礼物已经被其他人领走了~\"\n            elseif tonumber(code) == 5 then\n                errStr = \"今日领取次数已达上限\"\n            else\n                errStr = \"数据错误，请稍后重试～\"\n            end\n            if not isMine then\n                self:showResponseFailPanel(errStr, closeCallback)\n            else\n                safeRunCall(closeCallback)\n            end\n            return\n        end\n\n        if isMine then\n            self:openRequestSharePanel(data, closeCallback, userClick)\n        else\n            self:openResponseSharePanel(data, closeCallback, userClick)\n        end\n    end\n    local function onRequestFail(errorCode)\n        if not isMine and errorCode then\n            local errMsg = localize(\"error.tip.\" .. tostring(errorCode))\n            self:showResponseFailPanel(errMsg, closeCallback)\n        else\n            safeRunCall(closeCallback)\n        end\n    end\n    local function onRequestCancel()\n        safeRunCall(closeCallback)\n    end\n    self:requestOpenInfo(shareKey, isMine, onRequestSuccess, onRequestFail, onRequestCancel, false)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/dailygift/DailyGiftShareManager.lua",
+          "line": 490,
+          "sha256": "c86398083ddd50e0ba593b32005fb2f2532ad273c24d435ec8050d8886c94e8b",
+          "function": "function Manager:openRequestSharePanel(data, closeCallback, userClick)",
+          "body": "function Manager:openRequestSharePanel(data, closeCallback, userClick)\n    local CommonShareActPanelVM = require(\"amf.feature.localactivity.dailygift.view.vm.CommonShareActPanelVM\")\n    local vm\n    local endTime = getDayStartTimeByTS(TimeKit:timeInSec()) + 86400\n\n    local delegate = {\n        userClick = userClick,\n        title = \"每日礼物\",\n        subTitle = \"选1个奖励领取，剩下的分享给好友\",\n        todayShareLimitCount = 5,\n        endTimeSec = endTime,\n        getHelpRecordListFunc = function ()\n            return self:getDataModel():getHelpRecordList()\n        end,\n        progressConfig = self:getDataModel():getProgressConfig(),\n        rewardConfig = self:getDataModel():getRewardConfig(),\n        createIconFunc = function(reward)\n            reward.needNum = true\n            return self:createIcon(reward)\n        end,\n        progressCurNumFunc = function(index)\n            return self:getDataModel():getProgressCurNum()\n        end,\n        progressRewardHasGotFunc = function(index)\n            return self:getDataModel():getProgressRewardHasGot(index)\n        end,\n        getProgressRewardFunc = function(index, node, done)\n            self:requestGetProgressReward(index, done)\n        end,\n        getMyGotIndexFunc = function()\n            return self:getDataModel():getMyGotIndex()\n        end,\n        getRewardFunc = function(index, node, done)\n            -- 点自己的礼物 info返回数据存本地\n            self:requestSelectReward(index, nil, true, function(data)\n                local code = data.code\n                safeRunCall(done, code)\n            end, function(data)\n                local code = data.code\n                safeRunCall(done, code)\n            end)\n        end,\n        shareWXFunc = function(index, node, successCallback, failCallback)\n            local texts = {\n                \"sharekey复制w口令进入开心消消乐y，f领取好友送来的奖励c！\",\n                \"sharekey复制w口令进入开心消消乐y，f领取奖励c！\"\n            }\n            local text = texts[math.random(1, #texts)]\n            local shareKey = self:getDataModel():getShareKey()\n            local context = OpenShareContext.new(OpenShareConst.ShareType.DAILY_GIFT, OpenShareConst.ShareTarget.WXToken)\n                :setActId(DailyGiftShareConst.ACT_ID)\n                :setTextParams(\"\", text)\n                :setAskHelpParams(shareKey, {}, DailyGiftShareConst.SHARE_ID)\n                :setShareCallback(successCallback, failCallback)\n            _G.amfTransaction(TransactionEvent.SHARE, context)\n        end,\n        shareWXLinkFunc = function(index, node, successCallback, failCallback)\n            local texts =  {\n                \"您有一份好友送来的新春礼物，请查收\",\n                \"狮来运转迎新年，愿你岁岁都欢颜！点击收下礼物吧\",\n                \"快快点击链接领取我送你的礼物吧！\"\n            }\n            local text = texts[math.random(1, #texts)]\n            local shareKey = self:getDataModel():getShareKey()\n            local context = OpenShareContext.new(OpenShareConst.ShareType.DAILY_GIFT, OpenShareConst.ShareTarget.MINI)\n                :setActId(DailyGiftShareConst.ACT_ID)\n                :setTextParams(text)\n                :setAskHelpParams(shareKey, {}, DailyGiftShareConst.SHARE_ID)\n                :setShareCallback(successCallback, failCallback)\n            if EnvUtil:isMiniGame() then\n                self:getWXMiniShareImg(function(path)\n                    context:setMiniParams({\n                        imageUrl = path,\n                    })\n                end)\n            else\n                self:getWXAppShareImg(function(path, thumb)\n                    context:setMiniParams({\n                        imageUrl = path\n                    })\n                end)\n            end\n            _G.amfTransaction(TransactionEvent.SHARE, context)\n        end,\n        shareWBFunc = function (index, node, successCallback, failCallback)\n            local texts =  {\n                \"快来开心消消乐领取我送你的新年礼物吧！\",\n                \"This is bonus time！！！\",\n                \"您有一份开心村寄来的礼物，请查收\"\n            }\n            local text = texts[math.random(1, #texts)]\n            local shareKey = self:getDataModel():getShareKey()\n            local context = OpenShareContext.new(OpenShareConst.ShareType.DAILY_GIFT, OpenShareConst.ShareTarget.WB)\n                :setActId(DailyGiftShareConst.ACT_ID)\n                :setTextParams(\"\", text)\n                :setAskHelpParams(shareKey, {}, DailyGiftShareConst.SHARE_ID)\n                :setWbUrlParam(Meta.WBShareUrl, {})\n                :setShareCallback(successCallback, failCallback)\n            self:getWBShareImg(function(path, thumb)\n                context:setImgParams(thumb, path)\n                _G.amfTransaction(TransactionEvent.SHARE, context)\n            end)\n        end,\n        closeCallback = closeCallback,\n    }\n\n    vm = CommonShareActPanelVM:create(delegate)\n    vm:setLoadResFailCallback(function()\n        if EnvUtil:isDevelopMode() then\n            CommonTip:showTip(\"打开失败了~\")\n        end\n        safeRunCall(closeCallback)\n    end)\n    vm:popout()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/dailygift/share/ResponseDailyShareHandler.lua",
+          "line": 1,
+          "sha256": "7279709c10efea8b02dd1b2ab67650b2d6af106038f4e2a6b554ad68ad41f44a",
+          "excerpt": "local ResponseActShareCommonHandler = require \"amf.middleware.share.openshare.handler.ResponseActShareCommonHandler\"\nlocal Handler = class(\"ResponseWordSpeedShareHandler\", ResponseActShareCommonHandler)\n\nfunction Handler:getActId()\n    return DailyGiftShareConst.ACT_ID\nend\n\nfunction Handler:getActSource()\n    return \"\"\nend\n-- 帮助次数限制\nfunction Handler:getLimitNum()\n    return 2\nend\n\nfunction Handler:getActName()\n    return \"疯狂开红包\"\nend\n\nfunction Handler:getShareType()\n    return OpenShareConst.ShareType.DAILY_GIFT\nend\n\nfunction Handler:preCheck(query)\n    local mgr = _G.amfBean(\"DailyGiftShareManager\")\n    if not mgr or not mgr:isEnabled() then return end\n    return ResponseActShareCommonHandler.preCheck(self, query)\nend\n\nfunction Handler:responseHelpProcess(query)\n    local mgr = _G.amfBean(\"DailyGiftShareManager\")\n    if not mgr or not mgr:isEnabled() then return end\n    mgr:showRequestSharePanel(query.shareKey, false)\nend\n\nreturn Handler"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "douyindown",
+      "ids": [
+        21001
+      ],
+      "classification": "购买成功直接触发，绕开声明式注册",
+      "verified_behavior": "监听PAYMENT_SUCCESS，goodsId存在且isRmb，平台为抖音Android小游戏、bundleVersion第二段>=158且actInfo存在；SDK下载礼包资格成功后，主场景且当日未弹、累计计数<14才showPanel。2秒防重复。",
+      "remaining_gap": "showPanel中非手点时先写累计+1与当日标记，再调用SDK检查和展示，因此失败也可能消耗记录；不把14解释为每日上限。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/douyindown/DouyinDownManager.lua",
+          "line": 11,
+          "sha256": "d0b4df52e18c694a79533c25df91e8fdd8b37fdf988b4f0e764d179ade76e8f8",
+          "function": "function DouyinDownManager:_init()",
+          "body": "function DouyinDownManager:_init()\n\n\tActivityEventCenter:registerGlobal(NormalEvent.PAYMENT_SUCCESS, self.onOrderSuccess, self)\n\n    self.douyinDownSupport = DouyinDownSupport:create(self)\n    self.douyinDownShowPanel = DouyinDownShowPanel:create(self)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/douyindown/DouyinDownManager.lua",
+          "line": 27,
+          "sha256": "d0b4df52e18c694a79533c25df91e8fdd8b37fdf988b4f0e764d179ade76e8f8",
+          "function": "function DouyinDownManager:isSupport()",
+          "body": "function DouyinDownManager:isSupport()\n    return self.douyinDownSupport:isSupport()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/douyindown/DouyinDownManager.lua",
+          "line": 46,
+          "sha256": "d0b4df52e18c694a79533c25df91e8fdd8b37fdf988b4f0e764d179ade76e8f8",
+          "function": "function DouyinDownManager:showPanelOnMainScene(userClick, endCallback, extra, resumeData)",
+          "body": "function DouyinDownManager:showPanelOnMainScene(userClick, endCallback, extra, resumeData)\n    if not self:isInMainScene() then\n        safeRunCall(endCallback)\n        return\n    end\n    if not self:getModel():checkCanPopMainPanel() then\n        safeRunCall(endCallback)\n        return\n    end\n    self:showPanel(userClick, endCallback, extra, resumeData)\nend\n\n-- 购买成功\n"
+        },
+        {
+          "path": "amf/feature/localactivity/douyindown/DouyinDownManager.lua",
+          "line": 59,
+          "sha256": "d0b4df52e18c694a79533c25df91e8fdd8b37fdf988b4f0e764d179ade76e8f8",
+          "function": "function DouyinDownManager:onOrderSuccess(event)",
+          "body": "function DouyinDownManager:onOrderSuccess(event)\n    local data = event:getData()\n    if not data or not data.goodsId then return end\n\n    local goodsId = data.goodsId\n    local payType = data.payType\n    local isRmb = data.isRmb\n    if not isRmb then return end\n    if not self.douyinDownSupport:isBaseSupport() then return end\n\n    if self.douyinDownSupport:hasCheckedSucceeded() then\n        self:showPanelOnMainScene(false)\n        return\n    end\n\n    self.douyinDownSupport:recheckDownloadGiftEnabled(function(succeeded)\n        if succeeded then\n            self:showPanelOnMainScene(false)\n        end\n    end)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/douyindown/module/DouyinDownSupport.lua",
+          "line": 16,
+          "sha256": "b14eb908b55ebb2e44a9ef38a044777334d72e226630d9b1ec69154a224add9c",
+          "excerpt": "function DouyinDownSupport:isBaseSupport()\n    if not self:isPlatformSupport() then return false end\n    if not self:isVersionSupport() then return false end\n    if not self.mgr:getActInfo() then return false end\n    return true\nend\n\nfunction DouyinDownSupport:isSupport()\n    if not self:isBaseSupport() then return false end\n\n    --没取就先取，取完再创建icon\n    if not self.bHasSent then\n        self:checkDownloadGiftEnabled()\n        self.bHasSent = true\n        return false\n    end\n\n    if not self.bGetSucceeded then return false end\n\n    return true\nend\n\nfunction DouyinDownSupport:hasCheckedSucceeded()\n    return self.bHasSent and self.bGetSucceeded\nend\n\nfunction DouyinDownSupport:isVersionSupport()\n    local ver = tonumber(string.split(_G.bundleVersion, \".\")[2])\n    return ver >= self.mgr:getConst().minVer\nend\n\nfunction DouyinDownSupport:isPlatformSupport()\n    if not ( EnvUtil:isMiniGameAndroid() and EnvUtil:isDYMiniGame() ) then return false end\n    return true\nend\n\nfunction DouyinDownSupport:refreshActivityEntry()\n    local ActivityEventCenter = require \"amf.middleware.activity.event.ActivityEventCenter\"\n    ActivityEventCenter:dispatch(ActivityEvent.UPDATE_SINGLE_ACTIVITY,{actId = self.mgr:getConst().ACT_ID})\nend\n\nfunction DouyinDownSupport:resetCheckState()\n    self.bHasSent = false\n    self.bGetSucceeded = false\nend\n\nfunction DouyinDownSupport:recheckDownloadGiftEnabled(callback)\n    self:resetCheckState()\n    self.bHasSent = true\n    self:checkDownloadGiftEnabled(callback)\nend\n\nfunction DouyinDownSupport:checkDownloadGiftEnabled(callback)\n\n    self.mgr:sendDC(\"dy_manage_download\", \"request\")\n\n    local giftId = self.mgr:getConst().GiftId\n\n    CALL_EASY_JS_ASYNC(\n        \"globalThis.animalPlugin.sdkManager.checkDownloadGiftEnabled\",\n        function(result)\n            local r = table.deserialize(result)\n            if r and r.errCode == 0 then\n                self.bGetSucceeded = true\n\n                self:refreshActivityEntry()\n\n                self.mgr:sendDC(\"dy_manage_download\", \"result\", {t1=1})\n                safeRunCall(callback, true)\n            else\n                self.bGetSucceeded = false"
+        },
+        {
+          "path": "amf/feature/localactivity/douyindown/module/DouyinDownShowPanel.lua",
+          "line": 14,
+          "sha256": "5daba372a84feb050718daf17d0ab54e4f1706c70b21b558896c9304dda6ce16",
+          "excerpt": "function DouyinDownShowPanel:showPanel(userClick, endCallback, extra, resumeData)\n\n    local now = TimeKit:timeInSec()\n    if self._lastShowDownloadTime and (now - self._lastShowDownloadTime) < 2 then\n        safeRunCall(endCallback)\n        return\n    end\n    self._lastShowDownloadTime = now\n\n    require 'amf.middleware.multiplatform.system.mini.bytedancetransfer.BytedanceTransferDownload'\n\n    local giftId = self.mgr:getConst().GiftId\n\n    if userClick then\n        self.mgr:sendDC(\"dy_manage_download\", \"icon_click\")\n    else\n        self.mgr:sendDC(\"dy_manage_download\", \"download_popup\")\n\n        local saveModel = self.mgr:getModel()\n        local todayPopNum = saveModel:getPopNum()\n        local newNum = todayPopNum + 1\n        saveModel:setShowPanelSucess(newNum)\n    end\n\n    _G.BytedanceTransferDownload.checkDownloadGiftEnabled(giftId, {\n        onSuccess = function(data)\n            _G.BytedanceTransferDownload.showDownloadGift(giftId, {\n                onSuccess = function()\n                    safeRunCall(endCallback)\n                end,\n                onError = function(errCode, errMsg)\n                    safeRunCall(endCallback)\n                end\n            })\n        end,\n        onError = function(errCode, errMsg)\n            if userClick then\n                CommonTip:showTip(\"活动暂不可用~\")\n            end\n            safeRunCall(endCallback)\n        end\n    })\nend\n\nreturn DouyinDownShowPanel"
+        },
+        {
+          "path": "amf/feature/localactivity/douyindown/model/DouyinDownModel.lua",
+          "line": 26,
+          "sha256": "8a7ff599ef6fb37f0f62f0c8c1b49c4341a3c4a058ede9e3319e4c874f7ac2ab",
+          "excerpt": "function DouyinDownModel:getPopNum(  )\n\tlocal todayPopNum = self:getFlagFromLocalByKeyInt(\"autoPopMainPanel\", false, false)\n\treturn todayPopNum\nend\n\nfunction DouyinDownModel:setShowPanelSucess( newNum )\n\tself:saveFlagToLocalByKeyInt(\"autoPopMainPanel\", false, newNum, false)\n    self:saveFlagToLocalByKey(\"autoPopMainPanelDaily\", true, true)\nend\n\n\nfunction DouyinDownModel:checkCanPopMainPanel()\n    local todayPopNum = self:getFlagFromLocalByKeyInt(\"autoPopMainPanel\", false, false)\n    local todayHadPop = self:getFlagFromLocalByKey(\"autoPopMainPanelDaily\", true, false)\n\n    if todayHadPop then return end\n\n    if todayPopNum < self:getConst().AutoPopLimitNum then\n        return true\n    end\n    return false\nend\n\nreturn DouyinDownModel"
+        },
+        {
+          "path": "amf/feature/localactivity/douyindown/config/DouyinDownConfig.lua",
+          "line": 3,
+          "sha256": "2cbe7b221d23e34b380dc80e385d8be1342af6a223a9f603378a56be619d3e27",
+          "excerpt": "DouyinDownConfig.ACT_ID = 21001\nDouyinDownConfig.minVer = 158\nDouyinDownConfig.GiftId = \"7631582917092742190\"\nDouyinDownConfig.AutoPopLimitNum = 14\n\nreturn DouyinDownConfig"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "energyactv2",
+      "ids": [
+        7026
+      ],
+      "classification": "分享领奖消费者；动态活动入口未闭合",
+      "verified_behavior": "_init创建EnergyActV2AskHelpHandler。分享source为energyactv2/Config.lua、帮助限次接口返回3，preCheck允许自己帮助；请求奖励前校验extraParam.actId一致，之后接口奖励驱动展示/发奖。",
+      "remaining_gap": "此Manager中没有自主注册强弹；共享Handler与动态Config仍可能提供入口，不能概括为永不推送。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/energyactv2/EnergyActV2Mgr.lua",
+          "line": 16,
+          "sha256": "d9610d8113f10a86c7c81c5cb29aa8e47a66bbb453ebb80d8eb21c4bd4a29aef",
+          "function": "function Manager:_init()",
+          "body": "function Manager:_init()\n    require(\"amf.feature.localactivity.energyactv2.share.EnergyActV2AskHelpHandler\"):create()\nend\n\n--- 请求奖励\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyactv2/EnergyActV2Mgr.lua",
+          "line": 21,
+          "sha256": "d9610d8113f10a86c7c81c5cb29aa8e47a66bbb453ebb80d8eb21c4bd4a29aef",
+          "function": "function Manager:getReward(params, successHandler, sucCb, failCb, cancelCb)",
+          "body": "function Manager:getReward(params, successHandler, sucCb, failCb, cancelCb)\n    local function onSuccess(evt)\n        if not evt.data then return end\n        local rewards = evt.data.rewards or {}\n        self:addRewards(rewards, params.type, params.dcSource)\n        safeRunCall(successHandler, rewards, evt)\n        self:checkDataAfterHttp(evt)\n        local t2\n        if params.type == 3 then\n            t2 = 2\n        end\n        Dc:featureDc(\"help_success\", params.inviteCode, t2)\n        safeRunCall(sucCb, rewards, params)\n    end\n\n    local function onFail(evt)\n        if not params or not (params.type == 3 or params.type == 4) then\n            self:showErrorTip(evt)\n        end\n        local t2\n        if params.type == 3 then\n            t2 = 2\n        end\n        Dc:featureDc(\"help_failed\", params.inviteCode, t2)\n        safeRunCall(failCb, evt)\n    end\n\n    Manager:requestServerData(\"amf.feature.localactivity.energyactv2.http.EnergyActV2RequestShareRewards\",\n            params, onSuccess, onFail, cancelCb)\nend\n\n-- 在线请求统一入口\n-- 强强表示必须一个协议一个Request文件，自己建request去吧\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyactv2/EnergyActV2Mgr.lua",
+          "line": 54,
+          "sha256": "d9610d8113f10a86c7c81c5cb29aa8e47a66bbb453ebb80d8eb21c4bd4a29aef",
+          "function": "function Manager:requestServerData(requestClassPath, reqParams, onSuccess, onFail, onCancel, noLoading)",
+          "body": "function Manager:requestServerData(requestClassPath, reqParams, onSuccess, onFail, onCancel, noLoading)\n    if noLoading == nil then noLoading = true end\n    local request = require(requestClassPath)\n    request:post(reqParams, nil, not noLoading):next(onSuccess, function(response)\n        if response:isCancel() then\n            safeRunCall(onCancel, response)\n        else\n            safeRunCall(onFail, response)\n        end\n    end)\nend\n\n--- 添加奖励\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyactv2/share/EnergyActV2AskHelpHandler.lua",
+          "line": 19,
+          "sha256": "de51650577c5606a2afe41eaff0367d1442c6132fc5bf197a0523840872a0432",
+          "excerpt": "function Handler:init()\n    baseShareHandler.init(self)\n    OpenShareEventCenter:register(OpenShareEvent.DC_SHARE_ENTERGAME, self.onDcShareEnterGame, self)\nend\n\n-- 必须返回string\nfunction Handler:getActId()\n    return config.actId\nend\n\nfunction Handler:getShareType()\n    return config.shareType\nend\n\nfunction Handler:getActSource()\n    return \"energyactv2/Config.lua\"\nend\n\n-- 帮助次数限制\nfunction Handler:getLimitNum()\n    return 3\nend\n\nfunction Handler:preCheck(query)\n    -- 本活动，允许帮助自己\n    return true\nend\n\nfunction Handler:responsePureShareProcess(query)\n    self:responseHelpProcess(query)\nend\n\nfunction Handler:responseHelpProcess(query)\n    if not query then return end\n    local resHelpContext = self:makeResHelpContext(query)\n    self:requestGetShareReward(resHelpContext)\nend\n\n-- 领奖http\nfunction Handler:requestGetShareReward(resHelpContext)\n    Manager = _G.amfBean(\"EnergyActV2Mgr\")\n    --- 解析奖励数据\n    local data = resHelpContext or {}\n    if not data.extraParam or not data.extraParam.actId or tonumber(data.extraParam.actId) ~= config.actId then return end\n    local shareData = {\n        shareKey = data.extraParam.shareKey,\n        inviteCode = data.extraParam.invitecode or data.extraParam.uid,\n        openId = data.extraParam.openId,\n        source = data.extraParam.WXToken and 1 or 2, -- 1-微信 2-微博\n    }\n    self:RequestRewardAndShow(shareData)\nend\n\n--region 处理3种分享领奖（分享码、小程序卡片、链接）\n\nfunction Handler:RequestRewardAndShow(shareData, done)\n    if not shareData then safeRunCall(done) return end\n\n    if shareData.shareKey then\n        self:handleCopyCodeShare(shareData, done) ---- 微信、微博、小游戏卡片\n    elseif shareData.inviteCode then\n        if shareData.openId then\n            self:handleMiniShare(shareData, done) ---- 原小程序的处理，兼容(可能废弃了，检查代码覆盖率后，可以删掉)\n        else\n            self:handleLinkShare(shareData, done) ---- Feed（朋友圈/QQ空间）\n        end\n    else\n        safeRunCall(done)\n    end\nend\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "energyfund",
+      "ids": [
+        8072
+      ],
+      "classification": "场景事件直接提示 + 外部可调弹窗钩子",
+      "verified_behavior": "onActEnterStage2在enabled2后直接checkAndRunEnterStage2→canPopOnStage2→popOnStage2→showIconTip。须主活动期、新关首发4小时内头部45关排除；大量精力提示要求当日未弹、累计<3、有未完成已解锁任务且已完成<=总任务一半。stage4可调主面板分组，或精力<5且未买VIP且该来源未弹。",
+      "remaining_gap": "stage2直接事件已闭合；stage3/4对外钩子调用者动态配置未取得。model/资源/任务计数的全部上游仍非此次全展开。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 243,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:checkAndRunEnterStage2()",
+          "body": "function Manager:checkAndRunEnterStage2()\n    if self:canPopOnStage2() then\n        self:popOnStage2()\n    end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 249,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:onActEnterStage2(evt)",
+          "body": "function Manager:onActEnterStage2(evt)\n    if not self:isEnabled2() then\n        return\n    end\n\n    self:updateIcon()\n    self:checkAndRunEnterStage2()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 368,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:isEnabled() ",
+          "body": "function Manager:isEnabled() \n    return self:getModel():isDataEnabled() and (self:isInMainTime() or self:isInRewardTime())\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 372,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:isEnabled2()",
+          "body": "function Manager:isEnabled2()\n    return self:getModel():isDataEnabled() and self:isInMainTime()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 557,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:canPopMainPanelStage4(needSave)",
+          "body": "function Manager:canPopMainPanelStage4(needSave)\n    local ret = false\n\n    if self:getModel():getCanPopMainPanelGroup() \n        and not self:getMainPanelOpened() \n        and not self:getMainPopStage4FromType(1) \n    then\n        ret = true\n        self:getModel():setTempData(\"popMainType\",1)\n        if needSave then self:setMainPopStage4FromType(1) end\n    end\n\n    if self._userEnergyManager:getEnergy() < 5 \n        and not self:hasBuyVip()\n        and not self:getMainPopStage4FromType(2) \n    then\n        ret = true\n        self:getModel():setTempData(\"popMainType\",2)\n        if needSave then self:setMainPopStage4FromType(2) end\n    end\n\n    return ret\nend\n\n----检查是否可领取大量精力\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 582,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:canPopGetMuchEnergy(popInfos)",
+          "body": "function Manager:canPopGetMuchEnergy(popInfos)\n    local popOneDay = self:getFlagFromLocalByKey(self:getConst().popGetMuchEnergyTimesOneDay,true)\n    local popAll = self:getFlagFromLocalByKey(self:getConst().popGetMuchEnergyAllTimes) or 0\n    if popOneDay or popAll>=3 then---今天有弹出精力提醒\n        return false\n    else--没弹\n        if self:hasUnfinishedTaskUnLocked() and self:getFinishedTaskNum() <= self:getAllTaskNum()/2 then\n            popInfos.popMuchEnergy = true\n            return true\n        else\n            return false\n        end\n    end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 597,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:checkCurTimeCanPop()",
+          "body": "function Manager:checkCurTimeCanPop()\n    local topLv = _G.amfBean(\"LevelUnLockManager\"):getLocalTopLevel(false)\n    local myTopLv = _G.getTopPassedLevelId()\n    if topLv - myTopLv <= 45 then\n        local lastOpenTime = _G.amfBean(\"LevelUnLockManager\"):getLastOpenNewLevelTime()\n        if lastOpenTime then\n            local diffTime = TimeKit:timeInSec() - lastOpenTime\n            if diffTime >= 0 and diffTime < 4 * 3600 then\n                return false\n            end\n        end\n    end\n    return true\nend\n\n------获取一系列已经显示过的页签\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 674,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:canPopOnStage4()",
+          "body": "function Manager:canPopOnStage4()\n    self.popInfos4 = {}\n    if not self:isInMainTime() then\n        return false\n    end\n    if not self:checkCurTimeCanPop() then\n        return false\n    end\n    if self:canPopMainPanelStage4() then\n        return true\n    end\n    self:canPopGetMuchEnergy(self.popInfos4)\n    self:canPopHasRewardEnergy34(self.popInfos4)\n    return not table.isEmpty(self.popInfos4)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 741,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:canPopOnStage2()",
+          "body": "function Manager:canPopOnStage2()\n    self.popInfos2 = {}\n    if not self:isInMainTime() then\n        return false\n    end\n    if not self:checkCurTimeCanPop() then\n        return false\n    end\n    self:canPopGetMuchEnergy(self.popInfos2)\n    self:canPopHasRewardEnergy2(self.popInfos2)\n    return not table.isEmpty(self.popInfos2)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 754,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:popOnStage2(callback)",
+          "body": "function Manager:popOnStage2(callback)\n    if self.popInfos2 then\n        local asyncRunner = AsyncRunner:create()\n        if self.popInfos2.popMuchEnergy then\n            asyncRunner:add(function(done)\n                self:setFlagToLocalByKey(self:getConst().popGetMuchEnergyTimesOneDay,true,true)\n                self:addIntToLocalByKey(self:getConst().popGetMuchEnergyAllTimes,false, 1)\n                self:showIconTip({\n                    type = self:getConst().showTipType.kShowTipType_Energy,\n                },done)\n            end)\n        end\n        if self.popInfos2.popHasRewardEnergy2 and not table.isEmpty(self.popInfos2.popHasRewardEnergy2) then\n            asyncRunner:add(function(done)\n                self:showIconTip({\n                    type = self:getConst().showTipType.kShowTipType_Get,\n                    max = self.popInfos2.popHasRewardEnergy2[1].total,\n                    value = self.popInfos2.popHasRewardEnergy2[1].total-1,\n                },done)\n                self:setHasPoped(self.popInfos2.popHasRewardEnergy2)\n            end)\n        end\n        asyncRunner:add(function(done)\n            safeRunCall(callback)\n            done()\n        end)\n        asyncRunner:run()\n    else\n        safeRunCall(callback)\n    end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/energyfund/EnergyFundManager.lua",
+          "line": 786,
+          "sha256": "217b7eee598e1ed9a48120ac99213906db6d52882ed678d29fc22c63b1b08ad2",
+          "function": "function Manager:canPopOnStage3()",
+          "body": "function Manager:canPopOnStage3()\n    self.popInfos3 = {}\n    if not self:isInMainTime() then\n        return false\n    end\n    if not self:checkCurTimeCanPop() then\n        return false\n    end\n    self:canPopHasRewardEnergy34(self.popInfos3)\n    return not table.isEmpty(self.popInfos3)\nend\n\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "fixbirdnest",
+      "ids": [
+        5053
+      ],
+      "classification": "可调用配置式业务钩子；实际AP映射未知",
+      "verified_behavior": "模型数据ready才启用。skipAutoPopup为payTagId<=2且livenessTagId<=4，满足则屏蔽相关强弹。EnoughPanel须主期、非新关保护、非首轮首任务未完成、任务1未领奖、hasPopEnoughPanel未置。礼包须有gift、主期、日GiftPanel未置并且EnoughPanel不成立。",
+      "remaining_gap": "不把所有pay/liveness档位泛化全活动；外部Config如何选择check函数、周期与模型记录重置仍需动态包。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/fixbirdnest/FixBirdNestManager.lua",
+          "line": 10,
+          "sha256": "dd19951b874a680b05adbd1e4612ca3f179e519486c3db47269dabf16524ab30",
+          "function": "function FixBirdNestManager:initialize()",
+          "body": "function FixBirdNestManager:initialize()\n\t_G.amfEC:registerFeature(self)\n    self.model = FixBirdNestModel:create()\n\tself.dc = FixBirdNestDC.new()\n\tself.dc:setMgr(self)\n\tself.actId = _G.FixBirdNestConst.ACT_ID\n\tActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)\n\tPropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/fixbirdnest/FixBirdNestManager.lua",
+          "line": 26,
+          "sha256": "dd19951b874a680b05adbd1e4612ca3f179e519486c3db47269dabf16524ab30",
+          "function": "function FixBirdNestManager:isEnabled()",
+          "body": "function FixBirdNestManager:isEnabled()\n\tif not self.model:isDataReady() then\n\t\treturn false\n\tend\n\treturn true\nend\n\n-- @override 是否在正式期内\n"
+        },
+        {
+          "path": "amf/feature/localactivity/fixbirdnest/FixBirdNestManager.lua",
+          "line": 506,
+          "sha256": "dd19951b874a680b05adbd1e4612ca3f179e519486c3db47269dabf16524ab30",
+          "function": "function FixBirdNestManager:popEnoughPanel(callback)",
+          "body": "function FixBirdNestManager:popEnoughPanel(callback)\n\tlocal SecondPanelAVM = require \"amf.middleware.ui.kit.panel.second.SecondPanelAVM\"\n\tlocal rewards = {\n\t\t{\n\t\t\titemId = 0, \n\t\t\tnum = 1,\n\t\t\thideNum = true\n\t\t}\n\t}\n\n    local textStruct = LabelStruct.new()\n    textStruct:setText(\"感谢您帮助无家可归的小鸟重筑温暖巢穴，这是来自森林的谢礼！\")\n    textStruct:setLineSpace(10)\n    textStruct:setHorizontalAlignment(kCCTextAlignmentCenter)\n\n\tlocal vm\n    vm = SecondPanelAVM.Builder.new()\n        :setTitle(\"鸟窝修复完成！\")\n        :setTextStruct(textStruct)\n        :setFly(false)\n        :setRewards(rewards, function(reward)\n\t\t\tlocal box = AMFCompHelper:createBoxFen()\n\t\t\t-- box.customOffX = -5\n\t\t\t-- box.customOffY = -5\n\t\t\treturn box\n\t\tend)\n        :setButtonsConfig({\n\t\t\t{\n                str = \"去领奖\",\n\t\t\t\twidthMode = UIButtonConfig.Widths.kShort,\n\t\t\t\tcolorMode = UIButtonConfig.ColorMode.green,\n                touchFunc = function ( btn )\n                    _G.amfBean(\"AutoPopupMgr\"):resetPopup()\n                    self:openMainActivity(nil,{fromStage4 = true},true)\n                    if vm and not vm.isDisposed then\n                        vm:onCloseBtnTapped()\n                    end\n                end\n            },\n        })\n        :setCloseCallback(function()\n\t\t\tsafeRunCall(callback)\n        end)\n        :build()\n\tself.model:saveRecord(\"hasPopEnoughPanel\", true)\n    vm:popout()\n\treturn vm\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/fixbirdnest/FixBirdNestManager.lua",
+          "line": 652,
+          "sha256": "dd19951b874a680b05adbd1e4612ca3f179e519486c3db47269dabf16524ab30",
+          "function": "function FixBirdNestManager:checkGiftPanel()",
+          "body": "function FixBirdNestManager:checkGiftPanel()\n\tif not self.model:getHasGift() then\n\t\treturn false\n\tend\n\tif self:ignoreForTopLevelPlayer() then return false end\n\t-- body\n\t-- printx(16,\"checkGiftPanel\",self.defaultMap:getDay(\"GiftPanel\",false) )\n\tif not self:isInActMainTime() then return false end\n\n\tif self:skipAutoPopup() then return false end\n\n\tif self.model:getRecord(\"GiftPanel\", true) then\n\t\treturn false\n\tend\n\n\tif self:checkEnoughPanel() then\n\t\treturn false\n\tend\n\n\treturn true\nend\n\n-- 满足条件的人屏蔽所有强弹\n"
+        },
+        {
+          "path": "amf/feature/localactivity/fixbirdnest/FixBirdNestManager.lua",
+          "line": 675,
+          "sha256": "dd19951b874a680b05adbd1e4612ca3f179e519486c3db47269dabf16524ab30",
+          "function": "function FixBirdNestManager:skipAutoPopup(  )",
+          "body": "function FixBirdNestManager:skipAutoPopup(  )\n\t-- local inGroup = MaintenanceManager:getInstance():isEnabledInGroup(\"bird_riseup2\", \"G1_activelimit\")\n    local inPay = self.model:getPayTagId() <= 2\n    local inLiveness = self.model:getLivenessTagId() <= 4\n    return inPay and inLiveness\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/fixbirdnest/FixBirdNestManager.lua",
+          "line": 682,
+          "sha256": "dd19951b874a680b05adbd1e4612ca3f179e519486c3db47269dabf16524ab30",
+          "function": "function FixBirdNestManager:checkEnoughPanel( ... )",
+          "body": "function FixBirdNestManager:checkEnoughPanel( ... )\n\t-- body\n\t-- printx(16,\"checkEnoughPanel\",self:isEnabled())\n\tif self:ignoreForTopLevelPlayer() then return false end\n    if not self:isEnabled() then return false end\n\n\tif not self:isInActMainTime() then return false end\n\n\tif self:skipAutoPopup() then return false end\n\n    local round = self.model:getRound()\n    local curTaskInfo = self.model:getCurTaskInfo()\n\t-- printx(16,\"checkEnoughPanel\",round,curTaskInfo.progress , curTaskInfo.target , curTaskInfo.taskId)\n\n    if round == 1 and curTaskInfo.progress < curTaskInfo.target and curTaskInfo.taskId == 1 then\n    \treturn false\n    end\n\n    local taskInfo = self.model:getTaskInfoByIndex(1)\n\t-- printx(16,\"checkEnoughPanel\",tts(taskInfo))\n\n    if taskInfo.reward then\n    \treturn false\n    end\n\t-- printx(16,\"checkEnoughPanel\",self.defaultMap:get(\"hasPopEnoughPanel\",false))\n    if self.model:getRecord(\"hasPopEnoughPanel\") then\n    \treturn false\n    end\n\n    return true\nend\n\n-- R1规则强弹主面板屏蔽\n"
+        },
+        {
+          "path": "amf/feature/localactivity/fixbirdnest/FixBirdNestManager.lua",
+          "line": 715,
+          "sha256": "dd19951b874a680b05adbd1e4612ca3f179e519486c3db47269dabf16524ab30",
+          "function": "function FixBirdNestManager:checkPopMainPanel(  )",
+          "body": "function FixBirdNestManager:checkPopMainPanel(  )\n\tif self:ignoreForTopLevelPlayer() then return false end\n\tif self:skipAutoPopup() then return false end\n\treturn true\nend\n\n-- 在新关开启的指定时间内（暂定4小时），玩家主线关满星前，闯头部新关不触发关卡内结算面板点叉的场景4强弹\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "luckybagparty",
+      "ids": [
+        6038
+      ],
+      "classification": "手动/动态活动可调入口",
+      "verified_behavior": "initialize注册事件并建LocalServer。启用须getGroup非off、数据enabled、主期、ActIsSupport保存时间等于主开始时间、serverSourceVersion==ACT_OPEN_VERSION。popMainPanel先启用检查再openActivity。",
+      "remaining_gap": "已找到可调用入口和支持门槛，未取得主动弹窗的动态AP配置与调用者。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/luckybagparty/LuckyBagPartyMgr.lua",
+          "line": 21,
+          "sha256": "52879c6248db98e6c87805d410bc354f7532ac3cb01495f9cb26a3b5836da9d9",
+          "function": "function Manager:initialize()",
+          "body": "function Manager:initialize()\n    self.meta = require('amf.feature.localactivity.'..string.lower(ActivityName)..'.'..ActivityName..'Meta')\n    self.localDataServer = LocalServer:create()\n\n    self:registerEvents()\n    -- self:initCustomColorCfg()\n    self._observers = {}\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/luckybagparty/LuckyBagPartyMgr.lua",
+          "line": 30,
+          "sha256": "52879c6248db98e6c87805d410bc354f7532ac3cb01495f9cb26a3b5836da9d9",
+          "function": "function Manager:registerEvents()",
+          "body": "function Manager:registerEvents()\n    _G.amfEC:registerFeature(self)\n    _G.amfEC:registerSystem(self)\n\n    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/luckybagparty/LuckyBagPartyMgr.lua",
+          "line": 163,
+          "sha256": "52879c6248db98e6c87805d410bc354f7532ac3cb01495f9cb26a3b5836da9d9",
+          "function": "function Manager:isEnabled()",
+          "body": "function Manager:isEnabled()\n    local _, _, _, _, isOff = self:getGroup()\n    local isEnabled = (not isOff) \n                        and self:getLocalDataServer():isDataEnabled() \n                            and self:isInMainTime()\n                                and self:checkActSupport() \n                                    and self:checkVersionSupport() \n    self:log(\"self:isEnabled:\", isEnabled, isOff, self:getLocalDataServer():isDataEnabled(), self:isInMainTime(), self:checkActSupport(), self:checkVersionSupport())\n    return isEnabled\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/luckybagparty/LuckyBagPartyMgr.lua",
+          "line": 216,
+          "sha256": "52879c6248db98e6c87805d410bc354f7532ac3cb01495f9cb26a3b5836da9d9",
+          "function": "function Manager:checkActSupport()",
+          "body": "function Manager:checkActSupport()\n    local saveTime = self:getLocalDataServer():getDataByKey(\"ActIsSupport\", 0)\n    return self.localDataServer:getActMainBeginTime() == saveTime\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/luckybagparty/LuckyBagPartyMgr.lua",
+          "line": 221,
+          "sha256": "52879c6248db98e6c87805d410bc354f7532ac3cb01495f9cb26a3b5836da9d9",
+          "function": "function Manager:checkVersionSupport()  -- 前后端版本校验",
+          "body": "function Manager:checkVersionSupport()  -- 前后端版本校验\n    self:log(\"serverSourceVersion: \", self.localDataServer:getSourceVersion(), \"clientSourceVersion: \", self.ACT_OPEN_VERSION)\n    return self.localDataServer:getSourceVersion() == self.ACT_OPEN_VERSION\nend\n\n-- 记录活动 Config.isSupport 是否完整通过；右下角迁移 icon 只读这个结果，避免直接 require 活动文件。\n"
+        },
+        {
+          "path": "amf/feature/localactivity/luckybagparty/LuckyBagPartyMgr.lua",
+          "line": 312,
+          "sha256": "52879c6248db98e6c87805d410bc354f7532ac3cb01495f9cb26a3b5836da9d9",
+          "function": "function Manager:popMainPanel(endCallback)",
+          "body": "function Manager:popMainPanel(endCallback)\n    if not self:isEnabled() then \n        safeRunCall(endCallback)\n        return \n    end\n    self:openActivity(endCallback, nil, false)\nend\n\n\n\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "musicmerge",
+      "ids": [
+        3080
+      ],
+      "classification": "可调用强弹业务钩子；动态接线未知",
+      "verified_behavior": "checkCanPop要求数据/主期/资源且未finish、未得最终奖励。顺序：今日未打开主面板→流程礼包→引流。礼包要求FLOW商品有效、当日耗能>30、非今日不再展示、该商品今日没弹；引流要求guide2、日次数<2、收集能量>=50。",
+      "remaining_gap": "这些是Manager钩子已证实规则；缺动态Config将其接到哪场景/检查点的证据，不能把函数存在说成已注册推送。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/musicmerge/MusicMergeManager.lua",
+          "line": 7,
+          "sha256": "0c43a319ca4d99de92256caa19ae5aad4caa65d23344fa8600cbb13066248472",
+          "function": "function Manager:isEnabled()",
+          "body": "function Manager:isEnabled()\n    -- printx(41,\"MusicMergeManagerisEnabled\",self:getModel():isDataEnabled(),self:isInMainTime())\n    local dataEnable = self:getModel():isDataEnabled()\n    local timeEnable = self:isInMainTime()\n    local resEnable = self:isResEnabled()\n    if self:isFinish() then return end\n    if dataEnable and timeEnable and not resEnable then\n        self:callDownloadFunc(\"startDownload\")\n    end\n    return dataEnable and timeEnable and resEnable\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/musicmerge/MusicMergeManager.lua",
+          "line": 66,
+          "sha256": "0c43a319ca4d99de92256caa19ae5aad4caa65d23344fa8600cbb13066248472",
+          "function": "function Manager:_getExtraPlugsConfigList()",
+          "body": "function Manager:_getExtraPlugsConfigList()\n    return {\n        {\n            key = \"Download\",\n        },\n        {\n            key = \"Panel\",\n        },\n        {\n            key = \"Rewards\",\n        },\n        {\n            key = \"Request\",\n            path = {\n                plugPath = \"amf.feature.localactivity.musicmerge.plug.RequestPlug\",\n            }\n        },\n        {\n            key = \"Haptics\",\n            path = {\n                plugPath = \"amf.feature.localactivity.musicmerge.plug.HapticsPlug\",\n                const = self:_getConstPath()\n            },\n        },\n        {\n            key = \"ActExchangeReceiver\",\n            path = {\n                plugPath = \"amf.feature.localactivity.musicmerge.plug.ActExchangeReceiver\",\n                const = self:_getConstPath()\n            }\n        },\n        {\n            key = \"ActSent\",\n            path = {\n                plugPath = \"amf.feature.localactivity.musicmerge.plug.ActSentPlug\",\n                const = self:_getConstPath()\n            },\n        },\n        {\n            key = \"ActSend\",\n            path = {\n                plugPath = \"amf.feature.localactivity.musicmerge.plug.ActSendPlug\",\n                const = self:_getConstPath()\n            },\n        },\n        {\n            key = \"LocalPush\",\n            path = {\n                plugPath = \"amf.feature.localactivity.musicmerge.plug.LocalPush\",\n                const = self:_getConstPath()\n            }\n        }\n    }\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/musicmerge/MusicMergeManager.lua",
+          "line": 441,
+          "sha256": "0c43a319ca4d99de92256caa19ae5aad4caa65d23344fa8600cbb13066248472",
+          "function": "function Manager:checkCanPop()",
+          "body": "function Manager:checkCanPop()\n    if not self:isEnabled() then return end\n    if self:getModel():getGotFinalReward() then return end\n\n    local todayPopMain = self:getModel():getFlagFromLocalByKey(\"dailyOpenMain\", true)\n    if not todayPopMain then return true, 1 end\n\n    local canPopGift = self:checkCanPopGift()\n    if canPopGift then return true, 2 end\n\n    local canPopYinliu = self:canPopYinliu()\n    if canPopYinliu then return true, 3 end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/musicmerge/MusicMergeManager.lua",
+          "line": 455,
+          "sha256": "0c43a319ca4d99de92256caa19ae5aad4caa65d23344fa8600cbb13066248472",
+          "function": "function Manager:canPopYinliu()",
+          "body": "function Manager:canPopYinliu()\n    if not self:isEnabled() then return end\n\n    local bGuide = self:hasGuideIndex(2)\n    if not bGuide then return end\n\n    local model = self:getModel()\n    if self:isFinish() then return end\n\n    local const = self:getConst()\n    local popTime = model:getFlagFromLocalByKeyInt(\"yinLiuPopCnt\", true)\n    -- printx(36, )\n    if popTime >= const.DRAINAGE_POP_MAX then return end\n\n    local energy = self:getModel():getCollectionNum()\n    if energy < const.DRAINAGE_ENERGY then return end\n\n    return true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/musicmerge/MusicMergeManager.lua",
+          "line": 475,
+          "sha256": "0c43a319ca4d99de92256caa19ae5aad4caa65d23344fa8600cbb13066248472",
+          "function": "function Manager:popFunction(onHandlerOver)",
+          "body": "function Manager:popFunction(onHandlerOver)\n    if not self:isEnabled() then safeRunCall(onHandlerOver) return end\n\n    local canPop, reason = self:checkCanPop()\n    if not canPop then safeRunCall(onHandlerOver) return end\n\n    if reason == 1 then\n        self:callActFunc(\"openActivity\", {\n            failCallback = onHandlerOver,\n            endCallback = onHandlerOver,\n            extra = {\n                from = \"popoup\"\n            },\n        })\n    elseif reason == 2 then\n        self:popGiftPanel(onHandlerOver)\n    else\n        self:popYinliuPanel(onHandlerOver)\n    end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/musicmerge/MusicMergeManager.lua",
+          "line": 496,
+          "sha256": "0c43a319ca4d99de92256caa19ae5aad4caa65d23344fa8600cbb13066248472",
+          "function": "function Manager:popYinliuPanel(done)",
+          "body": "function Manager:popYinliuPanel(done)\n    if not self:isEnabled() then safeRunCall(done) return end\n    local model = self:getModel()\n    local key = \"yinLiuPopCnt\"\n    local popTime = model:getFlagFromLocalByKeyInt(key, true)\n    model:saveFlagToLocalByKeyInt(key, true, popTime + 1)\n    local stage = model:getMapStage()\n    local rewards = self:getStepRewards(stage)\n    rewards[#rewards + 1] = {\n        itemId = stage,\n    }\n    local YinliuPanelVM = require'amf.feature.localactivity.musicmerge.view.YinliuPanelVM'\n    local vm = YinliuPanelVM:create({\n        rewards = rewards,\n        stage = stage,\n        energy = model:getCollectionNum(),\n        title = self:getActName(),\n    })\n    vm:setCloseCallback(done)\n    self:callPanelFunc(\"managePanelVM\", vm)\n    self:getDC():dcAttractPanelShow()\n\n    vm:popout()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/musicmerge/MusicMergeManager.lua",
+          "line": 620,
+          "sha256": "0c43a319ca4d99de92256caa19ae5aad4caa65d23344fa8600cbb13066248472",
+          "function": "function Manager:checkCanPopGift()",
+          "body": "function Manager:checkCanPopGift()\n    local giftId = self:getModel():getPackageIdByType(\"FLOW\")\n    -- UError(41,\"checkCanPopGift1\",giftId,self:getModel():getTodayCostEnergy(),self:getModel():getNotShowToday(),GoodsManager:getGoods(giftId))\n    if giftId and self:getModel():getTodayCostEnergy()>30 and not self:getModel():getNotShowToday() and GoodsManager:getGoods(giftId) then---有流程礼包信息\n        local nowDayPopGiftStr = self:getModel():getFlagFromLocalByKeyStr(\"dayPopGift\",true) or table.serialize({})\n        -- UError(41,\"checkCanPopGift2\",tts({nowDayPopGiftStr}))\n        local nowDayPopGift = table.deserialize(nowDayPopGiftStr) or {}\n        if nowDayPopGift[tostring(giftId)] then\n            return false\n        end\n        return true\n    else\n        return false\n    end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/musicmerge/MusicMergeManager.lua",
+          "line": 636,
+          "sha256": "0c43a319ca4d99de92256caa19ae5aad4caa65d23344fa8600cbb13066248472",
+          "function": "function Manager:popGiftPanel(done)",
+          "body": "function Manager:popGiftPanel(done)\n    if not self:isEnabled() then safeRunCall(done) return end\n\n    local GiftPanelVM = require'amf.feature.localactivity.musicmerge.view.ProcessGiftPanelVM'\n    local id = self:getModel():getPackageIdByType(\"FLOW\")\n    local nowDayPopGiftStr = self:getModel():getFlagFromLocalByKeyStr(\"dayPopGift\",true) or table.serialize({})\n    local nowDayPopGift = table.deserialize(nowDayPopGiftStr) or {}\n    nowDayPopGift[tostring(id)] = true\n    -- printx(41,\"popGiftPanel\",tts(nowDayPopGift))\n    self:getModel():saveFlagToLocalByKeyStr(\"dayPopGift\",true,table.serialize(nowDayPopGift))\n    local meta = self:getModel():getExtraOfGoodsById(id)\n    -- printx(41,\"popGiftPanel\",tts(meta))\n    local isCheckBox = false\n    if not GoodsManager:getGoods(id) then safeRunCall(done) return end\n    local panel = GiftPanelVM:create({\n        goodsId = id,\n        multipleGift = meta.multiple,\n        mgr = self,\n        multipleCheckBox = function(isCheck)\n            isCheckBox = isCheck\n        end\n    })\n    self:requestActivityAction({\n        action = \"markShow\",\n        param = id,\n        actId = self:getConst().actId,\n    })\n    panel:setCloseCallback(function()\n        -- printx(41,\"popGiftPanel\",meta.multiple,isCheckBox)\n        if meta.multiple and isCheckBox then\n            self:getModel():setNotShowToday(true)\n            self:requestActivityAction({\n                action = \"markFlowNotShowToday\",\n                actId = self:getConst().actId,\n            })\n        end\n        self:requestPackagepull({\n            scene = \"activity_scene\",\n            queryParams = {\n                little_merge_music = table.serialize({\n                    moduleVersion = self:getConst().PACKAGE_MODULE_VERSION,\n                    wants = { \"BATTLE_PASS\", \"CASH_ENERGY\", \"RMB_ENERGY\", \"FLOW\" },\n                    jump = true\n                }),\n            }\n        },function(evt)\n            local data = evt:getData()\n            -- printx(41,\"jioadijadijowad\",tts(data))\n            self:getModel():setDisplayablePackages(data)\n            self:refreshPackageMetas()\n        end,function()\n            self:getModel():setDisplayablePackagesById(id,nil)\n        end)\n        safeRunCall(done)\n    end)\n    panel:popout()\n    self:callPanelFunc(\"managePanelVM\", panel)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/musicmerge/const/MusicMergeConst.lua",
+          "line": 54,
+          "sha256": "ce3be98304bde8973515e418c9ce9d1d2af25159fa8264262245dc5c95c9eaa3",
+          "excerpt": "Const.DRAINAGE_ENERGY = 50\nConst.DRAINAGE_POP_MAX = 2\n\nreturn Const"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "processgiftautopopup",
+      "ids": [],
+      "classification": "组件规则可读，生产宿主未定位",
+      "verified_behavior": "ProcessGiftMgr提供checkPopout/openGiftPanelByPopup；勾选今日不再弹则拒绝，新关首发4小时内距头部<=30关拒绝，再按payTag调用get_goodsId_pay_*并检查商品今日未弹。展示前setPopped及清过关计数。",
+      "remaining_gap": "全树外部直接引用只有RewardFlyHelper已证实；未定位ProcessGiftMgr:create生产宿主，不将这些礼包筛选规则当在线已启用。Windows分支有mock goodsId=2626，排除线上结论。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/processgiftautopopup/ProcessGiftMgr.lua",
+          "line": 61,
+          "sha256": "ec6a257ca00e7d61415afd0de4cfcc93a8c509e992d76b077b107349943889ac",
+          "function": "function ProcessGiftMgr:checkPopout()",
+          "body": "function ProcessGiftMgr:checkPopout()\n    checkDebugMsg = {}\n    --if EnvUtil:isWindows() then\n    --    self.payTag = 6\n    --end\n\n    local nonePopup = self:getNonePopupToday()\n    if nonePopup then\n        qq.log('checkPopout', '上次勾选过今日不再弹出')\n        qq.cacheResult('上次勾选过今日不再弹出')\n        return\n    end\n\n    local topLv = _G.amfBean(\"LevelUnLockManager\"):getLocalTopLevel(false)\n    local myTopLv = _G.getTopPassedLevelId()\n    if topLv - myTopLv <= 30 then\n        local lastOpenTime = _G.amfBean(\"LevelUnLockManager\"):getLastOpenNewLevelTime()\n        if lastOpenTime then\n            local diffTime = TimeKit:timeInSec() - lastOpenTime\n            if diffTime>=0 and diffTime< 4*3600 then\n                qq.log('checkPopout', '发新关当日头部30关玩家四小时内不强弹')\n                qq.cacheResult('发新关当日头部30关玩家四小时内不强弹礼包')\n                return\n            end\n        end\n    end\n\n    qq.log('checkPopout', tts(self.local_data))\n    local payTag = self.payTag\n    if self['get_goodsId_pay_'..payTag] then\n        local popGiftId = self['get_goodsId_pay_'..payTag](self)\n        local canPop = popGiftId and (not self:isPoppedToday(popGiftId))\n        qq.cacheResult('最终检测结果：'..(canPop and '允许强弹礼包：'..popGiftId or '不允许强弹'))\n        if canPop then\n            self.popGiftId = popGiftId\n        else\n            self.popGiftId = nil\n        end\n        qq.log('canPop', canPop, self.popGiftId)\n        return canPop\n    end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/processgiftautopopup/ProcessGiftMgr.lua",
+          "line": 113,
+          "sha256": "ec6a257ca00e7d61415afd0de4cfcc93a8c509e992d76b077b107349943889ac",
+          "function": "function ProcessGiftMgr:openGiftPanelByPopup(callback, PopupGiftPanelVM)",
+          "body": "function ProcessGiftMgr:openGiftPanelByPopup(callback, PopupGiftPanelVM)\n    if EnvUtil:isWindows() and not self.disMock then\n        self.popGiftId = 2626\n        self.payTag = 2\n    end\n\n    if not PopupGiftPanelVM then\n        PopupGiftPanelVM = require(self.giftPanelLua)\n    end \n\n    if self.popGiftId then\n        self:setPopped(self.popGiftId)\n        self:resetPassLevelToday()\n\n        local multipleGift = self:getGoodsNumByPayTag(self.payTag)>1\n        \n        local panelVM = PopupGiftPanelVM:create(self.popGiftId, multipleGift, self, callback)\n        -- printx(41,\"aswdawwwasw\",tts(panel))\n        panelVM:setBuyHandler(function(goodsId, afterSuccess, failCall, cancelCall)\n            qq.log('buyGoods 0', goodsId)\n            self:buyGoods(goodsId, afterSuccess, failCall, cancelCall)\n        end)\n        panelVM:popout()\n    else\n        if callback then callback() end\n    end\nend\n\n\n--============================================\n"
+        },
+        {
+          "path": "amf/feature/localactivity/processgiftautopopup/ProcessGiftMgr.lua",
+          "line": 143,
+          "sha256": "ec6a257ca00e7d61415afd0de4cfcc93a8c509e992d76b077b107349943889ac",
+          "function": "function ProcessGiftMgr:create(giftKey)",
+          "body": "function ProcessGiftMgr:create(giftKey)\n    local mgr = ProcessGiftMgr.new()\n    mgr:init(giftKey)\n    return mgr\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/processgiftautopopup/ProcessGiftMgr.lua",
+          "line": 149,
+          "sha256": "ec6a257ca00e7d61415afd0de4cfcc93a8c509e992d76b077b107349943889ac",
+          "function": "function ProcessGiftMgr:init(giftKey)",
+          "body": "function ProcessGiftMgr:init(giftKey)\n    giftKey = giftKey or 'processGift'\n    self.goodsMap = {}\n    self.giftEndTime = 0\n    self.payTag = 0\n\n    local ProcessDataRef = require 'amf.feature.localactivity.processgiftautopopup.ProcessDataRef'\n    self.io = ProcessDataRef:create(\"ProcessGiftMgr\")\n\n    self.skipKey = giftKey .. \"_skip\"\n    self.boughtKey = giftKey .. \"_bought\"\n    self.poppedKey = giftKey .. \"_popped\"\n    self.passLevelKey = giftKey .. \"_today_pass_level\"\n    self.nonePopupKey = giftKey .. '_today_none_popup'\n    self.dcFeature = 'activity'\n    self.dcSource = 'act_actId_0'\n    -- Notify:register('ProcessGiftMgr_QATools',function(data) self:onTestPanelOpen(data) end)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/processgiftautopopup/ProcessGiftMgr.lua",
+          "line": 341,
+          "sha256": "ec6a257ca00e7d61415afd0de4cfcc93a8c509e992d76b077b107349943889ac",
+          "function": "function ProcessGiftMgr:isPoppedToday(goodsId)",
+          "body": "function ProcessGiftMgr:isPoppedToday(goodsId)\n    local ds = TimeKit:getTodayStart()\n    local key = self:getLocalKey(self.poppedKey, goodsId)\n    local ret = self:getLocalData(key, 0) == ds\n    qq.log('isPoppedToday', goodsId, ret)\n    if ret then\n        qq.cacheResult('今日已经弹出过此礼包：'..goodsId)\n    else\n        qq.cacheResult('今日还未弹出过此礼包：'..goodsId)\n    end\n\n    return ret\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/processgiftautopopup/ProcessGiftMgr.lua",
+          "line": 355,
+          "sha256": "ec6a257ca00e7d61415afd0de4cfcc93a8c509e992d76b077b107349943889ac",
+          "function": "function ProcessGiftMgr:setPopped(goodsId)",
+          "body": "function ProcessGiftMgr:setPopped(goodsId)\n    local key = self:getLocalKey(self.poppedKey, goodsId)\n    local ds = TimeKit:getTodayStart()\n    self:setLocalData(key, ds)\n    qq.log('setPopped', goodsId)\n    self:addSkipTimes(goodsId) --先默认跳过不买，如果买了，在购买逻辑重置\nend\n\n--今日累计过关数\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "promotelow",
+      "ids": [
+        5061,
+        5067
+      ],
+      "classification": "可调用自动签到钩子；上游动态接线未知",
+      "verified_behavior": "initialize同步actInfo、注册事件/星级buff。canAutoPopSignPanel要求活动+模型可用、未rewarded、今日autoPopPanel_day未置；若能领奖则需联网，否则需今日已signed；setAutoPopSignPanel写当天标记。",
+      "remaining_gap": "已核验钩子和记次函数，但调用者的动态Config及实际何时调用set函数未取得；不能承诺一次成功展示才记数。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/promotelow/PromoteLowMgr.lua",
+          "line": 33,
+          "sha256": "c9a82a10bcbedf30953b1037cb8cc956f6f80f380f6c6a8f4a8621e8c47ad174",
+          "function": "function PromoteLowMgr:initialize()",
+          "body": "function PromoteLowMgr:initialize()\n    self.model = require(\"amf.feature.localactivity.promotelow.model.Model\"):create()\n    self:updateModelDataByActInfo()\n    _G.amfEC:registerFeature(self)\n    _G.amfEC:registerSystem(self)\n    self:registerStarBuff()\n    self:tryRequestBuff()\n    self:registerEvent()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/promotelow/PromoteLowMgr.lua",
+          "line": 148,
+          "sha256": "c9a82a10bcbedf30953b1037cb8cc956f6f80f380f6c6a8f4a8621e8c47ad174",
+          "function": "function PromoteLowMgr:isEnabled()",
+          "body": "function PromoteLowMgr:isEnabled()\n    if not self:isActEnabled() then\n        self:log(\"act not enabled ===\")\n        return false\n    end\n    if not self:isModelEnabled() then \n        self:log(\"model not enabled ===\")\n        return false \n    end\n    \n    return true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/promotelow/PromoteLowMgr.lua",
+          "line": 353,
+          "sha256": "c9a82a10bcbedf30953b1037cb8cc956f6f80f380f6c6a8f4a8621e8c47ad174",
+          "function": "function PromoteLowMgr:canAutoPopSignPanel()",
+          "body": "function PromoteLowMgr:canAutoPopSignPanel()\n    local enable = self:isEnabled()\n    self:log(\"PromoteLowMgr: 开始检查强弹\", enable, self:isModelEnabled())\n    if not enable then return false end\n    if not self:isModelEnabled() then return false end\n    local rewarded = self:getValue(\"rewarded\")\n    -- 判断是否已经领奖了\n    if rewarded then\n        self:log(\"PromoteLowMgr: 已经领奖了 不弹\")\n        return false\n    end\n    local curDayNum = TimeUtil:getDayIdxSince1970()\n    -- 配置成了一天弹一次，就不用自己存了， config那边突然不会计数了\n    if self:getLocalValue(\"autoPopPanel_\"..curDayNum) then\n        self:log(\"PromoteLowMgr: 已经弹过了 不弹\")\n        return false\n    end\n    -- 如果可以领奖，但是没网就不弹了\n    if self:isCanReward() then\n        if not self._networkStatusManager:isNetworkEnabled() then\n            self:log(\"PromoteLowMgr: 可以领奖没网 不弹\")\n            return false\n        end\n    elseif not self:isTodaySigned() then\n        self:log(\"PromoteLowMgr: 没盖章 不弹\")\n        return false\n    end\n    return true\nend\n\n-- 记录今天弹过了\n"
+        },
+        {
+          "path": "amf/feature/localactivity/promotelow/PromoteLowMgr.lua",
+          "line": 384,
+          "sha256": "c9a82a10bcbedf30953b1037cb8cc956f6f80f380f6c6a8f4a8621e8c47ad174",
+          "function": "function PromoteLowMgr:setAutoPopSignPanel()",
+          "body": "function PromoteLowMgr:setAutoPopSignPanel()\n    local curDayNum = TimeUtil:getDayIdxSince1970()\n    self:setLocalValue(\"autoPopPanel_\"..curDayNum, true)\nend\n\n-- 今天是否盖章了\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "recruithighpay",
+      "ids": [
+        6062
+      ],
+      "classification": "取消支付直接引导 + 签到banner委托",
+      "verified_behavior": "initialize监听RMB_ORDER_CANCELLED、MARK_PREOPEN_CHECK、ACT_INFOS_UPDATE。手动主界面上下商店取消订单→0秒异步复核→canShowPaymentGuide→delegate创建vm→popout。delegate.isEnabled须true；未停止、无在飞/现有面板、本次登录未弹、周期总计<3、当天<1；弹出调用成功后写计数。签到preopen插入banner，手点跳链接。",
+      "remaining_gap": "delegate须外部install且actId=6062；其isEnabled和资源创建来自委托，真实安装者及线上资格未取得。周期key需看活动结束时间；不把用户名字highpay当付费门槛本地计算。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/recruithighpay/RecruitHighPayExpandManager.lua",
+          "line": 34,
+          "sha256": "60984d7bd92406d83172d0ebf658f864d16e36fe16d9d235b5d255f2aeb991ae",
+          "function": "function RecruitHighPayExpandManager:initialize()",
+          "body": "function RecruitHighPayExpandManager:initialize()\n    if self._initialized then return end\n    self._initialized = true\n    self._fileObj = LocalDB:createFileObject(Const.DB_FILE)\n\n    PurchaseEventCenter:register(PurchaseEvent.RMB_ORDER_CANCELLED, self.onRmbOrderCancelled, self)\n    MarkEventCenter:register(MarkEvent.MARK_PREOPEN_CHECK, self.onMarkPreOpenEvent, self)\n    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActivityInfoUpdate, self)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/recruithighpay/RecruitHighPayExpandManager.lua",
+          "line": 44,
+          "sha256": "60984d7bd92406d83172d0ebf658f864d16e36fe16d9d235b5d255f2aeb991ae",
+          "function": "function RecruitHighPayExpandManager:install(delegate)",
+          "body": "function RecruitHighPayExpandManager:install(delegate)\n    assert(type(delegate) == \"table\", \"RecruitHighPayExpandManager delegate is required\")\n    assert(delegate.actId == Const.ACT_ID, \"RecruitHighPayExpandManager actId mismatch\")\n    self._delegate = delegate\n    self:_refreshActivityEndTime(true)\n\n    local periodKey = self:_getPeriodKey()\n    if self._loginPeriodKey ~= periodKey then\n        self._loginPeriodKey = periodKey\n        self._paymentShownThisLogin = false\n    end\n\n    self:_scheduleActivityEnd()\n    self:_refreshSurfaces(true, self:_isActivityExpired())\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/recruithighpay/RecruitHighPayExpandManager.lua",
+          "line": 72,
+          "sha256": "60984d7bd92406d83172d0ebf658f864d16e36fe16d9d235b5d255f2aeb991ae",
+          "function": "function RecruitHighPayExpandManager:isEnabled()",
+          "body": "function RecruitHighPayExpandManager:isEnabled()\n    return self:_callDelegate(\"isEnabled\") == true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/recruithighpay/RecruitHighPayExpandManager.lua",
+          "line": 106,
+          "sha256": "60984d7bd92406d83172d0ebf658f864d16e36fe16d9d235b5d255f2aeb991ae",
+          "function": "function RecruitHighPayExpandManager:canShowPaymentGuide()",
+          "body": "function RecruitHighPayExpandManager:canShowPaymentGuide()\n    if not self:isEnabled() then return false end\n    if self:_getState(Const.StateKey.PAYMENT_STOPPED, false) then return false end\n    if self._paymentShownThisLogin then return false end\n    if self._paymentPopupScheduled then return false end\n    if self._paymentPanelVM and not self._paymentPanelVM.isDisposed then return false end\n\n    local totalCount = tonumber(self:_getState(Const.StateKey.PAYMENT_COUNT, 0)) or 0\n    if totalCount >= Const.PAYMENT_PERIOD_LIMIT then return false end\n\n    local today = TimeKit:getTodayStart()\n    local storedDay = tonumber(self:_getState(Const.StateKey.PAYMENT_DAY, 0)) or 0\n    local dayCount = tonumber(self:_getState(Const.StateKey.PAYMENT_DAY_COUNT, 0)) or 0\n    if storedDay == today and dayCount >= Const.PAYMENT_DAY_LIMIT then return false end\n    return true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/recruithighpay/RecruitHighPayExpandManager.lua",
+          "line": 123,
+          "sha256": "60984d7bd92406d83172d0ebf658f864d16e36fe16d9d235b5d255f2aeb991ae",
+          "function": "function RecruitHighPayExpandManager:_recordPaymentGuideShow()",
+          "body": "function RecruitHighPayExpandManager:_recordPaymentGuideShow()\n    local today = TimeKit:getTodayStart()\n    local storedDay = tonumber(self:_getState(Const.StateKey.PAYMENT_DAY, 0)) or 0\n    local dayCount = tonumber(self:_getState(Const.StateKey.PAYMENT_DAY_COUNT, 0)) or 0\n    if storedDay ~= today then dayCount = 0 end\n\n    local totalCount = tonumber(self:_getState(Const.StateKey.PAYMENT_COUNT, 0)) or 0\n    self:_setStates({\n        [Const.StateKey.PAYMENT_COUNT] = totalCount + 1,\n        [Const.StateKey.PAYMENT_DAY] = today,\n        [Const.StateKey.PAYMENT_DAY_COUNT] = dayCount + 1,\n    })\n    self._paymentShownThisLogin = true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/recruithighpay/RecruitHighPayExpandManager.lua",
+          "line": 152,
+          "sha256": "60984d7bd92406d83172d0ebf658f864d16e36fe16d9d235b5d255f2aeb991ae",
+          "function": "function RecruitHighPayExpandManager:onRmbOrderCancelled(evt)",
+          "body": "function RecruitHighPayExpandManager:onRmbOrderCancelled(evt)\n    local eventData = evt and evt:getData() or nil\n    if not self:_isManualHomeStoreCancel(eventData) then return end\n    if self._paymentPopupScheduled then return end\n    self._paymentPopupScheduled = true\n\n    setTimeOut(function()\n        self._paymentPopupScheduled = false\n        if not self:_isManualHomeStoreCancel(eventData) then return end\n        if not self:canShowPaymentGuide() then return end\n        self:_showPaymentGuide(eventData)\n    end, Const.PAYMENT_POPUP_DELAY)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/recruithighpay/RecruitHighPayExpandManager.lua",
+          "line": 166,
+          "sha256": "60984d7bd92406d83172d0ebf658f864d16e36fe16d9d235b5d255f2aeb991ae",
+          "function": "function RecruitHighPayExpandManager:_showPaymentGuide(eventData)",
+          "body": "function RecruitHighPayExpandManager:_showPaymentGuide(eventData)\n    local factory = self._delegate and self._delegate.createPaymentGuidePanelVM\n    if type(factory) ~= \"function\" then return end\n\n    local vm\n    local ok, result = pcall(factory, {\n        payment = eventData,\n        onTap = function()\n            return self:openRecruitLink(Const.Scene.PAYMENT_CANCEL)\n        end,\n        onClosed = function(closedVM)\n            if self._paymentPanelVM == closedVM then\n                self._paymentPanelVM = nil\n            end\n        end,\n    })\n    if not ok then\n        ALog.error(\"RecruitHighPayExpandManager\", \"create payment panel: \" .. tostring(result))\n        return\n    end\n    vm = result\n    if not vm then return end\n\n    self._paymentPanelVM = vm\n    local popoutOk, popoutError = pcall(function()\n        vm:popout()\n    end)\n    if not popoutOk then\n        self._paymentPanelVM = nil\n        if vm.view and vm.view.realRelease then\n            safeRunCall(vm.view.realRelease, vm.view)\n        elseif vm.recycle then\n            safeRunCall(vm.recycle, vm)\n        end\n        ALog.error(\"RecruitHighPayExpandManager\", \"popout payment panel: \" .. tostring(popoutError))\n        return\n    end\n    self:_recordPaymentGuideShow()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/recruithighpay/RecruitHighPayExpandManager.lua",
+          "line": 206,
+          "sha256": "60984d7bd92406d83172d0ebf658f864d16e36fe16d9d235b5d255f2aeb991ae",
+          "function": "function RecruitHighPayExpandManager:onMarkPreOpenEvent(evt)",
+          "body": "function RecruitHighPayExpandManager:onMarkPreOpenEvent(evt)\n    if not self:canShowSignInGuide() then return end\n    local contextList = evt:getData()\n    if type(contextList) ~= \"table\" then return end\n\n    local resourcePath = self._delegate.signInResourcePath\n    local context = MarkPreOpenContext.new()\n        :setPriority(ActFestivalConst.Priority.RECRUIT_HIGH_PAY)\n        :setExtLoadFiles({resourcePath})\n        :setEnabledCheckFunc(function()\n            return self:canShowSignInGuide()\n        end)\n        :setPreOpenFunc(function(callback)\n            safeRunCall(callback)\n        end)\n        :setBannerCreator(function()\n            if not self:canShowSignInGuide() then return nil end\n            return self:_callDelegate(\"createSignInBannerNode\", {\n                onTap = function()\n                    return self:openRecruitLink(Const.Scene.SIGN_IN)\n                end,\n            })\n        end, ccp(0,0))\n    table.insert(contextList, context)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/recruithighpay/RecruitHighPayExpandConst.lua",
+          "line": 3,
+          "sha256": "e4a5d39b9108b0d4faec9f89ee1a870094d07ab86a054e43e9adddc6eb86052e",
+          "excerpt": "    DB_FILE = \"recruit_high_pay_expand\",\n    OPEN_URL_TIMEOUT = 5,\n    PAYMENT_POPUP_DELAY = 0,\n    PAYMENT_PERIOD_LIMIT = 3,\n    PAYMENT_DAY_LIMIT = 1,\n    Scene = {\n        ENERGY = \"energy\",\n        PAYMENT_CANCEL = \"payment_cancel\",\n        SIGN_IN = \"sign_in\",\n    },\n    StateKey = {\n        PAYMENT_COUNT = \"payment_count\",\n        PAYMENT_DAY = \"payment_day\",\n        PAYMENT_DAY_COUNT = \"payment_day_count\",\n        PAYMENT_STOPPED = \"payment_stopped\",\n    },\n}\n\nreturn RecruitHighPayExpandConst"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "stellarconvergence",
+      "ids": [
+        6051
+      ],
+      "classification": "过关事件流程另一路实际接线",
+      "verified_behavior": "Manager:init不再注册过关强弹，而PassLevelShowOffModule在PASS_LEVEL_SHOW_OFF开关开时监听HANDLE_PASS_LEVEL。头部新关保护/非主线直接结束；数据和普通资源就绪走统一规则，否则legacy。先可领奖单区面板，再e>c>b>a选最高一项（非满级去c），最后全满星检查。",
+      "remaining_gap": "已闭合事件入口与选择顺序；a/b/c/e具体所有星级/区域阈值未在此次差集审查全展开，不伪称完整业务状态机。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/stellarconvergence/system/StellarConvergenceManager.lua",
+          "line": 14,
+          "sha256": "abe3c219d5731d3115a6ad267fe1a549de9ba366a547ab4c9772188df4c81f28",
+          "function": "function Manager:_getExtraPlugsConfigList()",
+          "body": "function Manager:_getExtraPlugsConfigList()\n    return {{\n        key = \"Download\"\n    }, {\n        key = \"Panel\"\n    }, {\n        key = \"Rewards\"\n    }}\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/stellarconvergence/system/StellarConvergenceManager.lua",
+          "line": 40,
+          "sha256": "abe3c219d5731d3115a6ad267fe1a549de9ba366a547ab4c9772188df4c81f28",
+          "function": "function Manager:_init()",
+          "body": "function Manager:_init()\n    self._group = require(self:_getGroupPath())\n    self._dc = require(self:_getDCPath())\n\n    self:registerActProps()\n    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)\n    \n    -- 过关炫耀强弹见 PassLevelShowOffModule 统一处理，不再在此注册\n    -- MainSceneEventCenter:register(MainSceneEvent.Play.HANDLE_PASS_LEVEL, self.onHandleChangeLevel, self, MSP.PassLevel.STELLAR_CHANGE_LEVEL)\n    \n    self:tryloadRes()\n    \n    -- 校验并修复 curRankType 缓存（防止离线修改星级后缓存值过高）\n    self:validateAndFixCurRankType(true)\n    PropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)\nend\n\n-- 注册活动道具\n"
+        },
+        {
+          "path": "amf/feature/localactivity/stellarconvergence/system/StellarConvergenceManager.lua",
+          "line": 62,
+          "sha256": "abe3c219d5731d3115a6ad267fe1a549de9ba366a547ab4c9772188df4c81f28",
+          "function": "function Manager:isEnabled()",
+          "body": "function Manager:isEnabled()\n    if not self._group then\n        return false\n    end\n    return self._group:isFeatureEnabled()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/fulllevel/areacompletion/module/PassLevelShowOffModule.lua",
+          "line": 24,
+          "sha256": "07499798ea43733f48be8296baa9724cd6278948109a43f4985a152c929e44e2",
+          "excerpt": "function Module:registerEvent()\n    if FeatureSwitch:isOpen(FeatureSwitch.Type.PASS_LEVEL_SHOW_OFF) then\n        -- 使用统一的强弹处理入口，只注册一个优先级最高的事件\n        MainSceneEventCenter:register(MainSceneEvent.Play.HANDLE_PASS_LEVEL, self.onHandleStellarConvergenceShowOff, self, MSP.PassLevel.LEVEL_SHOW_OFF)\n    end\nend\n\n-- 统一的星光之域强弹处理入口\nfunction Module:onHandleStellarConvergenceShowOff(evt)\n    local data = evt:getData()\n    local passedLevelId = data.passedLevelId\n    local levelScene = data.levelScene\n    local oldStar = data.oldStar\n    local newStar = data.star\n    local areaId = _G.amfBean(\"LevelAreaManager\"):getAreaIdByLevelId(passedLevelId)\n\n    local callback = function()\n        evt:redeliver()\n    end\n\n    -- 新关期间，屏蔽强弹\n    local ignore = _G.amfBean(\"AutoPopupMgr\"):ignoreForTopLevelPlayer(passedLevelId, levelScene)\n    if ignore then\n        safeRunCall(callback)\n        return\n    end\n\n    -- 非主线关卡不处理\n    if not UBFLevelSceneFunc:isMainLevel(levelScene) then\n        safeRunCall(callback)\n        return\n    end\n\n    local StellarConvergenceManager = _G.amfBean(\"StellarConvergenceManager\")\n\n    -- 如果星光之域未启用或资源未准备好，走旧逻辑\n    if not StellarConvergenceManager or not StellarConvergenceManager:isDataEnabled() or not StellarConvergenceManager:isNormalResReady() then\n        self:runLegacyShowOffLogic(data, callback)\n        return\n    end\n\n    -- 使用新的统一强弹逻辑\n    self:runUnifiedShowOffLogic(data, callback)\nend\n\n-- 新的统一强弹逻辑\nfunction Module:runUnifiedShowOffLogic(data, finalCallback)\n    local passedLevelId = data.passedLevelId\n    local levelScene = data.levelScene\n    local oldStar = data.oldStar\n    local newStar = data.star\n    local areaId = _G.amfBean(\"LevelAreaManager\"):getAreaIdByLevelId(passedLevelId)\n\n    if areaId > 40000 then\n        areaId = areaId - 40000\n    end\n\n    local StellarConvergenceManager = _G.amfBean(\"StellarConvergenceManager\")\n\n    -- 检查各类型面板的触发条件\n    local checkResults = self:checkAllShowOffConditions(data, areaId, oldStar, newStar)\n\n    local hasShowOff = (checkResults.a and checkResults.a.canShow)\n        or (checkResults.b and checkResults.b.canShow)\n        or (checkResults.c and checkResults.c.canShow)\n        or (checkResults.e and checkResults.e.canShow)\n    if hasShowOff then\n        _G.amfBean(\"AutoPopupMgr\"):blockPassLevelSkip()\n    end\n\n    -- 记录本次流程中已强弹的面板类型"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "supermagicbirdgift",
+      "ids": [],
+      "classification": "开发模式限定",
+      "verified_behavior": "Manager:isEnabledInLevel先dailyPassLevelCount<5、超鸟活动可用且hasSuperPower；开发模式仅debugEnabled=true通过，非开发一律false。",
+      "remaining_gap": "包内TestConfig不是线上投放；注册存在不能推断正式开放。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/supermagicbirdgift/SuperMagicBirdGiftManager.lua",
+          "line": 188,
+          "sha256": "b63de54fcf695c55b8d1d416bf80664e6dadfd4fe7ea42db212ef9bd4f757a0d",
+          "function": "function Manager:initialize()",
+          "body": "function Manager:initialize()\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/supermagicbirdgift/SuperMagicBirdGiftManager.lua",
+          "line": 200,
+          "sha256": "b63de54fcf695c55b8d1d416bf80664e6dadfd4fe7ea42db212ef9bd4f757a0d",
+          "function": "function Manager:isEnabledInLevel(data)",
+          "body": "function Manager:isEnabledInLevel(data)\n    if getDailyPassLevelCount(self) >= TestConfig.dailyPassLevelLimit then\n        return false\n    end\n    local superMagicBirdManager = _G.amfBean(\"SuperMagicBird2024Manager\")\n    if not superMagicBirdManager\n        or not superMagicBirdManager:isEnabledInLevel(data)\n        or not superMagicBirdManager:hasSuperPower()\n    then\n        return false\n    end\n\n    if EnvUtil:isDevelopMode() then\n        return self.debugEnabled == true\n    end\n\n    return false\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/supermagicbirdgift/SuperMagicBirdGiftManager.lua",
+          "line": 219,
+          "sha256": "b63de54fcf695c55b8d1d416bf80664e6dadfd4fe7ea42db212ef9bd4f757a0d",
+          "function": "function Manager:getInLevelActData(levelId, runtime)",
+          "body": "function Manager:getInLevelActData(levelId, runtime)\n    if not self:isEnabledInLevel(runtime) then\n        return\n    end\n    local countPerBird = resolveCountPerBird(levelId, runtime)\n    if countPerBird == nil then return end\n\n    return {\n        periodId = TestConfig.periodId,\n        collectionId = TestConfig.collectionId,\n        countPerBird = countPerBird,\n        baseCap = TestConfig.baseCap,\n    }\nend\n\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "supermagicbirdmoney2025",
+      "ids": [
+        8069
+      ],
+      "classification": "关内金币数据/统计支持模块",
+      "verified_behavior": "初始化注册ACT_INFOS_UPDATE并监听SuperMagicBirdActGetGold；ID8069服务器extra写model，关卡开始/结束及打点维护金币相关状态；_getExtraPlugsConfigList为空。",
+      "remaining_gap": "未找到该Manager自主强弹入口，但活动动态Config与主超鸟模块可能展示相关内容；不能据本目录无register判定无在线界面。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/supermagicbirdmoney2025/SuperMagicBirdMoney2025Manager.lua",
+          "line": 29,
+          "sha256": "dfe0b2a1b631216a066b6d835fac3c772026f212797f0779a03ec4495cd63a26",
+          "function": "function SuperMagicBirdMoney2025Manager:_getExtraPlugsConfigList()",
+          "body": "function SuperMagicBirdMoney2025Manager:_getExtraPlugsConfigList()\n    return {\n    }\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/supermagicbirdmoney2025/SuperMagicBirdMoney2025Manager.lua",
+          "line": 46,
+          "sha256": "dfe0b2a1b631216a066b6d835fac3c772026f212797f0779a03ec4495cd63a26",
+          "function": "function SuperMagicBirdMoney2025Manager:registerEvents()",
+          "body": "function SuperMagicBirdMoney2025Manager:registerEvents()\n    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/supermagicbirdmoney2025/SuperMagicBirdMoney2025Manager.lua",
+          "line": 50,
+          "sha256": "dfe0b2a1b631216a066b6d835fac3c772026f212797f0779a03ec4495cd63a26",
+          "function": "function SuperMagicBirdMoney2025Manager:_init()",
+          "body": "function SuperMagicBirdMoney2025Manager:_init()\n    -- UError(\"SuperMagicBirdMoney2025Manager:init___\")\n    self:registerEvents()\n    -- self.Notify = require \"amf/feature/localactivity/supermagicbird/data/Notify\"\n    -- self.Notify:register(\"SuperMagicBirdActGetGold\", function( from, gold )\n    --     self:getData():subActAddGold( from, gold )\n    -- end)\n    _G.amfEC:registerNormal(\"SuperMagicBirdActGetGold\", function( evt )\n        -- UError(\"SuperMagicBirdActInfoUpdateEVT\",tts(evt))\n        self:getData():subActAddGold( evt.data.from, evt.data.gold )\n    end)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/supermagicbirdmoney2025/SuperMagicBirdMoney2025Manager.lua",
+          "line": 63,
+          "sha256": "dfe0b2a1b631216a066b6d835fac3c772026f212797f0779a03ec4495cd63a26",
+          "function": "function SuperMagicBirdMoney2025Manager:onActActInfoUpdate(event)",
+          "body": "function SuperMagicBirdMoney2025Manager:onActActInfoUpdate(event)\n\n    local data = event:getData()\n    local actInfos = data.actInfos or {}\n    local fromServer = data.fromServer\n    local actInfo = actInfos[tostring(SuperMagicBirdMoney2025Manager.ACT_ID)]\n\n    if fromServer and actInfo then\n        --同步最新后端内容\n        if actInfo.extra then\n            local extra = table.deserialize(actInfo.extra)\n            if extra then\n                -- self:getData():fromSever(extra)\n                self:getData():fromActInfo(extra)\n            end\n        end\n    end\nend\n\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/supermagicbirdmoney2025/SuperMagicBirdMoney2025Manager.lua",
+          "line": 102,
+          "sha256": "dfe0b2a1b631216a066b6d835fac3c772026f212797f0779a03ec4495cd63a26",
+          "function": "function SuperMagicBirdMoney2025Manager:onActBeforeStartLevel(evt)",
+          "body": "function SuperMagicBirdMoney2025Manager:onActBeforeStartLevel(evt)\n    local data = evt.data\n    if not data or not data.levelId then return end\n    if not data or not data.levelScene then return end\n\n    local levelState = self:getPlayLevelState( data.levelId, data.levelScene )\n    data.target:setOutLevelAttachData(\"super_bird\", levelState)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/supermagicbirdmoney2025/SuperMagicBirdMoney2025Manager.lua",
+          "line": 111,
+          "sha256": "dfe0b2a1b631216a066b6d835fac3c772026f212797f0779a03ec4495cd63a26",
+          "function": "function SuperMagicBirdMoney2025Manager:onActBeforePlayLevelEnd(evt)",
+          "body": "function SuperMagicBirdMoney2025Manager:onActBeforePlayLevelEnd(evt)\n\n    local data = evt.data\n    if not data or not data.levelId then return end\n    if _G.amfBean(\"AskForHelpManager\"):hasAskForHelpInfo(data.levelId ) then return end\n\n    local inst = UBFGameSceneManager:getInstance()\n    local levelInfo = inst:getLevelInfo()\n    -- if levelInfo.levelId ~= levelInfo.topLevelId then return end\n\n    local levelState = 0\n    if levelInfo.outLevelAttachData and levelInfo.outLevelAttachData[\"super_bird\"] then\n        levelState = levelInfo.outLevelAttachData[\"super_bird\"]\n    end\n\n    if levelState == 0 then return end \n\n    local pworth = inst:getSceneData().pworth or {}\n\n    local actInLevelManager = UBFGameModManagerOrganizer:getRunningModManager(8068)\n    local modEnv = actInLevelManager and actInLevelManager:getModEnvData()\n    local hasSuperPower = modEnv and modEnv.hasSuperPower\n\n    -- local endLevelData = inst:getEndLevelData()\n\n    data.jsonTable[\"8069\"] = { propWorth = pworth[\"MX\"], levelState = levelState, propWorthV2 = pworth[\"RY\"] }\n\n    --\n    self:getData():passLevelAddGoldNum(levelInfo.levelId, pworth[\"MX\"], hasSuperPower, data.isWin, levelState)\n    self:getData():passLevelAddGoldNumV2(levelInfo.levelId, pworth[\"RY\"], hasSuperPower, data.isWin, levelState)\n    self:getData():addCurCost( levelInfo.levelId, levelInfo.levelScene, pworth[\"RY\"] )\nend\n\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "teamcamping",
+      "ids": [
+        5321
+      ],
+      "classification": "stage4专用钩子显式关闭；另有签到/手动入口",
+      "verified_behavior": "checkPopFunctionStage4直接false、popFunctionStage4只执行结束回调。isEnabled要求数据及下载完成，若Meta.disableAfterGetReward则已领bigReward关闭。仍有onMarkPreOpenEvent签到banner和openActivity。",
+      "remaining_gap": "只证明该stage4钩子不弹，不能说整个5321活动关闭或没有其他配置式主面板。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/teamcamping/TeamCampingManager.lua",
+          "line": 64,
+          "sha256": "f27879a7fece85d0e76242ac2b92b9cc4a0bc388ccad5c2aac1e98252ffefc26",
+          "function": "function Manager:_init()",
+          "body": "function Manager:_init()\n    self:registerActProps()\n    self:registerActLinkage()\n    self.iconCanChangePower = true\n    local TeamCampingDc = require\"amf.feature.localactivity.teamcamping.dc.TeamCampingDC\"\n    self.dc= TeamCampingDc\n    PropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)\n    PropEventCenter:register(PropEvent.RESOLVE_ICON, self._onResolveIcon, self)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/teamcamping/TeamCampingManager.lua",
+          "line": 118,
+          "sha256": "f27879a7fece85d0e76242ac2b92b9cc4a0bc388ccad5c2aac1e98252ffefc26",
+          "function": "function Manager:_getExtraPlugsConfigList()",
+          "body": "function Manager:_getExtraPlugsConfigList()\n    return {\n        {\n            key = \"Download\",\n        },\n        {\n            key = \"Panel\",\n        },\n        {\n            key = \"Rewards\",\n        },\n        {\n            key = \"Haptics\",\n            path = {\n                plugPath = \"amf.feature.localactivity.teamcamping.plug.HapticsPlug\",\n                const = self:_getConstPath()\n            },\n        },\n        {\n            key = \"ActSent\",\n            path = {\n                plugPath = \"amf.middleware.activitylinkage.ability.sendextraprop.plug.ActSentPlug\",\n                const = self:_getConstPath()\n            },\n        },\n        {\n            key = \"ActSend\",\n            path = {\n                plugPath = \"amf.feature.localactivity.teamcamping.plug.TeamCampingSendPlug\",\n                const = self:_getConstPath()\n            },\n        },\n        {\n            key = \"DC\",\n        },\n    }\nend\n\n\n\n-- 震动\n"
+        },
+        {
+          "path": "amf/feature/localactivity/teamcamping/TeamCampingManager.lua",
+          "line": 999,
+          "sha256": "f27879a7fece85d0e76242ac2b92b9cc4a0bc388ccad5c2aac1e98252ffefc26",
+          "function": "function Manager:checkPopFunctionStage4()",
+          "body": "function Manager:checkPopFunctionStage4()\n    return false\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/teamcamping/TeamCampingManager.lua",
+          "line": 1003,
+          "sha256": "f27879a7fece85d0e76242ac2b92b9cc4a0bc388ccad5c2aac1e98252ffefc26",
+          "function": "function Manager:popFunctionStage4(onHandleOver)",
+          "body": "function Manager:popFunctionStage4(onHandleOver)\n    safeRunCall(onHandleOver)\nend\n\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/teamcamping/TeamCampingManager.lua",
+          "line": 1080,
+          "sha256": "f27879a7fece85d0e76242ac2b92b9cc4a0bc388ccad5c2aac1e98252ffefc26",
+          "function": "function Manager:isEnabled()",
+          "body": "function Manager:isEnabled()\n    local isLogicEnabled = self:getData():isDataEnabled()\n    local isResEnabled = self.downloadPlug:checkDownloadSuccess()\n    local hasGetRewards = self:getData():getDataByKey(\"bigReward\",false)\n    if Meta.disableAfterGetReward then\n        isLogicEnabled = isLogicEnabled and not hasGetRewards\n    end\n    if not isResEnabled and (self:getData():isActInMain() or self:getData():isActInReward()) then\n        self:callPlug(\"Download\",\"startDownload\")\n    end\n    return isLogicEnabled and isResEnabled\nend\n\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/teamcamping/TeamCampingManager.lua",
+          "line": 1379,
+          "sha256": "f27879a7fece85d0e76242ac2b92b9cc4a0bc388ccad5c2aac1e98252ffefc26",
+          "function": "function Manager:onMarkPreOpenEvent(evt)",
+          "body": "function Manager:onMarkPreOpenEvent(evt)\n    if not self:checkMarkBannerEnable() then return end\n\n    local contextList = evt:getData()\n    local context = MarkPreOpenContext.new()\n        :setPriority(ActFestivalConst.Priority.LINK_ACTIVITY)\n        :setExtLoadFiles({\n            \"amf/activity/teamcamping/materials/banner.png\"\n        })\n        :setEnabledCheckFunc(function()\n            return self:checkMarkBannerEnable()\n        end)\n        :setPreOpenFunc(function(callback)\n            safeRunCall(callback)\n        end)\n        :setBannerCreator(function()\n            local banner = Sprite:create(\"amf/activity/teamcamping/materials/banner.png\")\n\n            local endTime = self:getData():getMainEndTime()\n            local label = TTFLabel:createWithConfig({\n                text = \"\",\n                fontSize = 18,\n                hA = kCCTextAlignmentCenter,\n                vA = kCCVerticalTextAlignmentCenter,\n                outlineColor = hex2ccc4(\"00000050\"),\n                outlineSize = 2,\n            })\n            label:setAnchorPoint(ccp(0.5, 0.5))\n            label:setPositionXY(banner:getContentSize().width / 2 - 6, banner:getContentSize().height / 2 - 33)\n            banner:addChild(label)\n            local TimeUtil = require \"amf.middleware.ui.util.TimeUtil\"\n            TimeUtil:countDownLabel(label, endTime, nil, \"已结束\", nil, YH_REF_MAP.noEarClock_t)\n\n            local UIButton = require \"amf.middleware.ui.kit.component.button.UIButton\"\n            local btn = UIButton:createButton({\n                scaleMode = UIButtonConfig.BtnScales.k50,\n                str = \"去看看\",\n                touchFunc = function()\n                    if not self:checkMarkBannerEnable() then\n                        CommonTip:showTip(self:getConst().actChName .. \"活动已结束!\")\n                        return\n                    end\n                    _G.amfBean(\"AutoPopupMgr\"):resetPopup()\n                    MarkEventCenter:dispatch(MarkEvent.MARK_CLOSE)\n                    self:callActFunc(\"openActivity\", {\n                        extra = { from = 6 },\n                        userClick = true,\n                    })\n                end\n            })\n            banner:addChild(btn)\n            btn:setPositionXY(514,54)\n            return banner\n        end, ccp(305, 91))\n    table.insert(contextList, context)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/teamcamping/TeamCampingManager.lua",
+          "line": 1436,
+          "sha256": "f27879a7fece85d0e76242ac2b92b9cc4a0bc388ccad5c2aac1e98252ffefc26",
+          "function": "function Manager:openActivity(closeCallback, extra, userClick)",
+          "body": "function Manager:openActivity(closeCallback, extra, userClick)\n        self:callActFunc(\"openActivity\", {\n            extra =  extra,\n            userClick = userClick,\n            failCallback = closeCallback,\n            endCallback = closeCallback,\n    })\nend\n\n\n"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    },
+    {
+      "module": "yybwashingpackage",
+      "ids": [
+        9076
+      ],
+      "classification": "换包/升级引导，动态业务入口",
+      "verified_behavior": "initialize监听actInfo；canOpenYYBUpdatePanel排除小游戏、提审、不支持包型；需actInfo、未过endTime、maintenanceIsOpen及已过关达到openPassLevel。openYYBUpdatePanel创建面板并绑定结束时间。",
+      "remaining_gap": "属于渠道换包引导，不是关卡玩法活动；本函数不提供固定每日限次。SystemHandler会因其资格阻止普通更新弹窗，但自身上游弹窗配置未取得。",
+      "evidence": [
+        {
+          "path": "amf/feature/localactivity/yybwashingpackage/YYBWashingPackageManager.lua",
+          "line": 18,
+          "sha256": "81a73a43f6ab1281e24417f93a28c3442fa92140b33e2f77057df17e441fc6be",
+          "function": "function YYBWashingPackageManager:initialize()",
+          "body": "function YYBWashingPackageManager:initialize()\n\tself.maintenanceIsOpen = true\n\n    self.dcUtil = YYBWashingPackageDC\n\n\t-- local maintenanceName = 'yyb_flush'\n    -- local uid = UserManager:getInstance().user.uid or '12345'\n\t-- self.maintenanceIsOpen = MaintenanceManager:getInstance():isEnabledInGroup( maintenanceName , \"ON\" , uid )\n\n    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/yybwashingpackage/YYBWashingPackageManager.lua",
+          "line": 123,
+          "sha256": "81a73a43f6ab1281e24417f93a28c3442fa92140b33e2f77057df17e441fc6be",
+          "function": "function YYBWashingPackageManager:canOpenYYBUpdatePanel()",
+          "body": "function YYBWashingPackageManager:canOpenYYBUpdatePanel()\n\t--提审、 actInfo，passLevel, platForm,\n    --版本号，平台 后端判断\n    --test\n    -- do return true end\n    if EnvUtil:isMiniGame() then return false end\n    showLog(\"canOpenYYBUpdatePanel 111111111\")\n\tif MaintenanceManager.getInstance():isInReview() then return false end\n    showLog(\"canOpenYYBUpdatePanel 222222222\")\n\tif self:isUnSupportPkg() then return false end\n    showLog(\"canOpenYYBUpdatePanel 333333333\")\n\tif not self:getActInfo() then return false end\n    showLog(\"canOpenYYBUpdatePanel 4444444444\")\n    if not self:isEnabled() then return false end\n    showLog(\"canOpenYYBUpdatePanel 55555\")\n\tif not self.maintenanceIsOpen then return false end\n    showLog(\"canOpenYYBUpdatePanel 6666\")\n\tlocal passedLevel = _G.getTopPassedLevelId()\n    if passedLevel < YYBWashingPackageConfig.openPassLevel then\n        return false\n    end\n    showLog(\"canOpenYYBUpdatePanel 777777\")\n    return true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/yybwashingpackage/YYBWashingPackageManager.lua",
+          "line": 148,
+          "sha256": "81a73a43f6ab1281e24417f93a28c3442fa92140b33e2f77057df17e441fc6be",
+          "function": "function YYBWashingPackageManager:isEnabled()",
+          "body": "function YYBWashingPackageManager:isEnabled()\n    local endTime = self:getEndTime()\n    local curTime = TimeKit:timeInSec()\n    if curTime > endTime then\n        return false\n    end\n    return true\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/yybwashingpackage/YYBWashingPackageManager.lua",
+          "line": 172,
+          "sha256": "81a73a43f6ab1281e24417f93a28c3442fa92140b33e2f77057df17e441fc6be",
+          "function": "function YYBWashingPackageManager:openYYBUpdatePanel( userClick, endCallback, extra )",
+          "body": "function YYBWashingPackageManager:openYYBUpdatePanel( userClick, endCallback, extra )\n    local YYBUpdatePanelVM = require 'amf.feature.localactivity.yybwashingpackage.view.YYBUpdatePanelVM'\n\tlocal panel = YYBUpdatePanelVM:create( {userClick = userClick, closeCallBack = endCallback, extra = extra} )\n\tpanel:popout()\n\n    local endTime = self:getEndTime()\n    if endTime > 0 then\n        local function passActEndCall()\n            CommonTip:showTip('活动已结束')\n        end\n        panel:setActEndTime( self:getEndTime()*1000, passActEndCall )\n    end\nend\n\n"
+        },
+        {
+          "path": "amf/feature/localactivity/yybwashingpackage/config/YYBWashingPackageConfig.lua",
+          "line": 1,
+          "sha256": "4428108b78d325825c79bd9cc99025297846027ca36fbd5a27166d92fc0cdf67",
+          "excerpt": "local YYBWashingPackageConfig = {}\n\nYYBWashingPackageConfig.bShowLog = true\n\nYYBWashingPackageConfig.actId = 9076\nYYBWashingPackageConfig.actSource = 'yybWashingPackage01/Config.lua'\nYYBWashingPackageConfig.openPassLevel = 500\n\n-----配置\nYYBWashingPackageConfig.yybScheme = 'tmast://appdetails?pname=com.happyelements.AndroidAnimal.qq'\n\nYYBWashingPackageConfig.commonPackageName = 'com.happyelements.AndroidAnimal'\nYYBWashingPackageConfig.commonMainActivityName = 'com.happyelements.hellolua.MainActivity'\nYYBWashingPackageConfig.commonActivityAliasName = 'com.happyelements.hellolua.HELauncher'\n\nYYBWashingPackageConfig.HEPlatformInfoConfigs = {\n\tplatform = PlatformNameEnum.kHE, \n\tpackageName = YYBWashingPackageConfig.commonPackageName,\n\tlaunchScheme = 'happyanimal3://', --happyanimalchangelaunch 是he独有的\n\tMainActivity = YYBWashingPackageConfig.commonMainActivityName, \n\tLaunchActivity = YYBWashingPackageConfig.commonActivityAliasName\n}\n\n\nYYBWashingPackageConfig.DownPackagePanelShowType = {\n\tkDownUIShow = 1, --默认下载按钮面板\n\tkDownLoadingPackage = 4, --下载安装包loading\n\tkDownLoadComplete = 5, --安装包下载完成\n\tkDownLoadError = 6, --下载失败\n\tkInstallApkComplete = 7, --安装完成\n\tkDownLoadErrorNoNetWork = 8, --下载失败,没有网\n}\n\n\n-----\n\nreturn YYBWashingPackageConfig"
+        }
+      ],
+      "semantic_scope": "entry_and_named_helpers_not_every_transitive_dependency"
+    }
+  ]
+}

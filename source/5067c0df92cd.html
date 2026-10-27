@@ -1,0 +1,1002 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/pet/model/PetModel.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="5067c0df92cd.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/pet/model/PetModel.lua</h1><p>SHA256 7e3e6ea33ab434d202a2eeb69c00024ef99fc48db7bddc3c26806a51793f8022</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureModel = require &quot;amf.middleware.activity.base.BaseFeatureModel&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local PetConfig = require &quot;amf.feature.localactivity.pet.config.PetConfig&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>local LOCAL_PATH = PetConfig.LOCAL_PATH</span>
+<span id="L5" class="line"><a href="#L5">5</a></span>
+<span id="L6" class="line"><a href="#L6">6</a>local PetModel = class(&quot;PetModel&quot;, BaseFeatureModel)</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>local GUIDE_ID_SET_KEY = &quot;userInfo.guideIdSet&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>local WING_AUTHORITY_KEY = &quot;wingAuthority&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a>local WING_DAILY_LEFT_THROW_TIMES_KEY = &quot;wingDailyLeftThrowTimes&quot;</span>
+<span id="L11" class="line"><a href="#L11">11</a></span>
+<span id="L12" class="line"><a href="#L12">12</a>local function toSeconds(value)</span>
+<span id="L13" class="line"><a href="#L13">13</a>    local numericValue = tonumber(value)</span>
+<span id="L14" class="line"><a href="#L14">14</a>    if not numericValue then return nil end</span>
+<span id="L15" class="line"><a href="#L15">15</a>    return tonumber(TimeKit:tryConvertMsToSec(numericValue))</span>
+<span id="L16" class="line"><a href="#L16">16</a>end</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>function PetModel:_getConstPath()</span>
+<span id="L19" class="line"><a href="#L19">19</a>    return LOCAL_PATH .. &quot;.config.PetConfig&quot;</span>
+<span id="L20" class="line"><a href="#L20">20</a>end</span>
+<span id="L21" class="line"><a href="#L21">21</a></span>
+<span id="L22" class="line"><a href="#L22">22</a>function PetModel:__installPlugs()</span>
+<span id="L23" class="line"><a href="#L23">23</a>    self:installPlug(AMFDataPlugsType.STORAGE, {</span>
+<span id="L24" class="line"><a href="#L24">24</a>        fileName = &quot;PetModel&quot;</span>
+<span id="L25" class="line"><a href="#L25">25</a>    }):as(&quot;db&quot;)</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>function PetModel:__declare()</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self.userInfo = {}</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self.localConfig = {}</span>
+<span id="L31" class="line"><a href="#L31">31</a>    self.configVersion = &quot;&quot;</span>
+<span id="L32" class="line"><a href="#L32">32</a>    self.timeInfo = {}</span>
+<span id="L33" class="line"><a href="#L33">33</a>    self.localCache = {}</span>
+<span id="L34" class="line"><a href="#L34">34</a>    self.dcQualify = false</span>
+<span id="L35" class="line"><a href="#L35">35</a>    self.wingAuthority = {}</span>
+<span id="L36" class="line"><a href="#L36">36</a>    self.packagesPullResponse = {}</span>
+<span id="L37" class="line"><a href="#L37">37</a>    self.dcQualify = false</span>
+<span id="L38" class="line"><a href="#L38">38</a>    self._wingSwitchEnabled = nil</span>
+<span id="L39" class="line"><a href="#L39">39</a>end</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>function PetModel:clearLocalData()</span>
+<span id="L43" class="line"><a href="#L43">43</a>    self:setValue(&quot;userInfo&quot;, {})</span>
+<span id="L44" class="line"><a href="#L44">44</a>    self:setValue(&quot;data&quot;, {})</span>
+<span id="L45" class="line"><a href="#L45">45</a>end</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>function PetModel:_isSuccessData(data)</span>
+<span id="L48" class="line"><a href="#L48">48</a>    if not data then return false end</span>
+<span id="L49" class="line"><a href="#L49">49</a>    return data.ret == nil or tonumber(data.ret) == 0</span>
+<span id="L50" class="line"><a href="#L50">50</a>end</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a>function PetModel:_toBool(value, default)</span>
+<span id="L53" class="line"><a href="#L53">53</a>    if value == nil then return default end</span>
+<span id="L54" class="line"><a href="#L54">54</a>    return value == true or value == 1 or value == &quot;1&quot; or value == &quot;true&quot;</span>
+<span id="L55" class="line"><a href="#L55">55</a>end</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>function PetModel:_arrayToMap(list, value)</span>
+<span id="L58" class="line"><a href="#L58">58</a>    local map = {}</span>
+<span id="L59" class="line"><a href="#L59">59</a>    for _, id in ipairs(list or {}) do</span>
+<span id="L60" class="line"><a href="#L60">60</a>        map[tostring(id)] = value == nil and true or value</span>
+<span id="L61" class="line"><a href="#L61">61</a>    end</span>
+<span id="L62" class="line"><a href="#L62">62</a>    return map</span>
+<span id="L63" class="line"><a href="#L63">63</a>end</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>function PetModel:_appendUnique(list, value)</span>
+<span id="L66" class="line"><a href="#L66">66</a>    if value == nil then return end</span>
+<span id="L67" class="line"><a href="#L67">67</a>    list = list or {}</span>
+<span id="L68" class="line"><a href="#L68">68</a>    local key = tostring(value)</span>
+<span id="L69" class="line"><a href="#L69">69</a>    for _, item in ipairs(list) do</span>
+<span id="L70" class="line"><a href="#L70">70</a>        if tostring(item) == key then return list end</span>
+<span id="L71" class="line"><a href="#L71">71</a>    end</span>
+<span id="L72" class="line"><a href="#L72">72</a>    table.insert(list, value)</span>
+<span id="L73" class="line"><a href="#L73">73</a>    return list</span>
+<span id="L74" class="line"><a href="#L74">74</a>end</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>function PetModel:fromServer(data)</span>
+<span id="L77" class="line"><a href="#L77">77</a>    if type(data) ~= &quot;table&quot; then return end</span>
+<span id="L78" class="line"><a href="#L78">78</a>    for k, v in pairs(data) do</span>
+<span id="L79" class="line"><a href="#L79">79</a>        self:setValue(k, v)</span>
+<span id="L80" class="line"><a href="#L80">80</a>    end</span>
+<span id="L81" class="line"><a href="#L81">81</a>end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>function PetModel:_splitNumberList(value)</span>
+<span id="L84" class="line"><a href="#L84">84</a>    if type(value) ~= &quot;string&quot; then return value end</span>
+<span id="L85" class="line"><a href="#L85">85</a></span>
+<span id="L86" class="line"><a href="#L86">86</a>    local list = {}</span>
+<span id="L87" class="line"><a href="#L87">87</a>    for item in string.gmatch(value, &quot;[^,]+&quot;) do</span>
+<span id="L88" class="line"><a href="#L88">88</a>        local num = tonumber(item)</span>
+<span id="L89" class="line"><a href="#L89">89</a>        if num ~= nil then</span>
+<span id="L90" class="line"><a href="#L90">90</a>            table.insert(list, num)</span>
+<span id="L91" class="line"><a href="#L91">91</a>        end</span>
+<span id="L92" class="line"><a href="#L92">92</a>    end</span>
+<span id="L93" class="line"><a href="#L93">93</a>    return list</span>
+<span id="L94" class="line"><a href="#L94">94</a>end</span>
+<span id="L95" class="line"><a href="#L95">95</a></span>
+<span id="L96" class="line"><a href="#L96">96</a>function PetModel:_normalizeFoodMeta(foodMeta)</span>
+<span id="L97" class="line"><a href="#L97">97</a>    if type(foodMeta) ~= &quot;table&quot; then return end</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>    if foodMeta.foodItemId == nil then</span>
+<span id="L100" class="line"><a href="#L100">100</a>        foodMeta.foodItemId = foodMeta.itemId or foodMeta.feedItemId or foodMeta.foodCollectionId</span>
+<span id="L101" class="line"><a href="#L101">101</a>    end</span>
+<span id="L102" class="line"><a href="#L102">102</a>end</span>
+<span id="L103" class="line"><a href="#L103">103</a></span>
+<span id="L104" class="line"><a href="#L104">104</a>function PetModel:_normalizeLocalConfig(localConfig)</span>
+<span id="L105" class="line"><a href="#L105">105</a>    if type(localConfig) ~= &quot;table&quot; then return localConfig end</span>
+<span id="L106" class="line"><a href="#L106">106</a></span>
+<span id="L107" class="line"><a href="#L107">107</a>    local config = localConfig.config or localConfig</span>
+<span id="L108" class="line"><a href="#L108">108</a>    if type(config) ~= &quot;table&quot; then return localConfig end</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>    config.feedMultipliers = self:_splitNumberList(config.feedMultipliers)</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>    if type(config.foodMetas) == &quot;table&quot; then</span>
+<span id="L113" class="line"><a href="#L113">113</a>        for _, foodMeta in pairs(config.foodMetas) do</span>
+<span id="L114" class="line"><a href="#L114">114</a>            self:_normalizeFoodMeta(foodMeta)</span>
+<span id="L115" class="line"><a href="#L115">115</a>        end</span>
+<span id="L116" class="line"><a href="#L116">116</a>    end</span>
+<span id="L117" class="line"><a href="#L117">117</a></span>
+<span id="L118" class="line"><a href="#L118">118</a>    return localConfig</span>
+<span id="L119" class="line"><a href="#L119">119</a>end</span>
+<span id="L120" class="line"><a href="#L120">120</a></span>
+<span id="L121" class="line"><a href="#L121">121</a>function PetModel:_getServerDay(time)</span>
+<span id="L122" class="line"><a href="#L122">122</a>    local currentTime = toSeconds(time) or TimeKit:timeInSec()</span>
+<span id="L123" class="line"><a href="#L123">123</a>    return TimeKit:getDayStartTimeByTS(currentTime)</span>
+<span id="L124" class="line"><a href="#L124">124</a>end</span>
+<span id="L125" class="line"><a href="#L125">125</a></span>
+<span id="L126" class="line"><a href="#L126">126</a>function PetModel:_getWingDeco(enableDecos)</span>
+<span id="L127" class="line"><a href="#L127">127</a>    return self:_getDecoByPart(enableDecos, PetConfig.DecoPartType.Wing)</span>
+<span id="L128" class="line"><a href="#L128">128</a>end</span>
+<span id="L129" class="line"><a href="#L129">129</a></span>
+<span id="L130" class="line"><a href="#L130">130</a>function PetModel:_getDecoByPart(enableDecos, partType)</span>
+<span id="L131" class="line"><a href="#L131">131</a>    if type(enableDecos) ~= &quot;table&quot; then return nil end</span>
+<span id="L132" class="line"><a href="#L132">132</a>    return enableDecos[partType] or enableDecos[tostring(partType)]</span>
+<span id="L133" class="line"><a href="#L133">133</a>end</span>
+<span id="L134" class="line"><a href="#L134">134</a></span>
+<span id="L135" class="line"><a href="#L135">135</a>function PetModel:_buildWingProgress(wing)</span>
+<span id="L136" class="line"><a href="#L136">136</a>    wing = wing or self:getDataByKey(&quot;wing&quot;, {})</span>
+<span id="L137" class="line"><a href="#L137">137</a>    return {</span>
+<span id="L138" class="line"><a href="#L138">138</a>        continuousLoginDays = tonumber(wing.continuousLoginDays) or 0,</span>
+<span id="L139" class="line"><a href="#L139">139</a>        unlockProgressDays = tonumber(wing.unlockProgressDays) or 0,</span>
+<span id="L140" class="line"><a href="#L140">140</a>        needUnlockDays = tonumber(wing.needUnlockDays) or 0,</span>
+<span id="L141" class="line"><a href="#L141">141</a>    }</span>
+<span id="L142" class="line"><a href="#L142">142</a>end</span>
+<span id="L143" class="line"><a href="#L143">143</a></span>
+<span id="L144" class="line"><a href="#L144">144</a>function PetModel:_buildWingSummary()</span>
+<span id="L145" class="line"><a href="#L145">145</a>    return {</span>
+<span id="L146" class="line"><a href="#L146">146</a>        activated = self:isWingActivated(),</span>
+<span id="L147" class="line"><a href="#L147">147</a>    }</span>
+<span id="L148" class="line"><a href="#L148">148</a>end</span>
+<span id="L149" class="line"><a href="#L149">149</a></span>
+<span id="L150" class="line"><a href="#L150">150</a>function PetModel:_updateWingTransition(before, after, source, optimistic)</span>
+<span id="L151" class="line"><a href="#L151">151</a>    if before.activated == after.activated then return end</span>
+<span id="L152" class="line"><a href="#L152">152</a></span>
+<span id="L153" class="line"><a href="#L153">153</a>    local transition = {</span>
+<span id="L154" class="line"><a href="#L154">154</a>        fromActivated = before.activated,</span>
+<span id="L155" class="line"><a href="#L155">155</a>        toActivated = after.activated,</span>
+<span id="L156" class="line"><a href="#L156">156</a>        source = source,</span>
+<span id="L157" class="line"><a href="#L157">157</a>        serverDay = self:_getServerDay(),</span>
+<span id="L158" class="line"><a href="#L158">158</a>        optimistic = optimistic == true,</span>
+<span id="L159" class="line"><a href="#L159">159</a>    }</span>
+<span id="L160" class="line"><a href="#L160">160</a>    self:setValue(WING_AUTHORITY_KEY .. &quot;.lastTransition&quot;, transition)</span>
+<span id="L161" class="line"><a href="#L161">161</a>end</span>
+<span id="L162" class="line"><a href="#L162">162</a></span>
+<span id="L163" class="line"><a href="#L163">163</a>function PetModel:_installPetActivityInfo(payload)</span>
+<span id="L164" class="line"><a href="#L164">164</a>    local wing = payload.data.wing</span>
+<span id="L165" class="line"><a href="#L165">165</a>    local userInfo = table.clone(self:getData(), true)</span>
+<span id="L166" class="line"><a href="#L166">166</a>    userInfo.wing = table.clone(wing, true)</span>
+<span id="L167" class="line"><a href="#L167">167</a>    userInfo.enableDecos = table.clone(payload.data.enableDecos, true)</span>
+<span id="L168" class="line"><a href="#L168">168</a>    userInfo[PetConfig.DeprecatedDataKey.WEARING_DECOS] = nil</span>
+<span id="L169" class="line"><a href="#L169">169</a>    self:setValue(&quot;userInfo&quot;, userInfo)</span>
+<span id="L170" class="line"><a href="#L170">170</a></span>
+<span id="L171" class="line"><a href="#L171">171</a>    if payload.config ~= nil then</span>
+<span id="L172" class="line"><a href="#L172">172</a>        self:setValue(&quot;localConfig&quot;, self:_normalizeLocalConfig(table.clone(payload.config, true)))</span>
+<span id="L173" class="line"><a href="#L173">173</a>    end</span>
+<span id="L174" class="line"><a href="#L174">174</a>    self:setValue(&quot;configVersion&quot;, payload.configVersion)</span>
+<span id="L175" class="line"><a href="#L175">175</a>    self:setValue(&quot;packagesPullResponse&quot;, table.clone(payload.packagesPullResponse or {}, true))</span>
+<span id="L176" class="line"><a href="#L176">176</a></span>
+<span id="L177" class="line"><a href="#L177">177</a>    self:setValue(WING_AUTHORITY_KEY .. &quot;.lastValidServerLoginDay&quot;, self:_getServerDay())</span>
+<span id="L178" class="line"><a href="#L178">178</a>end</span>
+<span id="L179" class="line"><a href="#L179">179</a></span>
+<span id="L180" class="line"><a href="#L180">180</a>function PetModel:_installGetActInfo(payload)</span>
+<span id="L181" class="line"><a href="#L181">181</a>    local userInfo = table.clone(self:getData(), true)</span>
+<span id="L182" class="line"><a href="#L182">182</a>    userInfo[PetConfig.DeprecatedDataKey.WEARING_DECOS] = nil</span>
+<span id="L183" class="line"><a href="#L183">183</a>    userInfo.enableDecos = table.clone(payload.enableDecos, true)</span>
+<span id="L184" class="line"><a href="#L184">184</a>    if payload.wingBeginTs ~= nil then</span>
+<span id="L185" class="line"><a href="#L185">185</a>        userInfo.wingBeginTs = payload.wingBeginTs</span>
+<span id="L186" class="line"><a href="#L186">186</a>    end</span>
+<span id="L187" class="line"><a href="#L187">187</a>    if payload.wingEndTs ~= nil then</span>
+<span id="L188" class="line"><a href="#L188">188</a>        userInfo.wingEndTs = payload.wingEndTs</span>
+<span id="L189" class="line"><a href="#L189">189</a>    end</span>
+<span id="L190" class="line"><a href="#L190">190</a>    self:setValue(&quot;userInfo&quot;, userInfo)</span>
+<span id="L191" class="line"><a href="#L191">191</a>end</span>
+<span id="L192" class="line"><a href="#L192">192</a></span>
+<span id="L193" class="line"><a href="#L193">193</a>function PetModel:_installServerPayload(source, payload, shouldFlush)</span>
+<span id="L194" class="line"><a href="#L194">194</a>    local before = self:_buildWingSummary()</span>
+<span id="L195" class="line"><a href="#L195">195</a>    if source == PetConfig.ServerPayloadSource.PET_ACTIVITY_INFO then</span>
+<span id="L196" class="line"><a href="#L196">196</a>        self:_installPetActivityInfo(payload)</span>
+<span id="L197" class="line"><a href="#L197">197</a>    elseif source == PetConfig.ServerPayloadSource.GET_ACT_INFO then</span>
+<span id="L198" class="line"><a href="#L198">198</a>        self:_installGetActInfo(payload)</span>
+<span id="L199" class="line"><a href="#L199">199</a>    end</span>
+<span id="L200" class="line"><a href="#L200">200</a></span>
+<span id="L201" class="line"><a href="#L201">201</a>    local after = self:_buildWingSummary()</span>
+<span id="L202" class="line"><a href="#L202">202</a>    self:_updateWingTransition(before, after, source, false)</span>
+<span id="L203" class="line"><a href="#L203">203</a>    if shouldFlush ~= false then</span>
+<span id="L204" class="line"><a href="#L204">204</a>        self:flush()</span>
+<span id="L205" class="line"><a href="#L205">205</a>    end</span>
+<span id="L206" class="line"><a href="#L206">206</a>end</span>
+<span id="L207" class="line"><a href="#L207">207</a></span>
+<span id="L208" class="line"><a href="#L208">208</a>function PetModel:installServerPayload(source, payload)</span>
+<span id="L209" class="line"><a href="#L209">209</a>    self:_installServerPayload(source, payload, true)</span>
+<span id="L210" class="line"><a href="#L210">210</a>end</span>
+<span id="L211" class="line"><a href="#L211">211</a></span>
+<span id="L212" class="line"><a href="#L212">212</a>function PetModel:updateTimeInfo(time)</span>
+<span id="L213" class="line"><a href="#L213">213</a>    if type(time) ~= &quot;table&quot; then return end</span>
+<span id="L214" class="line"><a href="#L214">214</a></span>
+<span id="L215" class="line"><a href="#L215">215</a>    local timeInfo = self:getValue(&quot;timeInfo&quot;) or {}</span>
+<span id="L216" class="line"><a href="#L216">216</a>    for key, value in pairs(time) do</span>
+<span id="L217" class="line"><a href="#L217">217</a>        if value ~= nil then</span>
+<span id="L218" class="line"><a href="#L218">218</a>            timeInfo[key] = value</span>
+<span id="L219" class="line"><a href="#L219">219</a>        end</span>
+<span id="L220" class="line"><a href="#L220">220</a>    end</span>
+<span id="L221" class="line"><a href="#L221">221</a>    self:setValue(&quot;timeInfo&quot;, timeInfo)</span>
+<span id="L222" class="line"><a href="#L222">222</a>end</span>
+<span id="L223" class="line"><a href="#L223">223</a></span>
+<span id="L224" class="line"><a href="#L224">224</a>function PetModel:updateMainInfo(data, init)</span>
+<span id="L225" class="line"><a href="#L225">225</a>    if init then</span>
+<span id="L226" class="line"><a href="#L226">226</a>        self:setValue(&quot;_wingSwitchEnabled&quot;, self:_resolveWingSwitchEnabled())</span>
+<span id="L227" class="line"><a href="#L227">227</a>        printx(44, &quot;self._wingSwitchEnabled&quot;, self._wingSwitchEnabled)</span>
+<span id="L228" class="line"><a href="#L228">228</a>    end</span>
+<span id="L229" class="line"><a href="#L229">229</a></span>
+<span id="L230" class="line"><a href="#L230">230</a>    self:_installServerPayload(PetConfig.ServerPayloadSource.PET_ACTIVITY_INFO, {</span>
+<span id="L231" class="line"><a href="#L231">231</a>        data = data.userInfo,</span>
+<span id="L232" class="line"><a href="#L232">232</a>        config = data.localConfig,</span>
+<span id="L233" class="line"><a href="#L233">233</a>        configVersion = data.configVersion,</span>
+<span id="L234" class="line"><a href="#L234">234</a>        packagesPullResponse = data.packagesPullResponse,</span>
+<span id="L235" class="line"><a href="#L235">235</a>    }, false)</span>
+<span id="L236" class="line"><a href="#L236">236</a></span>
+<span id="L237" class="line"><a href="#L237">237</a>    local currentUserInfo = self:getData()</span>
+<span id="L238" class="line"><a href="#L238">238</a>    local userInfo = table.clone(data.userInfo, true)</span>
+<span id="L239" class="line"><a href="#L239">239</a>    userInfo.wing = type(currentUserInfo.wing) == &quot;table&quot; and table.clone(currentUserInfo.wing, true) or nil</span>
+<span id="L240" class="line"><a href="#L240">240</a>    userInfo.enableDecos = type(currentUserInfo.enableDecos) == &quot;table&quot;</span>
+<span id="L241" class="line"><a href="#L241">241</a>        and table.clone(currentUserInfo.enableDecos, true) or nil</span>
+<span id="L242" class="line"><a href="#L242">242</a>    userInfo[PetConfig.DeprecatedDataKey.WEARING_DECOS] = nil</span>
+<span id="L243" class="line"><a href="#L243">243</a>    userInfo.wingBeginTs = currentUserInfo.wingBeginTs</span>
+<span id="L244" class="line"><a href="#L244">244</a>    userInfo.wingEndTs = currentUserInfo.wingEndTs</span>
+<span id="L245" class="line"><a href="#L245">245</a>    self:setValue(&quot;userInfo&quot;, userInfo)</span>
+<span id="L246" class="line"><a href="#L246">246</a></span>
+<span id="L247" class="line"><a href="#L247">247</a>    for key, value in pairs(data) do</span>
+<span id="L248" class="line"><a href="#L248">248</a>        if key ~= &quot;userInfo&quot; and key ~= &quot;localConfig&quot; and key ~= &quot;configVersion&quot;</span>
+<span id="L249" class="line"><a href="#L249">249</a>            and key ~= &quot;packagesPullResponse&quot;</span>
+<span id="L250" class="line"><a href="#L250">250</a>            and key ~= &quot;periodBeginTime&quot; and key ~= &quot;periodMainBeginTime&quot;</span>
+<span id="L251" class="line"><a href="#L251">251</a>            and key ~= &quot;periodMainEndTime&quot; and key ~= &quot;periodEndTime&quot;</span>
+<span id="L252" class="line"><a href="#L252">252</a>        then</span>
+<span id="L253" class="line"><a href="#L253">253</a>            self:setValue(key, value)</span>
+<span id="L254" class="line"><a href="#L254">254</a>        end</span>
+<span id="L255" class="line"><a href="#L255">255</a>    end</span>
+<span id="L256" class="line"><a href="#L256">256</a>    self:flush()</span>
+<span id="L257" class="line"><a href="#L257">257</a>end</span>
+<span id="L258" class="line"><a href="#L258">258</a></span>
+<span id="L259" class="line"><a href="#L259">259</a>function PetModel:getConfig()</span>
+<span id="L260" class="line"><a href="#L260">260</a>    local localConfig = self:getValue(&quot;localConfig&quot;)</span>
+<span id="L261" class="line"><a href="#L261">261</a>    if type(localConfig) ~= &quot;table&quot; then</span>
+<span id="L262" class="line"><a href="#L262">262</a>        return {}</span>
+<span id="L263" class="line"><a href="#L263">263</a>    end</span>
+<span id="L264" class="line"><a href="#L264">264</a>    return localConfig.config or localConfig</span>
+<span id="L265" class="line"><a href="#L265">265</a>end</span>
+<span id="L266" class="line"><a href="#L266">266</a></span>
+<span id="L267" class="line"><a href="#L267">267</a>function PetModel:getData()</span>
+<span id="L268" class="line"><a href="#L268">268</a>    return self:getValue(&quot;userInfo&quot;) or {}</span>
+<span id="L269" class="line"><a href="#L269">269</a>end</span>
+<span id="L270" class="line"><a href="#L270">270</a></span>
+<span id="L271" class="line"><a href="#L271">271</a>function PetModel:getDataByKey(key, default, copyTable)</span>
+<span id="L272" class="line"><a href="#L272">272</a>    local value = self:getData()[key]</span>
+<span id="L273" class="line"><a href="#L273">273</a>    if value == nil then</span>
+<span id="L274" class="line"><a href="#L274">274</a>        return default</span>
+<span id="L275" class="line"><a href="#L275">275</a>    end</span>
+<span id="L276" class="line"><a href="#L276">276</a>    if copyTable and type(value) == &quot;table&quot; then</span>
+<span id="L277" class="line"><a href="#L277">277</a>        return table.clone(value, true)</span>
+<span id="L278" class="line"><a href="#L278">278</a>    end</span>
+<span id="L279" class="line"><a href="#L279">279</a>    return value</span>
+<span id="L280" class="line"><a href="#L280">280</a>end</span>
+<span id="L281" class="line"><a href="#L281">281</a></span>
+<span id="L282" class="line"><a href="#L282">282</a>function PetModel:getSettings()</span>
+<span id="L283" class="line"><a href="#L283">283</a>    return {</span>
+<span id="L284" class="line"><a href="#L284">284</a>        showInLevelPet = self:isShowPetEnabled(),</span>
+<span id="L285" class="line"><a href="#L285">285</a>    }</span>
+<span id="L286" class="line"><a href="#L286">286</a>end</span>
+<span id="L287" class="line"><a href="#L287">287</a></span>
+<span id="L288" class="line"><a href="#L288">288</a>function PetModel:getInLevelPetNotify()</span>
+<span id="L289" class="line"><a href="#L289">289</a>    return self:getValue(&quot;inLevelPetNotify&quot;) or {}</span>
+<span id="L290" class="line"><a href="#L290">290</a>end</span>
+<span id="L291" class="line"><a href="#L291">291</a></span>
+<span id="L292" class="line"><a href="#L292">292</a>function PetModel:getInitDecoList()</span>
+<span id="L293" class="line"><a href="#L293">293</a>    return self:getConfigByKey(&quot;initDecoList&quot;, {})</span>
+<span id="L294" class="line"><a href="#L294">294</a>end</span>
+<span id="L295" class="line"><a href="#L295">295</a></span>
+<span id="L296" class="line"><a href="#L296">296</a>function PetModel:setLocalCache(key, value)</span>
+<span id="L297" class="line"><a href="#L297">297</a>    if key == nil then return end</span>
+<span id="L298" class="line"><a href="#L298">298</a>    self:setValue(&quot;localCache.&quot; .. key, value)</span>
+<span id="L299" class="line"><a href="#L299">299</a>end</span>
+<span id="L300" class="line"><a href="#L300">300</a></span>
+<span id="L301" class="line"><a href="#L301">301</a>function PetModel:getLocalCache(key)</span>
+<span id="L302" class="line"><a href="#L302">302</a>    if key == nil then return nil end</span>
+<span id="L303" class="line"><a href="#L303">303</a>    return self:getValue(&quot;localCache.&quot; .. key)</span>
+<span id="L304" class="line"><a href="#L304">304</a>end</span>
+<span id="L305" class="line"><a href="#L305">305</a></span>
+<span id="L306" class="line"><a href="#L306">306</a>function PetModel:getClientMd5()</span>
+<span id="L307" class="line"><a href="#L307">307</a>    return self:getValue(&quot;configVersion&quot;) or &quot;&quot;</span>
+<span id="L308" class="line"><a href="#L308">308</a>end</span>
+<span id="L309" class="line"><a href="#L309">309</a></span>
+<span id="L310" class="line"><a href="#L310">310</a></span>
+<span id="L311" class="line"><a href="#L311">311</a>function PetModel:getBeginTime()</span>
+<span id="L312" class="line"><a href="#L312">312</a>    return self:getValue(&quot;timeInfo.beginTime&quot;) or 0</span>
+<span id="L313" class="line"><a href="#L313">313</a>end</span>
+<span id="L314" class="line"><a href="#L314">314</a></span>
+<span id="L315" class="line"><a href="#L315">315</a>function PetModel:getMainBeginTime()</span>
+<span id="L316" class="line"><a href="#L316">316</a>    return self:getValue(&quot;timeInfo.mainBeginTime&quot;) or 0</span>
+<span id="L317" class="line"><a href="#L317">317</a>end</span>
+<span id="L318" class="line"><a href="#L318">318</a></span>
+<span id="L319" class="line"><a href="#L319">319</a>function PetModel:getMainEndTime()</span>
+<span id="L320" class="line"><a href="#L320">320</a>    return self:getValue(&quot;timeInfo.mainEndTime&quot;) or 0</span>
+<span id="L321" class="line"><a href="#L321">321</a>end</span>
+<span id="L322" class="line"><a href="#L322">322</a></span>
+<span id="L323" class="line"><a href="#L323">323</a>function PetModel:getEndTime()</span>
+<span id="L324" class="line"><a href="#L324">324</a>    return self:getValue(&quot;timeInfo.endTime&quot;) or 0</span>
+<span id="L325" class="line"><a href="#L325">325</a>end</span>
+<span id="L326" class="line"><a href="#L326">326</a></span>
+<span id="L327" class="line"><a href="#L327">327</a>function PetModel:isDataEnabled()</span>
+<span id="L328" class="line"><a href="#L328">328</a>    local localConfig = self:getValue(&quot;localConfig&quot;)</span>
+<span id="L329" class="line"><a href="#L329">329</a>    if not localConfig or table.isEmpty(localConfig) then</span>
+<span id="L330" class="line"><a href="#L330">330</a>        return false</span>
+<span id="L331" class="line"><a href="#L331">331</a>    end</span>
+<span id="L332" class="line"><a href="#L332">332</a></span>
+<span id="L333" class="line"><a href="#L333">333</a>    local data = self:getValue(&quot;data&quot;)</span>
+<span id="L334" class="line"><a href="#L334">334</a>    local userInfo = self:getValue(&quot;userInfo&quot;)</span>
+<span id="L335" class="line"><a href="#L335">335</a>	if (not data or table.isEmpty(data)) and (not userInfo or table.isEmpty(userInfo)) then</span>
+<span id="L336" class="line"><a href="#L336">336</a>        return false</span>
+<span id="L337" class="line"><a href="#L337">337</a>    end</span>
+<span id="L338" class="line"><a href="#L338">338</a></span>
+<span id="L339" class="line"><a href="#L339">339</a>    return true</span>
+<span id="L340" class="line"><a href="#L340">340</a>end</span>
+<span id="L341" class="line"><a href="#L341">341</a></span>
+<span id="L342" class="line"><a href="#L342">342</a>function PetModel:isInPreheatTime()</span>
+<span id="L343" class="line"><a href="#L343">343</a>    local now = TimeKit:timeInSec()</span>
+<span id="L344" class="line"><a href="#L344">344</a>    return now &gt;= self:getBeginTime() and now &lt; self:getMainBeginTime()</span>
+<span id="L345" class="line"><a href="#L345">345</a>end</span>
+<span id="L346" class="line"><a href="#L346">346</a></span>
+<span id="L347" class="line"><a href="#L347">347</a>function PetModel:isInMainTime()</span>
+<span id="L348" class="line"><a href="#L348">348</a>    local now = TimeKit:timeInSec()</span>
+<span id="L349" class="line"><a href="#L349">349</a>    return now &gt;= self:getMainBeginTime() and now &lt; self:getMainEndTime()</span>
+<span id="L350" class="line"><a href="#L350">350</a>end</span>
+<span id="L351" class="line"><a href="#L351">351</a></span>
+<span id="L352" class="line"><a href="#L352">352</a>function PetModel:isInRewardTime()</span>
+<span id="L353" class="line"><a href="#L353">353</a>    local now = TimeKit:timeInSec()</span>
+<span id="L354" class="line"><a href="#L354">354</a>    return now &gt;= self:getMainEndTime() and now &lt; self:getEndTime()</span>
+<span id="L355" class="line"><a href="#L355">355</a>end</span>
+<span id="L356" class="line"><a href="#L356">356</a></span>
+<span id="L357" class="line"><a href="#L357">357</a>function PetModel:isOpen()</span>
+<span id="L358" class="line"><a href="#L358">358</a>    local now = TimeKit:timeInSec()</span>
+<span id="L359" class="line"><a href="#L359">359</a>    local beginTime = toSeconds(self:getBeginTime()) or 0</span>
+<span id="L360" class="line"><a href="#L360">360</a>    local endTime = toSeconds(self:getEndTime()) or 0</span>
+<span id="L361" class="line"><a href="#L361">361</a>    return now &gt;= beginTime and now &lt; endTime</span>
+<span id="L362" class="line"><a href="#L362">362</a>end</span>
+<span id="L363" class="line"><a href="#L363">363</a></span>
+<span id="L364" class="line"><a href="#L364">364</a>function PetModel:getFreshness()</span>
+<span id="L365" class="line"><a href="#L365">365</a>    local storedAuthority = self:getValue(WING_AUTHORITY_KEY) or {}</span>
+<span id="L366" class="line"><a href="#L366">366</a>    local currentServerDay = self:_getServerDay()</span>
+<span id="L367" class="line"><a href="#L367">367</a>    local lastValidServerLoginDay = tonumber(storedAuthority.lastValidServerLoginDay)</span>
+<span id="L368" class="line"><a href="#L368">368</a>    return {</span>
+<span id="L369" class="line"><a href="#L369">369</a>        currentServerDay = currentServerDay,</span>
+<span id="L370" class="line"><a href="#L370">370</a>        lastValidServerLoginDay = lastValidServerLoginDay,</span>
+<span id="L371" class="line"><a href="#L371">371</a>        isFresh = lastValidServerLoginDay == tonumber(currentServerDay),</span>
+<span id="L372" class="line"><a href="#L372">372</a>    }</span>
+<span id="L373" class="line"><a href="#L373">373</a>end</span>
+<span id="L374" class="line"><a href="#L374">374</a></span>
+<span id="L375" class="line"><a href="#L375">375</a>function PetModel:_isWingContextAvailable()</span>
+<span id="L376" class="line"><a href="#L376">376</a>    if not self:isDataEnabled() then return false end</span>
+<span id="L377" class="line"><a href="#L377">377</a>    if not self:isOpen() then return false end</span>
+<span id="L378" class="line"><a href="#L378">378</a>    if not self:isClientVersionMatch() then return false end</span>
+<span id="L379" class="line"><a href="#L379">379</a>    return self:getFreshness().isFresh == true</span>
+<span id="L380" class="line"><a href="#L380">380</a>end</span>
+<span id="L381" class="line"><a href="#L381">381</a></span>
+<span id="L382" class="line"><a href="#L382">382</a>function PetModel:_resolveWingSwitchEnabled()</span>
+<span id="L383" class="line"><a href="#L383">383</a>    if not MaintenanceManager or not MaintenanceManager.getInstance then return true end</span>
+<span id="L384" class="line"><a href="#L384">384</a>    return not MaintenanceManager:getInstance():isEnabledInGroup(</span>
+<span id="L385" class="line"><a href="#L385">385</a>        PetConfig.WingSwitch.NAME,</span>
+<span id="L386" class="line"><a href="#L386">386</a>        PetConfig.WingSwitch.CLOSED_GROUP</span>
+<span id="L387" class="line"><a href="#L387">387</a>    )</span>
+<span id="L388" class="line"><a href="#L388">388</a>end</span>
+<span id="L389" class="line"><a href="#L389">389</a></span>
+<span id="L390" class="line"><a href="#L390">390</a>function PetModel:_isWingSwitchEnabled()</span>
+<span id="L391" class="line"><a href="#L391">391</a>    return self._wingSwitchEnabled ~= false</span>
+<span id="L392" class="line"><a href="#L392">392</a>end</span>
+<span id="L393" class="line"><a href="#L393">393</a></span>
+<span id="L394" class="line"><a href="#L394">394</a>function PetModel:getWingFeatureTiming(currentTime)</span>
+<span id="L395" class="line"><a href="#L395">395</a>    local now = toSeconds(currentTime) or TimeKit:timeInSec()</span>
+<span id="L396" class="line"><a href="#L396">396</a>    local beginTimeValue = self:getDataByKey(&quot;wingBeginTs&quot;)</span>
+<span id="L397" class="line"><a href="#L397">397</a>    local endTimeValue = self:getDataByKey(&quot;wingEndTs&quot;)</span>
+<span id="L398" class="line"><a href="#L398">398</a>    local beginTime = toSeconds(beginTimeValue)</span>
+<span id="L399" class="line"><a href="#L399">399</a>    local endTime = toSeconds(endTimeValue)</span>
+<span id="L400" class="line"><a href="#L400">400</a>    local contextAvailable = self:_isWingContextAvailable()</span>
+<span id="L401" class="line"><a href="#L401">401</a>    local afterBegin = beginTime == nil or beginTime == 0 or now &gt;= beginTime</span>
+<span id="L402" class="line"><a href="#L402">402</a>    local beforeEnd = endTime == 0 or (endTime ~= nil and now &lt; endTime)</span>
+<span id="L403" class="line"><a href="#L403">403</a>    local featureEnabled = self:_isWingSwitchEnabled()</span>
+<span id="L404" class="line"><a href="#L404">404</a>        and contextAvailable</span>
+<span id="L405" class="line"><a href="#L405">405</a>        and afterBegin</span>
+<span id="L406" class="line"><a href="#L406">406</a>        and beforeEnd</span>
+<span id="L407" class="line"><a href="#L407">407</a></span>
+<span id="L408" class="line"><a href="#L408">408</a>    return {</span>
+<span id="L409" class="line"><a href="#L409">409</a>        currentTs = now,</span>
+<span id="L410" class="line"><a href="#L410">410</a>        beginTs = beginTime,</span>
+<span id="L411" class="line"><a href="#L411">411</a>        endTs = endTime,</span>
+<span id="L412" class="line"><a href="#L412">412</a>        featureEnabled = featureEnabled,</span>
+<span id="L413" class="line"><a href="#L413">413</a>        countdownVisible = featureEnabled and endTime ~= nil and endTime &gt; 0,</span>
+<span id="L414" class="line"><a href="#L414">414</a>        remainingSeconds = featureEnabled and endTime and endTime &gt; 0 and math.max(0, endTime - now) or 0,</span>
+<span id="L415" class="line"><a href="#L415">415</a>    }</span>
+<span id="L416" class="line"><a href="#L416">416</a>end</span>
+<span id="L417" class="line"><a href="#L417">417</a></span>
+<span id="L418" class="line"><a href="#L418">418</a>function PetModel:isWingFeatureEnabled(currentTime)</span>
+<span id="L419" class="line"><a href="#L419">419</a>    return self:getWingFeatureTiming(currentTime).featureEnabled == true</span>
+<span id="L420" class="line"><a href="#L420">420</a>end</span>
+<span id="L421" class="line"><a href="#L421">421</a></span>
+<span id="L422" class="line"><a href="#L422">422</a>function PetModel:getEnabledDecoMap()</span>
+<span id="L423" class="line"><a href="#L423">423</a>    return table.clone(self:getDataByKey(&quot;enableDecos&quot;, {}), true)</span>
+<span id="L424" class="line"><a href="#L424">424</a>end</span>
+<span id="L425" class="line"><a href="#L425">425</a></span>
+<span id="L426" class="line"><a href="#L426">426</a>function PetModel:isWingActivated()</span>
+<span id="L427" class="line"><a href="#L427">427</a>    local wingDeco = self:_getWingDeco(self:getDataByKey(&quot;enableDecos&quot;, {}))</span>
+<span id="L428" class="line"><a href="#L428">428</a>    return type(wingDeco) == &quot;table&quot; and self:_toBool(wingDeco.enable, false) == true</span>
+<span id="L429" class="line"><a href="#L429">429</a>end</span>
+<span id="L430" class="line"><a href="#L430">430</a></span>
+<span id="L431" class="line"><a href="#L431">431</a>function PetModel:getWingDailyLeftThrowTimes()</span>
+<span id="L432" class="line"><a href="#L432">432</a>    return tonumber(self:getDataByKey(WING_DAILY_LEFT_THROW_TIMES_KEY))</span>
+<span id="L433" class="line"><a href="#L433">433</a>end</span>
+<span id="L434" class="line"><a href="#L434">434</a></span>
+<span id="L435" class="line"><a href="#L435">435</a>function PetModel:consumeWingDailyThrowTime()</span>
+<span id="L436" class="line"><a href="#L436">436</a>    local leftThrowTimes = self:getWingDailyLeftThrowTimes()</span>
+<span id="L437" class="line"><a href="#L437">437</a>    if leftThrowTimes == nil or leftThrowTimes &lt;= 0 then</span>
+<span id="L438" class="line"><a href="#L438">438</a>        return false</span>
+<span id="L439" class="line"><a href="#L439">439</a>    end</span>
+<span id="L440" class="line"><a href="#L440">440</a></span>
+<span id="L441" class="line"><a href="#L441">441</a>    self:setDataByKey(WING_DAILY_LEFT_THROW_TIMES_KEY, math.max(0, leftThrowTimes - 1), true)</span>
+<span id="L442" class="line"><a href="#L442">442</a>    return true</span>
+<span id="L443" class="line"><a href="#L443">443</a>end</span>
+<span id="L444" class="line"><a href="#L444">444</a></span>
+<span id="L445" class="line"><a href="#L445">445</a>function PetModel:isWingEffective(currentTime)</span>
+<span id="L446" class="line"><a href="#L446">446</a>    return self:isWingFeatureEnabled(currentTime) and self:isWingActivated()</span>
+<span id="L447" class="line"><a href="#L447">447</a>end</span>
+<span id="L448" class="line"><a href="#L448">448</a></span>
+<span id="L449" class="line"><a href="#L449">449</a>function PetModel:getWingProgress()</span>
+<span id="L450" class="line"><a href="#L450">450</a>    return self:_buildWingProgress()</span>
+<span id="L451" class="line"><a href="#L451">451</a>end</span>
+<span id="L452" class="line"><a href="#L452">452</a></span>
+<span id="L453" class="line"><a href="#L453">453</a>function PetModel:getPackageData()</span>
+<span id="L454" class="line"><a href="#L454">454</a>    return table.clone(self:getValue(&quot;packagesPullResponse&quot;) or {}, true)</span>
+<span id="L455" class="line"><a href="#L455">455</a>end</span>
+<span id="L456" class="line"><a href="#L456">456</a></span>
+<span id="L457" class="line"><a href="#L457">457</a>function PetModel:getWingTransition()</span>
+<span id="L458" class="line"><a href="#L458">458</a>    local transition = self:getValue(WING_AUTHORITY_KEY .. &quot;.lastTransition&quot;)</span>
+<span id="L459" class="line"><a href="#L459">459</a>    if type(transition) ~= &quot;table&quot; then return nil end</span>
+<span id="L460" class="line"><a href="#L460">460</a>    return {</span>
+<span id="L461" class="line"><a href="#L461">461</a>        fromActivated = transition.fromActivated,</span>
+<span id="L462" class="line"><a href="#L462">462</a>        toActivated = transition.toActivated,</span>
+<span id="L463" class="line"><a href="#L463">463</a>        source = transition.source,</span>
+<span id="L464" class="line"><a href="#L464">464</a>        serverDay = transition.serverDay,</span>
+<span id="L465" class="line"><a href="#L465">465</a>        optimistic = transition.optimistic,</span>
+<span id="L466" class="line"><a href="#L466">466</a>    }</span>
+<span id="L467" class="line"><a href="#L467">467</a>end</span>
+<span id="L468" class="line"><a href="#L468">468</a></span>
+<span id="L469" class="line"><a href="#L469">469</a>function PetModel:getWingFrequencyContext()</span>
+<span id="L470" class="line"><a href="#L470">470</a>    local freshness = self:getFreshness()</span>
+<span id="L471" class="line"><a href="#L471">471</a>    return {</span>
+<span id="L472" class="line"><a href="#L472">472</a>        serverDay = freshness.currentServerDay,</span>
+<span id="L473" class="line"><a href="#L473">473</a>        isFresh = freshness.isFresh,</span>
+<span id="L474" class="line"><a href="#L474">474</a>        transition = self:getWingTransition(),</span>
+<span id="L475" class="line"><a href="#L475">475</a>    }</span>
+<span id="L476" class="line"><a href="#L476">476</a>end</span>
+<span id="L477" class="line"><a href="#L477">477</a></span>
+<span id="L478" class="line"><a href="#L478">478</a>function PetModel:hasShownMainPanel(serverDay)</span>
+<span id="L479" class="line"><a href="#L479">479</a>    local shownServerDay = self:getLocalCache(PetConfig.WingAutoPop.MAIN_PANEL_SHOWN_DAY_KEY)</span>
+<span id="L480" class="line"><a href="#L480">480</a>    return tonumber(shownServerDay) == tonumber(serverDay)</span>
+<span id="L481" class="line"><a href="#L481">481</a>end</span>
+<span id="L482" class="line"><a href="#L482">482</a></span>
+<span id="L483" class="line"><a href="#L483">483</a>function PetModel:markMainPanelShown(serverDay)</span>
+<span id="L484" class="line"><a href="#L484">484</a>    self:setLocalCache(PetConfig.WingAutoPop.MAIN_PANEL_SHOWN_DAY_KEY, serverDay)</span>
+<span id="L485" class="line"><a href="#L485">485</a>    self:flush()</span>
+<span id="L486" class="line"><a href="#L486">486</a>end</span>
+<span id="L487" class="line"><a href="#L487">487</a></span>
+<span id="L488" class="line"><a href="#L488">488</a>function PetModel:hasShownWingPanel(serverDay)</span>
+<span id="L489" class="line"><a href="#L489">489</a>    local shownServerDay = self:getLocalCache(PetConfig.WingAutoPop.PANEL_SHOWN_DAY_KEY)</span>
+<span id="L490" class="line"><a href="#L490">490</a>    return tonumber(shownServerDay) == tonumber(serverDay)</span>
+<span id="L491" class="line"><a href="#L491">491</a>end</span>
+<span id="L492" class="line"><a href="#L492">492</a></span>
+<span id="L493" class="line"><a href="#L493">493</a>function PetModel:markWingPanelShown(serverDay)</span>
+<span id="L494" class="line"><a href="#L494">494</a>    self:setLocalCache(PetConfig.WingAutoPop.PANEL_SHOWN_DAY_KEY, serverDay)</span>
+<span id="L495" class="line"><a href="#L495">495</a>    self:flush()</span>
+<span id="L496" class="line"><a href="#L496">496</a>end</span>
+<span id="L497" class="line"><a href="#L497">497</a></span>
+<span id="L498" class="line"><a href="#L498">498</a>function PetModel:hasConsumedWingDailyProgressAnimation(serverDay)</span>
+<span id="L499" class="line"><a href="#L499">499</a>    local consumedServerDay = self:getLocalCache(</span>
+<span id="L500" class="line"><a href="#L500">500</a>        PetConfig.WingAutoPop.DAILY_PROGRESS_ANIMATION_DAY_KEY</span>
+<span id="L501" class="line"><a href="#L501">501</a>    )</span>
+<span id="L502" class="line"><a href="#L502">502</a>    return tonumber(consumedServerDay) == tonumber(serverDay)</span>
+<span id="L503" class="line"><a href="#L503">503</a>end</span>
+<span id="L504" class="line"><a href="#L504">504</a></span>
+<span id="L505" class="line"><a href="#L505">505</a>function PetModel:markWingDailyProgressAnimationConsumed(serverDay)</span>
+<span id="L506" class="line"><a href="#L506">506</a>    serverDay = tonumber(serverDay) or self:_getServerDay()</span>
+<span id="L507" class="line"><a href="#L507">507</a>    self:setLocalCache(PetConfig.WingAutoPop.DAILY_PROGRESS_ANIMATION_DAY_KEY, serverDay)</span>
+<span id="L508" class="line"><a href="#L508">508</a>    self:flush()</span>
+<span id="L509" class="line"><a href="#L509">509</a>end</span>
+<span id="L510" class="line"><a href="#L510">510</a></span>
+<span id="L511" class="line"><a href="#L511">511</a>function PetModel:applyPurchaseOptimisticActivation()</span>
+<span id="L512" class="line"><a href="#L512">512</a>    local userInfo = table.clone(self:getData(), true)</span>
+<span id="L513" class="line"><a href="#L513">513</a>    local wing = userInfo.wing</span>
+<span id="L514" class="line"><a href="#L514">514</a>    local needLoginDays = tonumber(self:getConfigByKey(&quot;wingNeedLoginDays&quot;))</span>
+<span id="L515" class="line"><a href="#L515">515</a>    local wingDeco = self:_getWingDeco(userInfo.enableDecos)</span>
+<span id="L516" class="line"><a href="#L516">516</a>    local before = self:_buildWingSummary()</span>
+<span id="L517" class="line"><a href="#L517">517</a>    wing.unlockProgressDays = needLoginDays</span>
+<span id="L518" class="line"><a href="#L518">518</a>    wing.needUnlockDays = 0</span>
+<span id="L519" class="line"><a href="#L519">519</a>    wingDeco.enable = true</span>
+<span id="L520" class="line"><a href="#L520">520</a>    self:setValue(&quot;userInfo&quot;, userInfo)</span>
+<span id="L521" class="line"><a href="#L521">521</a></span>
+<span id="L522" class="line"><a href="#L522">522</a>    local after = self:_buildWingSummary()</span>
+<span id="L523" class="line"><a href="#L523">523</a>    self:_updateWingTransition(before, after, &quot;purchase&quot;, true)</span>
+<span id="L524" class="line"><a href="#L524">524</a>    self:flush()</span>
+<span id="L525" class="line"><a href="#L525">525</a>end</span>
+<span id="L526" class="line"><a href="#L526">526</a></span>
+<span id="L527" class="line"><a href="#L527">527</a>function PetModel:isClientVersionMatch()</span>
+<span id="L528" class="line"><a href="#L528">528</a>    return tonumber(self:getConfigByKey(&quot;clientVersion&quot;, 0)) == tonumber(PetConfig.clientVersion)</span>
+<span id="L529" class="line"><a href="#L529">529</a>end</span>
+<span id="L530" class="line"><a href="#L530">530</a></span>
+<span id="L531" class="line"><a href="#L531">531</a>function PetModel:setClientVersion(clientVersion)</span>
+<span id="L532" class="line"><a href="#L532">532</a>    self:setConfigByKey(&quot;clientVersion&quot;, clientVersion)</span>
+<span id="L533" class="line"><a href="#L533">533</a>end</span>
+<span id="L534" class="line"><a href="#L534">534</a></span>
+<span id="L535" class="line"><a href="#L535">535</a></span>
+<span id="L536" class="line"><a href="#L536">536</a></span>
+<span id="L537" class="line"><a href="#L537">537</a>function PetModel:getConfigByKey(key, default)</span>
+<span id="L538" class="line"><a href="#L538">538</a>    local config = self:getConfig()</span>
+<span id="L539" class="line"><a href="#L539">539</a>    if config and config[key] ~= nil then</span>
+<span id="L540" class="line"><a href="#L540">540</a>        if type(config[key]) == &quot;table&quot; then</span>
+<span id="L541" class="line"><a href="#L541">541</a>            return table.clone(config[key], true)</span>
+<span id="L542" class="line"><a href="#L542">542</a>        end</span>
+<span id="L543" class="line"><a href="#L543">543</a>        return config[key]</span>
+<span id="L544" class="line"><a href="#L544">544</a>    end</span>
+<span id="L545" class="line"><a href="#L545">545</a>    return default</span>
+<span id="L546" class="line"><a href="#L546">546</a>end</span>
+<span id="L547" class="line"><a href="#L547">547</a></span>
+<span id="L548" class="line"><a href="#L548">548</a>function PetModel:isActivated()</span>
+<span id="L549" class="line"><a href="#L549">549</a>    local data = self:getData()</span>
+<span id="L550" class="line"><a href="#L550">550</a>    if data.activated ~= nil then</span>
+<span id="L551" class="line"><a href="#L551">551</a>        return data.activated == true</span>
+<span id="L552" class="line"><a href="#L552">552</a>    end</span>
+<span id="L553" class="line"><a href="#L553">553</a>    return true --self:getWearingDecoByPart(PetConfig.DecoPartType.Image) ~= 0</span>
+<span id="L554" class="line"><a href="#L554">554</a>end</span>
+<span id="L555" class="line"><a href="#L555">555</a></span>
+<span id="L556" class="line"><a href="#L556">556</a>function PetModel:getLevel()</span>
+<span id="L557" class="line"><a href="#L557">557</a>    return tonumber(self:getData().level) or 1</span>
+<span id="L558" class="line"><a href="#L558">558</a>end</span>
+<span id="L559" class="line"><a href="#L559">559</a></span>
+<span id="L560" class="line"><a href="#L560">560</a>function PetModel:getExp()</span>
+<span id="L561" class="line"><a href="#L561">561</a>    return tonumber(self:getData().exp) or 0</span>
+<span id="L562" class="line"><a href="#L562">562</a>end</span>
+<span id="L563" class="line"><a href="#L563">563</a></span>
+<span id="L564" class="line"><a href="#L564">564</a>function PetModel:getLevelConfig(level)</span>
+<span id="L565" class="line"><a href="#L565">565</a>    level = tonumber(level) or self:getLevel()</span>
+<span id="L566" class="line"><a href="#L566">566</a>    local levelConfigList = self:getConfigByKey(&quot;levelMetas&quot;, {})</span>
+<span id="L567" class="line"><a href="#L567">567</a>    for _, cfg in ipairs(levelConfigList) do</span>
+<span id="L568" class="line"><a href="#L568">568</a>        if tonumber(cfg.level) == level then</span>
+<span id="L569" class="line"><a href="#L569">569</a>            return cfg</span>
+<span id="L570" class="line"><a href="#L570">570</a>        end</span>
+<span id="L571" class="line"><a href="#L571">571</a>    end</span>
+<span id="L572" class="line"><a href="#L572">572</a>    return {}</span>
+<span id="L573" class="line"><a href="#L573">573</a>end</span>
+<span id="L574" class="line"><a href="#L574">574</a></span>
+<span id="L575" class="line"><a href="#L575">575</a>function PetModel:getCurLevelNeedExp()</span>
+<span id="L576" class="line"><a href="#L576">576</a>    local cfg = self:getLevelConfig(self:getLevel())</span>
+<span id="L577" class="line"><a href="#L577">577</a>    return tonumber(cfg.needTotalExp) or 0</span>
+<span id="L578" class="line"><a href="#L578">578</a>end</span>
+<span id="L579" class="line"><a href="#L579">579</a></span>
+<span id="L580" class="line"><a href="#L580">580</a>function PetModel:getFeedItemId()</span>
+<span id="L581" class="line"><a href="#L581">581</a>    local foodMeta = self:getFoodMeta()</span>
+<span id="L582" class="line"><a href="#L582">582</a>    return foodMeta and (foodMeta.foodItemId or foodMeta.foodCollectionId) or PetConfig.defaultFeedItemId</span>
+<span id="L583" class="line"><a href="#L583">583</a>end</span>
+<span id="L584" class="line"><a href="#L584">584</a></span>
+<span id="L585" class="line"><a href="#L585">585</a>function PetModel:getFoodMetas()</span>
+<span id="L586" class="line"><a href="#L586">586</a>    return self:getConfigByKey(&quot;foodMetas&quot;, {}, true) or {}</span>
+<span id="L587" class="line"><a href="#L587">587</a>end</span>
+<span id="L588" class="line"><a href="#L588">588</a></span>
+<span id="L589" class="line"><a href="#L589">589</a>function PetModel:getFoodMeta(foodItemId)</span>
+<span id="L590" class="line"><a href="#L590">590</a>    local foodMetas = self:getConfigByKey(&quot;foodMetas&quot;, {})</span>
+<span id="L591" class="line"><a href="#L591">591</a>    if type(foodMetas) ~= &quot;table&quot; then return nil end</span>
+<span id="L592" class="line"><a href="#L592">592</a>    if foodItemId ~= nil then</span>
+<span id="L593" class="line"><a href="#L593">593</a>        for _, foodMeta in ipairs(foodMetas) do</span>
+<span id="L594" class="line"><a href="#L594">594</a>            if tostring(foodMeta.foodItemId or foodMeta.foodCollectionId) == tostring(foodItemId) then</span>
+<span id="L595" class="line"><a href="#L595">595</a>                return foodMeta</span>
+<span id="L596" class="line"><a href="#L596">596</a>            end</span>
+<span id="L597" class="line"><a href="#L597">597</a>        end</span>
+<span id="L598" class="line"><a href="#L598">598</a>        return nil</span>
+<span id="L599" class="line"><a href="#L599">599</a>    end</span>
+<span id="L600" class="line"><a href="#L600">600</a>    return foodMetas[1]</span>
+<span id="L601" class="line"><a href="#L601">601</a>end</span>
+<span id="L602" class="line"><a href="#L602">602</a></span>
+<span id="L603" class="line"><a href="#L603">603</a>function PetModel:getFoodNum(foodItemId)</span>
+<span id="L604" class="line"><a href="#L604">604</a>    local mainData = self:getData()</span>
+<span id="L605" class="line"><a href="#L605">605</a>    local foodMap = mainData.foodMap</span>
+<span id="L606" class="line"><a href="#L606">606</a>    local feedItemId = foodItemId or self:getFeedItemId()</span>
+<span id="L607" class="line"><a href="#L607">607</a>    if type(foodMap) == &quot;table&quot; and feedItemId ~= nil then</span>
+<span id="L608" class="line"><a href="#L608">608</a>        local value = foodMap[tostring(feedItemId)] or foodMap[tonumber(feedItemId)]</span>
+<span id="L609" class="line"><a href="#L609">609</a>        if value ~= nil then</span>
+<span id="L610" class="line"><a href="#L610">610</a>            return tonumber(value) or 0</span>
+<span id="L611" class="line"><a href="#L611">611</a>        end</span>
+<span id="L612" class="line"><a href="#L612">612</a>    end</span>
+<span id="L613" class="line"><a href="#L613">613</a>    return tonumber(mainData.foodNum) or 0</span>
+<span id="L614" class="line"><a href="#L614">614</a>end</span>
+<span id="L615" class="line"><a href="#L615">615</a></span>
+<span id="L616" class="line"><a href="#L616">616</a>function PetModel:getFoodMap()</span>
+<span id="L617" class="line"><a href="#L617">617</a>    return table.clone(self:getData().foodMap or {}, true)</span>
+<span id="L618" class="line"><a href="#L618">618</a>end</span>
+<span id="L619" class="line"><a href="#L619">619</a></span>
+<span id="L620" class="line"><a href="#L620">620</a>function PetModel:getFeedExp(foodItemId)</span>
+<span id="L621" class="line"><a href="#L621">621</a>    local feed = self:getConfigByKey(&quot;feed&quot;, {})</span>
+<span id="L622" class="line"><a href="#L622">622</a>    local foodMeta = self:getFoodMeta(foodItemId or self:getFeedItemId())</span>
+<span id="L623" class="line"><a href="#L623">623</a>    if foodMeta then</span>
+<span id="L624" class="line"><a href="#L624">624</a>        return tonumber(foodMeta.foodToExp or foodMeta.feedExpValue or 1) or 1</span>
+<span id="L625" class="line"><a href="#L625">625</a>    end</span>
+<span id="L626" class="line"><a href="#L626">626</a>    return tonumber(feed.foodToExp or self:getConfigByKey(&quot;feedExp&quot;, 1)) or 1</span>
+<span id="L627" class="line"><a href="#L627">627</a>end</span>
+<span id="L628" class="line"><a href="#L628">628</a></span>
+<span id="L629" class="line"><a href="#L629">629</a>function PetModel:getFeedMultipleList()</span>
+<span id="L630" class="line"><a href="#L630">630</a>    local feed = self:getConfigByKey(&quot;feed&quot;, {})</span>
+<span id="L631" class="line"><a href="#L631">631</a>    local multipliers = self:_splitNumberList(self:getConfigByKey(&quot;feedMultipliers&quot;))</span>
+<span id="L632" class="line"><a href="#L632">632</a>    if type(multipliers) == &quot;table&quot; and #multipliers &gt; 0 then</span>
+<span id="L633" class="line"><a href="#L633">633</a>        return multipliers</span>
+<span id="L634" class="line"><a href="#L634">634</a>    end</span>
+<span id="L635" class="line"><a href="#L635">635</a>    return feed.supportFeedMultiple or PetConfig.defaultFeedMultipleList</span>
+<span id="L636" class="line"><a href="#L636">636</a>end</span>
+<span id="L637" class="line"><a href="#L637">637</a></span>
+<span id="L638" class="line"><a href="#L638">638</a>function PetModel:getMaxFeedNumPerRequest()</span>
+<span id="L639" class="line"><a href="#L639">639</a>    local feed = self:getConfigByKey(&quot;feed&quot;, {})</span>
+<span id="L640" class="line"><a href="#L640">640</a>    return tonumber(feed.maxFeedNumPerRequest) or 0</span>
+<span id="L641" class="line"><a href="#L641">641</a>end</span>
+<span id="L642" class="line"><a href="#L642">642</a></span>
+<span id="L643" class="line"><a href="#L643">643</a>function PetModel:getSelectedFeedMultiple()</span>
+<span id="L644" class="line"><a href="#L644">644</a>    local multiple = self:getLocalCache(&quot;selectedFeedMultiple&quot;)</span>
+<span id="L645" class="line"><a href="#L645">645</a>    if multiple then return multiple end</span>
+<span id="L646" class="line"><a href="#L646">646</a>    local list = self:getFeedMultipleList()</span>
+<span id="L647" class="line"><a href="#L647">647</a>    return list[1] or 1</span>
+<span id="L648" class="line"><a href="#L648">648</a>end</span>
+<span id="L649" class="line"><a href="#L649">649</a></span>
+<span id="L650" class="line"><a href="#L650">650</a>function PetModel:setSelectedFeedMultiple(multiple)</span>
+<span id="L651" class="line"><a href="#L651">651</a>    self:setLocalCache(&quot;selectedFeedMultiple&quot;, multiple or 1)</span>
+<span id="L652" class="line"><a href="#L652">652</a>end</span>
+<span id="L653" class="line"><a href="#L653">653</a></span>
+<span id="L654" class="line"><a href="#L654">654</a>function PetModel:getRewardedLevels()</span>
+<span id="L655" class="line"><a href="#L655">655</a>    return self:getData().rewardedLevels or {}</span>
+<span id="L656" class="line"><a href="#L656">656</a>end</span>
+<span id="L657" class="line"><a href="#L657">657</a></span>
+<span id="L658" class="line"><a href="#L658">658</a>function PetModel:getRewardedLevelMap()</span>
+<span id="L659" class="line"><a href="#L659">659</a>    return self:_arrayToMap(self:getRewardedLevels())</span>
+<span id="L660" class="line"><a href="#L660">660</a>end</span>
+<span id="L661" class="line"><a href="#L661">661</a></span>
+<span id="L662" class="line"><a href="#L662">662</a>function PetModel:getCanRewardLevels()</span>
+<span id="L663" class="line"><a href="#L663">663</a>    return self:getData().canRewardLevels or {}</span>
+<span id="L664" class="line"><a href="#L664">664</a>end</span>
+<span id="L665" class="line"><a href="#L665">665</a></span>
+<span id="L666" class="line"><a href="#L666">666</a>function PetModel:getCanRewardLevelMap()</span>
+<span id="L667" class="line"><a href="#L667">667</a>    return self:_arrayToMap(self:getCanRewardLevels())</span>
+<span id="L668" class="line"><a href="#L668">668</a>end</span>
+<span id="L669" class="line"><a href="#L669">669</a></span>
+<span id="L670" class="line"><a href="#L670">670</a>function PetModel:isFinalLevelMaxExpReached()</span>
+<span id="L671" class="line"><a href="#L671">671</a>    local levelMetas = self:getConfigByKey(&quot;levelMetas&quot;, {})</span>
+<span id="L672" class="line"><a href="#L672">672</a>    if type(levelMetas) ~= &quot;table&quot; or #levelMetas &lt;= 0 then</span>
+<span id="L673" class="line"><a href="#L673">673</a>        return false</span>
+<span id="L674" class="line"><a href="#L674">674</a>    end</span>
+<span id="L675" class="line"><a href="#L675">675</a>    local finalNeedTotalExp = tonumber(levelMetas[#levelMetas].needTotalExp)</span>
+<span id="L676" class="line"><a href="#L676">676</a>    return finalNeedTotalExp ~= nil and self:getExp() &gt;= finalNeedTotalExp</span>
+<span id="L677" class="line"><a href="#L677">677</a>end</span>
+<span id="L678" class="line"><a href="#L678">678</a></span>
+<span id="L679" class="line"><a href="#L679">679</a>function PetModel:isLevelRewarded(level)</span>
+<span id="L680" class="line"><a href="#L680">680</a>    return self:getRewardedLevelMap()[tostring(level)] == true</span>
+<span id="L681" class="line"><a href="#L681">681</a>end</span>
+<span id="L682" class="line"><a href="#L682">682</a></span>
+<span id="L683" class="line"><a href="#L683">683</a>function PetModel:canClaimReward(level)</span>
+<span id="L684" class="line"><a href="#L684">684</a>    if level ~= nil then</span>
+<span id="L685" class="line"><a href="#L685">685</a>        return self:getCanRewardLevelMap()[tostring(level)] == true</span>
+<span id="L686" class="line"><a href="#L686">686</a>    end</span>
+<span id="L687" class="line"><a href="#L687">687</a>    return #(self:getCanRewardLevels()) &gt; 0</span>
+<span id="L688" class="line"><a href="#L688">688</a>end</span>
+<span id="L689" class="line"><a href="#L689">689</a></span>
+<span id="L690" class="line"><a href="#L690">690</a>function PetModel:isFoodNumEnough()</span>
+<span id="L691" class="line"><a href="#L691">691</a>    local levelMetas = self:getConfigByKey(&quot;levelMetas&quot;, {})</span>
+<span id="L692" class="line"><a href="#L692">692</a>    if type(levelMetas) ~= &quot;table&quot; or #levelMetas &lt;= 0 then</span>
+<span id="L693" class="line"><a href="#L693">693</a>        return false</span>
+<span id="L694" class="line"><a href="#L694">694</a>    end</span>
+<span id="L695" class="line"><a href="#L695">695</a></span>
+<span id="L696" class="line"><a href="#L696">696</a>    local targetNeedExp = 0</span>
+<span id="L697" class="line"><a href="#L697">697</a>    for _, cfg in ipairs(levelMetas) do</span>
+<span id="L698" class="line"><a href="#L698">698</a>        targetNeedExp = math.max(targetNeedExp, tonumber(cfg.needTotalExp) or 0)</span>
+<span id="L699" class="line"><a href="#L699">699</a>    end</span>
+<span id="L700" class="line"><a href="#L700">700</a></span>
+<span id="L701" class="line"><a href="#L701">701</a>    if targetNeedExp &lt;= 0 then</span>
+<span id="L702" class="line"><a href="#L702">702</a>        return false</span>
+<span id="L703" class="line"><a href="#L703">703</a>    end</span>
+<span id="L704" class="line"><a href="#L704">704</a></span>
+<span id="L705" class="line"><a href="#L705">705</a>    local totalExp = self:getExp()</span>
+<span id="L706" class="line"><a href="#L706">706</a>    for _, foodMeta in ipairs(self:getFoodMetas()) do</span>
+<span id="L707" class="line"><a href="#L707">707</a>        local foodItemId = foodMeta.foodItemId or foodMeta.foodCollectionId</span>
+<span id="L708" class="line"><a href="#L708">708</a>        local foodNum = self:getFoodNum(foodItemId)</span>
+<span id="L709" class="line"><a href="#L709">709</a>        local feedExp = self:getFeedExp(foodItemId)</span>
+<span id="L710" class="line"><a href="#L710">710</a>        totalExp = totalExp + foodNum * feedExp</span>
+<span id="L711" class="line"><a href="#L711">711</a>    end</span>
+<span id="L712" class="line"><a href="#L712">712</a></span>
+<span id="L713" class="line"><a href="#L713">713</a>    return totalExp &gt;= targetNeedExp</span>
+<span id="L714" class="line"><a href="#L714">714</a>end</span>
+<span id="L715" class="line"><a href="#L715">715</a></span>
+<span id="L716" class="line"><a href="#L716">716</a>function PetModel:hasReward()</span>
+<span id="L717" class="line"><a href="#L717">717</a>    return self:canClaimReward()</span>
+<span id="L718" class="line"><a href="#L718">718</a>end</span>
+<span id="L719" class="line"><a href="#L719">719</a></span>
+<span id="L720" class="line"><a href="#L720">720</a>function PetModel:getOwnedDecos()</span>
+<span id="L721" class="line"><a href="#L721">721</a>    return self:getData().ownedDecos or {}</span>
+<span id="L722" class="line"><a href="#L722">722</a>end</span>
+<span id="L723" class="line"><a href="#L723">723</a></span>
+<span id="L724" class="line"><a href="#L724">724</a>function PetModel:getOwnedDecoMap()</span>
+<span id="L725" class="line"><a href="#L725">725</a>    return self:_arrayToMap(self:getOwnedDecos())</span>
+<span id="L726" class="line"><a href="#L726">726</a>end</span>
+<span id="L727" class="line"><a href="#L727">727</a></span>
+<span id="L728" class="line"><a href="#L728">728</a>function PetModel:hasOwnedDeco(decoId)</span>
+<span id="L729" class="line"><a href="#L729">729</a>    return self:getOwnedDecoMap()[tostring(decoId)] == true</span>
+<span id="L730" class="line"><a href="#L730">730</a>end</span>
+<span id="L731" class="line"><a href="#L731">731</a></span>
+<span id="L732" class="line"><a href="#L732">732</a>function PetModel:getWearingDecos()</span>
+<span id="L733" class="line"><a href="#L733">733</a>    return self:getWearingDecoMap()</span>
+<span id="L734" class="line"><a href="#L734">734</a>end</span>
+<span id="L735" class="line"><a href="#L735">735</a></span>
+<span id="L736" class="line"><a href="#L736">736</a>function PetModel:getWearingDecoMap()</span>
+<span id="L737" class="line"><a href="#L737">737</a>    local map = {}</span>
+<span id="L738" class="line"><a href="#L738">738</a>    local enableDecos = self:getDataByKey(&quot;enableDecos&quot;, {})</span>
+<span id="L739" class="line"><a href="#L739">739</a>    if type(enableDecos) ~= &quot;table&quot; then</span>
+<span id="L740" class="line"><a href="#L740">740</a>        return map</span>
+<span id="L741" class="line"><a href="#L741">741</a>    end</span>
+<span id="L742" class="line"><a href="#L742">742</a></span>
+<span id="L743" class="line"><a href="#L743">743</a>    for partType, decoInfo in pairs(enableDecos) do</span>
+<span id="L744" class="line"><a href="#L744">744</a>        if type(decoInfo) == &quot;table&quot; and self:_toBool(decoInfo.enable, false) then</span>
+<span id="L745" class="line"><a href="#L745">745</a>            map[tostring(partType)] = tonumber(decoInfo.itemId) or decoInfo.itemId or 0</span>
+<span id="L746" class="line"><a href="#L746">746</a>        end</span>
+<span id="L747" class="line"><a href="#L747">747</a>    end</span>
+<span id="L748" class="line"><a href="#L748">748</a>    return map</span>
+<span id="L749" class="line"><a href="#L749">749</a>end</span>
+<span id="L750" class="line"><a href="#L750">750</a></span>
+<span id="L751" class="line"><a href="#L751">751</a>function PetModel:getWearingDecoByPart(partType)</span>
+<span id="L752" class="line"><a href="#L752">752</a>    return self:getWearingDecoMap()[tostring(partType)] or 0</span>
+<span id="L753" class="line"><a href="#L753">753</a>end</span>
+<span id="L754" class="line"><a href="#L754">754</a></span>
+<span id="L755" class="line"><a href="#L755">755</a>function PetModel:getNewDecos()</span>
+<span id="L756" class="line"><a href="#L756">756</a>    return self:getData().newDecos or {}</span>
+<span id="L757" class="line"><a href="#L757">757</a>end</span>
+<span id="L758" class="line"><a href="#L758">758</a></span>
+<span id="L759" class="line"><a href="#L759">759</a>function PetModel:getNewDecoMap()</span>
+<span id="L760" class="line"><a href="#L760">760</a>    return self:_arrayToMap(self:getNewDecos())</span>
+<span id="L761" class="line"><a href="#L761">761</a>end</span>
+<span id="L762" class="line"><a href="#L762">762</a></span>
+<span id="L763" class="line"><a href="#L763">763</a>function PetModel:isNewDeco(decoId)</span>
+<span id="L764" class="line"><a href="#L764">764</a>    return self:getNewDecoMap()[tostring(decoId)] == true</span>
+<span id="L765" class="line"><a href="#L765">765</a>end</span>
+<span id="L766" class="line"><a href="#L766">766</a></span>
+<span id="L767" class="line"><a href="#L767">767</a></span>
+<span id="L768" class="line"><a href="#L768">768</a>function PetModel:getActId()</span>
+<span id="L769" class="line"><a href="#L769">769</a>    return self:getConst().actId</span>
+<span id="L770" class="line"><a href="#L770">770</a>end</span>
+<span id="L771" class="line"><a href="#L771">771</a></span>
+<span id="L772" class="line"><a href="#L772">772</a>function PetModel:getPeriodId()</span>
+<span id="L773" class="line"><a href="#L773">773</a>    return self:getConfigByKey(&quot;periodId&quot;, 0)</span>
+<span id="L774" class="line"><a href="#L774">774</a>end</span>
+<span id="L775" class="line"><a href="#L775">775</a></span>
+<span id="L776" class="line"><a href="#L776">776</a></span>
+<span id="L777" class="line"><a href="#L777">777</a>function PetModel:_getGuideIdSet()</span>
+<span id="L778" class="line"><a href="#L778">778</a>    local guideIdSet = self:getValue(GUIDE_ID_SET_KEY)</span>
+<span id="L779" class="line"><a href="#L779">779</a>    if type(guideIdSet) ~= &quot;table&quot; then</span>
+<span id="L780" class="line"><a href="#L780">780</a>        guideIdSet = {}</span>
+<span id="L781" class="line"><a href="#L781">781</a>        self:setValue(GUIDE_ID_SET_KEY, guideIdSet)</span>
+<span id="L782" class="line"><a href="#L782">782</a>    end</span>
+<span id="L783" class="line"><a href="#L783">783</a>    return guideIdSet</span>
+<span id="L784" class="line"><a href="#L784">784</a>end</span>
+<span id="L785" class="line"><a href="#L785">785</a></span>
+<span id="L786" class="line"><a href="#L786">786</a>function PetModel:_setGuideIdSet(guideIdSet, flush)</span>
+<span id="L787" class="line"><a href="#L787">787</a>    if type(guideIdSet) ~= &quot;table&quot; then</span>
+<span id="L788" class="line"><a href="#L788">788</a>        guideIdSet = {}</span>
+<span id="L789" class="line"><a href="#L789">789</a>    end</span>
+<span id="L790" class="line"><a href="#L790">790</a>    self:setValue(GUIDE_ID_SET_KEY, guideIdSet, flush)</span>
+<span id="L791" class="line"><a href="#L791">791</a>end</span>
+<span id="L792" class="line"><a href="#L792">792</a></span>
+<span id="L793" class="line"><a href="#L793">793</a>function PetModel:hasGuideId(guideId)</span>
+<span id="L794" class="line"><a href="#L794">794</a>    return table.exist(self:_getGuideIdSet(), guideId)</span>
+<span id="L795" class="line"><a href="#L795">795</a>end</span>
+<span id="L796" class="line"><a href="#L796">796</a></span>
+<span id="L797" class="line"><a href="#L797">797</a>function PetModel:addGuideId(guideId)</span>
+<span id="L798" class="line"><a href="#L798">798</a>    local guideIdSet = self:_getGuideIdSet()</span>
+<span id="L799" class="line"><a href="#L799">799</a>    if not table.exist(guideIdSet, guideId) then</span>
+<span id="L800" class="line"><a href="#L800">800</a>        table.insert(guideIdSet, guideId)</span>
+<span id="L801" class="line"><a href="#L801">801</a>        self:_setGuideIdSet(guideIdSet)</span>
+<span id="L802" class="line"><a href="#L802">802</a>    end</span>
+<span id="L803" class="line"><a href="#L803">803</a>    self:flush()</span>
+<span id="L804" class="line"><a href="#L804">804</a>end</span>
+<span id="L805" class="line"><a href="#L805">805</a></span>
+<span id="L806" class="line"><a href="#L806">806</a>function PetModel:getSetting(key, default)</span>
+<span id="L807" class="line"><a href="#L807">807</a>    local value = self:getDataByKey(key)</span>
+<span id="L808" class="line"><a href="#L808">808</a>    if value ~= nil then</span>
+<span id="L809" class="line"><a href="#L809">809</a>        return value</span>
+<span id="L810" class="line"><a href="#L810">810</a>    end</span>
+<span id="L811" class="line"><a href="#L811">811</a>    return default</span>
+<span id="L812" class="line"><a href="#L812">812</a>end</span>
+<span id="L813" class="line"><a href="#L813">813</a></span>
+<span id="L814" class="line"><a href="#L814">814</a>function PetModel:isShowPetEnabled()</span>
+<span id="L815" class="line"><a href="#L815">815</a>    return self:_toBool(self:getDataByKey(&quot;showInLevelPet&quot;, true), true) == true</span>
+<span id="L816" class="line"><a href="#L816">816</a>end</span>
+<span id="L817" class="line"><a href="#L817">817</a></span>
+<span id="L818" class="line"><a href="#L818">818</a>function PetModel:updateFeedData(data)</span>
+<span id="L819" class="line"><a href="#L819">819</a>    if not data or not self:_isSuccessData(data) then return false end</span>
+<span id="L820" class="line"><a href="#L820">820</a>    local mainData = table.clone(self:getData())</span>
+<span id="L821" class="line"><a href="#L821">821</a>    if data.foodMap ~= nil then mainData.foodMap = data.foodMap end</span>
+<span id="L822" class="line"><a href="#L822">822</a>    if data.exp ~= nil then mainData.exp = data.exp end</span>
+<span id="L823" class="line"><a href="#L823">823</a>    if data.level ~= nil then mainData.level = data.level end</span>
+<span id="L824" class="line"><a href="#L824">824</a>    if data.canRewardLevels ~= nil then mainData.canRewardLevels = data.canRewardLevels end</span>
+<span id="L825" class="line"><a href="#L825">825</a>    self:setValue(&quot;userInfo&quot;, mainData)</span>
+<span id="L826" class="line"><a href="#L826">826</a>    self:flush()</span>
+<span id="L827" class="line"><a href="#L827">827</a>    return true</span>
+<span id="L828" class="line"><a href="#L828">828</a>end</span>
+<span id="L829" class="line"><a href="#L829">829</a></span>
+<span id="L830" class="line"><a href="#L830">830</a>function PetModel:addDecoRewards(decoRewards)</span>
+<span id="L831" class="line"><a href="#L831">831</a>    if type(decoRewards) ~= &quot;table&quot; then return false end</span>
+<span id="L832" class="line"><a href="#L832">832</a></span>
+<span id="L833" class="line"><a href="#L833">833</a>    local mainData = table.clone(self:getData(), true)</span>
+<span id="L834" class="line"><a href="#L834">834</a>    mainData.ownedDecos = table.clone(mainData.ownedDecos or {})</span>
+<span id="L835" class="line"><a href="#L835">835</a>    mainData.newDecos = table.clone(mainData.newDecos or {})</span>
+<span id="L836" class="line"><a href="#L836">836</a></span>
+<span id="L837" class="line"><a href="#L837">837</a>    for _, deco in ipairs(decoRewards) do</span>
+<span id="L838" class="line"><a href="#L838">838</a>        local decoId = deco and (deco.itemId or deco.decoId)</span>
+<span id="L839" class="line"><a href="#L839">839</a>        if decoId then</span>
+<span id="L840" class="line"><a href="#L840">840</a>            self:_appendUnique(mainData.ownedDecos, decoId)</span>
+<span id="L841" class="line"><a href="#L841">841</a>            self:_appendUnique(mainData.newDecos, decoId)</span>
+<span id="L842" class="line"><a href="#L842">842</a>        end</span>
+<span id="L843" class="line"><a href="#L843">843</a>    end</span>
+<span id="L844" class="line"><a href="#L844">844</a></span>
+<span id="L845" class="line"><a href="#L845">845</a>    self:setValue(&quot;userInfo&quot;, mainData)</span>
+<span id="L846" class="line"><a href="#L846">846</a>    self:flush()</span>
+<span id="L847" class="line"><a href="#L847">847</a>    return true</span>
+<span id="L848" class="line"><a href="#L848">848</a>end</span>
+<span id="L849" class="line"><a href="#L849">849</a></span>
+<span id="L850" class="line"><a href="#L850">850</a></span>
+<span id="L851" class="line"><a href="#L851">851</a>function PetModel:updateClaimRewardData(data)</span>
+<span id="L852" class="line"><a href="#L852">852</a>    if not data or not self:_isSuccessData(data) then return false end</span>
+<span id="L853" class="line"><a href="#L853">853</a>    local mainData = table.clone(self:getData())</span>
+<span id="L854" class="line"><a href="#L854">854</a>    self:setLocalCache(&quot;lastRewardList&quot;, data.rewardList or {})</span>
+<span id="L855" class="line"><a href="#L855">855</a>    self:setLocalCache(&quot;lastDecoRewards&quot;, data.decoRewards or {})</span>
+<span id="L856" class="line"><a href="#L856">856</a></span>
+<span id="L857" class="line"><a href="#L857">857</a>    if data.rewardedLevels ~= nil then</span>
+<span id="L858" class="line"><a href="#L858">858</a>        mainData.rewardedLevels = data.rewardedLevels</span>
+<span id="L859" class="line"><a href="#L859">859</a>    end</span>
+<span id="L860" class="line"><a href="#L860">860</a>    if data.canRewardLevels ~= nil then</span>
+<span id="L861" class="line"><a href="#L861">861</a>        mainData.canRewardLevels = data.canRewardLevels</span>
+<span id="L862" class="line"><a href="#L862">862</a>    end</span>
+<span id="L863" class="line"><a href="#L863">863</a>    if data.foodMap ~= nil then mainData.foodMap = data.foodMap end</span>
+<span id="L864" class="line"><a href="#L864">864</a>    if data.foodNum ~= nil then mainData.foodNum = data.foodNum end</span>
+<span id="L865" class="line"><a href="#L865">865</a>    if data.exp ~= nil then mainData.exp = data.exp end</span>
+<span id="L866" class="line"><a href="#L866">866</a>    if data.level ~= nil then mainData.level = data.level end</span>
+<span id="L867" class="line"><a href="#L867">867</a></span>
+<span id="L868" class="line"><a href="#L868">868</a>    mainData.ownedDecos = table.clone(mainData.ownedDecos or {})</span>
+<span id="L869" class="line"><a href="#L869">869</a>    mainData.newDecos = table.clone(mainData.newDecos or {})</span>
+<span id="L870" class="line"><a href="#L870">870</a>    for _, deco in ipairs(data.decoRewards or {}) do</span>
+<span id="L871" class="line"><a href="#L871">871</a>        local decoId = deco.itemId or deco.decoId</span>
+<span id="L872" class="line"><a href="#L872">872</a>        self:_appendUnique(mainData.ownedDecos, decoId)</span>
+<span id="L873" class="line"><a href="#L873">873</a>        self:_appendUnique(mainData.newDecos, decoId)</span>
+<span id="L874" class="line"><a href="#L874">874</a>    end</span>
+<span id="L875" class="line"><a href="#L875">875</a>    self:setValue(&quot;userInfo&quot;, mainData)</span>
+<span id="L876" class="line"><a href="#L876">876</a>    self:flush()</span>
+<span id="L877" class="line"><a href="#L877">877</a>    return true</span>
+<span id="L878" class="line"><a href="#L878">878</a>end</span>
+<span id="L879" class="line"><a href="#L879">879</a></span>
+<span id="L880" class="line"><a href="#L880">880</a>function PetModel:updateWearingDeco(partType, decoId)</span>
+<span id="L881" class="line"><a href="#L881">881</a>    if type(partType) == &quot;table&quot; then</span>
+<span id="L882" class="line"><a href="#L882">882</a>        decoId = partType.itemId or partType.decoId</span>
+<span id="L883" class="line"><a href="#L883">883</a>        partType = partType.partType</span>
+<span id="L884" class="line"><a href="#L884">884</a>    end</span>
+<span id="L885" class="line"><a href="#L885">885</a>    if partType == nil then return false end</span>
+<span id="L886" class="line"><a href="#L886">886</a></span>
+<span id="L887" class="line"><a href="#L887">887</a>    local mainData = table.clone(self:getData(), true)</span>
+<span id="L888" class="line"><a href="#L888">888</a>    local enableDecos = table.clone(mainData.enableDecos or {}, true)</span>
+<span id="L889" class="line"><a href="#L889">889</a>    local decoInfo = self:_getDecoByPart(enableDecos, partType)</span>
+<span id="L890" class="line"><a href="#L890">890</a>    if type(decoInfo) ~= &quot;table&quot; then return false end</span>
+<span id="L891" class="line"><a href="#L891">891</a></span>
+<span id="L892" class="line"><a href="#L892">892</a>    decoInfo.itemId = tonumber(decoId) or decoId or 0</span>
+<span id="L893" class="line"><a href="#L893">893</a>    mainData.enableDecos = enableDecos</span>
+<span id="L894" class="line"><a href="#L894">894</a>    mainData[PetConfig.DeprecatedDataKey.WEARING_DECOS] = nil</span>
+<span id="L895" class="line"><a href="#L895">895</a>    self:setValue(&quot;userInfo&quot;, mainData)</span>
+<span id="L896" class="line"><a href="#L896">896</a>    self:flush()</span>
+<span id="L897" class="line"><a href="#L897">897</a>    return true</span>
+<span id="L898" class="line"><a href="#L898">898</a>end</span>
+<span id="L899" class="line"><a href="#L899">899</a></span>
+<span id="L900" class="line"><a href="#L900">900</a>function PetModel:updateWearingDecos(wearingDecos)</span>
+<span id="L901" class="line"><a href="#L901">901</a>    if type(wearingDecos) ~= &quot;table&quot; then return false end</span>
+<span id="L902" class="line"><a href="#L902">902</a></span>
+<span id="L903" class="line"><a href="#L903">903</a>    local mainData = table.clone(self:getData(), true)</span>
+<span id="L904" class="line"><a href="#L904">904</a>    local enableDecos = table.clone(mainData.enableDecos or {}, true)</span>
+<span id="L905" class="line"><a href="#L905">905</a>    local existingPartTypes = {</span>
+<span id="L906" class="line"><a href="#L906">906</a>        PetConfig.DecoPartType.Image,</span>
+<span id="L907" class="line"><a href="#L907">907</a>        PetConfig.DecoPartType.Accessory,</span>
+<span id="L908" class="line"><a href="#L908">908</a>        PetConfig.DecoPartType.Eye,</span>
+<span id="L909" class="line"><a href="#L909">909</a>        PetConfig.DecoPartType.Wing,</span>
+<span id="L910" class="line"><a href="#L910">910</a>    }</span>
+<span id="L911" class="line"><a href="#L911">911</a>    for _, partType in ipairs(existingPartTypes) do</span>
+<span id="L912" class="line"><a href="#L912">912</a>        local decoInfo = self:_getDecoByPart(enableDecos, partType)</span>
+<span id="L913" class="line"><a href="#L913">913</a>        if type(decoInfo) == &quot;table&quot; then</span>
+<span id="L914" class="line"><a href="#L914">914</a>            decoInfo.itemId = 0</span>
+<span id="L915" class="line"><a href="#L915">915</a>        end</span>
+<span id="L916" class="line"><a href="#L916">916</a>    end</span>
+<span id="L917" class="line"><a href="#L917">917</a></span>
+<span id="L918" class="line"><a href="#L918">918</a>    for _, wearingDeco in ipairs(wearingDecos) do</span>
+<span id="L919" class="line"><a href="#L919">919</a>        local partType = type(wearingDeco) == &quot;table&quot; and wearingDeco.partType</span>
+<span id="L920" class="line"><a href="#L920">920</a>        local decoId = type(wearingDeco) == &quot;table&quot; and wearingDeco.decoId</span>
+<span id="L921" class="line"><a href="#L921">921</a>        local decoInfo = self:_getDecoByPart(enableDecos, partType)</span>
+<span id="L922" class="line"><a href="#L922">922</a>        if type(decoInfo) ~= &quot;table&quot; then return false end</span>
+<span id="L923" class="line"><a href="#L923">923</a>        decoInfo.itemId = tonumber(decoId) or decoId or 0</span>
+<span id="L924" class="line"><a href="#L924">924</a>    end</span>
+<span id="L925" class="line"><a href="#L925">925</a></span>
+<span id="L926" class="line"><a href="#L926">926</a>    mainData.enableDecos = enableDecos</span>
+<span id="L927" class="line"><a href="#L927">927</a>    mainData[PetConfig.DeprecatedDataKey.WEARING_DECOS] = nil</span>
+<span id="L928" class="line"><a href="#L928">928</a>    self:setValue(&quot;userInfo&quot;, mainData)</span>
+<span id="L929" class="line"><a href="#L929">929</a>    self:flush()</span>
+<span id="L930" class="line"><a href="#L930">930</a>    return true</span>
+<span id="L931" class="line"><a href="#L931">931</a>end</span>
+<span id="L932" class="line"><a href="#L932">932</a></span>
+<span id="L933" class="line"><a href="#L933">933</a>function PetModel:updateSetting(key, value)</span>
+<span id="L934" class="line"><a href="#L934">934</a>    local mainData = table.clone(self:getData())</span>
+<span id="L935" class="line"><a href="#L935">935</a>    if type(key) == &quot;table&quot; then</span>
+<span id="L936" class="line"><a href="#L936">936</a>        for k, v in pairs(key) do</span>
+<span id="L937" class="line"><a href="#L937">937</a>            mainData[k] = v</span>
+<span id="L938" class="line"><a href="#L938">938</a>        end</span>
+<span id="L939" class="line"><a href="#L939">939</a>    elseif key ~= nil then</span>
+<span id="L940" class="line"><a href="#L940">940</a>        mainData[key] = value</span>
+<span id="L941" class="line"><a href="#L941">941</a>    end</span>
+<span id="L942" class="line"><a href="#L942">942</a></span>
+<span id="L943" class="line"><a href="#L943">943</a>    self:setValue(&quot;userInfo&quot;, mainData)</span>
+<span id="L944" class="line"><a href="#L944">944</a>    self:flush()</span>
+<span id="L945" class="line"><a href="#L945">945</a>    return true</span>
+<span id="L946" class="line"><a href="#L946">946</a>end</span>
+<span id="L947" class="line"><a href="#L947">947</a></span>
+<span id="L948" class="line"><a href="#L948">948</a>function PetModel:updateGuideData(data)</span>
+<span id="L949" class="line"><a href="#L949">949</a>    if not data or not self:_isSuccessData(data) then return false end</span>
+<span id="L950" class="line"><a href="#L950">950</a>    self:_setGuideIdSet(data.guideIdSet or {}, true)</span>
+<span id="L951" class="line"><a href="#L951">951</a>    self:flush()</span>
+<span id="L952" class="line"><a href="#L952">952</a>    return true</span>
+<span id="L953" class="line"><a href="#L953">953</a>end</span>
+<span id="L954" class="line"><a href="#L954">954</a></span>
+<span id="L955" class="line"><a href="#L955">955</a>function PetModel:markDecoViewed(decoId)</span>
+<span id="L956" class="line"><a href="#L956">956</a>    local mainData = table.clone(self:getData())</span>
+<span id="L957" class="line"><a href="#L957">957</a>    local newDecos = {}</span>
+<span id="L958" class="line"><a href="#L958">958</a>    for _, id in ipairs(mainData.newDecos or {}) do</span>
+<span id="L959" class="line"><a href="#L959">959</a>        if tostring(id) ~= tostring(decoId) then</span>
+<span id="L960" class="line"><a href="#L960">960</a>            table.insert(newDecos, id)</span>
+<span id="L961" class="line"><a href="#L961">961</a>        end</span>
+<span id="L962" class="line"><a href="#L962">962</a>    end</span>
+<span id="L963" class="line"><a href="#L963">963</a>    mainData.newDecos = newDecos</span>
+<span id="L964" class="line"><a href="#L964">964</a>    self:setValue(&quot;userInfo&quot;, mainData)</span>
+<span id="L965" class="line"><a href="#L965">965</a>    self:flush()</span>
+<span id="L966" class="line"><a href="#L966">966</a>    return true</span>
+<span id="L967" class="line"><a href="#L967">967</a>end</span>
+<span id="L968" class="line"><a href="#L968">968</a></span>
+<span id="L969" class="line"><a href="#L969">969</a>function PetModel:getCurConfigMd5()</span>
+<span id="L970" class="line"><a href="#L970">970</a>    local localConfig = self:getValue(&quot;localConfig&quot;)</span>
+<span id="L971" class="line"><a href="#L971">971</a>    if localConfig and localConfig.configVersion and not table.isEmpty(localConfig.config) then</span>
+<span id="L972" class="line"><a href="#L972">972</a>        return localConfig.configVersion</span>
+<span id="L973" class="line"><a href="#L973">973</a>    end</span>
+<span id="L974" class="line"><a href="#L974">974</a>    return &quot;&quot;</span>
+<span id="L975" class="line"><a href="#L975">975</a>end</span>
+<span id="L976" class="line"><a href="#L976">976</a></span>
+<span id="L977" class="line"><a href="#L977">977</a>function PetModel:getNoHugeBuffData()</span>
+<span id="L978" class="line"><a href="#L978">978</a>    return self:getDataByKey(&quot;noHugeBuffData&quot;, {})</span>
+<span id="L979" class="line"><a href="#L979">979</a>end</span>
+<span id="L980" class="line"><a href="#L980">980</a></span>
+<span id="L981" class="line"><a href="#L981">981</a>function PetModel:getNoHugeBuffConfig()</span>
+<span id="L982" class="line"><a href="#L982">982</a>    return self:getConfigByKey(&quot;noHugeBuffConfig&quot;, {})</span>
+<span id="L983" class="line"><a href="#L983">983</a>end</span>
+<span id="L984" class="line"><a href="#L984">984</a></span>
+<span id="L985" class="line"><a href="#L985">985</a>function PetModel:getUBFuuuConfig()</span>
+<span id="L986" class="line"><a href="#L986">986</a>    return self:getConfigByKey(&quot;ubfuuuEnd&quot;, {})</span>
+<span id="L987" class="line"><a href="#L987">987</a>end</span>
+<span id="L988" class="line"><a href="#L988">988</a></span>
+<span id="L989" class="line"><a href="#L989">989</a>function PetModel:updateNoHugeBuffData(data)</span>
+<span id="L990" class="line"><a href="#L990">990</a>    if type(data) ~= &quot;table&quot; then return end</span>
+<span id="L991" class="line"><a href="#L991">991</a>    printx(44, &quot;updateNoHugeBuffData&quot;, tts(data))</span>
+<span id="L992" class="line"><a href="#L992">992</a>    local noHugeBuffData = table.clone(self:getNoHugeBuffData() or {}, true)</span>
+<span id="L993" class="line"><a href="#L993">993</a>    printx(44, &quot;noHugeBuffData&quot;, tts(noHugeBuffData))</span>
+<span id="L994" class="line"><a href="#L994">994</a>    for key, value in pairs(data) do</span>
+<span id="L995" class="line"><a href="#L995">995</a>        noHugeBuffData[key] = value</span>
+<span id="L996" class="line"><a href="#L996">996</a>    end</span>
+<span id="L997" class="line"><a href="#L997">997</a>    printx(44, &quot;final noHugeBuffData&quot;, tts(noHugeBuffData))</span>
+<span id="L998" class="line"><a href="#L998">998</a>    self:setDataByKey(&quot;noHugeBuffData&quot;, noHugeBuffData)</span>
+<span id="L999" class="line"><a href="#L999">999</a>    printx(44, &quot;getNoHugeBuffData()&quot;, tts(self:getNoHugeBuffData()))</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>end</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a></span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>return PetModel</span></pre></main></html>

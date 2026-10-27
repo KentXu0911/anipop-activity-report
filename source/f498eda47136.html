@@ -1,0 +1,294 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/layeredtilematch/module/LayeredTileMatchGiftModule.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="f498eda47136.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/layeredtilematch/module/LayeredTileMatchGiftModule.lua</h1><p>SHA256 fff0560be67aeb2c5a742bbb644ace3906c9c7cfdbeb943fa294b5b36df9ed5b</p><pre><span id="L1" class="line"><a href="#L1">1</a>local ActivityGiftPackageModule =</span>
+<span id="L2" class="line"><a href="#L2">2</a>    require &quot;amf.feature.giftpackage.module.activity.ActivityGiftPackageModule&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>local GiftModule =</span>
+<span id="L6" class="line"><a href="#L6">6</a>    class(&quot;LayeredTileMatchGiftModule&quot;, ActivityGiftPackageModule)</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>local DAILY_GIFT_TOKEN_COST_THRESHOLD = 20</span>
+<span id="L9" class="line"><a href="#L9">9</a>local DAILY_GIFT_GROUP = &quot;SPECIAL_OFFER&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>local DAILY_GIFT_RECOMMENDATIONS = {</span>
+<span id="L12" class="line"><a href="#L12">12</a>    [0] = { limited = { 1, 3 }, unlimited = 6 },</span>
+<span id="L13" class="line"><a href="#L13">13</a>    [1] = { limited = { 1, 3 }, unlimited = 6 },</span>
+<span id="L14" class="line"><a href="#L14">14</a>    [2] = { limited = { 1, 3 }, unlimited = 6 },</span>
+<span id="L15" class="line"><a href="#L15">15</a>    [3] = { limited = { 3, 6 }, unlimited = 12 },</span>
+<span id="L16" class="line"><a href="#L16">16</a>    [4] = { limited = { 6, 18, 30 }, unlimited = 68 },</span>
+<span id="L17" class="line"><a href="#L17">17</a>    [5] = { limited = { 30, 12, 68, 98 }, unlimited = 128 },</span>
+<span id="L18" class="line"><a href="#L18">18</a>    [6] = { limited = { 68, 30, 98, 128 }, unlimited = 168 },</span>
+<span id="L19" class="line"><a href="#L19">19</a>}</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>local function getPriceKey(price)</span>
+<span id="L22" class="line"><a href="#L22">22</a>    price = tonumber(price)</span>
+<span id="L23" class="line"><a href="#L23">23</a>    if not price then return end</span>
+<span id="L24" class="line"><a href="#L24">24</a>    return math.floor(price * 100 + 0.5)</span>
+<span id="L25" class="line"><a href="#L25">25</a>end</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>local function isDailyGiftPackage(package)</span>
+<span id="L28" class="line"><a href="#L28">28</a>    if not package or not package.getExtraValue then return false end</span>
+<span id="L29" class="line"><a href="#L29">29</a>    return package:getExtraValue(&quot;group&quot;) == DAILY_GIFT_GROUP</span>
+<span id="L30" class="line"><a href="#L30">30</a>end</span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>local function isPackageAvailable(package)</span>
+<span id="L33" class="line"><a href="#L33">33</a>    if not package then return false end</span>
+<span id="L34" class="line"><a href="#L34">34</a>    if package.isLimited and package:isLimited() then</span>
+<span id="L35" class="line"><a href="#L35">35</a>        return false</span>
+<span id="L36" class="line"><a href="#L36">36</a>    end</span>
+<span id="L37" class="line"><a href="#L37">37</a>    local goodsId = package.getGoodsId and package:getGoodsId()</span>
+<span id="L38" class="line"><a href="#L38">38</a>    local goods = goodsId and GoodsManager:getGoods(goodsId)</span>
+<span id="L39" class="line"><a href="#L39">39</a>    return goods ~= nil</span>
+<span id="L40" class="line"><a href="#L40">40</a>end</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>local function getPackagePriceKey(package)</span>
+<span id="L43" class="line"><a href="#L43">43</a>    if not package or not package.getGoodsId then return end</span>
+<span id="L44" class="line"><a href="#L44">44</a>    local goods = GoodsManager:getGoods(package:getGoodsId())</span>
+<span id="L45" class="line"><a href="#L45">45</a>    return goods and getPriceKey(goods:getPrice())</span>
+<span id="L46" class="line"><a href="#L46">46</a>end</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>local function isLimitedPackage(package)</span>
+<span id="L49" class="line"><a href="#L49">49</a>    return (tonumber(package:getCanBuyCount()) or 0) &gt; 0</span>
+<span id="L50" class="line"><a href="#L50">50</a>end</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a>function GiftModule:ctor(mgr)</span>
+<span id="L53" class="line"><a href="#L53">53</a>    self._moduleName = mgr:getConst().moduleName</span>
+<span id="L54" class="line"><a href="#L54">54</a>    self._actId = mgr:getConst().actId</span>
+<span id="L55" class="line"><a href="#L55">55</a>    self._version = 0</span>
+<span id="L56" class="line"><a href="#L56">56</a>    self.mgr = mgr</span>
+<span id="L57" class="line"><a href="#L57">57</a>end</span>
+<span id="L58" class="line"><a href="#L58">58</a></span>
+<span id="L59" class="line"><a href="#L59">59</a>function GiftModule:pullGift()</span>
+<span id="L60" class="line"><a href="#L60">60</a>    self._packages = nil</span>
+<span id="L61" class="line"><a href="#L61">61</a>    local promise = deferred.new()</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>    self:pullOnce(10, true):next(function()</span>
+<span id="L64" class="line"><a href="#L64">64</a>        promise:resolve(self._packages or {})</span>
+<span id="L65" class="line"><a href="#L65">65</a>    end, function(errorCode)</span>
+<span id="L66" class="line"><a href="#L66">66</a>        promise:reject(errorCode)</span>
+<span id="L67" class="line"><a href="#L67">67</a>    end)</span>
+<span id="L68" class="line"><a href="#L68">68</a>    return promise</span>
+<span id="L69" class="line"><a href="#L69">69</a>end</span>
+<span id="L70" class="line"><a href="#L70">70</a></span>
+<span id="L71" class="line"><a href="#L71">71</a>function GiftModule:getPackageIdsByGroup(group)</span>
+<span id="L72" class="line"><a href="#L72">72</a>    local packages = {}</span>
+<span id="L73" class="line"><a href="#L73">73</a>    for _, package in ipairs(self._packages or {}) do</span>
+<span id="L74" class="line"><a href="#L74">74</a>        local limited =</span>
+<span id="L75" class="line"><a href="#L75">75</a>            package.isLimited and package:isLimited()</span>
+<span id="L76" class="line"><a href="#L76">76</a>        if package:getExtraValue(&quot;group&quot;) == group</span>
+<span id="L77" class="line"><a href="#L77">77</a>            and not limited then</span>
+<span id="L78" class="line"><a href="#L78">78</a>            table.insert(packages, package)</span>
+<span id="L79" class="line"><a href="#L79">79</a>        end</span>
+<span id="L80" class="line"><a href="#L80">80</a>    end</span>
+<span id="L81" class="line"><a href="#L81">81</a>    table.sort(packages, function(left, right)</span>
+<span id="L82" class="line"><a href="#L82">82</a>        local leftPriority = tonumber(</span>
+<span id="L83" class="line"><a href="#L83">83</a>            left:getExtraValue(&quot;displayPriority&quot;)</span>
+<span id="L84" class="line"><a href="#L84">84</a>        ) or math.huge</span>
+<span id="L85" class="line"><a href="#L85">85</a>        local rightPriority = tonumber(</span>
+<span id="L86" class="line"><a href="#L86">86</a>            right:getExtraValue(&quot;displayPriority&quot;)</span>
+<span id="L87" class="line"><a href="#L87">87</a>        ) or math.huge</span>
+<span id="L88" class="line"><a href="#L88">88</a>        if leftPriority ~= rightPriority then</span>
+<span id="L89" class="line"><a href="#L89">89</a>            return leftPriority &lt; rightPriority</span>
+<span id="L90" class="line"><a href="#L90">90</a>        end</span>
+<span id="L91" class="line"><a href="#L91">91</a>        local leftGoodsId =</span>
+<span id="L92" class="line"><a href="#L92">92</a>            tonumber(left:getGoodsId()) or math.huge</span>
+<span id="L93" class="line"><a href="#L93">93</a>        local rightGoodsId =</span>
+<span id="L94" class="line"><a href="#L94">94</a>            tonumber(right:getGoodsId()) or math.huge</span>
+<span id="L95" class="line"><a href="#L95">95</a>        return leftGoodsId &lt; rightGoodsId</span>
+<span id="L96" class="line"><a href="#L96">96</a>    end)</span>
+<span id="L97" class="line"><a href="#L97">97</a>    local packageIds = {}</span>
+<span id="L98" class="line"><a href="#L98">98</a>    for _, package in ipairs(packages) do</span>
+<span id="L99" class="line"><a href="#L99">99</a>        table.insert(packageIds, package:getGoodsId())</span>
+<span id="L100" class="line"><a href="#L100">100</a>    end</span>
+<span id="L101" class="line"><a href="#L101">101</a>    return packageIds</span>
+<span id="L102" class="line"><a href="#L102">102</a>end</span>
+<span id="L103" class="line"><a href="#L103">103</a></span>
+<span id="L104" class="line"><a href="#L104">104</a>function GiftModule:getPackageById(goodsId)</span>
+<span id="L105" class="line"><a href="#L105">105</a>    for _, package in ipairs(self._packages or {}) do</span>
+<span id="L106" class="line"><a href="#L106">106</a>        if tonumber(package:getGoodsId()) == tonumber(goodsId) then</span>
+<span id="L107" class="line"><a href="#L107">107</a>            return package</span>
+<span id="L108" class="line"><a href="#L108">108</a>        end</span>
+<span id="L109" class="line"><a href="#L109">109</a>    end</span>
+<span id="L110" class="line"><a href="#L110">110</a>end</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>function GiftModule:getPackageExtra(goodsId)</span>
+<span id="L113" class="line"><a href="#L113">113</a>    local package = self:getPackageById(goodsId)</span>
+<span id="L114" class="line"><a href="#L114">114</a>    return package and package.extra or {}</span>
+<span id="L115" class="line"><a href="#L115">115</a>end</span>
+<span id="L116" class="line"><a href="#L116">116</a></span>
+<span id="L117" class="line"><a href="#L117">117</a>function GiftModule:getPackageBuyLimit(goodsId)</span>
+<span id="L118" class="line"><a href="#L118">118</a>    local package = self:getPackageById(goodsId)</span>
+<span id="L119" class="line"><a href="#L119">119</a>    if not package then</span>
+<span id="L120" class="line"><a href="#L120">120</a>        return</span>
+<span id="L121" class="line"><a href="#L121">121</a>    end</span>
+<span id="L122" class="line"><a href="#L122">122</a>    return math.max(</span>
+<span id="L123" class="line"><a href="#L123">123</a>        0,</span>
+<span id="L124" class="line"><a href="#L124">124</a>        math.floor(tonumber(package:getCanBuyCount()) or 0)</span>
+<span id="L125" class="line"><a href="#L125">125</a>    )</span>
+<span id="L126" class="line"><a href="#L126">126</a>end</span>
+<span id="L127" class="line"><a href="#L127">127</a></span>
+<span id="L128" class="line"><a href="#L128">128</a>function GiftModule:getPackageRemainBuyTimes(goodsId)</span>
+<span id="L129" class="line"><a href="#L129">129</a>    local package = self:getPackageById(goodsId)</span>
+<span id="L130" class="line"><a href="#L130">130</a>    if not package then</span>
+<span id="L131" class="line"><a href="#L131">131</a>        return</span>
+<span id="L132" class="line"><a href="#L132">132</a>    end</span>
+<span id="L133" class="line"><a href="#L133">133</a>    local totalCanBuyTimes =</span>
+<span id="L134" class="line"><a href="#L134">134</a>        tonumber(package:getCanBuyCount()) or 0</span>
+<span id="L135" class="line"><a href="#L135">135</a>    if totalCanBuyTimes &lt;= 0 then return end</span>
+<span id="L136" class="line"><a href="#L136">136</a>    return math.max(</span>
+<span id="L137" class="line"><a href="#L137">137</a>        0,</span>
+<span id="L138" class="line"><a href="#L138">138</a>        totalCanBuyTimes</span>
+<span id="L139" class="line"><a href="#L139">139</a>            - (tonumber(package:getAlreadyBuyCount()) or 0)</span>
+<span id="L140" class="line"><a href="#L140">140</a>    )</span>
+<span id="L141" class="line"><a href="#L141">141</a>end</span>
+<span id="L142" class="line"><a href="#L142">142</a></span>
+<span id="L143" class="line"><a href="#L143">143</a>function GiftModule:getPackageGroupRemainBuyTimes(group)</span>
+<span id="L144" class="line"><a href="#L144">144</a>    local totalCanBuyTimes = 0</span>
+<span id="L145" class="line"><a href="#L145">145</a>    local alreadyBuyTimes = 0</span>
+<span id="L146" class="line"><a href="#L146">146</a>    for _, package in ipairs(self._packages or {}) do</span>
+<span id="L147" class="line"><a href="#L147">147</a>        if package:getExtraValue(&quot;group&quot;) == group then</span>
+<span id="L148" class="line"><a href="#L148">148</a>            local packageTotal =</span>
+<span id="L149" class="line"><a href="#L149">149</a>                tonumber(package:getCanBuyCount()) or 0</span>
+<span id="L150" class="line"><a href="#L150">150</a>            if packageTotal &gt; 0 then</span>
+<span id="L151" class="line"><a href="#L151">151</a>                totalCanBuyTimes =</span>
+<span id="L152" class="line"><a href="#L152">152</a>                    totalCanBuyTimes + packageTotal</span>
+<span id="L153" class="line"><a href="#L153">153</a>                alreadyBuyTimes = alreadyBuyTimes</span>
+<span id="L154" class="line"><a href="#L154">154</a>                    + math.max(</span>
+<span id="L155" class="line"><a href="#L155">155</a>                        0,</span>
+<span id="L156" class="line"><a href="#L156">156</a>                        tonumber(package:getAlreadyBuyCount()) or 0</span>
+<span id="L157" class="line"><a href="#L157">157</a>                    )</span>
+<span id="L158" class="line"><a href="#L158">158</a>            end</span>
+<span id="L159" class="line"><a href="#L159">159</a>        end</span>
+<span id="L160" class="line"><a href="#L160">160</a>    end</span>
+<span id="L161" class="line"><a href="#L161">161</a>    return math.max(0, totalCanBuyTimes - alreadyBuyTimes)</span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>function GiftModule:getDailyGiftPaymentTag()</span>
+<span id="L165" class="line"><a href="#L165">165</a>    if not UserTagManager or not UserTagManager.getUserPaymentTag2 then</span>
+<span id="L166" class="line"><a href="#L166">166</a>        return 0</span>
+<span id="L167" class="line"><a href="#L167">167</a>    end</span>
+<span id="L168" class="line"><a href="#L168">168</a>    local rawTag = UserTagManager:getUserPaymentTag2()</span>
+<span id="L169" class="line"><a href="#L169">169</a>    local tagMap = UserPaymentTag2Index or {}</span>
+<span id="L170" class="line"><a href="#L170">170</a>    return tagMap[rawTag] or 0</span>
+<span id="L171" class="line"><a href="#L171">171</a>end</span>
+<span id="L172" class="line"><a href="#L172">172</a></span>
+<span id="L173" class="line"><a href="#L173">173</a>function GiftModule:selectDailyGiftPackage(packages, payTag)</span>
+<span id="L174" class="line"><a href="#L174">174</a>    local recommendation =</span>
+<span id="L175" class="line"><a href="#L175">175</a>        DAILY_GIFT_RECOMMENDATIONS[tonumber(payTag) or 0]</span>
+<span id="L176" class="line"><a href="#L176">176</a>            or DAILY_GIFT_RECOMMENDATIONS[0]</span>
+<span id="L177" class="line"><a href="#L177">177</a></span>
+<span id="L178" class="line"><a href="#L178">178</a>    local function findPackage(price, limited)</span>
+<span id="L179" class="line"><a href="#L179">179</a>        local targetPriceKey = getPriceKey(price)</span>
+<span id="L180" class="line"><a href="#L180">180</a>        for _, package in ipairs(packages or {}) do</span>
+<span id="L181" class="line"><a href="#L181">181</a>            if isDailyGiftPackage(package)</span>
+<span id="L182" class="line"><a href="#L182">182</a>                and isPackageAvailable(package)</span>
+<span id="L183" class="line"><a href="#L183">183</a>                and isLimitedPackage(package) == limited</span>
+<span id="L184" class="line"><a href="#L184">184</a>                and getPackagePriceKey(package) == targetPriceKey then</span>
+<span id="L185" class="line"><a href="#L185">185</a>                return package</span>
+<span id="L186" class="line"><a href="#L186">186</a>            end</span>
+<span id="L187" class="line"><a href="#L187">187</a>        end</span>
+<span id="L188" class="line"><a href="#L188">188</a>    end</span>
+<span id="L189" class="line"><a href="#L189">189</a></span>
+<span id="L190" class="line"><a href="#L190">190</a>    for _, price in ipairs(recommendation.limited) do</span>
+<span id="L191" class="line"><a href="#L191">191</a>        local package = findPackage(price, true)</span>
+<span id="L192" class="line"><a href="#L192">192</a>        if package then return package end</span>
+<span id="L193" class="line"><a href="#L193">193</a>    end</span>
+<span id="L194" class="line"><a href="#L194">194</a>    return findPackage(recommendation.unlimited, false)</span>
+<span id="L195" class="line"><a href="#L195">195</a>end</span>
+<span id="L196" class="line"><a href="#L196">196</a></span>
+<span id="L197" class="line"><a href="#L197">197</a>function GiftModule:checkCanPopDailyGiftStage4()</span>
+<span id="L198" class="line"><a href="#L198">198</a>    if not self.mgr then</span>
+<span id="L199" class="line"><a href="#L199">199</a>        return false</span>
+<span id="L200" class="line"><a href="#L200">200</a>    end</span>
+<span id="L201" class="line"><a href="#L201">201</a>    local periodCostChallengeTokenNum =</span>
+<span id="L202" class="line"><a href="#L202">202</a>        tonumber(self.mgr:getBattlePassValue()) or 0</span>
+<span id="L203" class="line"><a href="#L203">203</a>    if periodCostChallengeTokenNum &lt;= DAILY_GIFT_TOKEN_COST_THRESHOLD then</span>
+<span id="L204" class="line"><a href="#L204">204</a>        return false</span>
+<span id="L205" class="line"><a href="#L205">205</a>    end</span>
+<span id="L206" class="line"><a href="#L206">206</a>    return true</span>
+<span id="L207" class="line"><a href="#L207">207</a>end</span>
+<span id="L208" class="line"><a href="#L208">208</a></span>
+<span id="L209" class="line"><a href="#L209">209</a>function GiftModule:showDailyGiftPanel(package, onPopOver)</span>
+<span id="L210" class="line"><a href="#L210">210</a>    local goodsId = package and package.getGoodsId</span>
+<span id="L211" class="line"><a href="#L211">211</a>        and package:getGoodsId()</span>
+<span id="L212" class="line"><a href="#L212">212</a>    if not goodsId or not GoodsManager:getGoods(goodsId) then</span>
+<span id="L213" class="line"><a href="#L213">213</a>        safeRunCall(onPopOver)</span>
+<span id="L214" class="line"><a href="#L214">214</a>        return</span>
+<span id="L215" class="line"><a href="#L215">215</a>    end</span>
+<span id="L216" class="line"><a href="#L216">216</a>    local finished = false</span>
+<span id="L217" class="line"><a href="#L217">217</a>    local function finish()</span>
+<span id="L218" class="line"><a href="#L218">218</a>        if finished then return end</span>
+<span id="L219" class="line"><a href="#L219">219</a>        finished = true</span>
+<span id="L220" class="line"><a href="#L220">220</a>        safeRunCall(onPopOver)</span>
+<span id="L221" class="line"><a href="#L221">221</a>    end</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>    local ProcessGiftPanelVM = require(</span>
+<span id="L224" class="line"><a href="#L224">224</a>        &quot;amf.feature.localactivity.layeredtilematch.view.ProcessGiftPanelVM&quot;</span>
+<span id="L225" class="line"><a href="#L225">225</a>    )</span>
+<span id="L226" class="line"><a href="#L226">226</a>    local vm = ProcessGiftPanelVM.Builder.new()</span>
+<span id="L227" class="line"><a href="#L227">227</a>        :setGoodsId(goodsId)</span>
+<span id="L228" class="line"><a href="#L228">228</a>        :setBuyHandler(function(</span>
+<span id="L229" class="line"><a href="#L229">229</a>            successCallback,</span>
+<span id="L230" class="line"><a href="#L230">230</a>            failCallback,</span>
+<span id="L231" class="line"><a href="#L231">231</a>            cancelCallback</span>
+<span id="L232" class="line"><a href="#L232">232</a>        )</span>
+<span id="L233" class="line"><a href="#L233">233</a>            self.mgr:requestBuyDailyGiftPackage(</span>
+<span id="L234" class="line"><a href="#L234">234</a>                goodsId,</span>
+<span id="L235" class="line"><a href="#L235">235</a>                successCallback,</span>
+<span id="L236" class="line"><a href="#L236">236</a>                failCallback,</span>
+<span id="L237" class="line"><a href="#L237">237</a>                cancelCallback</span>
+<span id="L238" class="line"><a href="#L238">238</a>            )</span>
+<span id="L239" class="line"><a href="#L239">239</a>        end)</span>
+<span id="L240" class="line"><a href="#L240">240</a>        :setCloseCallback(finish)</span>
+<span id="L241" class="line"><a href="#L241">241</a>        :setLoadResFailCallback(function()</span>
+<span id="L242" class="line"><a href="#L242">242</a>            finish()</span>
+<span id="L243" class="line"><a href="#L243">243</a>        end)</span>
+<span id="L244" class="line"><a href="#L244">244</a>        :build()</span>
+<span id="L245" class="line"><a href="#L245">245</a></span>
+<span id="L246" class="line"><a href="#L246">246</a>    if not vm then</span>
+<span id="L247" class="line"><a href="#L247">247</a>        finish()</span>
+<span id="L248" class="line"><a href="#L248">248</a>        return</span>
+<span id="L249" class="line"><a href="#L249">249</a>    end</span>
+<span id="L250" class="line"><a href="#L250">250</a>    self.mgr:managePanelVM(vm)</span>
+<span id="L251" class="line"><a href="#L251">251</a>    vm:popout()</span>
+<span id="L252" class="line"><a href="#L252">252</a>end</span>
+<span id="L253" class="line"><a href="#L253">253</a></span>
+<span id="L254" class="line"><a href="#L254">254</a>function GiftModule:popDailyGiftStage4(onPopOver)</span>
+<span id="L255" class="line"><a href="#L255">255</a>    if not self:checkCanPopDailyGiftStage4() then</span>
+<span id="L256" class="line"><a href="#L256">256</a>        safeRunCall(onPopOver)</span>
+<span id="L257" class="line"><a href="#L257">257</a>        return</span>
+<span id="L258" class="line"><a href="#L258">258</a>    end</span>
+<span id="L259" class="line"><a href="#L259">259</a></span>
+<span id="L260" class="line"><a href="#L260">260</a>    local pullPromise = self.mgr:pullTicketRefillGoods()</span>
+<span id="L261" class="line"><a href="#L261">261</a>    if not pullPromise then</span>
+<span id="L262" class="line"><a href="#L262">262</a>        safeRunCall(onPopOver)</span>
+<span id="L263" class="line"><a href="#L263">263</a>        return</span>
+<span id="L264" class="line"><a href="#L264">264</a>    end</span>
+<span id="L265" class="line"><a href="#L265">265</a>    pullPromise:next(function(packages)</span>
+<span id="L266" class="line"><a href="#L266">266</a>        if not self.mgr then</span>
+<span id="L267" class="line"><a href="#L267">267</a>            safeRunCall(onPopOver)</span>
+<span id="L268" class="line"><a href="#L268">268</a>            return</span>
+<span id="L269" class="line"><a href="#L269">269</a>        end</span>
+<span id="L270" class="line"><a href="#L270">270</a>        if not self.mgr:isEnabled() then</span>
+<span id="L271" class="line"><a href="#L271">271</a>            safeRunCall(onPopOver)</span>
+<span id="L272" class="line"><a href="#L272">272</a>            return</span>
+<span id="L273" class="line"><a href="#L273">273</a>        end</span>
+<span id="L274" class="line"><a href="#L274">274</a>        if not self.mgr:isInMainTime() then</span>
+<span id="L275" class="line"><a href="#L275">275</a>            safeRunCall(onPopOver)</span>
+<span id="L276" class="line"><a href="#L276">276</a>            return</span>
+<span id="L277" class="line"><a href="#L277">277</a>        end</span>
+<span id="L278" class="line"><a href="#L278">278</a></span>
+<span id="L279" class="line"><a href="#L279">279</a>        local payTag = self:getDailyGiftPaymentTag()</span>
+<span id="L280" class="line"><a href="#L280">280</a>        local package = self:selectDailyGiftPackage(</span>
+<span id="L281" class="line"><a href="#L281">281</a>            packages,</span>
+<span id="L282" class="line"><a href="#L282">282</a>            payTag</span>
+<span id="L283" class="line"><a href="#L283">283</a>        )</span>
+<span id="L284" class="line"><a href="#L284">284</a>        if not package then</span>
+<span id="L285" class="line"><a href="#L285">285</a>            safeRunCall(onPopOver)</span>
+<span id="L286" class="line"><a href="#L286">286</a>            return</span>
+<span id="L287" class="line"><a href="#L287">287</a>        end</span>
+<span id="L288" class="line"><a href="#L288">288</a>        self:showDailyGiftPanel(package, onPopOver)</span>
+<span id="L289" class="line"><a href="#L289">289</a>    end, function(errorCode)</span>
+<span id="L290" class="line"><a href="#L290">290</a>        safeRunCall(onPopOver)</span>
+<span id="L291" class="line"><a href="#L291">291</a>    end)</span>
+<span id="L292" class="line"><a href="#L292">292</a>end</span>
+<span id="L293" class="line"><a href="#L293">293</a></span>
+<span id="L294" class="line"><a href="#L294">294</a>return GiftModule</span></pre></main></html>

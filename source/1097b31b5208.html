@@ -1,0 +1,2117 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/testtrack/abtest/MaintenanceManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="1097b31b5208.lua" download>下载Lua原文</a></p><h1>amf/testtrack/abtest/MaintenanceManager.lua</h1><p>SHA256 e163c00d8aeb673eaf0fd9a96c3369f1835992b7e712d506576650f9d4d10337</p><pre><span id="L1" class="line"><a href="#L1">1</a>require &quot;amf.script.tool.xml.LuaXml&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>-- require &quot;hecore.utils&quot;  -- 前边require过了</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>local log = nil</span>
+<span id="L5" class="line"><a href="#L5">5</a>--</span>
+<span id="L6" class="line"><a href="#L6">6</a>--</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>MaintenanceFeature = class(&quot;MaintenanceFeature&quot;)</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>MaintenanceModeType = {</span>
+<span id="L12" class="line"><a href="#L12">12</a>	kDefault = &quot;default&quot;,</span>
+<span id="L13" class="line"><a href="#L13">13</a>	kGroup = &quot;group&quot;,</span>
+<span id="L14" class="line"><a href="#L14">14</a>	kOrthogonalGroup = &quot;orthogonal_group&quot;,</span>
+<span id="L15" class="line"><a href="#L15">15</a>	kOrthogonalGroupV2 = &quot;orthogonal_group_v2&quot;</span>
+<span id="L16" class="line"><a href="#L16">16</a>}</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>MaintenanceFilterListType = {</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>	kWhite = &quot;white&quot;,</span>
+<span id="L21" class="line"><a href="#L21">21</a>	kBlack = &quot;black&quot;,</span>
+<span id="L22" class="line"><a href="#L22">22</a>}</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>MaintenanceConfigName = {</span>
+<span id="L25" class="line"><a href="#L25">25</a>	kLocalData = &quot;localData&quot; ,</span>
+<span id="L26" class="line"><a href="#L26">26</a>	kMaintenance = &quot;maintenance&quot; ,</span>
+<span id="L27" class="line"><a href="#L27">27</a>	kAI_Maintenance = &quot;ai_maintenance&quot; ,</span>
+<span id="L28" class="line"><a href="#L28">28</a>	kOverseasMaintenance = &quot;maintenance_mobile&quot; ,</span>
+<span id="L29" class="line"><a href="#L29">29</a>	kLevelConfigGroup = &quot;level_config_group&quot; ,</span>
+<span id="L30" class="line"><a href="#L30">30</a>	-- kDP_Maintenance = &quot;dp_maintenance&quot; ,</span>
+<span id="L31" class="line"><a href="#L31">31</a>}</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>MaintenanceNameHead = {</span>
+<span id="L34" class="line"><a href="#L34">34</a>	[MaintenanceConfigName.kAI_Maintenance] = &quot;Exp_&quot; ,</span>
+<span id="L35" class="line"><a href="#L35">35</a>	-- [MaintenanceConfigName.kDP_Maintenance] = &quot;DP_&quot; ,</span>
+<span id="L36" class="line"><a href="#L36">36</a>}</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>local levelConfigGroupLindKey = &quot;level_config_group_linked&quot;</span>
+<span id="L39" class="line"><a href="#L39">39</a></span>
+<span id="L40" class="line"><a href="#L40">40</a>function MaintenanceFeature:ctor()</span>
+<span id="L41" class="line"><a href="#L41">41</a>	self.enable = false</span>
+<span id="L42" class="line"><a href="#L42">42</a>end</span>
+<span id="L43" class="line"><a href="#L43">43</a>function MaintenanceFeature:fromXML( src )</span>
+<span id="L44" class="line"><a href="#L44">44</a>	self:fromLua(src)</span>
+<span id="L45" class="line"><a href="#L45">45</a>end</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>function MaintenanceFeature:encode()</span>
+<span id="L48" class="line"><a href="#L48">48</a>	local ret = {}</span>
+<span id="L49" class="line"><a href="#L49">49</a>	ret.enable = self.enable</span>
+<span id="L50" class="line"><a href="#L50">50</a>	ret.value = self.value</span>
+<span id="L51" class="line"><a href="#L51">51</a>	ret.id = self.id</span>
+<span id="L52" class="line"><a href="#L52">52</a>	ret.name = self.name</span>
+<span id="L53" class="line"><a href="#L53">53</a>	ret.beginDate = self.beginDate</span>
+<span id="L54" class="line"><a href="#L54">54</a>	ret.endDate = self.endDate</span>
+<span id="L55" class="line"><a href="#L55">55</a>	ret.regBeginDate = self.regBeginDate</span>
+<span id="L56" class="line"><a href="#L56">56</a>	ret.regEndDate = self.regEndDate</span>
+<span id="L57" class="line"><a href="#L57">57</a>	ret.extra = self.extra</span>
+<span id="L58" class="line"><a href="#L58">58</a>	ret.mode = self.mode</span>
+<span id="L59" class="line"><a href="#L59">59</a>	ret.review = self.review</span>
+<span id="L60" class="line"><a href="#L60">60</a>	ret.whitelist = self.whitelist</span>
+<span id="L61" class="line"><a href="#L61">61</a>	ret.sourceDataType = self.sourceDataType</span>
+<span id="L62" class="line"><a href="#L62">62</a>	ret.originDataType = self.originDataType</span>
+<span id="L63" class="line"><a href="#L63">63</a>	ret.metaVersion = self.metaVersion</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>	if self.filterlist and #self.filterlist &gt; 0 then</span>
+<span id="L66" class="line"><a href="#L66">66</a>		ret.filterlist = tostring( self.filterlistMode ) .. &quot;;&quot;</span>
+<span id="L67" class="line"><a href="#L67">67</a>		for i = 1 , #self.filterlist do</span>
+<span id="L68" class="line"><a href="#L68">68</a>			if i == #self.filterlist then</span>
+<span id="L69" class="line"><a href="#L69">69</a>				ret.filterlist = ret.filterlist .. tostring(self.filterlist[i])</span>
+<span id="L70" class="line"><a href="#L70">70</a>			else</span>
+<span id="L71" class="line"><a href="#L71">71</a>				ret.filterlist = ret.filterlist .. tostring(self.filterlist[i]) ..&quot;,&quot;</span>
+<span id="L72" class="line"><a href="#L72">72</a>			end</span>
+<span id="L73" class="line"><a href="#L73">73</a>		end</span>
+<span id="L74" class="line"><a href="#L74">74</a>	end</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>	if self.groupChild then</span>
+<span id="L77" class="line"><a href="#L77">77</a>		for k,v in ipairs(self.groupChild) do</span>
+<span id="L78" class="line"><a href="#L78">78</a>			local datastr = &quot;&quot;</span>
+<span id="L79" class="line"><a href="#L79">79</a>			if #v.modules == 1 then</span>
+<span id="L80" class="line"><a href="#L80">80</a>				datastr = v.modules[1] .. &quot;;&quot; .. v.weigh</span>
+<span id="L81" class="line"><a href="#L81">81</a>			else</span>
+<span id="L82" class="line"><a href="#L82">82</a>				for i = 1 , #v.modules do</span>
+<span id="L83" class="line"><a href="#L83">83</a>					if i == #v.modules then</span>
+<span id="L84" class="line"><a href="#L84">84</a>						datastr = datastr .. v.modules[i]</span>
+<span id="L85" class="line"><a href="#L85">85</a>					else</span>
+<span id="L86" class="line"><a href="#L86">86</a>						datastr = datastr .. v.modules[i] .. &quot;,&quot;</span>
+<span id="L87" class="line"><a href="#L87">87</a>					end</span>
+<span id="L88" class="line"><a href="#L88">88</a>				end</span>
+<span id="L89" class="line"><a href="#L89">89</a>				datastr = datastr .. &quot;;&quot; .. v.weigh</span>
+<span id="L90" class="line"><a href="#L90">90</a>			end</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>			if v.algorithmId then</span>
+<span id="L93" class="line"><a href="#L93">93</a>				datastr = datastr .. &quot;;&quot; .. v.algorithmId</span>
+<span id="L94" class="line"><a href="#L94">94</a>			end</span>
+<span id="L95" class="line"><a href="#L95">95</a></span>
+<span id="L96" class="line"><a href="#L96">96</a>			ret[&quot;child&quot; .. tostring(k)] = datastr</span>
+<span id="L97" class="line"><a href="#L97">97</a>		end</span>
+<span id="L98" class="line"><a href="#L98">98</a>	end</span>
+<span id="L99" class="line"><a href="#L99">99</a>	return ret</span>
+<span id="L100" class="line"><a href="#L100">100</a>end</span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a>function MaintenanceFeature:isInWhitelist()</span>
+<span id="L103" class="line"><a href="#L103">103</a>	local whitelist = self.whitelist</span>
+<span id="L104" class="line"><a href="#L104">104</a>	if whitelist then</span>
+<span id="L105" class="line"><a href="#L105">105</a>		local uid = tonumber(getSafeUid()) or 0</span>
+<span id="L106" class="line"><a href="#L106">106</a>		local uids = whitelist:split(&quot;,&quot;)</span>
+<span id="L107" class="line"><a href="#L107">107</a></span>
+<span id="L108" class="line"><a href="#L108">108</a>		for _,ud in ipairs(uids) do</span>
+<span id="L109" class="line"><a href="#L109">109</a>			if tonumber(ud) == uid then</span>
+<span id="L110" class="line"><a href="#L110">110</a>				return true</span>
+<span id="L111" class="line"><a href="#L111">111</a>			end</span>
+<span id="L112" class="line"><a href="#L112">112</a>		end</span>
+<span id="L113" class="line"><a href="#L113">113</a>	end</span>
+<span id="L114" class="line"><a href="#L114">114</a>	return false</span>
+<span id="L115" class="line"><a href="#L115">115</a>end</span>
+<span id="L116" class="line"><a href="#L116">116</a></span>
+<span id="L117" class="line"><a href="#L117">117</a>function MaintenanceFeature:isInFilterlist()</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>	if self.cacheResult then</span>
+<span id="L120" class="line"><a href="#L120">120</a>		return self.cacheResult.result</span>
+<span id="L121" class="line"><a href="#L121">121</a>	end</span>
+<span id="L122" class="line"><a href="#L122">122</a></span>
+<span id="L123" class="line"><a href="#L123">123</a>	self.cacheResult = {}</span>
+<span id="L124" class="line"><a href="#L124">124</a></span>
+<span id="L125" class="line"><a href="#L125">125</a>	local filterlist = self.filterlist</span>
+<span id="L126" class="line"><a href="#L126">126</a>	if filterlist and #filterlist &gt; 0 then</span>
+<span id="L127" class="line"><a href="#L127">127</a>		local uid = getSafeUid()</span>
+<span id="L128" class="line"><a href="#L128">128</a></span>
+<span id="L129" class="line"><a href="#L129">129</a>		for k,v in ipairs( filterlist ) do</span>
+<span id="L130" class="line"><a href="#L130">130</a>			if tostring(v) == tostring(uid) then</span>
+<span id="L131" class="line"><a href="#L131">131</a>				self.cacheResult.result = true</span>
+<span id="L132" class="line"><a href="#L132">132</a>				return true</span>
+<span id="L133" class="line"><a href="#L133">133</a>			end</span>
+<span id="L134" class="line"><a href="#L134">134</a>		end</span>
+<span id="L135" class="line"><a href="#L135">135</a>	end</span>
+<span id="L136" class="line"><a href="#L136">136</a>	self.cacheResult.result = false</span>
+<span id="L137" class="line"><a href="#L137">137</a>	return false</span>
+<span id="L138" class="line"><a href="#L138">138</a>end</span>
+<span id="L139" class="line"><a href="#L139">139</a></span>
+<span id="L140" class="line"><a href="#L140">140</a>function MaintenanceFeature:fromLua(src , configFileName, version)</span>
+<span id="L141" class="line"><a href="#L141">141</a>	if not src then return end</span>
+<span id="L142" class="line"><a href="#L142">142</a>	-- printx( 1 , &quot;MaintenanceFeature:fromLua  1 &quot; , configFileName , src.name)</span>
+<span id="L143" class="line"><a href="#L143">143</a>	if not configFileName then configFileName = MaintenanceConfigName.kMaintenance end</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>	self.enable = string.lower(tostring(src.enable)) == &quot;true&quot;</span>
+<span id="L146" class="line"><a href="#L146">146</a>	self.value = src.value</span>
+<span id="L147" class="line"><a href="#L147">147</a>	self.id = src.id</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>	if configFileName == MaintenanceConfigName.kLocalData then</span>
+<span id="L150" class="line"><a href="#L150">150</a>		self.metaVersion = src.metaVersion</span>
+<span id="L151" class="line"><a href="#L151">151</a>		self.originDataType = src.originDataType</span>
+<span id="L152" class="line"><a href="#L152">152</a>	else</span>
+<span id="L153" class="line"><a href="#L153">153</a>		self.metaVersion = version</span>
+<span id="L154" class="line"><a href="#L154">154</a>		self.originDataType = configFileName</span>
+<span id="L155" class="line"><a href="#L155">155</a>	end</span>
+<span id="L156" class="line"><a href="#L156">156</a></span>
+<span id="L157" class="line"><a href="#L157">157</a>	-- if configFileName == MaintenanceConfigName.kAI_Maintenance then</span>
+<span id="L158" class="line"><a href="#L158">158</a>	-- 	self.name = MaintenanceNameHead[MaintenanceConfigName.kAI_Maintenance] .. src.name --增加统一前缀避免重名</span>
+<span id="L159" class="line"><a href="#L159">159</a>	-- -- elseif configFileName == MaintenanceConfigName.kAI_Maintenance then</span>
+<span id="L160" class="line"><a href="#L160">160</a>	-- -- 	self.name = MaintenanceNameHead[MaintenanceConfigName.kAI_Maintenance] .. src.name --增加统一前缀避免重名</span>
+<span id="L161" class="line"><a href="#L161">161</a>	-- else</span>
+<span id="L162" class="line"><a href="#L162">162</a>		self.name = src.name</span>
+<span id="L163" class="line"><a href="#L163">163</a>	-- end</span>
+<span id="L164" class="line"><a href="#L164">164</a></span>
+<span id="L165" class="line"><a href="#L165">165</a>	self.sourceDataType = configFileName</span>
+<span id="L166" class="line"><a href="#L166">166</a></span>
+<span id="L167" class="line"><a href="#L167">167</a>	self.beginDate = src.beginDate</span>
+<span id="L168" class="line"><a href="#L168">168</a>	self.endDate = src.endDate</span>
+<span id="L169" class="line"><a href="#L169">169</a>	self.regBeginDate = src.regBeginDate</span>
+<span id="L170" class="line"><a href="#L170">170</a>	self.regEndDate = src.regEndDate</span>
+<span id="L171" class="line"><a href="#L171">171</a>	self.extra = src.extra</span>
+<span id="L172" class="line"><a href="#L172">172</a>	self.mode = src.mode</span>
+<span id="L173" class="line"><a href="#L173">173</a>	self.review = string.lower(tostring(src.review)) == &quot;true&quot;</span>
+<span id="L174" class="line"><a href="#L174">174</a>	self.groupChild = {}</span>
+<span id="L175" class="line"><a href="#L175">175</a>	self.totalGroupWeigh = 0</span>
+<span id="L176" class="line"><a href="#L176">176</a>	self.whitelist = src.whitelist</span>
+<span id="L177" class="line"><a href="#L177">177</a>	self.groupVersion = &quot;watingForCreate&quot;</span>
+<span id="L178" class="line"><a href="#L178">178</a></span>
+<span id="L179" class="line"><a href="#L179">179</a>	self.filterlist = {}</span>
+<span id="L180" class="line"><a href="#L180">180</a>	self.filterlistMode = MaintenanceFilterListType.kWhite</span>
+<span id="L181" class="line"><a href="#L181">181</a></span>
+<span id="L182" class="line"><a href="#L182">182</a>	if src.filterlist then</span>
+<span id="L183" class="line"><a href="#L183">183</a>		local filterlistArr = src.filterlist:split(&quot;;&quot;)</span>
+<span id="L184" class="line"><a href="#L184">184</a>		if filterlistArr and #filterlistArr &gt;= 2 then</span>
+<span id="L185" class="line"><a href="#L185">185</a></span>
+<span id="L186" class="line"><a href="#L186">186</a>			if tostring( filterlistArr[1] ) == MaintenanceFilterListType.kWhite then</span>
+<span id="L187" class="line"><a href="#L187">187</a>				self.filterlistMode = MaintenanceFilterListType.kWhite</span>
+<span id="L188" class="line"><a href="#L188">188</a>			elseif tostring( filterlistArr[1] ) == MaintenanceFilterListType.kBlack then</span>
+<span id="L189" class="line"><a href="#L189">189</a>				self.filterlistMode = MaintenanceFilterListType.kBlack</span>
+<span id="L190" class="line"><a href="#L190">190</a>			end</span>
+<span id="L191" class="line"><a href="#L191">191</a></span>
+<span id="L192" class="line"><a href="#L192">192</a>			local uidArr = tostring(filterlistArr[2]):split(&quot;,&quot;)</span>
+<span id="L193" class="line"><a href="#L193">193</a></span>
+<span id="L194" class="line"><a href="#L194">194</a>			if uidArr then</span>
+<span id="L195" class="line"><a href="#L195">195</a>				for i = 1 , #uidArr do</span>
+<span id="L196" class="line"><a href="#L196">196</a>					table.insert( self.filterlist , tostring(uidArr[i]) )</span>
+<span id="L197" class="line"><a href="#L197">197</a>				end</span>
+<span id="L198" class="line"><a href="#L198">198</a>			end</span>
+<span id="L199" class="line"><a href="#L199">199</a>		end</span>
+<span id="L200" class="line"><a href="#L200">200</a>	end</span>
+<span id="L201" class="line"><a href="#L201">201</a></span>
+<span id="L202" class="line"><a href="#L202">202</a></span>
+<span id="L203" class="line"><a href="#L203">203</a>	if self.extra and type(self.extra) == &quot;string&quot; then</span>
+<span id="L204" class="line"><a href="#L204">204</a>		local _list = string.split( self.extra , &quot;;&quot; )</span>
+<span id="L205" class="line"><a href="#L205">205</a>		if _list[1] == levelConfigGroupLindKey then</span>
+<span id="L206" class="line"><a href="#L206">206</a>			local levelGroupExpId = _list[2]</span>
+<span id="L207" class="line"><a href="#L207">207</a>			if levelGroupExpId and tostring(tonumber(levelGroupExpId)) == levelGroupExpId then</span>
+<span id="L208" class="line"><a href="#L208">208</a>				self.levelGroupExpId = levelGroupExpId</span>
+<span id="L209" class="line"><a href="#L209">209</a>			end</span>
+<span id="L210" class="line"><a href="#L210">210</a>		end</span>
+<span id="L211" class="line"><a href="#L211">211</a>	end</span>
+<span id="L212" class="line"><a href="#L212">212</a></span>
+<span id="L213" class="line"><a href="#L213">213</a></span>
+<span id="L214" class="line"><a href="#L214">214</a>	if not self.mode then self.mode = MaintenanceModeType.kDefault end</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>	local modeInfo = nil</span>
+<span id="L217" class="line"><a href="#L217">217</a>	if src.mode then</span>
+<span id="L218" class="line"><a href="#L218">218</a>		modeInfo = src.mode:split(&quot;;&quot;)</span>
+<span id="L219" class="line"><a href="#L219">219</a>	end</span>
+<span id="L220" class="line"><a href="#L220">220</a></span>
+<span id="L221" class="line"><a href="#L221">221</a>	local mode = nil</span>
+<span id="L222" class="line"><a href="#L222">222</a>	local modeData = nil</span>
+<span id="L223" class="line"><a href="#L223">223</a></span>
+<span id="L224" class="line"><a href="#L224">224</a>	if modeInfo then</span>
+<span id="L225" class="line"><a href="#L225">225</a>		mode = modeInfo[1]</span>
+<span id="L226" class="line"><a href="#L226">226</a>		modeData = modeInfo[2]</span>
+<span id="L227" class="line"><a href="#L227">227</a>	end</span>
+<span id="L228" class="line"><a href="#L228">228</a></span>
+<span id="L229" class="line"><a href="#L229">229</a>	self.modeValue = mode</span>
+<span id="L230" class="line"><a href="#L230">230</a></span>
+<span id="L231" class="line"><a href="#L231">231</a>	if self.modeValue then</span>
+<span id="L232" class="line"><a href="#L232">232</a></span>
+<span id="L233" class="line"><a href="#L233">233</a>		if self.modeValue == MaintenanceModeType.kGroup</span>
+<span id="L234" class="line"><a href="#L234">234</a>			or self.modeValue == MaintenanceModeType.kOrthogonalGroup</span>
+<span id="L235" class="line"><a href="#L235">235</a>			or self.modeValue == MaintenanceModeType.kOrthogonalGroupV2 then</span>
+<span id="L236" class="line"><a href="#L236">236</a></span>
+<span id="L237" class="line"><a href="#L237">237</a>			if self.modeValue == MaintenanceModeType.kGroup then</span>
+<span id="L238" class="line"><a href="#L238">238</a>				if not modeData then</span>
+<span id="L239" class="line"><a href="#L239">239</a>					self.groupTail = 4</span>
+<span id="L240" class="line"><a href="#L240">240</a>				else</span>
+<span id="L241" class="line"><a href="#L241">241</a>					self.groupTail = tonumber(modeData)</span>
+<span id="L242" class="line"><a href="#L242">242</a>				end</span>
+<span id="L243" class="line"><a href="#L243">243</a>			else</span>
+<span id="L244" class="line"><a href="#L244">244</a>				self.groupTail = 8 --kOrthogonalGroup模式锁死8位</span>
+<span id="L245" class="line"><a href="#L245">245</a>				self.orthogonalVersion = modeData</span>
+<span id="L246" class="line"><a href="#L246">246</a>			end</span>
+<span id="L247" class="line"><a href="#L247">247</a></span>
+<span id="L248" class="line"><a href="#L248">248</a>			local configChildrens = {}</span>
+<span id="L249" class="line"><a href="#L249">249</a>			for i = 1 , 99 do</span>
+<span id="L250" class="line"><a href="#L250">250</a>				if src[&quot;child&quot; .. tostring(i)] then</span>
+<span id="L251" class="line"><a href="#L251">251</a>					table.insert( configChildrens , src[&quot;child&quot; .. tostring(i)] )</span>
+<span id="L252" class="line"><a href="#L252">252</a>				end</span>
+<span id="L253" class="line"><a href="#L253">253</a>				if src[&quot;c&quot; .. tostring(i)] then</span>
+<span id="L254" class="line"><a href="#L254">254</a>					table.insert( configChildrens , src[&quot;c&quot; .. tostring(i)] )</span>
+<span id="L255" class="line"><a href="#L255">255</a>				end</span>
+<span id="L256" class="line"><a href="#L256">256</a>			end</span>
+<span id="L257" class="line"><a href="#L257">257</a></span>
+<span id="L258" class="line"><a href="#L258">258</a>			local totalChildStr = &quot;&quot;</span>
+<span id="L259" class="line"><a href="#L259">259</a>			for k,v in ipairs(configChildrens) do</span>
+<span id="L260" class="line"><a href="#L260">260</a>				totalChildStr = totalChildStr .. v</span>
+<span id="L261" class="line"><a href="#L261">261</a>				local t1 = v:split(&quot;;&quot;)</span>
+<span id="L262" class="line"><a href="#L262">262</a>				local modules = nil</span>
+<span id="L263" class="line"><a href="#L263">263</a>				local weigh = nil</span>
+<span id="L264" class="line"><a href="#L264">264</a>				local algorithmId = nil</span>
+<span id="L265" class="line"><a href="#L265">265</a></span>
+<span id="L266" class="line"><a href="#L266">266</a>				if t1 then</span>
+<span id="L267" class="line"><a href="#L267">267</a>					if t1[1] then</span>
+<span id="L268" class="line"><a href="#L268">268</a>						modules = t1[1]:split(&quot;,&quot;)</span>
+<span id="L269" class="line"><a href="#L269">269</a>					end</span>
+<span id="L270" class="line"><a href="#L270">270</a></span>
+<span id="L271" class="line"><a href="#L271">271</a>					if t1[2] then</span>
+<span id="L272" class="line"><a href="#L272">272</a>						weigh = tonumber(t1[2]) or 0</span>
+<span id="L273" class="line"><a href="#L273">273</a>					end</span>
+<span id="L274" class="line"><a href="#L274">274</a></span>
+<span id="L275" class="line"><a href="#L275">275</a>					if t1[3] then</span>
+<span id="L276" class="line"><a href="#L276">276</a>						algorithmId = tostring(t1[3])</span>
+<span id="L277" class="line"><a href="#L277">277</a>					end</span>
+<span id="L278" class="line"><a href="#L278">278</a>				end</span>
+<span id="L279" class="line"><a href="#L279">279</a></span>
+<span id="L280" class="line"><a href="#L280">280</a>				if modules and weigh then</span>
+<span id="L281" class="line"><a href="#L281">281</a></span>
+<span id="L282" class="line"><a href="#L282">282</a>					self.totalGroupWeigh = self.totalGroupWeigh + weigh</span>
+<span id="L283" class="line"><a href="#L283">283</a>						table.insert( self.groupChild , {</span>
+<span id="L284" class="line"><a href="#L284">284</a>															idx = k ,</span>
+<span id="L285" class="line"><a href="#L285">285</a>															modules = modules ,</span>
+<span id="L286" class="line"><a href="#L286">286</a>															weigh = weigh ,</span>
+<span id="L287" class="line"><a href="#L287">287</a>															weighT = self.totalGroupWeigh ,</span>
+<span id="L288" class="line"><a href="#L288">288</a>															algorithmId = algorithmId ,</span>
+<span id="L289" class="line"><a href="#L289">289</a>															enable = self.enable</span>
+<span id="L290" class="line"><a href="#L290">290</a>														}</span>
+<span id="L291" class="line"><a href="#L291">291</a>									)</span>
+<span id="L292" class="line"><a href="#L292">292</a>				end</span>
+<span id="L293" class="line"><a href="#L293">293</a>			end</span>
+<span id="L294" class="line"><a href="#L294">294</a></span>
+<span id="L295" class="line"><a href="#L295">295</a>			if self.modeValue == MaintenanceModeType.kOrthogonalGroup or self.modeValue == MaintenanceModeType.kOrthogonalGroupV2 then</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>				local arr1 = totalChildStr:split(&quot;;&quot;)</span>
+<span id="L298" class="line"><a href="#L298">298</a>				local fixStr = nil</span>
+<span id="L299" class="line"><a href="#L299">299</a>				for k1 , v1 in ipairs(arr1) do</span>
+<span id="L300" class="line"><a href="#L300">300</a>					local arr2 = v1:split(&quot;,&quot;)</span>
+<span id="L301" class="line"><a href="#L301">301</a>					local mstr = nil</span>
+<span id="L302" class="line"><a href="#L302">302</a>					for k2 , v2 in ipairs(arr2) do</span>
+<span id="L303" class="line"><a href="#L303">303</a>						if not mstr then</span>
+<span id="L304" class="line"><a href="#L304">304</a>							mstr = v2</span>
+<span id="L305" class="line"><a href="#L305">305</a>						else</span>
+<span id="L306" class="line"><a href="#L306">306</a>							mstr = mstr .. &quot;+&quot; .. v2</span>
+<span id="L307" class="line"><a href="#L307">307</a>						end</span>
+<span id="L308" class="line"><a href="#L308">308</a>					end</span>
+<span id="L309" class="line"><a href="#L309">309</a>					if not fixStr then</span>
+<span id="L310" class="line"><a href="#L310">310</a>						fixStr = mstr</span>
+<span id="L311" class="line"><a href="#L311">311</a>					else</span>
+<span id="L312" class="line"><a href="#L312">312</a>						fixStr = fixStr .. &quot;_&quot; .. mstr</span>
+<span id="L313" class="line"><a href="#L313">313</a>					end</span>
+<span id="L314" class="line"><a href="#L314">314</a>				end</span>
+<span id="L315" class="line"><a href="#L315">315</a></span>
+<span id="L316" class="line"><a href="#L316">316</a>				self.groupVersion = HeMathUtils:md5( fixStr )</span>
+<span id="L317" class="line"><a href="#L317">317</a>				-- printx( 1 , &quot;kOrthogonalGroup   groupVersion = &quot; , fixStr , self.groupVersion )</span>
+<span id="L318" class="line"><a href="#L318">318</a>			end</span>
+<span id="L319" class="line"><a href="#L319">319</a></span>
+<span id="L320" class="line"><a href="#L320">320</a>			-- self.groupTail = modeData</span>
+<span id="L321" class="line"><a href="#L321">321</a>			--printx(1 , &quot;groupTail  ===========================================   &quot; , self.name ,src.mode, self.groupTail)</span>
+<span id="L322" class="line"><a href="#L322">322</a></span>
+<span id="L323" class="line"><a href="#L323">323</a>		-- elseif self.modeValue == MaintenanceModeType.kOrthogonalGroup then</span>
+<span id="L324" class="line"><a href="#L324">324</a></span>
+<span id="L325" class="line"><a href="#L325">325</a>			-- local flag = self.name</span>
+<span id="L326" class="line"><a href="#L326">326</a></span>
+<span id="L327" class="line"><a href="#L327">327</a></span>
+<span id="L328" class="line"><a href="#L328">328</a>		end</span>
+<span id="L329" class="line"><a href="#L329">329</a>	end</span>
+<span id="L330" class="line"><a href="#L330">330</a>end</span>
+<span id="L331" class="line"><a href="#L331">331</a></span>
+<span id="L332" class="line"><a href="#L332">332</a>local instance = nil</span>
+<span id="L333" class="line"><a href="#L333">333</a>MaintenanceManager = {}</span>
+<span id="L334" class="line"><a href="#L334">334</a>MaintenanceManager.resultCache = {}</span>
+<span id="L335" class="line"><a href="#L335">335</a>MaintenanceManager.dcCache = {}</span>
+<span id="L336" class="line"><a href="#L336">336</a></span>
+<span id="L337" class="line"><a href="#L337">337</a>local function hasRegTimeLimit(config)</span>
+<span id="L338" class="line"><a href="#L338">338</a>	return config and (config.regBeginDate ~= nil or config.regEndDate ~= nil)</span>
+<span id="L339" class="line"><a href="#L339">339</a>end</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>local majorBundleVersion = _G.bundleVersion or &quot;1.54&quot;</span>
+<span id="L342" class="line"><a href="#L342">342</a>local ver = string.split(majorBundleVersion, &#x27;.&#x27;)</span>
+<span id="L343" class="line"><a href="#L343">343</a>if #ver &gt; 1 then</span>
+<span id="L344" class="line"><a href="#L344">344</a>	majorBundleVersion = ver[1]..&quot;.&quot;..ver[2]</span>
+<span id="L345" class="line"><a href="#L345">345</a>end</span>
+<span id="L346" class="line"><a href="#L346">346</a></span>
+<span id="L347" class="line"><a href="#L347">347</a>function MaintenanceManager:getInstance()</span>
+<span id="L348" class="line"><a href="#L348">348</a>	if not instance then</span>
+<span id="L349" class="line"><a href="#L349">349</a>		instance = MaintenanceManager</span>
+<span id="L350" class="line"><a href="#L350">350</a>		instance:init()</span>
+<span id="L351" class="line"><a href="#L351">351</a>	end</span>
+<span id="L352" class="line"><a href="#L352">352</a>	return instance</span>
+<span id="L353" class="line"><a href="#L353">353</a>end</span>
+<span id="L354" class="line"><a href="#L354">354</a></span>
+<span id="L355" class="line"><a href="#L355">355</a>function MaintenanceManager:init()</span>
+<span id="L356" class="line"><a href="#L356">356</a>	self.data = {}</span>
+<span id="L357" class="line"><a href="#L357">357</a>	self:readFromStorage()</span>
+<span id="L358" class="line"><a href="#L358">358</a>	self.configAppName = {}</span>
+<span id="L359" class="line"><a href="#L359">359</a>	self:registerEvent()</span>
+<span id="L360" class="line"><a href="#L360">360</a>end</span>
+<span id="L361" class="line"><a href="#L361">361</a></span>
+<span id="L362" class="line"><a href="#L362">362</a>function MaintenanceManager:registerEvent()</span>
+<span id="L363" class="line"><a href="#L363">363</a>	_G.amfEC:registerNormal(NormalEvent.USER_LOGIN, function (evt)</span>
+<span id="L364" class="line"><a href="#L364">364</a>		if not evt.data then return end</span>
+<span id="L365" class="line"><a href="#L365">365</a>		if not evt.data.isOffline then</span>
+<span id="L366" class="line"><a href="#L366">366</a>			self:loadMaintenanceDummyResultFromTestInfo(_G.amfBean(&quot;AccountManager&quot;):getTestInfo())</span>
+<span id="L367" class="line"><a href="#L367">367</a>			self:resolveMaintenanceCandidatesAfterLogin()</span>
+<span id="L368" class="line"><a href="#L368">368</a>		end</span>
+<span id="L369" class="line"><a href="#L369">369</a>	end)</span>
+<span id="L370" class="line"><a href="#L370">370</a>end</span>
+<span id="L371" class="line"><a href="#L371">371</a></span>
+<span id="L372" class="line"><a href="#L372">372</a>-- 写入当前生效开关。Id2NameMap 只维护当前生效 id 到 name 的映射，候选开关不写入这里。</span>
+<span id="L373" class="line"><a href="#L373">373</a>function MaintenanceManager:setMaintenanceFeature(feature)</span>
+<span id="L374" class="line"><a href="#L374">374</a>	if not feature or not feature.name then return end</span>
+<span id="L375" class="line"><a href="#L375">375</a>	if not self.data then self.data = {} end</span>
+<span id="L376" class="line"><a href="#L376">376</a>	if not self.Id2NameMap then self.Id2NameMap = {} end</span>
+<span id="L377" class="line"><a href="#L377">377</a></span>
+<span id="L378" class="line"><a href="#L378">378</a>	for id, name in pairs(self.Id2NameMap) do</span>
+<span id="L379" class="line"><a href="#L379">379</a>		if name == feature.name then</span>
+<span id="L380" class="line"><a href="#L380">380</a>			self.Id2NameMap[id] = nil</span>
+<span id="L381" class="line"><a href="#L381">381</a>		end</span>
+<span id="L382" class="line"><a href="#L382">382</a>	end</span>
+<span id="L383" class="line"><a href="#L383">383</a></span>
+<span id="L384" class="line"><a href="#L384">384</a>	self.data[feature.name] = feature</span>
+<span id="L385" class="line"><a href="#L385">385</a>	self.Id2NameMap[tostring(feature.id)] = feature.name</span>
+<span id="L386" class="line"><a href="#L386">386</a>end</span>
+<span id="L387" class="line"><a href="#L387">387</a></span>
+<span id="L388" class="line"><a href="#L388">388</a>-- 线上同一数据源重新加载时，先移除旧候选，避免旧配置继续参与登录后重选。</span>
+<span id="L389" class="line"><a href="#L389">389</a>function MaintenanceManager:removeMaintenanceCandidatesBySource(configFileName)</span>
+<span id="L390" class="line"><a href="#L390">390</a>	if not self.maintenanceCandidateById then return end</span>
+<span id="L391" class="line"><a href="#L391">391</a></span>
+<span id="L392" class="line"><a href="#L392">392</a>	for id, feature in pairs(self.maintenanceCandidateById) do</span>
+<span id="L393" class="line"><a href="#L393">393</a>		if feature.sourceDataType == configFileName then</span>
+<span id="L394" class="line"><a href="#L394">394</a>			self.maintenanceCandidateById[id] = nil</span>
+<span id="L395" class="line"><a href="#L395">395</a>		end</span>
+<span id="L396" class="line"><a href="#L396">396</a>	end</span>
+<span id="L397" class="line"><a href="#L397">397</a></span>
+<span id="L398" class="line"><a href="#L398">398</a>	self.maintenanceCandidatesByName = {}</span>
+<span id="L399" class="line"><a href="#L399">399</a>	for _, feature in pairs(self.maintenanceCandidateById) do</span>
+<span id="L400" class="line"><a href="#L400">400</a>		if feature.name then</span>
+<span id="L401" class="line"><a href="#L401">401</a>			self.maintenanceCandidatesByName[feature.name] = self.maintenanceCandidatesByName[feature.name] or {}</span>
+<span id="L402" class="line"><a href="#L402">402</a>			table.insert(self.maintenanceCandidatesByName[feature.name], feature)</span>
+<span id="L403" class="line"><a href="#L403">403</a>		end</span>
+<span id="L404" class="line"><a href="#L404">404</a>	end</span>
+<span id="L405" class="line"><a href="#L405">405</a>end</span>
+<span id="L406" class="line"><a href="#L406">406</a></span>
+<span id="L407" class="line"><a href="#L407">407</a>-- 保存所有通过平台和版本判断的线上候选；登录前后再从同名候选里选当前生效项。</span>
+<span id="L408" class="line"><a href="#L408">408</a>function MaintenanceManager:addMaintenanceCandidate(feature)</span>
+<span id="L409" class="line"><a href="#L409">409</a>	if not feature or not feature.id or not feature.name then return end</span>
+<span id="L410" class="line"><a href="#L410">410</a>	self.maintenanceCandidateById = self.maintenanceCandidateById or {}</span>
+<span id="L411" class="line"><a href="#L411">411</a>	self.maintenanceCandidatesByName = self.maintenanceCandidatesByName or {}</span>
+<span id="L412" class="line"><a href="#L412">412</a></span>
+<span id="L413" class="line"><a href="#L413">413</a>	local id = tostring(feature.id)</span>
+<span id="L414" class="line"><a href="#L414">414</a>	self.maintenanceCandidateById[id] = feature</span>
+<span id="L415" class="line"><a href="#L415">415</a>	self.maintenanceCandidatesByName[feature.name] = self.maintenanceCandidatesByName[feature.name] or {}</span>
+<span id="L416" class="line"><a href="#L416">416</a>	table.insert(self.maintenanceCandidatesByName[feature.name], feature)</span>
+<span id="L417" class="line"><a href="#L417">417</a>end</span>
+<span id="L418" class="line"><a href="#L418">418</a></span>
+<span id="L419" class="line"><a href="#L419">419</a>-- 登录前可能拿不到账号创建时间；拿不到时注册时间限制配置不会进入 self.data 生效。</span>
+<span id="L420" class="line"><a href="#L420">420</a>function MaintenanceManager:getUserRegTime()</span>
+<span id="L421" class="line"><a href="#L421">421</a>	local accountManager = _G.amfBean(&quot;AccountManager&quot;)</span>
+<span id="L422" class="line"><a href="#L422">422</a>	local userCreateTime = accountManager and tonumber(accountManager:getUserCreateTimeDetail())</span>
+<span id="L423" class="line"><a href="#L423">423</a>	if not userCreateTime or userCreateTime &lt;= 0 then return nil end</span>
+<span id="L424" class="line"><a href="#L424">424</a>	return userCreateTime / 1000</span>
+<span id="L425" class="line"><a href="#L425">425</a>end</span>
+<span id="L426" class="line"><a href="#L426">426</a></span>
+<span id="L427" class="line"><a href="#L427">427</a>-- 同名候选的选择优先级：登录后注册时间命中 &gt; 精确版本 &gt; default &gt; 线上来源。</span>
+<span id="L428" class="line"><a href="#L428">428</a>function MaintenanceManager:getMaintenanceFeaturePriority(feature, regTimeAvailable)</span>
+<span id="L429" class="line"><a href="#L429">429</a>	local priority = 0</span>
+<span id="L430" class="line"><a href="#L430">430</a>	if regTimeAvailable and hasRegTimeLimit(feature) then</span>
+<span id="L431" class="line"><a href="#L431">431</a>		priority = priority + 100</span>
+<span id="L432" class="line"><a href="#L432">432</a>	end</span>
+<span id="L433" class="line"><a href="#L433">433</a>	if feature.hasCurVersion then</span>
+<span id="L434" class="line"><a href="#L434">434</a>		priority = priority + 10</span>
+<span id="L435" class="line"><a href="#L435">435</a>	elseif feature.isDefaultVersion then</span>
+<span id="L436" class="line"><a href="#L436">436</a>		priority = priority + 1</span>
+<span id="L437" class="line"><a href="#L437">437</a>	end</span>
+<span id="L438" class="line"><a href="#L438">438</a>	if feature.sourceDataType ~= MaintenanceConfigName.kLocalData then</span>
+<span id="L439" class="line"><a href="#L439">439</a>		priority = priority + 1</span>
+<span id="L440" class="line"><a href="#L440">440</a>	end</span>
+<span id="L441" class="line"><a href="#L441">441</a>	return priority</span>
+<span id="L442" class="line"><a href="#L442">442</a>end</span>
+<span id="L443" class="line"><a href="#L443">443</a></span>
+<span id="L444" class="line"><a href="#L444">444</a>-- 从同名候选中选当前阶段生效项；登录前会跳过需要注册时间但无法判断的候选。</span>
+<span id="L445" class="line"><a href="#L445">445</a>function MaintenanceManager:selectMaintenanceFeature(features)</span>
+<span id="L446" class="line"><a href="#L446">446</a>	if not features then return nil end</span>
+<span id="L447" class="line"><a href="#L447">447</a></span>
+<span id="L448" class="line"><a href="#L448">448</a>	local regTimeAvailable = self:getUserRegTime() ~= nil</span>
+<span id="L449" class="line"><a href="#L449">449</a>	local selected = nil</span>
+<span id="L450" class="line"><a href="#L450">450</a>	local selectedPriority = nil</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>	for _, feature in ipairs(features) do</span>
+<span id="L453" class="line"><a href="#L453">453</a>		local regTimeOk = true</span>
+<span id="L454" class="line"><a href="#L454">454</a>		if hasRegTimeLimit(feature) then</span>
+<span id="L455" class="line"><a href="#L455">455</a>			regTimeOk = regTimeAvailable and self:checkRegTime(feature)</span>
+<span id="L456" class="line"><a href="#L456">456</a>		end</span>
+<span id="L457" class="line"><a href="#L457">457</a></span>
+<span id="L458" class="line"><a href="#L458">458</a>		if regTimeOk then</span>
+<span id="L459" class="line"><a href="#L459">459</a>			local priority = self:getMaintenanceFeaturePriority(feature, regTimeAvailable)</span>
+<span id="L460" class="line"><a href="#L460">460</a>			if not selected or priority &gt; selectedPriority or (priority == selectedPriority and tostring(feature.id) &gt; tostring(selected.id)) then</span>
+<span id="L461" class="line"><a href="#L461">461</a>				selected = feature</span>
+<span id="L462" class="line"><a href="#L462">462</a>				selectedPriority = priority</span>
+<span id="L463" class="line"><a href="#L463">463</a>			end</span>
+<span id="L464" class="line"><a href="#L464">464</a>		end</span>
+<span id="L465" class="line"><a href="#L465">465</a>	end</span>
+<span id="L466" class="line"><a href="#L466">466</a></span>
+<span id="L467" class="line"><a href="#L467">467</a>	return selected</span>
+<span id="L468" class="line"><a href="#L468">468</a>end</span>
+<span id="L469" class="line"><a href="#L469">469</a></span>
+<span id="L470" class="line"><a href="#L470">470</a>-- 登录后账号注册时间可用，重新选择候选并同步到 self.data。</span>
+<span id="L471" class="line"><a href="#L471">471</a>function MaintenanceManager:resolveMaintenanceCandidatesAfterLogin()</span>
+<span id="L472" class="line"><a href="#L472">472</a>	if not self.maintenanceCandidatesByName then return end</span>
+<span id="L473" class="line"><a href="#L473">473</a></span>
+<span id="L474" class="line"><a href="#L474">474</a>	local hasChanged = false</span>
+<span id="L475" class="line"><a href="#L475">475</a>	for name, features in pairs(self.maintenanceCandidatesByName) do</span>
+<span id="L476" class="line"><a href="#L476">476</a>		local selected = self:selectMaintenanceFeature(features)</span>
+<span id="L477" class="line"><a href="#L477">477</a>		local current = self:getMaintenanceByKey(name)</span>
+<span id="L478" class="line"><a href="#L478">478</a></span>
+<span id="L479" class="line"><a href="#L479">479</a>		if selected then</span>
+<span id="L480" class="line"><a href="#L480">480</a>			if not current or tostring(current.id) ~= tostring(selected.id) then</span>
+<span id="L481" class="line"><a href="#L481">481</a>				self:setMaintenanceFeature(selected)</span>
+<span id="L482" class="line"><a href="#L482">482</a>				hasChanged = true</span>
+<span id="L483" class="line"><a href="#L483">483</a>			end</span>
+<span id="L484" class="line"><a href="#L484">484</a>		elseif current and current.sourceDataType ~= MaintenanceConfigName.kLocalData then</span>
+<span id="L485" class="line"><a href="#L485">485</a>			self:clearSingleFeature(name)</span>
+<span id="L486" class="line"><a href="#L486">486</a>			hasChanged = true</span>
+<span id="L487" class="line"><a href="#L487">487</a>		end</span>
+<span id="L488" class="line"><a href="#L488">488</a>	end</span>
+<span id="L489" class="line"><a href="#L489">489</a></span>
+<span id="L490" class="line"><a href="#L490">490</a>	if hasChanged then</span>
+<span id="L491" class="line"><a href="#L491">491</a>		self:writeToStorage()</span>
+<span id="L492" class="line"><a href="#L492">492</a>		self:onMaintenanceUpdated(MaintenanceConfigName.kMaintenance)</span>
+<span id="L493" class="line"><a href="#L493">493</a>		self.resultCache = {}</span>
+<span id="L494" class="line"><a href="#L494">494</a>		self.dcCache = {}</span>
+<span id="L495" class="line"><a href="#L495">495</a>		self.groupChildRangeMap = {}</span>
+<span id="L496" class="line"><a href="#L496">496</a>		if _G.amfEC then</span>
+<span id="L497" class="line"><a href="#L497">497</a>			_G.amfEC:notifyFeature(FeatureEvent.MAINTENANCE_LOADED)</span>
+<span id="L498" class="line"><a href="#L498">498</a>		end</span>
+<span id="L499" class="line"><a href="#L499">499</a>	end</span>
+<span id="L500" class="line"><a href="#L500">500</a>end</span>
+<span id="L501" class="line"><a href="#L501">501</a></span>
+<span id="L502" class="line"><a href="#L502">502</a>function MaintenanceManager:dcAllMaintenanceGroupDatas()</span>
+<span id="L503" class="line"><a href="#L503">503</a>	local uid = tonumber(getSafeUid()) or 0</span>
+<span id="L504" class="line"><a href="#L504">504</a>	if uid == 0 or uid == 12345 then</span>
+<span id="L505" class="line"><a href="#L505">505</a>		return</span>
+<span id="L506" class="line"><a href="#L506">506</a>	end</span>
+<span id="L507" class="line"><a href="#L507">507</a>	-- 进入游戏时主动调用一次</span>
+<span id="L508" class="line"><a href="#L508">508</a>	-- for i, v in ipairs({MaintenanceConfigName.kMaintenance, MaintenanceConfigName.kAI_Maintenance, MaintenanceConfigName.kLevelConfigGroup}) do</span>
+<span id="L509" class="line"><a href="#L509">509</a>	for i, v in ipairs({MaintenanceConfigName.kMaintenance}) do</span>
+<span id="L510" class="line"><a href="#L510">510</a>		setTimeOut(function()</span>
+<span id="L511" class="line"><a href="#L511">511</a>			self:dcMaintenanceGroupData(v, uid)</span>
+<span id="L512" class="line"><a href="#L512">512</a>		end, 0.1*i, &quot;dcAllMaintenanceGroupDatas&quot;)</span>
+<span id="L513" class="line"><a href="#L513">513</a>	end</span>
+<span id="L514" class="line"><a href="#L514">514</a>end</span>
+<span id="L515" class="line"><a href="#L515">515</a></span>
+<span id="L516" class="line"><a href="#L516">516</a>-- function MaintenanceManager:setMetaInitCompleted()</span>
+<span id="L517" class="line"><a href="#L517">517</a>-- 	self.metaInitCompleted = true</span>
+<span id="L518" class="line"><a href="#L518">518</a></span>
+<span id="L519" class="line"><a href="#L519">519</a>-- 	self:finishLoad()</span>
+<span id="L520" class="line"><a href="#L520">520</a>-- end</span>
+<span id="L521" class="line"><a href="#L521">521</a></span>
+<span id="L522" class="line"><a href="#L522">522</a>function MaintenanceManager:isFinishedAllLoad( ... )</span>
+<span id="L523" class="line"><a href="#L523">523</a>	return 	self.initFinished == self.initTotalCount and self.allfinished</span>
+<span id="L524" class="line"><a href="#L524">524</a>end</span>
+<span id="L525" class="line"><a href="#L525">525</a></span>
+<span id="L526" class="line"><a href="#L526">526</a>function MaintenanceManager:finishLoad()</span>
+<span id="L527" class="line"><a href="#L527">527</a>	if EnvUtil:isDevelopMode() then</span>
+<span id="L528" class="line"><a href="#L528">528</a>		printx(0, &quot;--------MaintenanceManager:finishLoad&quot;, self.initFinished, self.initTotalCount, self.metaInitCompleted, self.initOnFinishCallback)</span>
+<span id="L529" class="line"><a href="#L529">529</a>	end</span>
+<span id="L530" class="line"><a href="#L530">530</a>	if self.initFinished == self.initTotalCount then</span>
+<span id="L531" class="line"><a href="#L531">531</a>		if self.allfinished then</span>
+<span id="L532" class="line"><a href="#L532">532</a>			local needFlush = false</span>
+<span id="L533" class="line"><a href="#L533">533</a>			for k,v in pairs(self.data) do</span>
+<span id="L534" class="line"><a href="#L534">534</a>				-- printx( 1 , &quot;MaintenanceManager:initialize  _onFinish&quot; , v.name , v.sourceDataType )</span>
+<span id="L535" class="line"><a href="#L535">535</a>				if v.sourceDataType == MaintenanceConfigName.kLocalData then</span>
+<span id="L536" class="line"><a href="#L536">536</a>					needFlush = true</span>
+<span id="L537" class="line"><a href="#L537">537</a>					self:clearSingleFeature( k )--数据源的某个key已经被删除，所以内存里的数据也要删除</span>
+<span id="L538" class="line"><a href="#L538">538</a>					-- printx( 1 , &quot;Delete !!!!!!!!!!!!!!!!&quot; , k )</span>
+<span id="L539" class="line"><a href="#L539">539</a>				end</span>
+<span id="L540" class="line"><a href="#L540">540</a>			end</span>
+<span id="L541" class="line"><a href="#L541">541</a></span>
+<span id="L542" class="line"><a href="#L542">542</a>			if needFlush then</span>
+<span id="L543" class="line"><a href="#L543">543</a>				--删除本地platform和version已经不符合的开关</span>
+<span id="L544" class="line"><a href="#L544">544</a>				self:writeToStorage()</span>
+<span id="L545" class="line"><a href="#L545">545</a>			end</span>
+<span id="L546" class="line"><a href="#L546">546</a>			if self:isEnabled(&quot;DoNotChangeHost&quot;) then</span>
+<span id="L547" class="line"><a href="#L547">547</a>				_G.DO_NOT_CHANGE_HOST = true</span>
+<span id="L548" class="line"><a href="#L548">548</a>			end</span>
+<span id="L549" class="line"><a href="#L549">549</a></span>
+<span id="L550" class="line"><a href="#L550">550</a>			if _G.requestUseHttps or self:isEnabled(&quot;ForceHttps&quot;) then</span>
+<span id="L551" class="line"><a href="#L551">551</a>				if EnvUtil:isDevelopMode() then</span>
+<span id="L552" class="line"><a href="#L552">552</a>			    	_G.netDebugInfo = {}</span>
+<span id="L553" class="line"><a href="#L553">553</a>				 --    local socket = require(&quot;socket.core&quot;)</span>
+<span id="L554" class="line"><a href="#L554">554</a>				 --    local hostSP = string.split(NetworkConfig.dynamicHost, &quot;/&quot;)</span>
+<span id="L555" class="line"><a href="#L555">555</a>				 --    local host = hostSP[2]</span>
+<span id="L556" class="line"><a href="#L556">556</a>				 --    local hostname, info = socket.dns.tohostname(host)</span>
+<span id="L557" class="line"><a href="#L557">557</a>				 --    table.insert(_G.netDebugInfo, &quot;host:&quot;..tostring(hostname))</span>
+<span id="L558" class="line"><a href="#L558">558</a>					-- table.insert(_G.netDebugInfo, table.tostring(info))</span>
+<span id="L559" class="line"><a href="#L559">559</a>				end</span>
+<span id="L560" class="line"><a href="#L560">560</a>				changeToHttpOrHttps(true)</span>
+<span id="L561" class="line"><a href="#L561">561</a>			end</span>
+<span id="L562" class="line"><a href="#L562">562</a></span>
+<span id="L563" class="line"><a href="#L563">563</a>			self:_updateUseLowQualitySwitch()</span>
+<span id="L564" class="line"><a href="#L564">564</a>            if EnvUtil:isMiniGameIOS() then</span>
+<span id="L565" class="line"><a href="#L565">565</a>                if self:isEnabledInGroup(&quot;MinigameObeyMuteSwitch&quot;, &quot;OFF&quot;) then</span>
+<span id="L566" class="line"><a href="#L566">566</a>                    CALL_EASY_JS(&quot;globalThis.animalPlugin.appDelegate.setObeyMuteSwitch&quot;, &quot;false&quot;)</span>
+<span id="L567" class="line"><a href="#L567">567</a>                end</span>
+<span id="L568" class="line"><a href="#L568">568</a>            end</span>
+<span id="L569" class="line"><a href="#L569">569</a>		end</span>
+<span id="L570" class="line"><a href="#L570">570</a></span>
+<span id="L571" class="line"><a href="#L571">571</a>		if self.initOnFinishCallback then self.initOnFinishCallback() end</span>
+<span id="L572" class="line"><a href="#L572">572</a></span>
+<span id="L573" class="line"><a href="#L573">573</a>		if _G.amfEC then</span>
+<span id="L574" class="line"><a href="#L574">574</a>			_G.amfEC:notifyFeature(FeatureEvent.MAINTENANCE_LOADED)</span>
+<span id="L575" class="line"><a href="#L575">575</a>		end</span>
+<span id="L576" class="line"><a href="#L576">576</a>	end</span>
+<span id="L577" class="line"><a href="#L577">577</a>end</span>
+<span id="L578" class="line"><a href="#L578">578</a></span>
+<span id="L579" class="line"><a href="#L579">579</a>function MaintenanceManager:initializeLoadComplete(err)</span>
+<span id="L580" class="line"><a href="#L580">580</a>	if not self.initFinished then</span>
+<span id="L581" class="line"><a href="#L581">581</a>		self.initFinished = 0</span>
+<span id="L582" class="line"><a href="#L582">582</a>	end</span>
+<span id="L583" class="line"><a href="#L583">583</a></span>
+<span id="L584" class="line"><a href="#L584">584</a>	if not self.initTotalCount then</span>
+<span id="L585" class="line"><a href="#L585">585</a>		self.initTotalCount = 1</span>
+<span id="L586" class="line"><a href="#L586">586</a>	end</span>
+<span id="L587" class="line"><a href="#L587">587</a></span>
+<span id="L588" class="line"><a href="#L588">588</a>	if self.allfinished == nil then</span>
+<span id="L589" class="line"><a href="#L589">589</a>		self.allfinished = true</span>
+<span id="L590" class="line"><a href="#L590">590</a>	end</span>
+<span id="L591" class="line"><a href="#L591">591</a></span>
+<span id="L592" class="line"><a href="#L592">592</a>	if err then</span>
+<span id="L593" class="line"><a href="#L593">593</a>		self.allfinished = false</span>
+<span id="L594" class="line"><a href="#L594">594</a>	end</span>
+<span id="L595" class="line"><a href="#L595">595</a></span>
+<span id="L596" class="line"><a href="#L596">596</a>	self.initFinished = self.initFinished + 1</span>
+<span id="L597" class="line"><a href="#L597">597</a></span>
+<span id="L598" class="line"><a href="#L598">598</a>	if self.initFinished == self.initTotalCount then</span>
+<span id="L599" class="line"><a href="#L599">599</a>		self:finishLoad()</span>
+<span id="L600" class="line"><a href="#L600">600</a>	end</span>
+<span id="L601" class="line"><a href="#L601">601</a>end</span>
+<span id="L602" class="line"><a href="#L602">602</a></span>
+<span id="L603" class="line"><a href="#L603">603</a>function MaintenanceManager:initialize(onFinish)</span>
+<span id="L604" class="line"><a href="#L604">604</a>	if EnvUtil:isAndroidNoNetworkMode() or _G.AI_PLAY_GAME_MODE then</span>
+<span id="L605" class="line"><a href="#L605">605</a>		self.initFinished = 0</span>
+<span id="L606" class="line"><a href="#L606">606</a>		if onFinish then onFinish() end</span>
+<span id="L607" class="line"><a href="#L607">607</a>		return</span>
+<span id="L608" class="line"><a href="#L608">608</a>	end</span>
+<span id="L609" class="line"><a href="#L609">609</a></span>
+<span id="L610" class="line"><a href="#L610">610</a>	self.initOnFinishCallback = onFinish</span>
+<span id="L611" class="line"><a href="#L611">611</a></span>
+<span id="L612" class="line"><a href="#L612">612</a>	local function _onFinish(err)</span>
+<span id="L613" class="line"><a href="#L613">613</a>		self:initializeLoadComplete(err)</span>
+<span id="L614" class="line"><a href="#L614">614</a>	end</span>
+<span id="L615" class="line"><a href="#L615">615</a></span>
+<span id="L616" class="line"><a href="#L616">616</a>	self.initFinished = 0</span>
+<span id="L617" class="line"><a href="#L617">617</a>	self.initTotalCount = 1</span>
+<span id="L618" class="line"><a href="#L618">618</a></span>
+<span id="L619" class="line"><a href="#L619">619</a></span>
+<span id="L620" class="line"><a href="#L620">620</a>	-- if __IOS_FB then</span>
+<span id="L621" class="line"><a href="#L621">621</a>	-- 	self:onlineLoad( MaintenanceConfigName.kOverseasMaintenance , _onFinish )</span>
+<span id="L622" class="line"><a href="#L622">622</a>  	-- else</span>
+<span id="L623" class="line"><a href="#L623">623</a>  		self:onlineLoad( MaintenanceConfigName.kMaintenance , _onFinish )</span>
+<span id="L624" class="line"><a href="#L624">624</a>  	-- end</span>
+<span id="L625" class="line"><a href="#L625">625</a></span>
+<span id="L626" class="line"><a href="#L626">626</a>	-- self:onlineLoad( MaintenanceConfigName.kAI_Maintenance , _onFinish )</span>
+<span id="L627" class="line"><a href="#L627">627</a>end</span>
+<span id="L628" class="line"><a href="#L628">628</a></span>
+<span id="L629" class="line"><a href="#L629">629</a>function MaintenanceManager:readFromStorage()</span>
+<span id="L630" class="line"><a href="#L630">630</a>	local data = LocalFile:readLocalFile(&quot;Maintenance.ds&quot;)</span>
+<span id="L631" class="line"><a href="#L631">631</a></span>
+<span id="L632" class="line"><a href="#L632">632</a>	-- printx( 1 , &quot;MaintenanceManager:readFromStorage  ----------------------- \n\n &quot; )</span>
+<span id="L633" class="line"><a href="#L633">633</a></span>
+<span id="L634" class="line"><a href="#L634">634</a>	-- for k,v in pairs(data) do</span>
+<span id="L635" class="line"><a href="#L635">635</a>	-- 	printx( 1 , &quot;MaintenanceManager:readFromStorage   &quot; , v.name ,&quot;\n&quot; ,v.sourceDataType )</span>
+<span id="L636" class="line"><a href="#L636">636</a>	-- end</span>
+<span id="L637" class="line"><a href="#L637">637</a></span>
+<span id="L638" class="line"><a href="#L638">638</a>	self:fromLua( data , MaintenanceConfigName.kLocalData )</span>
+<span id="L639" class="line"><a href="#L639">639</a>end</span>
+<span id="L640" class="line"><a href="#L640">640</a></span>
+<span id="L641" class="line"><a href="#L641">641</a>function MaintenanceManager:writeToStorage()</span>
+<span id="L642" class="line"><a href="#L642">642</a>	local data = {}</span>
+<span id="L643" class="line"><a href="#L643">643</a>	for k,v in pairs(self.data) do</span>
+<span id="L644" class="line"><a href="#L644">644</a>		table.insert(data, v:encode())</span>
+<span id="L645" class="line"><a href="#L645">645</a>	end</span>
+<span id="L646" class="line"><a href="#L646">646</a>	LocalFile:writeToStorage(data, &quot;Maintenance.ds&quot;)</span>
+<span id="L647" class="line"><a href="#L647">647</a></span>
+<span id="L648" class="line"><a href="#L648">648</a>	-- printx( 1 , &quot;MaintenanceManager:writeToStorage  ----------------------- \n\n &quot; )</span>
+<span id="L649" class="line"><a href="#L649">649</a></span>
+<span id="L650" class="line"><a href="#L650">650</a>	-- for k,v in pairs(data) do</span>
+<span id="L651" class="line"><a href="#L651">651</a>	-- 	printx( 1 , &quot;MaintenanceManager:writeToStorage   &quot; , v.name ,&quot;\n&quot; , v.sourceDataType )</span>
+<span id="L652" class="line"><a href="#L652">652</a>	-- end</span>
+<span id="L653" class="line"><a href="#L653">653</a></span>
+<span id="L654" class="line"><a href="#L654">654</a>end</span>
+<span id="L655" class="line"><a href="#L655">655</a></span>
+<span id="L656" class="line"><a href="#L656">656</a>--maybe without local serialize</span>
+<span id="L657" class="line"><a href="#L657">657</a>function MaintenanceManager:addFeatureOutside(feature)</span>
+<span id="L658" class="line"><a href="#L658">658</a>	if not feature or not feature:is(MaintenanceFeature) then </span>
+<span id="L659" class="line"><a href="#L659">659</a>		assert(false, &#x27;wrong feature!&#x27;) </span>
+<span id="L660" class="line"><a href="#L660">660</a>	end</span>
+<span id="L661" class="line"><a href="#L661">661</a></span>
+<span id="L662" class="line"><a href="#L662">662</a>	-- if not self.ignoreClearFeatures then self.ignoreClearFeatures = {} end</span>
+<span id="L663" class="line"><a href="#L663">663</a>	-- self.ignoreClearFeatures[feature.name] = true</span>
+<span id="L664" class="line"><a href="#L664">664</a></span>
+<span id="L665" class="line"><a href="#L665">665</a>	self:setMaintenanceFeature(feature)</span>
+<span id="L666" class="line"><a href="#L666">666</a>end</span>
+<span id="L667" class="line"><a href="#L667">667</a></span>
+<span id="L668" class="line"><a href="#L668">668</a>function MaintenanceManager:clearFeatureDataWithoutIgnore()</span>
+<span id="L669" class="line"><a href="#L669">669</a>	-- local data = {}</span>
+<span id="L670" class="line"><a href="#L670">670</a>	-- if self.ignoreClearFeatures then</span>
+<span id="L671" class="line"><a href="#L671">671</a>	-- 	for k,_ in pairs(self.ignoreClearFeatures) do</span>
+<span id="L672" class="line"><a href="#L672">672</a>	-- 		data[k] = self.data[k]</span>
+<span id="L673" class="line"><a href="#L673">673</a>	-- 	end</span>
+<span id="L674" class="line"><a href="#L674">674</a>	-- end</span>
+<span id="L675" class="line"><a href="#L675">675</a>	-- self.data = data</span>
+<span id="L676" class="line"><a href="#L676">676</a>end</span>
+<span id="L677" class="line"><a href="#L677">677</a></span>
+<span id="L678" class="line"><a href="#L678">678</a>function MaintenanceManager:clearSingleFeature(featureName)</span>
+<span id="L679" class="line"><a href="#L679">679</a>	if self.data then self.data[featureName] = nil end</span>
+<span id="L680" class="line"><a href="#L680">680</a>	if self.Id2NameMap then</span>
+<span id="L681" class="line"><a href="#L681">681</a>		for k,v in pairs(self.Id2NameMap) do</span>
+<span id="L682" class="line"><a href="#L682">682</a>			if v == featureName then</span>
+<span id="L683" class="line"><a href="#L683">683</a>				self.Id2NameMap[k] = nil</span>
+<span id="L684" class="line"><a href="#L684">684</a>				break</span>
+<span id="L685" class="line"><a href="#L685">685</a>			end</span>
+<span id="L686" class="line"><a href="#L686">686</a>		end</span>
+<span id="L687" class="line"><a href="#L687">687</a>	end</span>
+<span id="L688" class="line"><a href="#L688">688</a>end</span>
+<span id="L689" class="line"><a href="#L689">689</a></span>
+<span id="L690" class="line"><a href="#L690">690</a>function MaintenanceManager:getMaintenanceNameById(maintenanceId)</span>
+<span id="L691" class="line"><a href="#L691">691</a>	if self.Id2NameMap then</span>
+<span id="L692" class="line"><a href="#L692">692</a>		return self.Id2NameMap[tostring(maintenanceId)]</span>
+<span id="L693" class="line"><a href="#L693">693</a>	end</span>
+<span id="L694" class="line"><a href="#L694">694</a>end</span>
+<span id="L695" class="line"><a href="#L695">695</a></span>
+<span id="L696" class="line"><a href="#L696">696</a>function MaintenanceManager:onlineLoad( configFileName , onFinish)</span>
+<span id="L697" class="line"><a href="#L697">697</a></span>
+<span id="L698" class="line"><a href="#L698">698</a>	if AIPlayRunMode and (_G.AI_PLAY_GAME_MODE == AIPlayRunMode.kCheckReplay) then</span>
+<span id="L699" class="line"><a href="#L699">699</a>		if onFinish then onFinish() end</span>
+<span id="L700" class="line"><a href="#L700">700</a>		return</span>
+<span id="L701" class="line"><a href="#L701">701</a>	end</span>
+<span id="L702" class="line"><a href="#L702">702</a></span>
+<span id="L703" class="line"><a href="#L703">703</a>	local url = _G.AMFNetworkConfig:getMaintenanceURL()</span>
+<span id="L704" class="line"><a href="#L704">704</a></span>
+<span id="L705" class="line"><a href="#L705">705</a>	if _G.launchCmds and _G.launchCmds.ingame then</span>
+<span id="L706" class="line"><a href="#L706">706</a>        if _G.launchCmds.mcts then</span>
+<span id="L707" class="line"><a href="#L707">707</a>            if not _G.launchCmds.mock and _G.launchCmds.domain then</span>
+<span id="L708" class="line"><a href="#L708">708</a>            	url = &quot;http://10.2.0.8/&quot;</span>
+<span id="L709" class="line"><a href="#L709">709</a>            end</span>
+<span id="L710" class="line"><a href="#L710">710</a>        end</span>
+<span id="L711" class="line"><a href="#L711">711</a>    end</span>
+<span id="L712" class="line"><a href="#L712">712</a></span>
+<span id="L713" class="line"><a href="#L713">713</a>	local uid</span>
+<span id="L714" class="line"><a href="#L714">714</a>	local userManager = _G.amfBean(&quot;UserManager&quot;)</span>
+<span id="L715" class="line"><a href="#L715">715</a>	if userManager and userManager:hasInit() then</span>
+<span id="L716" class="line"><a href="#L716">716</a>		uid = getSafeUid()</span>
+<span id="L717" class="line"><a href="#L717">717</a>	else</span>
+<span id="L718" class="line"><a href="#L718">718</a>		uid = _G.amfBean(&quot;CacheAccountLogic&quot;):readLastLoginUid() or &quot;12345&quot;</span>
+<span id="L719" class="line"><a href="#L719">719</a>	end</span>
+<span id="L720" class="line"><a href="#L720">720</a></span>
+<span id="L721" class="line"><a href="#L721">721</a>	local params = string.format(&quot;?name=&quot; .. configFileName .. &quot;&amp;uid=%s&amp;_v=%s&amp;pkgmode=%s&quot;, uid, majorBundleVersion, _G.packageMode)</span>
+<span id="L722" class="line"><a href="#L722">722</a>	if EnvUtil:isDevelopMode() then</span>
+<span id="L723" class="line"><a href="#L723">723</a>	    params = string.format(&quot;?name=&quot; .. configFileName .. &quot;&amp;uid=%s&amp;_v=%s&amp;pkgmode=%s&amp;deviceid=%s&quot;, uid, majorBundleVersion, _G.packageMode, MetaInfo.getInstance():getUdid())</span>
+<span id="L724" class="line"><a href="#L724">724</a>  	end</span>
+<span id="L725" class="line"><a href="#L725">725</a></span>
+<span id="L726" class="line"><a href="#L726">726</a>	url = url .. params</span>
+<span id="L727" class="line"><a href="#L727">727</a></span>
+<span id="L728" class="line"><a href="#L728">728</a>	local function onResponse(response)</span>
+<span id="L729" class="line"><a href="#L729">729</a>    	if response.httpCode ~= 200 then</span>
+<span id="L730" class="line"><a href="#L730">730</a>    		if EnvUtil:isDevelopMode() then printx(0, &quot;get maintenance config error&quot;) end</span>
+<span id="L731" class="line"><a href="#L731">731</a>    		if onFinish then onFinish(response.httpCode) end</span>
+<span id="L732" class="line"><a href="#L732">732</a>    	else</span>
+<span id="L733" class="line"><a href="#L733">733</a>    		local isFormatSuccess = false</span>
+<span id="L734" class="line"><a href="#L734">734</a>    		local function doFormatData()</span>
+<span id="L735" class="line"><a href="#L735">735</a>	    		local message = response.body</span>
+<span id="L736" class="line"><a href="#L736">736</a>	    		local metaXML = xml.eval(message)</span>
+<span id="L737" class="line"><a href="#L737">737</a>	    		local confList = xml.find(metaXML, configFileName)</span>
+<span id="L738" class="line"><a href="#L738">738</a>	    		if confList then</span>
+<span id="L739" class="line"><a href="#L739">739</a>	    			self.configAppName[configFileName] = confList.appName</span>
+<span id="L740" class="line"><a href="#L740">740</a>		    		self:fromXML(confList , configFileName)</span>
+<span id="L741" class="line"><a href="#L741">741</a>		    		self:writeToStorage()</span>
+<span id="L742" class="line"><a href="#L742">742</a>		    		self:onMaintenanceUpdated( configFileName )</span>
+<span id="L743" class="line"><a href="#L743">743</a>			    	isFormatSuccess = true</span>
+<span id="L744" class="line"><a href="#L744">744</a>			    	self.resultCache = {}</span>
+<span id="L745" class="line"><a href="#L745">745</a>			    	self.dcCache = {}</span>
+<span id="L746" class="line"><a href="#L746">746</a>		    	end</span>
+<span id="L747" class="line"><a href="#L747">747</a>		    end</span>
+<span id="L748" class="line"><a href="#L748">748</a></span>
+<span id="L749" class="line"><a href="#L749">749</a>			PerformanceMonitor:traceBegin(&quot;Maintenance doFormatData&quot;)</span>
+<span id="L750" class="line"><a href="#L750">750</a></span>
+<span id="L751" class="line"><a href="#L751">751</a>		    local success, err = pcall(doFormatData)</span>
+<span id="L752" class="line"><a href="#L752">752</a></span>
+<span id="L753" class="line"><a href="#L753">753</a>			PerformanceMonitor:traceEnd()</span>
+<span id="L754" class="line"><a href="#L754">754</a>		    if success then</span>
+<span id="L755" class="line"><a href="#L755">755</a>		    	if onFinish then onFinish() end</span>
+<span id="L756" class="line"><a href="#L756">756</a>		    else</span>
+<span id="L757" class="line"><a href="#L757">757</a>		    	if onFinish then onFinish(err) end</span>
+<span id="L758" class="line"><a href="#L758">758</a>		    end</span>
+<span id="L759" class="line"><a href="#L759">759</a>		    assert(isFormatSuccess,&quot;MaintenanceManager:onlineLoad() data error! configFile: &quot;.. tostring(configFileName))</span>
+<span id="L760" class="line"><a href="#L760">760</a>    	end</span>
+<span id="L761" class="line"><a href="#L761">761</a>	end</span>
+<span id="L762" class="line"><a href="#L762">762</a>    AMFSimpleRequest.new(url, onResponse)</span>
+<span id="L763" class="line"><a href="#L763">763</a>        :setTimeoutMs(10000)</span>
+<span id="L764" class="line"><a href="#L764">764</a>        :setConnectionTimeoutMs(2000)</span>
+<span id="L765" class="line"><a href="#L765">765</a>        :setGet(true)</span>
+<span id="L766" class="line"><a href="#L766">766</a>        :execute()</span>
+<span id="L767" class="line"><a href="#L767">767</a>end</span>
+<span id="L768" class="line"><a href="#L768">768</a></span>
+<span id="L769" class="line"><a href="#L769">769</a>function MaintenanceManager:clearCacheByName(maintenanceName)</span>
+<span id="L770" class="line"><a href="#L770">770</a>	-- print(&quot;MaintenanceManager:clearCacheByName()&quot;, maintenanceName)</span>
+<span id="L771" class="line"><a href="#L771">771</a>	if self.resultCache then</span>
+<span id="L772" class="line"><a href="#L772">772</a>		for k,v in pairs(self.resultCache) do</span>
+<span id="L773" class="line"><a href="#L773">773</a>			if v.maintenanceName == maintenanceName then</span>
+<span id="L774" class="line"><a href="#L774">774</a>				self.resultCache[k] = nil</span>
+<span id="L775" class="line"><a href="#L775">775</a>			end</span>
+<span id="L776" class="line"><a href="#L776">776</a>		end</span>
+<span id="L777" class="line"><a href="#L777">777</a>	end</span>
+<span id="L778" class="line"><a href="#L778">778</a>end</span>
+<span id="L779" class="line"><a href="#L779">779</a></span>
+<span id="L780" class="line"><a href="#L780">780</a>function MaintenanceManager:onMaintenanceUpdated( configFileName )</span>
+<span id="L781" class="line"><a href="#L781">781</a>	if configFileName == MaintenanceConfigName.kMaintenance then</span>
+<span id="L782" class="line"><a href="#L782">782</a>		_G.httpsTestGroup = nil</span>
+<span id="L783" class="line"><a href="#L783">783</a>		local md5Str = HeMathUtils:md5(MetaInfo:getInstance():getUdid())</span>
+<span id="L784" class="line"><a href="#L784">784</a>		local remainder = tonumber(string.sub( md5Str , -8 ), 16) % 100</span>
+<span id="L785" class="line"><a href="#L785">785</a>		local feature = self:getMaintenanceByKey(&quot;HttpsTestGroup&quot;)</span>
+<span id="L786" class="line"><a href="#L786">786</a>		if feature and feature.enable then</span>
+<span id="L787" class="line"><a href="#L787">787</a>			if feature.extra then</span>
+<span id="L788" class="line"><a href="#L788">788</a>				for _, v in ipairs(string.split(feature.extra, &quot;;&quot;)) do</span>
+<span id="L789" class="line"><a href="#L789">789</a>					local pers = string.split(v, &quot;,&quot;)</span>
+<span id="L790" class="line"><a href="#L790">790</a>					if pers then</span>
+<span id="L791" class="line"><a href="#L791">791</a>						local httpsWithLogStrs = string.split(pers[1] or &quot;0&quot;, &#x27;-&#x27;)</span>
+<span id="L792" class="line"><a href="#L792">792</a>						local httpsWithLogMin = 0</span>
+<span id="L793" class="line"><a href="#L793">793</a>						local httpsWithLogMax = 0</span>
+<span id="L794" class="line"><a href="#L794">794</a>						if httpsWithLogStrs[2] then</span>
+<span id="L795" class="line"><a href="#L795">795</a>							httpsWithLogMin = tonumber(httpsWithLogStrs[1]) or 0</span>
+<span id="L796" class="line"><a href="#L796">796</a>							httpsWithLogMax = tonumber(httpsWithLogStrs[2]) or httpsWithLogMin</span>
+<span id="L797" class="line"><a href="#L797">797</a>						else</span>
+<span id="L798" class="line"><a href="#L798">798</a>							httpsWithLogMax = tonumber(httpsWithLogStrs[1]) or httpsWithLogMin</span>
+<span id="L799" class="line"><a href="#L799">799</a>						end</span>
+<span id="L800" class="line"><a href="#L800">800</a></span>
+<span id="L801" class="line"><a href="#L801">801</a>						local withLogStrs = string.split(pers[2] or &quot;0&quot;, &#x27;-&#x27;)</span>
+<span id="L802" class="line"><a href="#L802">802</a>						local withLogMin = 0</span>
+<span id="L803" class="line"><a href="#L803">803</a>						local withLogMax = 0</span>
+<span id="L804" class="line"><a href="#L804">804</a>						if withLogStrs[2] then</span>
+<span id="L805" class="line"><a href="#L805">805</a>							withLogMin = tonumber(withLogStrs[1]) or 0</span>
+<span id="L806" class="line"><a href="#L806">806</a>							withLogMax = tonumber(withLogStrs[2]) or withLogMin</span>
+<span id="L807" class="line"><a href="#L807">807</a>						else</span>
+<span id="L808" class="line"><a href="#L808">808</a>							withLogMax = tonumber(withLogStrs[1]) or withLogMin</span>
+<span id="L809" class="line"><a href="#L809">809</a>						end</span>
+<span id="L810" class="line"><a href="#L810">810</a></span>
+<span id="L811" class="line"><a href="#L811">811</a>						if remainder &gt;= httpsWithLogMin and remainder &lt; httpsWithLogMax then</span>
+<span id="L812" class="line"><a href="#L812">812</a>							_G.httpsTestGroup = 2</span>
+<span id="L813" class="line"><a href="#L813">813</a>							break</span>
+<span id="L814" class="line"><a href="#L814">814</a>						elseif remainder &gt;= withLogMin and remainder &lt; withLogMax then</span>
+<span id="L815" class="line"><a href="#L815">815</a>							_G.httpsTestGroup = 1</span>
+<span id="L816" class="line"><a href="#L816">816</a>							break</span>
+<span id="L817" class="line"><a href="#L817">817</a>						end</span>
+<span id="L818" class="line"><a href="#L818">818</a>					end</span>
+<span id="L819" class="line"><a href="#L819">819</a>				end</span>
+<span id="L820" class="line"><a href="#L820">820</a>			end</span>
+<span id="L821" class="line"><a href="#L821">821</a>		end</span>
+<span id="L822" class="line"><a href="#L822">822</a>		-- if EnvUtil:isDevelopMode() then</span>
+<span id="L823" class="line"><a href="#L823">823</a>		-- 	RemoteDebug:uploadLogWithTag(&quot;HttpsTestGroup&quot;, &quot;算出尾号：&quot;, remainder, &quot;,分组：&quot;, _G.httpsTestGroup, &quot;,开关：&quot;, table.tostring(feature))</span>
+<span id="L824" class="line"><a href="#L824">824</a>		-- end</span>
+<span id="L825" class="line"><a href="#L825">825</a>		if _G.httpsTestGroup == 2 then</span>
+<span id="L826" class="line"><a href="#L826">826</a>			changeToHttpOrHttps(true)</span>
+<span id="L827" class="line"><a href="#L827">827</a>		end</span>
+<span id="L828" class="line"><a href="#L828">828</a></span>
+<span id="L829" class="line"><a href="#L829">829</a>		_G.__HttpErrorLogUpload = MaintenanceManager:getInstance():isEnabled(&#x27;HttpErrorLogUpload&#x27;,  false)</span>
+<span id="L830" class="line"><a href="#L830">830</a></span>
+<span id="L831" class="line"><a href="#L831">831</a>		--loading图片轮播开关</span>
+<span id="L832" class="line"><a href="#L832">832</a>	    local value = MaintenanceManager:getInstance():isEnabled(&#x27;introAutoPlay&#x27;,  false)</span>
+<span id="L833" class="line"><a href="#L833">833</a>	    CCUserDefault:sharedUserDefault():setIntegerForKey(&quot;logo.isAutoPlay&quot;, value and 1 or 0)</span>
+<span id="L834" class="line"><a href="#L834">834</a>	end</span>
+<span id="L835" class="line"><a href="#L835">835</a>end</span>
+<span id="L836" class="line"><a href="#L836">836</a></span>
+<span id="L837" class="line"><a href="#L837">837</a>function MaintenanceManager:_updateUseLowQualitySwitch()</span>
+<span id="L838" class="line"><a href="#L838">838</a>	if not EnvUtil:isIOS() then return end</span>
+<span id="L839" class="line"><a href="#L839">839</a></span>
+<span id="L840" class="line"><a href="#L840">840</a>	local mKey = &quot;ios.use.low.quality.enable&quot;</span>
+<span id="L841" class="line"><a href="#L841">841</a>    local config = CCUserDefault:sharedUserDefault()</span>
+<span id="L842" class="line"><a href="#L842">842</a>	local maintenance = self:getMaintenanceByKey(&quot;UseLowQualityEnable&quot;)</span>
+<span id="L843" class="line"><a href="#L843">843</a>	if maintenance and maintenance.enable and type(maintenance.extra) == &quot;string&quot; then</span>
+<span id="L844" class="line"><a href="#L844">844</a>		local udidList = string.split(maintenance.extra, &quot;,&quot;)</span>
+<span id="L845" class="line"><a href="#L845">845</a>		local inTestList = false</span>
+<span id="L846" class="line"><a href="#L846">846</a>		local udid = MetaInfo:getInstance():getUdid()</span>
+<span id="L847" class="line"><a href="#L847">847</a>		for _, v in pairs(udidList) do</span>
+<span id="L848" class="line"><a href="#L848">848</a>			if v == udid then</span>
+<span id="L849" class="line"><a href="#L849">849</a>				inTestList = true</span>
+<span id="L850" class="line"><a href="#L850">850</a>				break</span>
+<span id="L851" class="line"><a href="#L851">851</a>			end</span>
+<span id="L852" class="line"><a href="#L852">852</a>		end</span>
+<span id="L853" class="line"><a href="#L853">853</a>		if inTestList then</span>
+<span id="L854" class="line"><a href="#L854">854</a>	        config:setBoolForKey(mKey, true)</span>
+<span id="L855" class="line"><a href="#L855">855</a>        	config:flush()</span>
+<span id="L856" class="line"><a href="#L856">856</a>	    else</span>
+<span id="L857" class="line"><a href="#L857">857</a>	        if config:getBoolForKey(mKey, false) == true then</span>
+<span id="L858" class="line"><a href="#L858">858</a>		        config:setBoolForKey(mKey, false)</span>
+<span id="L859" class="line"><a href="#L859">859</a>	        	config:flush()</span>
+<span id="L860" class="line"><a href="#L860">860</a>	    	end</span>
+<span id="L861" class="line"><a href="#L861">861</a>		end</span>
+<span id="L862" class="line"><a href="#L862">862</a>    else</span>
+<span id="L863" class="line"><a href="#L863">863</a>    	if config:getBoolForKey(mKey, false) == true then</span>
+<span id="L864" class="line"><a href="#L864">864</a>	        config:setBoolForKey(mKey, false)</span>
+<span id="L865" class="line"><a href="#L865">865</a>        	config:flush()</span>
+<span id="L866" class="line"><a href="#L866">866</a>    	end</span>
+<span id="L867" class="line"><a href="#L867">867</a>	end</span>
+<span id="L868" class="line"><a href="#L868">868</a>end</span>
+<span id="L869" class="line"><a href="#L869">869</a></span>
+<span id="L870" class="line"><a href="#L870">870</a>function MaintenanceManager:fromXML( src , configFileName )</span>
+<span id="L871" class="line"><a href="#L871">871</a>	-- if EnvUtil:isDevelopMode() then printx(0, &quot;MaintenanceManager:fromXML&quot;) end</span>
+<span id="L872" class="line"><a href="#L872">872</a>	if src then self.version = src.version end</span>
+<span id="L873" class="line"><a href="#L873">873</a>	self:fromLua(src , configFileName)</span>
+<span id="L874" class="line"><a href="#L874">874</a>	if src and (not configFileName or configFileName == MaintenanceConfigName.kMaintenance) then</span>
+<span id="L875" class="line"><a href="#L875">875</a>		local bundleVersion = _G.fullBundleVersion or majorBundleVersion</span>
+<span id="L876" class="line"><a href="#L876">876</a>		CCUserDefault:sharedUserDefault():setStringForKey(&quot;maintenance_game_ver&quot;, bundleVersion)</span>
+<span id="L877" class="line"><a href="#L877">877</a>		CCUserDefault:sharedUserDefault():flush()</span>
+<span id="L878" class="line"><a href="#L878">878</a>	end</span>
+<span id="L879" class="line"><a href="#L879">879</a>end</span>
+<span id="L880" class="line"><a href="#L880">880</a></span>
+<span id="L881" class="line"><a href="#L881">881</a>function MaintenanceManager:_isPfOkForInclude(platforms)</span>
+<span id="L882" class="line"><a href="#L882">882</a>	if EnvUtil:isWinMacSimulator() or EnvUtil:isUnityEditor() then return true end</span>
+<span id="L883" class="line"><a href="#L883">883</a>	return self:_isPfOk(platforms)</span>
+<span id="L884" class="line"><a href="#L884">884</a>end</span>
+<span id="L885" class="line"><a href="#L885">885</a></span>
+<span id="L886" class="line"><a href="#L886">886</a>function MaintenanceManager:_isPfOkForExclude(platforms)</span>
+<span id="L887" class="line"><a href="#L887">887</a>	return self:_isPfOk(platforms)</span>
+<span id="L888" class="line"><a href="#L888">888</a>end</span>
+<span id="L889" class="line"><a href="#L889">889</a></span>
+<span id="L890" class="line"><a href="#L890">890</a>function MaintenanceManager:_isPfOk( platforms )</span>
+<span id="L891" class="line"><a href="#L891">891</a>	local curPlatform = _G._PLATFORM_NAME</span>
+<span id="L892" class="line"><a href="#L892">892</a>	local isCurPlatform = false</span>
+<span id="L893" class="line"><a href="#L893">893</a>	</span>
+<span id="L894" class="line"><a href="#L894">894</a>	if platforms then</span>
+<span id="L895" class="line"><a href="#L895">895</a>		if EnvUtil:isAndroid() and table.indexOf(platforms, &quot;android_all&quot;) then</span>
+<span id="L896" class="line"><a href="#L896">896</a>			isCurPlatform = true</span>
+<span id="L897" class="line"><a href="#L897">897</a>        elseif EnvUtil:isMiniGame() and table.indexOf(platforms, &quot;minigame_all&quot;) then</span>
+<span id="L898" class="line"><a href="#L898">898</a>            isCurPlatform = true</span>
+<span id="L899" class="line"><a href="#L899">899</a>		elseif EnvUtil:isWXMiniGame() and table.indexOf(platforms, &quot;minigame_wechat_all&quot;) then</span>
+<span id="L900" class="line"><a href="#L900">900</a>			isCurPlatform = true</span>
+<span id="L901" class="line"><a href="#L901">901</a>        elseif EnvUtil:isDYMiniGame() and table.indexOf(platforms, &quot;minigame_tiktok_all&quot;) then</span>
+<span id="L902" class="line"><a href="#L902">902</a>            isCurPlatform = true</span>
+<span id="L903" class="line"><a href="#L903">903</a>        elseif EnvUtil:isALIPAYMiniGame() and table.indexOf(platforms, &quot;minigame_alipay_all&quot;) then</span>
+<span id="L904" class="line"><a href="#L904">904</a>            isCurPlatform = true</span>
+<span id="L905" class="line"><a href="#L905">905</a>        elseif EnvUtil:isHuaweiMiniGame() and table.indexOf(platforms, &quot;minigame_huawei_all&quot;) then</span>
+<span id="L906" class="line"><a href="#L906">906</a>            isCurPlatform = true</span>
+<span id="L907" class="line"><a href="#L907">907</a>        elseif EnvUtil:isUnionMiniGame() and table.indexOf(platforms, &quot;minigame_union_all&quot;) then</span>
+<span id="L908" class="line"><a href="#L908">908</a>            isCurPlatform = true</span>
+<span id="L909" class="line"><a href="#L909">909</a>        elseif EnvUtil:isUnionOppoMiniGame() and table.indexOf(platforms, &quot;minigame_oppo_all&quot;) then</span>
+<span id="L910" class="line"><a href="#L910">910</a>            isCurPlatform = true</span>
+<span id="L911" class="line"><a href="#L911">911</a>        elseif EnvUtil:isUnionMiMiniGame() and table.indexOf(platforms, &quot;minigame_mi_all&quot;) then</span>
+<span id="L912" class="line"><a href="#L912">912</a>            isCurPlatform = true			</span>
+<span id="L913" class="line"><a href="#L913">913</a>        elseif EnvUtil:isKuaiShouMiniGame() and table.indexOf(platforms, &quot;minigame_ks_all&quot;) then</span>
+<span id="L914" class="line"><a href="#L914">914</a>            isCurPlatform = true</span>
+<span id="L915" class="line"><a href="#L915">915</a>        elseif EnvUtil:isJdMiniGame() and table.indexOf(platforms, &quot;minigame_jd_all&quot;) then</span>
+<span id="L916" class="line"><a href="#L916">916</a>            isCurPlatform = true</span>
+<span id="L917" class="line"><a href="#L917">917</a>		elseif EnvUtil:isAndroid() and PlatformConfig:isQQPlatform() and table.indexOf(platforms, &quot;yingyongbao_all&quot;) then</span>
+<span id="L918" class="line"><a href="#L918">918</a>			isCurPlatform = true</span>
+<span id="L919" class="line"><a href="#L919">919</a>		elseif (table.indexOf(platforms, &quot;default&quot;) ~= nil) or (table.indexOf(platforms, curPlatform) ~= nil) then</span>
+<span id="L920" class="line"><a href="#L920">920</a>			isCurPlatform = true</span>
+<span id="L921" class="line"><a href="#L921">921</a>		end</span>
+<span id="L922" class="line"><a href="#L922">922</a>	end</span>
+<span id="L923" class="line"><a href="#L923">923</a></span>
+<span id="L924" class="line"><a href="#L924">924</a>	return isCurPlatform</span>
+<span id="L925" class="line"><a href="#L925">925</a>end</span>
+<span id="L926" class="line"><a href="#L926">926</a></span>
+<span id="L927" class="line"><a href="#L927">927</a>function MaintenanceManager:checkRegTime(config)</span>
+<span id="L928" class="line"><a href="#L928">928</a>	if config.regBeginDate == nil and config.regEndDate == nil then return true end</span>
+<span id="L929" class="line"><a href="#L929">929</a></span>
+<span id="L930" class="line"><a href="#L930">930</a>	local regTime = self:getUserRegTime()</span>
+<span id="L931" class="line"><a href="#L931">931</a>	if not regTime then return false end</span>
+<span id="L932" class="line"><a href="#L932">932</a></span>
+<span id="L933" class="line"><a href="#L933">933</a>	if config.regBeginDate then</span>
+<span id="L934" class="line"><a href="#L934">934</a>		local regBeginDate = parseDateStringToTimestamp(config.regBeginDate)</span>
+<span id="L935" class="line"><a href="#L935">935</a>		if regTime &lt; regBeginDate then return false end</span>
+<span id="L936" class="line"><a href="#L936">936</a>	end</span>
+<span id="L937" class="line"><a href="#L937">937</a></span>
+<span id="L938" class="line"><a href="#L938">938</a>	if config.regEndDate then</span>
+<span id="L939" class="line"><a href="#L939">939</a>		local regEndDate = parseDateStringToTimestamp(config.regEndDate)</span>
+<span id="L940" class="line"><a href="#L940">940</a>		if regTime &gt;= regEndDate then return false end</span>
+<span id="L941" class="line"><a href="#L941">941</a>	end</span>
+<span id="L942" class="line"><a href="#L942">942</a></span>
+<span id="L943" class="line"><a href="#L943">943</a>	return true</span>
+<span id="L944" class="line"><a href="#L944">944</a>end</span>
+<span id="L945" class="line"><a href="#L945">945</a></span>
+<span id="L946" class="line"><a href="#L946">946</a>-- 这里只判断平台和版本，注册时间在候选选择阶段处理。</span>
+<span id="L947" class="line"><a href="#L947">947</a>function MaintenanceManager:checkPlatformAndVersion( config )	</span>
+<span id="L948" class="line"><a href="#L948">948</a>	local platforms = nil</span>
+<span id="L949" class="line"><a href="#L949">949</a>	local curPlatform = _G._PLATFORM_NAME</span>
+<span id="L950" class="line"><a href="#L950">950</a>	local curVersion = majorBundleVersion</span>
+<span id="L951" class="line"><a href="#L951">951</a></span>
+<span id="L952" class="line"><a href="#L952">952</a>	--临时方案，感觉maintenance这里需要优化一下</span>
+<span id="L953" class="line"><a href="#L953">953</a>	if config.name == &#x27;oppo_phone&#x27; and EnvUtil:isAndroidPlatform(PlatformNameEnum.kOppo) then</span>
+<span id="L954" class="line"><a href="#L954">954</a>		PlatformConfig:setOppoPhoneVersion( config.version )</span>
+<span id="L955" class="line"><a href="#L955">955</a>	end</span>
+<span id="L956" class="line"><a href="#L956">956</a></span>
+<span id="L957" class="line"><a href="#L957">957</a>    if type(config.exclude_platforms) == &quot;string&quot; then</span>
+<span id="L958" class="line"><a href="#L958">958</a>    	local excludePlatforms = config.exclude_platforms:split(&quot;,&quot;)</span>
+<span id="L959" class="line"><a href="#L959">959</a>    	if self:_isPfOkForExclude(excludePlatforms) then</span>
+<span id="L960" class="line"><a href="#L960">960</a>    		return false, false, false</span>
+<span id="L961" class="line"><a href="#L961">961</a>    	end</span>
+<span id="L962" class="line"><a href="#L962">962</a>    end</span>
+<span id="L963" class="line"><a href="#L963">963</a></span>
+<span id="L964" class="line"><a href="#L964">964</a>	if config.platform == nil or config.version == nil then return true, true, false end</span>
+<span id="L965" class="line"><a href="#L965">965</a></span>
+<span id="L966" class="line"><a href="#L966">966</a>	if type(config.platform) ~= &quot;table&quot; then</span>
+<span id="L967" class="line"><a href="#L967">967</a>		platforms = config.platform:split(&quot;,&quot;)</span>
+<span id="L968" class="line"><a href="#L968">968</a>	else</span>
+<span id="L969" class="line"><a href="#L969">969</a>		platforms = config.platform</span>
+<span id="L970" class="line"><a href="#L970">970</a>	end</span>
+<span id="L971" class="line"><a href="#L971">971</a></span>
+<span id="L972" class="line"><a href="#L972">972</a>	local versions = nil</span>
+<span id="L973" class="line"><a href="#L973">973</a>	if type(config.version) ~= &quot;table&quot; then</span>
+<span id="L974" class="line"><a href="#L974">974</a>		versions = config.version:split(&quot;,&quot;)</span>
+<span id="L975" class="line"><a href="#L975">975</a>	else</span>
+<span id="L976" class="line"><a href="#L976">976</a>		versions = config.version</span>
+<span id="L977" class="line"><a href="#L977">977</a>	end</span>
+<span id="L978" class="line"><a href="#L978">978</a></span>
+<span id="L979" class="line"><a href="#L979">979</a>	local isCurPlatform = platforms and self:_isPfOkForInclude(platforms)</span>
+<span id="L980" class="line"><a href="#L980">980</a></span>
+<span id="L981" class="line"><a href="#L981">981</a>	--最小版本支持</span>
+<span id="L982" class="line"><a href="#L982">982</a>	local minVersion = nil</span>
+<span id="L983" class="line"><a href="#L983">983</a>	local delVersion = {}</span>
+<span id="L984" class="line"><a href="#L984">984</a></span>
+<span id="L985" class="line"><a href="#L985">985</a>	for _,v in ipairs(versions) do</span>
+<span id="L986" class="line"><a href="#L986">986</a>		local mins, mine = string.find(v, &quot;min:&quot;)</span>
+<span id="L987" class="line"><a href="#L987">987</a>		if mins then</span>
+<span id="L988" class="line"><a href="#L988">988</a>			minVersion = string.sub(v, mine+1)</span>
+<span id="L989" class="line"><a href="#L989">989</a>		end</span>
+<span id="L990" class="line"><a href="#L990">990</a></span>
+<span id="L991" class="line"><a href="#L991">991</a>		local dels, dele = string.find(v, &quot;del:&quot;)</span>
+<span id="L992" class="line"><a href="#L992">992</a>		if dels then</span>
+<span id="L993" class="line"><a href="#L993">993</a>			table.insert(delVersion, tonumber(string.split(string.sub(v, dele+1), &#x27;.&#x27;)[2]))</span>
+<span id="L994" class="line"><a href="#L994">994</a>		end</span>
+<span id="L995" class="line"><a href="#L995">995</a>	end</span>
+<span id="L996" class="line"><a href="#L996">996</a></span>
+<span id="L997" class="line"><a href="#L997">997</a>	if minVersion then</span>
+<span id="L998" class="line"><a href="#L998">998</a>		versions = {}</span>
+<span id="L999" class="line"><a href="#L999">999</a>		local e = curVersion</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>		e = tonumber(string.split(tostring(e), &#x27;.&#x27;)[2])</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>		for ver=tonumber(string.split(tostring(minVersion), &#x27;.&#x27;)[2]) , e + 1 do</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>			if not table.indexOf(delVersion, ver) then</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>				table.insert(versions, string.format(&quot;1.%d&quot;, ver))</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>			end</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>		end</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>	end</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a></span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>	--有确切的版本号优先, fullBundleVersion 带小版本的版本号，不只是testflight包</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>	local hasCurVersion = versions and (table.indexOf(versions, curVersion) ~= nil or</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>		(EnvUtil:isAndroid() and _G.androidFullBundleVersion and table.indexOf(versions, _G.androidFullBundleVersion) ~= nil) or</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>		(EnvUtil:isOhos() and _G.fullBundleVersion and table.indexOf(versions, _G.fullBundleVersion) ~= nil) or</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>		(EnvUtil:isIOS() and _G.fullBundleVersion and table.indexOf(versions, _G.fullBundleVersion) ~= nil)) or</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a>		(_G.fullBundleVersion and table.indexOf(versions, _G.fullBundleVersion))</span>
+<span id="L1014" class="line"><a href="#L1014">1014</a></span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>	local isDefaultVersion = versions and versions[1] == &quot;default&quot;</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a></span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>	return isCurPlatform and (hasCurVersion or isDefaultVersion), hasCurVersion, isDefaultVersion</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>end</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a></span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>function MaintenanceManager:fromLua(src , configFileName)</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>	-- if EnvUtil:isDevelopMode() then printx(0, &quot;MaintenanceManager:fromLua&quot;) end</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>	if not src then return end</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a></span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>	-- 本轮加载先按 name 收集，再统一选择，避免同名配置依赖 pairs 遍历顺序互相覆盖。</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>	local featuresByName = {}</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>	if configFileName ~= MaintenanceConfigName.kLocalData then</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>		self:removeMaintenanceCandidatesBySource(configFileName)</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>	end</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a></span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>	for k,config in pairs(src) do</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>		if type(config) == &quot;table&quot; then</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>			local platformVersionOk, hasCurVersion, isDefaultVersion = self:checkPlatformAndVersion(config)</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>			if platformVersionOk then</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a>				local feature = MaintenanceFeature.new()</span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>				feature:fromLua(config , configFileName, src.version)</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>				feature.hasCurVersion = hasCurVersion</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>				feature.isDefaultVersion = isDefaultVersion</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>				if feature ~= nil and feature.name ~= nil then</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>					featuresByName[feature.name] = featuresByName[feature.name] or {}</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>					table.insert(featuresByName[feature.name], feature)</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>					if configFileName ~= MaintenanceConfigName.kLocalData then</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>						self:addMaintenanceCandidate(feature)</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>					end</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>					-- printx(  1 , &quot;ADD NEW feature:&quot; , table.tostring(feature))</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>				end</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>			end</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>		end		</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>	end</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a></span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>	for _, features in pairs(featuresByName) do</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>		local feature = self:selectMaintenanceFeature(features)</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>		if feature then</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a>			self:setMaintenanceFeature(feature)</span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>		end</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>	end</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>	if configFileName ~= MaintenanceConfigName.kLocalData then</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>		self.maintenanceVersion = self.maintenanceVersion or {}</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>		self.maintenanceVersion[configFileName] = src.version</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>		-- if UserManager:hadInited() then</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>		-- 	self:dcMaintenanceGroupData(configFileName)</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>		-- end</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>	end</span>
+<span id="L1063" class="line"><a href="#L1063">1063</a></span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>	self.dummyMaintenanceGroup = LocalFile:readDataByFileNameAndKey(&quot;DummyMaintenanceGroup&quot;, &quot;saveData&quot;, {}, true)</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>end</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a></span>
+<span id="L1067" class="line"><a href="#L1067">1067</a>function MaintenanceManager:dcMaintenanceGroupData(configFileName, uid)</span>
+<span id="L1068" class="line"><a href="#L1068">1068</a>	uid = tonumber(uid or getSafeUid()) or 0</span>
+<span id="L1069" class="line"><a href="#L1069">1069</a>	if uid == 0 or uid == 12345 then</span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>		return</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>	end</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a></span>
+<span id="L1073" class="line"><a href="#L1073">1073</a>	self.dcMaintenanceGroupCache = self.dcMaintenanceGroupCache or {}</span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>	local date = os.date2( TimeKit:timeInSec() )</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>	local cacheKey = configFileName..tostring(uid)..&quot;_&quot;..tostring(date.yday)</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>	if self.dcMaintenanceGroupCache[cacheKey] then</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>		return</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>	end</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a></span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>	self.dcMaintenanceGroupCache[cacheKey] = true</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a></span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>	local versionNum = self.maintenanceVersion and self.maintenanceVersion[configFileName]</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>	local groupData = {}</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a>	for k,v in pairs(self.data) do</span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>		if v.originDataType == configFileName and v.enable</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>				and (v.modeValue == MaintenanceModeType.kGroup or v.modeValue == MaintenanceModeType.kOrthogonalGroup or v.modeValue == MaintenanceModeType.kOrthogonalGroupV2) then</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>			local childIndex, algorithmId, onlyOneGroupLeft = self:getChildIndexAndalgorithmId( v , uid )</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>			if childIndex and not onlyOneGroupLeft then</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a>				table.insert(groupData, string.format(&quot;%s,%s&quot;, v.id, childIndex))</span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>			end</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a>			if not versionNum then</span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>				versionNum = v.metaVersion</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>			end</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>		end</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>	end</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a>	if #groupData &lt; 1 then return end</span>
+<span id="L1097" class="line"><a href="#L1097">1097</a></span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>	local groups = table.join(groupData, &quot;;&quot;)</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>	local dcData = {</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>		category = &#x27;shiyan_exp&#x27;,</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>		sub_category = configFileName,</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a>		msg = mime.b64(groups),</span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>		xml_version = versionNum,</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a>		env_name = self.configAppName[configFileName] or _G.amfBean(&quot;AccountManager&quot;):getAppName(),</span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>	}</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>	DcUtil:UserTrack(dcData)</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>end</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a></span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>function MaintenanceManager:getMaintenanceByKey(key)</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a></span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>	local feature = nil</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>	if self.data then</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a></span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>		local head1= MaintenanceNameHead[ MaintenanceConfigName.kAI_Maintenance ]</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a></span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>		if self.data[key] and self.data[ head1 .. key ]then</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a>			--</span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>--</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>--</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a>--</span>
+<span id="L1121" class="line"><a href="#L1121">1121</a></span>
+<span id="L1122" class="line"><a href="#L1122">1122</a>		end</span>
+<span id="L1123" class="line"><a href="#L1123">1123</a></span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>		feature = self.data[key]</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>		if feature then</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a>			return feature</span>
+<span id="L1127" class="line"><a href="#L1127">1127</a>		end</span>
+<span id="L1128" class="line"><a href="#L1128">1128</a></span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>		feature = self.data[head1 .. key]</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>		if feature then</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>			return feature</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a>		end</span>
+<span id="L1133" class="line"><a href="#L1133">1133</a></span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>	end</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a>	return feature</span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>end</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a></span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>function MaintenanceManager:isInWhitelist( key )</span>
+<span id="L1139" class="line"><a href="#L1139">1139</a>	local maintenance = self:getMaintenanceByKey(key)</span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>	if maintenance then</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>		return maintenance:isInWhitelist()</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a>	end</span>
+<span id="L1143" class="line"><a href="#L1143">1143</a>	return false</span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>end</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a></span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>function MaintenanceManager:isInFilterlist( key )</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a>	local maintenance = self:getMaintenanceByKey(key)</span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>	if maintenance then</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>		return maintenance:isInFilterlist()</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>	end</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>	return false</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>end</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a></span>
+<span id="L1154" class="line"><a href="#L1154">1154</a>--defaultEnable有值时，默认返回defaultEnable</span>
+<span id="L1155" class="line"><a href="#L1155">1155</a>function MaintenanceManager:isEnabled(key, defaultEnable)</span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>	local maintenance = self:getMaintenanceByKey(key)</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a>	if _G.testFlightMode and key == &quot;reviewVersion&quot; then</span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>		maintenance = self:getMaintenanceByKey(&quot;reviewVersionTF&quot;)</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a>	end</span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>	local flag = false</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a>	local _useDefault = false</span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>	if maintenance then</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a>		flag = maintenance.enable</span>
+<span id="L1164" class="line"><a href="#L1164">1164</a>		if not maintenance.review and maintenance:isInFilterlist() then</span>
+<span id="L1165" class="line"><a href="#L1165">1165</a>			if maintenance.filterlistMode == MaintenanceFilterListType.kWhite then</span>
+<span id="L1166" class="line"><a href="#L1166">1166</a>				flag = true</span>
+<span id="L1167" class="line"><a href="#L1167">1167</a>			elseif maintenance.filterlistMode == MaintenanceFilterListType.kBlack then</span>
+<span id="L1168" class="line"><a href="#L1168">1168</a>				flag = false</span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>			end</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a>		end</span>
+<span id="L1171" class="line"><a href="#L1171">1171</a>	elseif defaultEnable ~= nil then</span>
+<span id="L1172" class="line"><a href="#L1172">1172</a>		flag = defaultEnable</span>
+<span id="L1173" class="line"><a href="#L1173">1173</a>		_useDefault = true</span>
+<span id="L1174" class="line"><a href="#L1174">1174</a>	end</span>
+<span id="L1175" class="line"><a href="#L1175">1175</a>	if key == &quot;reviewVersion&quot; then</span>
+<span id="L1176" class="line"><a href="#L1176">1176</a>		if _G.testFlightMode then</span>
+<span id="L1177" class="line"><a href="#L1177">1177</a>			return not maintenance or _G.fullBundleVersion == maintenance.extra</span>
+<span id="L1178" class="line"><a href="#L1178">1178</a>		end</span>
+<span id="L1179" class="line"><a href="#L1179">1179</a>		if EnvUtil:isAndroid() then</span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>			local insideVersion = EnvUtil:getInsideVersion()</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a>			if insideVersion:starts(&quot;testgray&quot;) then</span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>				return false</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a>			end</span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>		end</span>
+<span id="L1185" class="line"><a href="#L1185">1185</a>        return flag, _useDefault</span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>	end</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a>	if maintenance and maintenance.review and self:isEnabled(&quot;reviewVersion&quot;) then</span>
+<span id="L1188" class="line"><a href="#L1188">1188</a>		flag = not flag</span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>	end</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a>	return flag, _useDefault</span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>end</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a></span>
+<span id="L1193" class="line"><a href="#L1193">1193</a>function MaintenanceManager:isEnabledWithLog(key, defaultEnable)</span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>	local maintenance = self:getMaintenanceByKey(key)</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>	if _G.testFlightMode and key == &quot;reviewVersion&quot; then</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a>		maintenance = self:getMaintenanceByKey(&quot;reviewVersionTF&quot;)</span>
+<span id="L1197" class="line"><a href="#L1197">1197</a>	end</span>
+<span id="L1198" class="line"><a href="#L1198">1198</a>	local flag = false</span>
+<span id="L1199" class="line"><a href="#L1199">1199</a></span>
+<span id="L1200" class="line"><a href="#L1200">1200</a>	local logFlagStr = &quot;0&quot;</span>
+<span id="L1201" class="line"><a href="#L1201">1201</a>	local function addLogStr(str)</span>
+<span id="L1202" class="line"><a href="#L1202">1202</a>		logFlagStr = logFlagStr .. &quot;_&quot; .. str</span>
+<span id="L1203" class="line"><a href="#L1203">1203</a>	end</span>
+<span id="L1204" class="line"><a href="#L1204">1204</a></span>
+<span id="L1205" class="line"><a href="#L1205">1205</a>	local function sendLogStr()</span>
+<span id="L1206" class="line"><a href="#L1206">1206</a>		local time = tostring(os.time())</span>
+<span id="L1207" class="line"><a href="#L1207">1207</a>		local uid = getSafeUid()</span>
+<span id="L1208" class="line"><a href="#L1208">1208</a>		local log = string.format(&quot;%s_%s__uid_%s__t_%s&quot;, key, logFlagStr, uid, time)</span>
+<span id="L1209" class="line"><a href="#L1209">1209</a>		he_log_error(log)</span>
+<span id="L1210" class="line"><a href="#L1210">1210</a>	end</span>
+<span id="L1211" class="line"><a href="#L1211">1211</a></span>
+<span id="L1212" class="line"><a href="#L1212">1212</a>	if maintenance then</span>
+<span id="L1213" class="line"><a href="#L1213">1213</a>		flag = maintenance.enable</span>
+<span id="L1214" class="line"><a href="#L1214">1214</a>		if flag then</span>
+<span id="L1215" class="line"><a href="#L1215">1215</a>			addLogStr(&quot;1&quot;)</span>
+<span id="L1216" class="line"><a href="#L1216">1216</a>		else</span>
+<span id="L1217" class="line"><a href="#L1217">1217</a>			addLogStr(&quot;2&quot;)</span>
+<span id="L1218" class="line"><a href="#L1218">1218</a>		end</span>
+<span id="L1219" class="line"><a href="#L1219">1219</a>		if not maintenance.review and maintenance:isInFilterlist() then</span>
+<span id="L1220" class="line"><a href="#L1220">1220</a>			if maintenance.filterlistMode == MaintenanceFilterListType.kWhite then</span>
+<span id="L1221" class="line"><a href="#L1221">1221</a>				addLogStr(&quot;3&quot;)</span>
+<span id="L1222" class="line"><a href="#L1222">1222</a>				flag = true</span>
+<span id="L1223" class="line"><a href="#L1223">1223</a>			elseif maintenance.filterlistMode == MaintenanceFilterListType.kBlack then</span>
+<span id="L1224" class="line"><a href="#L1224">1224</a>				addLogStr(&quot;4&quot;)</span>
+<span id="L1225" class="line"><a href="#L1225">1225</a>				flag = false</span>
+<span id="L1226" class="line"><a href="#L1226">1226</a>			end</span>
+<span id="L1227" class="line"><a href="#L1227">1227</a>		end</span>
+<span id="L1228" class="line"><a href="#L1228">1228</a>	elseif defaultEnable ~= nil then</span>
+<span id="L1229" class="line"><a href="#L1229">1229</a>		addLogStr(&quot;5&quot;)</span>
+<span id="L1230" class="line"><a href="#L1230">1230</a>		flag = defaultEnable</span>
+<span id="L1231" class="line"><a href="#L1231">1231</a>	end</span>
+<span id="L1232" class="line"><a href="#L1232">1232</a>	if key == &quot;reviewVersion&quot; then</span>
+<span id="L1233" class="line"><a href="#L1233">1233</a>		if _G.testFlightMode then</span>
+<span id="L1234" class="line"><a href="#L1234">1234</a>			return _G.fullBundleVersion == maintenance.extra</span>
+<span id="L1235" class="line"><a href="#L1235">1235</a>		end</span>
+<span id="L1236" class="line"><a href="#L1236">1236</a>        addLogStr(&quot;6&quot;)</span>
+<span id="L1237" class="line"><a href="#L1237">1237</a>        if flag then sendLogStr() end</span>
+<span id="L1238" class="line"><a href="#L1238">1238</a>        return flag</span>
+<span id="L1239" class="line"><a href="#L1239">1239</a>	end</span>
+<span id="L1240" class="line"><a href="#L1240">1240</a>	if maintenance and maintenance.review and self:isEnabled(&quot;reviewVersion&quot;) then</span>
+<span id="L1241" class="line"><a href="#L1241">1241</a>		flag = not flag</span>
+<span id="L1242" class="line"><a href="#L1242">1242</a>		addLogStr(&quot;7&quot;)</span>
+<span id="L1243" class="line"><a href="#L1243">1243</a>		if flag then sendLogStr() end</span>
+<span id="L1244" class="line"><a href="#L1244">1244</a>	end</span>
+<span id="L1245" class="line"><a href="#L1245">1245</a>	addLogStr(&quot;8&quot;)</span>
+<span id="L1246" class="line"><a href="#L1246">1246</a>	if flag then sendLogStr() end</span>
+<span id="L1247" class="line"><a href="#L1247">1247</a>	return flag</span>
+<span id="L1248" class="line"><a href="#L1248">1248</a>end</span>
+<span id="L1249" class="line"><a href="#L1249">1249</a></span>
+<span id="L1250" class="line"><a href="#L1250">1250</a>function MaintenanceManager:isEnabledConsiderBeginAndEndDate(key, defaultEnable)</span>
+<span id="L1251" class="line"><a href="#L1251">1251</a>	local flag = false</span>
+<span id="L1252" class="line"><a href="#L1252">1252</a>	if self:isEnabled(key, defaultEnable) then</span>
+<span id="L1253" class="line"><a href="#L1253">1253</a>		local activityBeginTime = -1</span>
+<span id="L1254" class="line"><a href="#L1254">1254</a>		local activityEndTime = -1</span>
+<span id="L1255" class="line"><a href="#L1255">1255</a>		local maintenance = self:getMaintenanceByKey(key)</span>
+<span id="L1256" class="line"><a href="#L1256">1256</a>		if maintenance then</span>
+<span id="L1257" class="line"><a href="#L1257">1257</a>			if maintenance.beginDate then</span>
+<span id="L1258" class="line"><a href="#L1258">1258</a>				activityBeginTime = parseDateStringToTimestamp(maintenance.beginDate)</span>
+<span id="L1259" class="line"><a href="#L1259">1259</a>			end</span>
+<span id="L1260" class="line"><a href="#L1260">1260</a>			if maintenance.endDate then</span>
+<span id="L1261" class="line"><a href="#L1261">1261</a>				activityEndTime = parseDateStringToTimestamp(maintenance.endDate)</span>
+<span id="L1262" class="line"><a href="#L1262">1262</a>			end</span>
+<span id="L1263" class="line"><a href="#L1263">1263</a>		end</span>
+<span id="L1264" class="line"><a href="#L1264">1264</a>		-- activityBeginTime = parseDateStringToTimestamp(&quot;2019-02-20 02:59:59&quot;)	--test</span>
+<span id="L1265" class="line"><a href="#L1265">1265</a>		-- activityEndTime = parseDateStringToTimestamp(&quot;2019-03-28 18:59:59&quot;)	--test</span>
+<span id="L1266" class="line"><a href="#L1266">1266</a>		local nowTime = TimeKit:timeInSec()</span>
+<span id="L1267" class="line"><a href="#L1267">1267</a>		if activityBeginTime and activityEndTime</span>
+<span id="L1268" class="line"><a href="#L1268">1268</a>			and activityBeginTime &lt;= nowTime</span>
+<span id="L1269" class="line"><a href="#L1269">1269</a>			and activityEndTime &gt;= nowTime</span>
+<span id="L1270" class="line"><a href="#L1270">1270</a>			then</span>
+<span id="L1271" class="line"><a href="#L1271">1271</a>			-- 时间符合</span>
+<span id="L1272" class="line"><a href="#L1272">1272</a>			flag = true</span>
+<span id="L1273" class="line"><a href="#L1273">1273</a>		end</span>
+<span id="L1274" class="line"><a href="#L1274">1274</a>	end</span>
+<span id="L1275" class="line"><a href="#L1275">1275</a>	return flag</span>
+<span id="L1276" class="line"><a href="#L1276">1276</a>end</span>
+<span id="L1277" class="line"><a href="#L1277">1277</a></span>
+<span id="L1278" class="line"><a href="#L1278">1278</a>--判断时间，beginTime和endTime分开判断,如果产品不配则默认满足</span>
+<span id="L1279" class="line"><a href="#L1279">1279</a>function MaintenanceManager:isEnabledConsiderBeginAndEndDate2(key, defaultEnable)</span>
+<span id="L1280" class="line"><a href="#L1280">1280</a>	local flag = false</span>
+<span id="L1281" class="line"><a href="#L1281">1281</a>	if self:isEnabled(key, defaultEnable) then</span>
+<span id="L1282" class="line"><a href="#L1282">1282</a>		local activityBeginTime</span>
+<span id="L1283" class="line"><a href="#L1283">1283</a>		local activityEndTime</span>
+<span id="L1284" class="line"><a href="#L1284">1284</a>		local maintenance = self:getMaintenanceByKey(key)</span>
+<span id="L1285" class="line"><a href="#L1285">1285</a>		if maintenance then</span>
+<span id="L1286" class="line"><a href="#L1286">1286</a>			if maintenance.beginDate then</span>
+<span id="L1287" class="line"><a href="#L1287">1287</a>				activityBeginTime = parseDateStringToTimestamp(maintenance.beginDate)</span>
+<span id="L1288" class="line"><a href="#L1288">1288</a>			end</span>
+<span id="L1289" class="line"><a href="#L1289">1289</a>			if maintenance.endDate then</span>
+<span id="L1290" class="line"><a href="#L1290">1290</a>				activityEndTime = parseDateStringToTimestamp(maintenance.endDate)</span>
+<span id="L1291" class="line"><a href="#L1291">1291</a>			end</span>
+<span id="L1292" class="line"><a href="#L1292">1292</a>		end</span>
+<span id="L1293" class="line"><a href="#L1293">1293</a>		-- activityBeginTime = parseDateStringToTimestamp(&quot;2019-02-20 02:59:59&quot;)	--test</span>
+<span id="L1294" class="line"><a href="#L1294">1294</a>		-- activityEndTime = parseDateStringToTimestamp(&quot;2019-03-28 18:59:59&quot;)	--test</span>
+<span id="L1295" class="line"><a href="#L1295">1295</a>		local nowTime = TimeKit:timeInSec()</span>
+<span id="L1296" class="line"><a href="#L1296">1296</a>        local flag1,flag2</span>
+<span id="L1297" class="line"><a href="#L1297">1297</a>		if activityBeginTime then</span>
+<span id="L1298" class="line"><a href="#L1298">1298</a>            flag1 = activityBeginTime &lt;= nowTime</span>
+<span id="L1299" class="line"><a href="#L1299">1299</a>        else</span>
+<span id="L1300" class="line"><a href="#L1300">1300</a>            flag1 = true</span>
+<span id="L1301" class="line"><a href="#L1301">1301</a>        end</span>
+<span id="L1302" class="line"><a href="#L1302">1302</a></span>
+<span id="L1303" class="line"><a href="#L1303">1303</a>        if activityEndTime then</span>
+<span id="L1304" class="line"><a href="#L1304">1304</a>            flag2 = activityEndTime &gt;= nowTime</span>
+<span id="L1305" class="line"><a href="#L1305">1305</a>        else</span>
+<span id="L1306" class="line"><a href="#L1306">1306</a>            flag2 = true</span>
+<span id="L1307" class="line"><a href="#L1307">1307</a>        end</span>
+<span id="L1308" class="line"><a href="#L1308">1308</a></span>
+<span id="L1309" class="line"><a href="#L1309">1309</a>        flag = flag1 and flag2</span>
+<span id="L1310" class="line"><a href="#L1310">1310</a>	end</span>
+<span id="L1311" class="line"><a href="#L1311">1311</a>	return flag</span>
+<span id="L1312" class="line"><a href="#L1312">1312</a>end</span>
+<span id="L1313" class="line"><a href="#L1313">1313</a></span>
+<span id="L1314" class="line"><a href="#L1314">1314</a>function MaintenanceManager:getUserGroupModules( maintenanceName , uid)</span>
+<span id="L1315" class="line"><a href="#L1315">1315</a>	--注意，该方法已停止维护，可能并不支持最新的分组算法</span>
+<span id="L1316" class="line"><a href="#L1316">1316</a></span>
+<span id="L1317" class="line"><a href="#L1317">1317</a>	local function getModules(feature)</span>
+<span id="L1318" class="line"><a href="#L1318">1318</a></span>
+<span id="L1319" class="line"><a href="#L1319">1319</a>		local rangeMap = self:getGroupChildRangeMap( maintenanceName )</span>
+<span id="L1320" class="line"><a href="#L1320">1320</a></span>
+<span id="L1321" class="line"><a href="#L1321">1321</a>		if rangeMap then</span>
+<span id="L1322" class="line"><a href="#L1322">1322</a></span>
+<span id="L1323" class="line"><a href="#L1323">1323</a>			local blockNum = 10000</span>
+<span id="L1324" class="line"><a href="#L1324">1324</a>			local groupTail = feature.groupTail</span>
+<span id="L1325" class="line"><a href="#L1325">1325</a></span>
+<span id="L1326" class="line"><a href="#L1326">1326</a>			if groupTail and type(groupTail) == &quot;number&quot; then</span>
+<span id="L1327" class="line"><a href="#L1327">1327</a>				local str = &quot;1&quot;</span>
+<span id="L1328" class="line"><a href="#L1328">1328</a>				for i = 1 , groupTail do</span>
+<span id="L1329" class="line"><a href="#L1329">1329</a>					str = str .. &quot;0&quot;</span>
+<span id="L1330" class="line"><a href="#L1330">1330</a>				end</span>
+<span id="L1331" class="line"><a href="#L1331">1331</a></span>
+<span id="L1332" class="line"><a href="#L1332">1332</a>				blockNum = tonumber(str)</span>
+<span id="L1333" class="line"><a href="#L1333">1333</a>			end</span>
+<span id="L1334" class="line"><a href="#L1334">1334</a></span>
+<span id="L1335" class="line"><a href="#L1335">1335</a>			local _uid = tonumber(uid) or 0</span>
+<span id="L1336" class="line"><a href="#L1336">1336</a>			local userWeighValue = _uid % blockNum</span>
+<span id="L1337" class="line"><a href="#L1337">1337</a></span>
+<span id="L1338" class="line"><a href="#L1338">1338</a>			local testInfo = _G.amfBean(&quot;AccountManager&quot;):getTestInfo()</span>
+<span id="L1339" class="line"><a href="#L1339">1339</a>			if testInfo then</span>
+<span id="L1340" class="line"><a href="#L1340">1340</a></span>
+<span id="L1341" class="line"><a href="#L1341">1341</a>				local pars = string.split( testInfo , &quot;;&quot; )</span>
+<span id="L1342" class="line"><a href="#L1342">1342</a></span>
+<span id="L1343" class="line"><a href="#L1343">1343</a>				for k,v in ipairs(pars) do</span>
+<span id="L1344" class="line"><a href="#L1344">1344</a></span>
+<span id="L1345" class="line"><a href="#L1345">1345</a>					local arr = string.split( v , &quot;_&quot; )</span>
+<span id="L1346" class="line"><a href="#L1346">1346</a></span>
+<span id="L1347" class="line"><a href="#L1347">1347</a>					if arr[1] == &quot;dummyUid&quot; then</span>
+<span id="L1348" class="line"><a href="#L1348">1348</a>						_uid = tonumber(arr[2]) or 0</span>
+<span id="L1349" class="line"><a href="#L1349">1349</a>						userWeighValue = _uid % blockNum</span>
+<span id="L1350" class="line"><a href="#L1350">1350</a>					end</span>
+<span id="L1351" class="line"><a href="#L1351">1351</a>				end</span>
+<span id="L1352" class="line"><a href="#L1352">1352</a>			end</span>
+<span id="L1353" class="line"><a href="#L1353">1353</a></span>
+<span id="L1354" class="line"><a href="#L1354">1354</a>			for k,v in ipairs(rangeMap) do</span>
+<span id="L1355" class="line"><a href="#L1355">1355</a>				if userWeighValue &gt;= v.startId and userWeighValue &lt;= v.endId then</span>
+<span id="L1356" class="line"><a href="#L1356">1356</a>					return v.modules</span>
+<span id="L1357" class="line"><a href="#L1357">1357</a>				end</span>
+<span id="L1358" class="line"><a href="#L1358">1358</a>			end</span>
+<span id="L1359" class="line"><a href="#L1359">1359</a>		end</span>
+<span id="L1360" class="line"><a href="#L1360">1360</a></span>
+<span id="L1361" class="line"><a href="#L1361">1361</a>		return {}</span>
+<span id="L1362" class="line"><a href="#L1362">1362</a>	end</span>
+<span id="L1363" class="line"><a href="#L1363">1363</a></span>
+<span id="L1364" class="line"><a href="#L1364">1364</a>	local maintenanceFeature = self:getMaintenanceByKey( maintenanceName )</span>
+<span id="L1365" class="line"><a href="#L1365">1365</a></span>
+<span id="L1366" class="line"><a href="#L1366">1366</a>	if maintenanceFeature then</span>
+<span id="L1367" class="line"><a href="#L1367">1367</a></span>
+<span id="L1368" class="line"><a href="#L1368">1368</a>		if not maintenanceFeature.review and maintenanceFeature:isInFilterlist() then</span>
+<span id="L1369" class="line"><a href="#L1369">1369</a>			if maintenanceFeature.filterlistMode == MaintenanceFilterListType.kWhite then</span>
+<span id="L1370" class="line"><a href="#L1370">1370</a>				--TO DO</span>
+<span id="L1371" class="line"><a href="#L1371">1371</a>				return {}</span>
+<span id="L1372" class="line"><a href="#L1372">1372</a>			elseif maintenanceFeature.filterlistMode == MaintenanceFilterListType.kBlack then</span>
+<span id="L1373" class="line"><a href="#L1373">1373</a>				return {}</span>
+<span id="L1374" class="line"><a href="#L1374">1374</a>			end</span>
+<span id="L1375" class="line"><a href="#L1375">1375</a>		end</span>
+<span id="L1376" class="line"><a href="#L1376">1376</a></span>
+<span id="L1377" class="line"><a href="#L1377">1377</a>		local result = getModules( maintenanceFeature )</span>
+<span id="L1378" class="line"><a href="#L1378">1378</a>		return result</span>
+<span id="L1379" class="line"><a href="#L1379">1379</a>	else</span>
+<span id="L1380" class="line"><a href="#L1380">1380</a>		return {}</span>
+<span id="L1381" class="line"><a href="#L1381">1381</a>	end</span>
+<span id="L1382" class="line"><a href="#L1382">1382</a>end</span>
+<span id="L1383" class="line"><a href="#L1383">1383</a></span>
+<span id="L1384" class="line"><a href="#L1384">1384</a>function MaintenanceManager:getMaintenanceFeature(maintenanceName)</span>
+<span id="L1385" class="line"><a href="#L1385">1385</a>	return self:getMaintenanceByKey(maintenanceName)</span>
+<span id="L1386" class="line"><a href="#L1386">1386</a>end</span>
+<span id="L1387" class="line"><a href="#L1387">1387</a></span>
+<span id="L1388" class="line"><a href="#L1388">1388</a>function MaintenanceManager:getUserWeighValue( maintenanceName , uid )</span>
+<span id="L1389" class="line"><a href="#L1389">1389</a>	-- printx( 1 , &quot;MaintenanceManager:getUserWeighValue  &quot; , maintenanceName , uid )</span>
+<span id="L1390" class="line"><a href="#L1390">1390</a>	local _uid = tonumber(uid) or 0</span>
+<span id="L1391" class="line"><a href="#L1391">1391</a>	local groupVersion = &quot;unknowVersion&quot;</span>
+<span id="L1392" class="line"><a href="#L1392">1392</a></span>
+<span id="L1393" class="line"><a href="#L1393">1393</a>	local userWeighValue = -9999</span>
+<span id="L1394" class="line"><a href="#L1394">1394</a></span>
+<span id="L1395" class="line"><a href="#L1395">1395</a>	if _uid ~= 12345 and _uid ~= 0 and _uid &lt;= 99999999999 then</span>
+<span id="L1396" class="line"><a href="#L1396">1396</a></span>
+<span id="L1397" class="line"><a href="#L1397">1397</a>		local feature = self:getMaintenanceFeature(maintenanceName)</span>
+<span id="L1398" class="line"><a href="#L1398">1398</a>		local orthogonalVersion = nil</span>
+<span id="L1399" class="line"><a href="#L1399">1399</a>		local tail = 8</span>
+<span id="L1400" class="line"><a href="#L1400">1400</a></span>
+<span id="L1401" class="line"><a href="#L1401">1401</a>		if feature then</span>
+<span id="L1402" class="line"><a href="#L1402">1402</a></span>
+<span id="L1403" class="line"><a href="#L1403">1403</a>			if not feature.groupVersion then</span>
+<span id="L1404" class="line"><a href="#L1404">1404</a>				feature.groupVersion = &quot;unknowVersion&quot;</span>
+<span id="L1405" class="line"><a href="#L1405">1405</a>			end</span>
+<span id="L1406" class="line"><a href="#L1406">1406</a>			groupVersion = feature.groupVersion</span>
+<span id="L1407" class="line"><a href="#L1407">1407</a>			if feature.groupTail and type(feature.groupTail) == &quot;number&quot; then</span>
+<span id="L1408" class="line"><a href="#L1408">1408</a>				tail = feature.groupTail</span>
+<span id="L1409" class="line"><a href="#L1409">1409</a>			end</span>
+<span id="L1410" class="line"><a href="#L1410">1410</a></span>
+<span id="L1411" class="line"><a href="#L1411">1411</a>			orthogonalVersion = feature.orthogonalVersion</span>
+<span id="L1412" class="line"><a href="#L1412">1412</a>		end</span>
+<span id="L1413" class="line"><a href="#L1413">1413</a></span>
+<span id="L1414" class="line"><a href="#L1414">1414</a>		local md5Str = nil</span>
+<span id="L1415" class="line"><a href="#L1415">1415</a>		if orthogonalVersion then</span>
+<span id="L1416" class="line"><a href="#L1416">1416</a>			md5Str = HeMathUtils:md5( tostring( orthogonalVersion ) .. tostring( _uid ) )</span>
+<span id="L1417" class="line"><a href="#L1417">1417</a>		else</span>
+<span id="L1418" class="line"><a href="#L1418">1418</a>			md5Str = HeMathUtils:md5( tostring( maintenanceName ) .. tostring( groupVersion ) .. tostring( _uid ) )</span>
+<span id="L1419" class="line"><a href="#L1419">1419</a>		end</span>
+<span id="L1420" class="line"><a href="#L1420">1420</a></span>
+<span id="L1421" class="line"><a href="#L1421">1421</a>		local md5StrTail = string.sub( md5Str , tail * -1 )</span>
+<span id="L1422" class="line"><a href="#L1422">1422</a></span>
+<span id="L1423" class="line"><a href="#L1423">1423</a>		if ( groupVersion == &quot;unknowVersion&quot; or groupVersion == &quot;watingForCreate&quot; ) and (not orthogonalVersion) then</span>
+<span id="L1424" class="line"><a href="#L1424">1424</a>			return userWeighValue , groupVersion</span>
+<span id="L1425" class="line"><a href="#L1425">1425</a>		end</span>
+<span id="L1426" class="line"><a href="#L1426">1426</a></span>
+<span id="L1427" class="line"><a href="#L1427">1427</a>		userWeighValue = tonumber(md5StrTail, 16) or 0</span>
+<span id="L1428" class="line"><a href="#L1428">1428</a>	end</span>
+<span id="L1429" class="line"><a href="#L1429">1429</a></span>
+<span id="L1430" class="line"><a href="#L1430">1430</a>	return userWeighValue , groupVersion</span>
+<span id="L1431" class="line"><a href="#L1431">1431</a>end</span>
+<span id="L1432" class="line"><a href="#L1432">1432</a></span>
+<span id="L1433" class="line"><a href="#L1433">1433</a>function MaintenanceManager:getChildIndexAndalgorithmId( feature , uid )</span>
+<span id="L1434" class="line"><a href="#L1434">1434</a></span>
+<span id="L1435" class="line"><a href="#L1435">1435</a>	local blockNum = 10000</span>
+<span id="L1436" class="line"><a href="#L1436">1436</a>	local groupTail = feature.groupTail</span>
+<span id="L1437" class="line"><a href="#L1437">1437</a></span>
+<span id="L1438" class="line"><a href="#L1438">1438</a>	local _uid = tonumber(uid) or 0</span>
+<span id="L1439" class="line"><a href="#L1439">1439</a>	local myUID = tonumber(getSafeUid())</span>
+<span id="L1440" class="line"><a href="#L1440">1440</a>	local userWeighValue = -9999</span>
+<span id="L1441" class="line"><a href="#L1441">1441</a></span>
+<span id="L1442" class="line"><a href="#L1442">1442</a>	if feature.modeValue == MaintenanceModeType.kGroup then</span>
+<span id="L1443" class="line"><a href="#L1443">1443</a>		if type(groupTail) == &quot;number&quot; then</span>
+<span id="L1444" class="line"><a href="#L1444">1444</a>			blockNum = math.pow(10, groupTail)</span>
+<span id="L1445" class="line"><a href="#L1445">1445</a>		end</span>
+<span id="L1446" class="line"><a href="#L1446">1446</a>		userWeighValue = _uid % blockNum</span>
+<span id="L1447" class="line"><a href="#L1447">1447</a>	elseif feature.modeValue == MaintenanceModeType.kOrthogonalGroup or feature.modeValue == MaintenanceModeType.kOrthogonalGroupV2 then</span>
+<span id="L1448" class="line"><a href="#L1448">1448</a>		userWeighValue = self:getUserWeighValue( feature.name , _uid )</span>
+<span id="L1449" class="line"><a href="#L1449">1449</a>	end</span>
+<span id="L1450" class="line"><a href="#L1450">1450</a></span>
+<span id="L1451" class="line"><a href="#L1451">1451</a>	local accountManager = _G.amfBean(&quot;AccountManager&quot;)</span>
+<span id="L1452" class="line"><a href="#L1452">1452</a>	local testInfo = accountManager and accountManager:getTestInfo() or nil</span>
+<span id="L1453" class="line"><a href="#L1453">1453</a>	local dummyGroupList = {}</span>
+<span id="L1454" class="line"><a href="#L1454">1454</a></span>
+<span id="L1455" class="line"><a href="#L1455">1455</a>	if testInfo and _uid == myUID then</span>
+<span id="L1456" class="line"><a href="#L1456">1456</a>		testInfo = tostring(testInfo)</span>
+<span id="L1457" class="line"><a href="#L1457">1457</a>		local pars = string.split( testInfo , &quot;;&quot; )</span>
+<span id="L1458" class="line"><a href="#L1458">1458</a></span>
+<span id="L1459" class="line"><a href="#L1459">1459</a>		for k,v in ipairs(pars) do</span>
+<span id="L1460" class="line"><a href="#L1460">1460</a></span>
+<span id="L1461" class="line"><a href="#L1461">1461</a>			local arr = string.split( v , &quot;~&quot; )</span>
+<span id="L1462" class="line"><a href="#L1462">1462</a></span>
+<span id="L1463" class="line"><a href="#L1463">1463</a>			if arr[1] == &quot;dummyUid&quot; then</span>
+<span id="L1464" class="line"><a href="#L1464">1464</a>				_uid = tonumber(arr[2]) or 0</span>
+<span id="L1465" class="line"><a href="#L1465">1465</a>				if feature.modeValue == MaintenanceModeType.kGroup then</span>
+<span id="L1466" class="line"><a href="#L1466">1466</a>					userWeighValue = _uid % blockNum</span>
+<span id="L1467" class="line"><a href="#L1467">1467</a>				end</span>
+<span id="L1468" class="line"><a href="#L1468">1468</a>			elseif arr[1] == &quot;dummyGroup&quot; then</span>
+<span id="L1469" class="line"><a href="#L1469">1469</a>				local dg = { switchName = tostring(arr[2]) , groupIndex = tonumber(arr[3]) }</span>
+<span id="L1470" class="line"><a href="#L1470">1470</a>				table.insert( dummyGroupList , dg )</span>
+<span id="L1471" class="line"><a href="#L1471">1471</a>			end</span>
+<span id="L1472" class="line"><a href="#L1472">1472</a>		end</span>
+<span id="L1473" class="line"><a href="#L1473">1473</a>	end</span>
+<span id="L1474" class="line"><a href="#L1474">1474</a></span>
+<span id="L1475" class="line"><a href="#L1475">1475</a>	if dummyGroupList and #dummyGroupList &gt; 0 then</span>
+<span id="L1476" class="line"><a href="#L1476">1476</a>		for k , v in ipairs(dummyGroupList) do</span>
+<span id="L1477" class="line"><a href="#L1477">1477</a>			local headStr = MaintenanceNameHead[MaintenanceConfigName.kAI_Maintenance]</span>
+<span id="L1478" class="line"><a href="#L1478">1478</a>			if (v.switchName == feature.name or tostring(headStr .. v.switchName) == feature.name) and v.groupIndex then</span>
+<span id="L1479" class="line"><a href="#L1479">1479</a>				return v.groupIndex , feature.algorithmId</span>
+<span id="L1480" class="line"><a href="#L1480">1480</a>			end</span>
+<span id="L1481" class="line"><a href="#L1481">1481</a>		end</span>
+<span id="L1482" class="line"><a href="#L1482">1482</a>	end</span>
+<span id="L1483" class="line"><a href="#L1483">1483</a></span>
+<span id="L1484" class="line"><a href="#L1484">1484</a>	local groupsHasWeight = 0 -- 权重大于0的分组数量</span>
+<span id="L1485" class="line"><a href="#L1485">1485</a>	if feature.groupChild then</span>
+<span id="L1486" class="line"><a href="#L1486">1486</a>		for k1,v1 in ipairs(feature.groupChild) do</span>
+<span id="L1487" class="line"><a href="#L1487">1487</a>			if v1.weigh &gt; 0 then</span>
+<span id="L1488" class="line"><a href="#L1488">1488</a>				groupsHasWeight = groupsHasWeight + 1</span>
+<span id="L1489" class="line"><a href="#L1489">1489</a>			end</span>
+<span id="L1490" class="line"><a href="#L1490">1490</a>		end</span>
+<span id="L1491" class="line"><a href="#L1491">1491</a>	end</span>
+<span id="L1492" class="line"><a href="#L1492">1492</a>	local onlyOneGroupLeft = groupsHasWeight &lt; 2</span>
+<span id="L1493" class="line"><a href="#L1493">1493</a></span>
+<span id="L1494" class="line"><a href="#L1494">1494</a>	if feature.modeValue == MaintenanceModeType.kGroup then</span>
+<span id="L1495" class="line"><a href="#L1495">1495</a>		local rangeMap = self:getGroupChildRangeMap( feature.name )</span>
+<span id="L1496" class="line"><a href="#L1496">1496</a>		if rangeMap then</span>
+<span id="L1497" class="line"><a href="#L1497">1497</a>			for k,v in ipairs(rangeMap) do</span>
+<span id="L1498" class="line"><a href="#L1498">1498</a>				--userWeighValue</span>
+<span id="L1499" class="line"><a href="#L1499">1499</a>				if userWeighValue &gt;= v.startId and userWeighValue &lt;= v.endId then</span>
+<span id="L1500" class="line"><a href="#L1500">1500</a>					return k , v.algorithmId, onlyOneGroupLeft</span>
+<span id="L1501" class="line"><a href="#L1501">1501</a>				end</span>
+<span id="L1502" class="line"><a href="#L1502">1502</a>			end</span>
+<span id="L1503" class="line"><a href="#L1503">1503</a>		end</span>
+<span id="L1504" class="line"><a href="#L1504">1504</a>	elseif feature.modeValue == MaintenanceModeType.kOrthogonalGroup then</span>
+<span id="L1505" class="line"><a href="#L1505">1505</a>		if userWeighValue &lt; 0 then</span>
+<span id="L1506" class="line"><a href="#L1506">1506</a>			return nil</span>
+<span id="L1507" class="line"><a href="#L1507">1507</a>		end</span>
+<span id="L1508" class="line"><a href="#L1508">1508</a></span>
+<span id="L1509" class="line"><a href="#L1509">1509</a>		local totalGroupWeigh = feature.totalGroupWeigh</span>
+<span id="L1510" class="line"><a href="#L1510">1510</a>		local currWeigh = userWeighValue % totalGroupWeigh + 1</span>
+<span id="L1511" class="line"><a href="#L1511">1511</a></span>
+<span id="L1512" class="line"><a href="#L1512">1512</a>		for k1,v1 in ipairs(feature.groupChild) do</span>
+<span id="L1513" class="line"><a href="#L1513">1513</a>			if currWeigh &gt; v1.weighT - v1.weigh and currWeigh &lt;= v1.weighT then</span>
+<span id="L1514" class="line"><a href="#L1514">1514</a>				return k1 , v1.algorithmId, onlyOneGroupLeft</span>
+<span id="L1515" class="line"><a href="#L1515">1515</a>			end</span>
+<span id="L1516" class="line"><a href="#L1516">1516</a>		end</span>
+<span id="L1517" class="line"><a href="#L1517">1517</a>	elseif feature.modeValue == MaintenanceModeType.kOrthogonalGroupV2 then</span>
+<span id="L1518" class="line"><a href="#L1518">1518</a>		if userWeighValue &lt; 0 then</span>
+<span id="L1519" class="line"><a href="#L1519">1519</a>			return nil</span>
+<span id="L1520" class="line"><a href="#L1520">1520</a>		end</span>
+<span id="L1521" class="line"><a href="#L1521">1521</a></span>
+<span id="L1522" class="line"><a href="#L1522">1522</a>		local currWeigh = userWeighValue % 10000</span>
+<span id="L1523" class="line"><a href="#L1523">1523</a></span>
+<span id="L1524" class="line"><a href="#L1524">1524</a>		local rangeMap = self:getGroupChildRangeMap( feature.name )</span>
+<span id="L1525" class="line"><a href="#L1525">1525</a>		if rangeMap then</span>
+<span id="L1526" class="line"><a href="#L1526">1526</a>			for k,v in ipairs(rangeMap) do</span>
+<span id="L1527" class="line"><a href="#L1527">1527</a>				if currWeigh &gt;= v.startId and currWeigh &lt;= v.endId then</span>
+<span id="L1528" class="line"><a href="#L1528">1528</a>					return k , v.algorithmId, onlyOneGroupLeft</span>
+<span id="L1529" class="line"><a href="#L1529">1529</a>				end</span>
+<span id="L1530" class="line"><a href="#L1530">1530</a>			end</span>
+<span id="L1531" class="line"><a href="#L1531">1531</a>		end</span>
+<span id="L1532" class="line"><a href="#L1532">1532</a>	end</span>
+<span id="L1533" class="line"><a href="#L1533">1533</a></span>
+<span id="L1534" class="line"><a href="#L1534">1534</a>	return nil</span>
+<span id="L1535" class="line"><a href="#L1535">1535</a>end</span>
+<span id="L1536" class="line"><a href="#L1536">1536</a></span>
+<span id="L1537" class="line"><a href="#L1537">1537</a>function MaintenanceManager:convertGroupName2AlgorithmId(maintenanceName, groupName)</span>
+<span id="L1538" class="line"><a href="#L1538">1538</a>	local maintenanceFeature = self:getMaintenanceByKey( maintenanceName )</span>
+<span id="L1539" class="line"><a href="#L1539">1539</a>	if not maintenanceFeature then return end</span>
+<span id="L1540" class="line"><a href="#L1540">1540</a></span>
+<span id="L1541" class="line"><a href="#L1541">1541</a>	for k, v in ipairs(maintenanceFeature.groupChild or {}) do</span>
+<span id="L1542" class="line"><a href="#L1542">1542</a>		if table.includes(v.modules or {}, groupName) then</span>
+<span id="L1543" class="line"><a href="#L1543">1543</a>			return v.algorithmId</span>
+<span id="L1544" class="line"><a href="#L1544">1544</a>		end</span>
+<span id="L1545" class="line"><a href="#L1545">1545</a>	end</span>
+<span id="L1546" class="line"><a href="#L1546">1546</a>end</span>
+<span id="L1547" class="line"><a href="#L1547">1547</a></span>
+<span id="L1548" class="line"><a href="#L1548">1548</a>function MaintenanceManager:getMaintenanceTestResult(maintenanceName , moduleKey , uid)</span>
+<span id="L1549" class="line"><a href="#L1549">1549</a>	-- 在这定一个空方法，真正的方法在WCCommand_GlobalDebug</span>
+<span id="L1550" class="line"><a href="#L1550">1550</a>	return false, false</span>
+<span id="L1551" class="line"><a href="#L1551">1551</a>end</span>
+<span id="L1552" class="line"><a href="#L1552">1552</a></span>
+<span id="L1553" class="line"><a href="#L1553">1553</a>--获取开关的模拟结果</span>
+<span id="L1554" class="line"><a href="#L1554">1554</a>function MaintenanceManager:getMaintenanceDummyResult(maintenanceName , moduleKey , uid)</span>
+<span id="L1555" class="line"><a href="#L1555">1555</a></span>
+<span id="L1556" class="line"><a href="#L1556">1556</a>	local testResultEnable, testResult = self:getMaintenanceTestResult(maintenanceName , moduleKey , uid)</span>
+<span id="L1557" class="line"><a href="#L1557">1557</a>	if testResultEnable then</span>
+<span id="L1558" class="line"><a href="#L1558">1558</a>		-- printx(15,&quot;被指定得开关：&quot;,maintenanceName, moduleKey, testResult)</span>
+<span id="L1559" class="line"><a href="#L1559">1559</a>		return true, testResult</span>
+<span id="L1560" class="line"><a href="#L1560">1560</a>	end</span>
+<span id="L1561" class="line"><a href="#L1561">1561</a></span>
+<span id="L1562" class="line"><a href="#L1562">1562</a>	if not self._dummyMaintenanceMaps then return false end</span>
+<span id="L1563" class="line"><a href="#L1563">1563</a>	local myUID = getSafeUid()</span>
+<span id="L1564" class="line"><a href="#L1564">1564</a>	if myUID ~= uid and not _G.AI_PLAY_GAME_MODE then return end</span>
+<span id="L1565" class="line"><a href="#L1565">1565</a></span>
+<span id="L1566" class="line"><a href="#L1566">1566</a>	local function checkMaintenanceResult( data )</span>
+<span id="L1567" class="line"><a href="#L1567">1567</a>		for _ , v in ipairs( data ) do</span>
+<span id="L1568" class="line"><a href="#L1568">1568</a>			if type(v) == &quot;string&quot; then</span>
+<span id="L1569" class="line"><a href="#L1569">1569</a>				if moduleKey == v then return true end</span>
+<span id="L1570" class="line"><a href="#L1570">1570</a>			end</span>
+<span id="L1571" class="line"><a href="#L1571">1571</a>		end</span>
+<span id="L1572" class="line"><a href="#L1572">1572</a>		return false</span>
+<span id="L1573" class="line"><a href="#L1573">1573</a>	end</span>
+<span id="L1574" class="line"><a href="#L1574">1574</a></span>
+<span id="L1575" class="line"><a href="#L1575">1575</a>	if self._dummyMaintenanceMaps[maintenanceName] then</span>
+<span id="L1576" class="line"><a href="#L1576">1576</a>		return true, checkMaintenanceResult( self._dummyMaintenanceMaps[maintenanceName] )</span>
+<span id="L1577" class="line"><a href="#L1577">1577</a>	end</span>
+<span id="L1578" class="line"><a href="#L1578">1578</a></span>
+<span id="L1579" class="line"><a href="#L1579">1579</a>	return false, false</span>
+<span id="L1580" class="line"><a href="#L1580">1580</a>end</span>
+<span id="L1581" class="line"><a href="#L1581">1581</a></span>
+<span id="L1582" class="line"><a href="#L1582">1582</a>function MaintenanceManager:clearMaintenanceDummyResult()</span>
+<span id="L1583" class="line"><a href="#L1583">1583</a>	self._dummyMaintenanceMaps = nil</span>
+<span id="L1584" class="line"><a href="#L1584">1584</a>end</span>
+<span id="L1585" class="line"><a href="#L1585">1585</a></span>
+<span id="L1586" class="line"><a href="#L1586">1586</a>function MaintenanceManager:loadMaintenanceDummyResult( dummyMaintenanceMode )</span>
+<span id="L1587" class="line"><a href="#L1587">1587</a>	if type( dummyMaintenanceMode ) ~= &quot;table&quot; then return end</span>
+<span id="L1588" class="line"><a href="#L1588">1588</a>	self._dummyMaintenanceMaps = dummyMaintenanceMode</span>
+<span id="L1589" class="line"><a href="#L1589">1589</a>end</span>
+<span id="L1590" class="line"><a href="#L1590">1590</a></span>
+<span id="L1591" class="line"><a href="#L1591">1591</a>function MaintenanceManager:loadMaintenanceDummyResultFromTestInfo( testInfo )</span>
+<span id="L1592" class="line"><a href="#L1592">1592</a>	pcall(function()</span>
+<span id="L1593" class="line"><a href="#L1593">1593</a>		if not testInfo then return end</span>
+<span id="L1594" class="line"><a href="#L1594">1594</a>		testInfo = tostring(testInfo)</span>
+<span id="L1595" class="line"><a href="#L1595">1595</a>		local pars = string.split( testInfo , &quot;;&quot; )</span>
+<span id="L1596" class="line"><a href="#L1596">1596</a>		for k,v in ipairs(pars) do</span>
+<span id="L1597" class="line"><a href="#L1597">1597</a>			local arr = string.split( v , &quot;~&quot; )</span>
+<span id="L1598" class="line"><a href="#L1598">1598</a>			if arr[1] == &quot;dummyMaintenanceMode&quot; then</span>
+<span id="L1599" class="line"><a href="#L1599">1599</a>				if arr[2] then self:loadMaintenanceDummyResult(table.deserialize(arr[2])) end</span>
+<span id="L1600" class="line"><a href="#L1600">1600</a>			elseif EnvUtil:isDevelopMode() and arr[1] == &quot;location&quot; then</span>
+<span id="L1601" class="line"><a href="#L1601">1601</a>				-- testInfo = &quot;location~{\&quot;province\&quot;:\&quot;北京\&quot;,\&quot;city\&quot;:\&quot;北京\&quot;,\&quot;country\&quot;:\&quot;中国\&quot;}&quot;</span>
+<span id="L1602" class="line"><a href="#L1602">1602</a>				_G.amfBean(&quot;LocationService&quot;):setIPLocationData(table.deserialize(arr[2]))</span>
+<span id="L1603" class="line"><a href="#L1603">1603</a>			end</span>
+<span id="L1604" class="line"><a href="#L1604">1604</a>		end</span>
+<span id="L1605" class="line"><a href="#L1605">1605</a>	end)</span>
+<span id="L1606" class="line"><a href="#L1606">1606</a>end</span>
+<span id="L1607" class="line"><a href="#L1607">1607</a></span>
+<span id="L1608" class="line"><a href="#L1608">1608</a>-- 注意，分组开关uid为0或12345时，结果永远返回false</span>
+<span id="L1609" class="line"><a href="#L1609">1609</a>function MaintenanceManager:isEnabledInGroup( maintenanceName , moduleKey , uid )</span>
+<span id="L1610" class="line"><a href="#L1610">1610</a></span>
+<span id="L1611" class="line"><a href="#L1611">1611</a>	local _debug = false</span>
+<span id="L1612" class="line"><a href="#L1612">1612</a>	-- if maintenanceName == &quot;ubfuuu2025_app_V8&quot; then</span>
+<span id="L1613" class="line"><a href="#L1613">1613</a>	-- 	_debug = true</span>
+<span id="L1614" class="line"><a href="#L1614">1614</a>	-- end</span>
+<span id="L1615" class="line"><a href="#L1615">1615</a></span>
+<span id="L1616" class="line"><a href="#L1616">1616</a>	-- if _debug then printx(1, &quot;MaintenanceManager:isEnabledInGroup   +++++++++++++ &quot; , maintenanceName,moduleKey,uid) end</span>
+<span id="L1617" class="line"><a href="#L1617">1617</a></span>
+<span id="L1618" class="line"><a href="#L1618">1618</a>	if _G.REPLAY_STAGE then </span>
+<span id="L1619" class="line"><a href="#L1619">1619</a>		-- printx(1, &quot;MaintenanceManager:isEnabledInGroup   return 000 &quot;  )</span>
+<span id="L1620" class="line"><a href="#L1620">1620</a>		return end</span>
+<span id="L1621" class="line"><a href="#L1621">1621</a>	-- if _G.editorMode then return end</span>
+<span id="L1622" class="line"><a href="#L1622">1622</a></span>
+<span id="L1623" class="line"><a href="#L1623">1623</a>	if uid == nil then</span>
+<span id="L1624" class="line"><a href="#L1624">1624</a>		uid = getSafeUid()</span>
+<span id="L1625" class="line"><a href="#L1625">1625</a>	end</span>
+<span id="L1626" class="line"><a href="#L1626">1626</a></span>
+<span id="L1627" class="line"><a href="#L1627">1627</a>	local dummyResultEnable, dummyResult = self:getMaintenanceDummyResult(maintenanceName , moduleKey , uid)</span>
+<span id="L1628" class="line"><a href="#L1628">1628</a>	if dummyResultEnable then </span>
+<span id="L1629" class="line"><a href="#L1629">1629</a>		if _debug then printx(1, &quot;MaintenanceManager:isEnabledInGroup   return 111 dummyResult:&quot; , dummyResult ) end</span>
+<span id="L1630" class="line"><a href="#L1630">1630</a>		return dummyResult , nil , -1 </span>
+<span id="L1631" class="line"><a href="#L1631">1631</a>	end</span>
+<span id="L1632" class="line"><a href="#L1632">1632</a></span>
+<span id="L1633" class="line"><a href="#L1633">1633</a>	if maintenanceName then</span>
+<span id="L1634" class="line"><a href="#L1634">1634</a></span>
+<span id="L1635" class="line"><a href="#L1635">1635</a>		local cacheKey = tostring(maintenanceName) .. &quot;_&quot; .. tostring(moduleKey) .. &quot;_&quot; .. tostring(uid)</span>
+<span id="L1636" class="line"><a href="#L1636">1636</a>		if self.resultCache[cacheKey] then</span>
+<span id="L1637" class="line"><a href="#L1637">1637</a>			</span>
+<span id="L1638" class="line"><a href="#L1638">1638</a>			-- if _debug then printx(1, &quot;MaintenanceManager:isEnabledInGroup   return 222  cacheKey:&quot; , cacheKey,  tts(self.resultCache[cacheKey]) ) end</span>
+<span id="L1639" class="line"><a href="#L1639">1639</a></span>
+<span id="L1640" class="line"><a href="#L1640">1640</a>			return self.resultCache[cacheKey].result, nil, self.resultCache[cacheKey].src</span>
+<span id="L1641" class="line"><a href="#L1641">1641</a>		end</span>
+<span id="L1642" class="line"><a href="#L1642">1642</a></span>
+<span id="L1643" class="line"><a href="#L1643">1643</a>		local maintenanceFeature = self:getMaintenanceByKey( maintenanceName )</span>
+<span id="L1644" class="line"><a href="#L1644">1644</a></span>
+<span id="L1645" class="line"><a href="#L1645">1645</a>		if maintenanceFeature then</span>
+<span id="L1646" class="line"><a href="#L1646">1646</a></span>
+<span id="L1647" class="line"><a href="#L1647">1647</a>			local _levelGroupExpkey = nil</span>
+<span id="L1648" class="line"><a href="#L1648">1648</a></span>
+<span id="L1649" class="line"><a href="#L1649">1649</a>			if not maintenanceFeature.review and maintenanceFeature:isInFilterlist() then</span>
+<span id="L1650" class="line"><a href="#L1650">1650</a>				if maintenanceFeature.filterlistMode == MaintenanceFilterListType.kWhite then</span>
+<span id="L1651" class="line"><a href="#L1651">1651</a>					-- DiffAdjustQAToolManager:print( 1 , &quot;MaintenanceManager:isEnabledInGroup 111&quot; , maintenanceName , &quot;true&quot; )</span>
+<span id="L1652" class="line"><a href="#L1652">1652</a>					self.resultCache[cacheKey] = { result = true, src = 1 , maintenanceName = maintenanceName }</span>
+<span id="L1653" class="line"><a href="#L1653">1653</a>					-- if _debug then printx(1, &quot;MaintenanceManager:isEnabledInGroup   return 333  cacheKey:&quot; , cacheKey,  tts(self.resultCache[cacheKey]) ) end</span>
+<span id="L1654" class="line"><a href="#L1654">1654</a>					return self.resultCache[cacheKey].result, nil, self.resultCache[cacheKey].src</span>
+<span id="L1655" class="line"><a href="#L1655">1655</a>				elseif maintenanceFeature.filterlistMode == MaintenanceFilterListType.kBlack then</span>
+<span id="L1656" class="line"><a href="#L1656">1656</a>					-- DiffAdjustQAToolManager:print( 1 , &quot;MaintenanceManager:isEnabledInGroup 222&quot; , maintenanceName , &quot;false&quot; )</span>
+<span id="L1657" class="line"><a href="#L1657">1657</a>					self.resultCache[cacheKey] = { result = false, src = 2 , maintenanceName = maintenanceName }</span>
+<span id="L1658" class="line"><a href="#L1658">1658</a>					-- if _debug then printx(1, &quot;MaintenanceManager:isEnabledInGroup   return 444  cacheKey:&quot; , cacheKey,  tts(self.resultCache[cacheKey]) ) end</span>
+<span id="L1659" class="line"><a href="#L1659">1659</a>					return self.resultCache[cacheKey].result, nil, self.resultCache[cacheKey].src</span>
+<span id="L1660" class="line"><a href="#L1660">1660</a>				end</span>
+<span id="L1661" class="line"><a href="#L1661">1661</a>			end</span>
+<span id="L1662" class="line"><a href="#L1662">1662</a></span>
+<span id="L1663" class="line"><a href="#L1663">1663</a>			-- local result = checkModuleEnable( maintenanceFeature )</span>
+<span id="L1664" class="line"><a href="#L1664">1664</a></span>
+<span id="L1665" class="line"><a href="#L1665">1665</a>			local childIndex , algorithmId, onlyOneGroupLeft = self:getChildIndexAndalgorithmId( maintenanceFeature , uid )</span>
+<span id="L1666" class="line"><a href="#L1666">1666</a></span>
+<span id="L1667" class="line"><a href="#L1667">1667</a>			if childIndex then</span>
+<span id="L1668" class="line"><a href="#L1668">1668</a>				local child = maintenanceFeature.groupChild[childIndex]</span>
+<span id="L1669" class="line"><a href="#L1669">1669</a>				if child then</span>
+<span id="L1670" class="line"><a href="#L1670">1670</a>					if not onlyOneGroupLeft and maintenanceFeature.originDataType and maintenanceFeature.enable then</span>
+<span id="L1671" class="line"><a href="#L1671">1671</a>						local dcCacheKey = tostring(maintenanceFeature.id) .. &quot;_&quot;  .. tostring(uid)</span>
+<span id="L1672" class="line"><a href="#L1672">1672</a>						if not self.dcCache[dcCacheKey] then</span>
+<span id="L1673" class="line"><a href="#L1673">1673</a>							self.dcCache[dcCacheKey] = true</span>
+<span id="L1674" class="line"><a href="#L1674">1674</a>							local env_name = maintenanceFeature.originDataType and self.configAppName[maintenanceFeature.originDataType] or _G.amfBean(&quot;AccountManager&quot;):getAppName()</span>
+<span id="L1675" class="line"><a href="#L1675">1675</a>							self:_dc_shiyan_exp_trigger(maintenanceFeature,childIndex,env_name)</span>
+<span id="L1676" class="line"><a href="#L1676">1676</a>						end</span>
+<span id="L1677" class="line"><a href="#L1677">1677</a>					end</span>
+<span id="L1678" class="line"><a href="#L1678">1678</a></span>
+<span id="L1679" class="line"><a href="#L1679">1679</a>					local moduleKeyArr = string.split( moduleKey , &quot;,&quot;)</span>
+<span id="L1680" class="line"><a href="#L1680">1680</a></span>
+<span id="L1681" class="line"><a href="#L1681">1681</a>					local _totalResult = true</span>
+<span id="L1682" class="line"><a href="#L1682">1682</a></span>
+<span id="L1683" class="line"><a href="#L1683">1683</a>					for _idx ,  _mkey in ipairs(moduleKeyArr) do</span>
+<span id="L1684" class="line"><a href="#L1684">1684</a></span>
+<span id="L1685" class="line"><a href="#L1685">1685</a>						local _result = false</span>
+<span id="L1686" class="line"><a href="#L1686">1686</a></span>
+<span id="L1687" class="line"><a href="#L1687">1687</a>						if _levelGroupExpkey then</span>
+<span id="L1688" class="line"><a href="#L1688">1688</a></span>
+<span id="L1689" class="line"><a href="#L1689">1689</a>							if string.sub( _mkey , 1 , 1 ) == &quot;G&quot; then</span>
+<span id="L1690" class="line"><a href="#L1690">1690</a>								local _idstr =  string.sub( _mkey , 2 , -1 )</span>
+<span id="L1691" class="line"><a href="#L1691">1691</a>								local _idnum =  tonumber(_idstr)</span>
+<span id="L1692" class="line"><a href="#L1692">1692</a>								if tostring(_idnum) == _idstr then</span>
+<span id="L1693" class="line"><a href="#L1693">1693</a>									--G后面真的是数字</span>
+<span id="L1694" class="line"><a href="#L1694">1694</a></span>
+<span id="L1695" class="line"><a href="#L1695">1695</a>									_result = self:isEnabledInGroup( _levelGroupExpkey , _mkey , tostring(uid))</span>
+<span id="L1696" class="line"><a href="#L1696">1696</a></span>
+<span id="L1697" class="line"><a href="#L1697">1697</a>									if not _result then</span>
+<span id="L1698" class="line"><a href="#L1698">1698</a>										_totalResult = false</span>
+<span id="L1699" class="line"><a href="#L1699">1699</a>										break</span>
+<span id="L1700" class="line"><a href="#L1700">1700</a>									end</span>
+<span id="L1701" class="line"><a href="#L1701">1701</a>								end</span>
+<span id="L1702" class="line"><a href="#L1702">1702</a>							end</span>
+<span id="L1703" class="line"><a href="#L1703">1703</a>						end</span>
+<span id="L1704" class="line"><a href="#L1704">1704</a></span>
+<span id="L1705" class="line"><a href="#L1705">1705</a>						for k2,v2 in ipairs( child.modules ) do</span>
+<span id="L1706" class="line"><a href="#L1706">1706</a></span>
+<span id="L1707" class="line"><a href="#L1707">1707</a>							if v2 == _mkey then</span>
+<span id="L1708" class="line"><a href="#L1708">1708</a>								_result = maintenanceFeature.enable</span>
+<span id="L1709" class="line"><a href="#L1709">1709</a>								break</span>
+<span id="L1710" class="line"><a href="#L1710">1710</a>							end</span>
+<span id="L1711" class="line"><a href="#L1711">1711</a>						end</span>
+<span id="L1712" class="line"><a href="#L1712">1712</a></span>
+<span id="L1713" class="line"><a href="#L1713">1713</a>						if not _result then</span>
+<span id="L1714" class="line"><a href="#L1714">1714</a>							_totalResult = false</span>
+<span id="L1715" class="line"><a href="#L1715">1715</a>							break</span>
+<span id="L1716" class="line"><a href="#L1716">1716</a>						end</span>
+<span id="L1717" class="line"><a href="#L1717">1717</a></span>
+<span id="L1718" class="line"><a href="#L1718">1718</a>					end</span>
+<span id="L1719" class="line"><a href="#L1719">1719</a></span>
+<span id="L1720" class="line"><a href="#L1720">1720</a>					self.resultCache[cacheKey] = { result = _totalResult, src = 3 , maintenanceName = maintenanceName}</span>
+<span id="L1721" class="line"><a href="#L1721">1721</a></span>
+<span id="L1722" class="line"><a href="#L1722">1722</a>					-- if _debug then printx(1, &quot;MaintenanceManager:isEnabledInGroup   return 555  cacheKey:&quot; , cacheKey,  tts(self.resultCache[cacheKey]) ) end</span>
+<span id="L1723" class="line"><a href="#L1723">1723</a></span>
+<span id="L1724" class="line"><a href="#L1724">1724</a>					return self.resultCache[cacheKey].result, algorithmId, self.resultCache[cacheKey].src</span>
+<span id="L1725" class="line"><a href="#L1725">1725</a>				end</span>
+<span id="L1726" class="line"><a href="#L1726">1726</a>			end</span>
+<span id="L1727" class="line"><a href="#L1727">1727</a></span>
+<span id="L1728" class="line"><a href="#L1728">1728</a>			-- DiffAdjustQAToolManager:print( 1 , &quot;MaintenanceManager:isEnabledInGroup 333&quot; , maintenanceName , result )</span>
+<span id="L1729" class="line"><a href="#L1729">1729</a>			self.resultCache[cacheKey] = { result = false, src = 4 , maintenanceName = maintenanceName }</span>
+<span id="L1730" class="line"><a href="#L1730">1730</a></span>
+<span id="L1731" class="line"><a href="#L1731">1731</a>			-- if _debug then printx(1, &quot;MaintenanceManager:isEnabledInGroup   return 666  cacheKey:&quot; , cacheKey,  tts(self.resultCache[cacheKey]) ) end</span>
+<span id="L1732" class="line"><a href="#L1732">1732</a></span>
+<span id="L1733" class="line"><a href="#L1733">1733</a>			return self.resultCache[cacheKey].result, nil, self.resultCache[cacheKey].src</span>
+<span id="L1734" class="line"><a href="#L1734">1734</a>		else</span>
+<span id="L1735" class="line"><a href="#L1735">1735</a>			--RemoteDebug:uploadLog( &quot;MaintenanceManager:isEnabledInGroup  maintenanceName &quot; .. tostring(maintenanceName) .. &quot;  has not exist !!&quot; )</span>
+<span id="L1736" class="line"><a href="#L1736">1736</a>			-- DiffAdjustQAToolManager:print( 1 , &quot;MaintenanceManager:isEnabledInGroup 444&quot; , maintenanceName , &quot;false&quot; )</span>
+<span id="L1737" class="line"><a href="#L1737">1737</a>			self.resultCache[cacheKey] = { result = false, src = 5 , maintenanceName = maintenanceName }</span>
+<span id="L1738" class="line"><a href="#L1738">1738</a></span>
+<span id="L1739" class="line"><a href="#L1739">1739</a>			-- if _debug then printx(1, &quot;MaintenanceManager:isEnabledInGroup   return 777  cacheKey:&quot; , cacheKey,  tts(self.resultCache[cacheKey]) ) end</span>
+<span id="L1740" class="line"><a href="#L1740">1740</a></span>
+<span id="L1741" class="line"><a href="#L1741">1741</a>			return self.resultCache[cacheKey].result, nil, self.resultCache[cacheKey].src</span>
+<span id="L1742" class="line"><a href="#L1742">1742</a>		end</span>
+<span id="L1743" class="line"><a href="#L1743">1743</a>	else</span>
+<span id="L1744" class="line"><a href="#L1744">1744</a>		-- 为了保证正交，不再支持这种方法，以前使用此特性的老开关已经迁移</span>
+<span id="L1745" class="line"><a href="#L1745">1745</a>		-- for k,v in pairs(self.data) do</span>
+<span id="L1746" class="line"><a href="#L1746">1746</a>		-- 	local r = checkModuleEnable( v )</span>
+<span id="L1747" class="line"><a href="#L1747">1747</a>		-- 	if r then return true end</span>
+<span id="L1748" class="line"><a href="#L1748">1748</a>		-- end</span>
+<span id="L1749" class="line"><a href="#L1749">1749</a>	end</span>
+<span id="L1750" class="line"><a href="#L1750">1750</a></span>
+<span id="L1751" class="line"><a href="#L1751">1751</a>	return false, nil, 6</span>
+<span id="L1752" class="line"><a href="#L1752">1752</a>end</span>
+<span id="L1753" class="line"><a href="#L1753">1753</a></span>
+<span id="L1754" class="line"><a href="#L1754">1754</a>--- 先判断是否有开关，无开关或者关闭了 返回defaultEnable，在判断组</span>
+<span id="L1755" class="line"><a href="#L1755">1755</a>---@param maintenanceName string</span>
+<span id="L1756" class="line"><a href="#L1756">1756</a>---@param defaultEnable boolean</span>
+<span id="L1757" class="line"><a href="#L1757">1757</a>---@param moduleKey string</span>
+<span id="L1758" class="line"><a href="#L1758">1758</a>---@param uid string|nil 可选</span>
+<span id="L1759" class="line"><a href="#L1759">1759</a>function MaintenanceManager:isEnabledAndInGroup(maintenanceName, defaultEnable, moduleKey, uid)</span>
+<span id="L1760" class="line"><a href="#L1760">1760</a>	local maintenanceFeature = self:getMaintenanceByKey(maintenanceName)</span>
+<span id="L1761" class="line"><a href="#L1761">1761</a>	if not maintenanceFeature or not maintenanceFeature.enable then return defaultEnable end</span>
+<span id="L1762" class="line"><a href="#L1762">1762</a>	return self:isEnabledInGroup(maintenanceName, moduleKey, uid)</span>
+<span id="L1763" class="line"><a href="#L1763">1763</a>end</span>
+<span id="L1764" class="line"><a href="#L1764">1764</a></span>
+<span id="L1765" class="line"><a href="#L1765">1765</a>function MaintenanceManager:_dc_shiyan_exp_trigger(maintenanceFeature,childIndex,env_name)</span>
+<span id="L1766" class="line"><a href="#L1766">1766</a>	if &quot;maintenance&quot; ~= maintenanceFeature.originDataType then</span>
+<span id="L1767" class="line"><a href="#L1767">1767</a>		local dcData = {</span>
+<span id="L1768" class="line"><a href="#L1768">1768</a>			category = &#x27;shiyan_exp_trigger&#x27;,</span>
+<span id="L1769" class="line"><a href="#L1769">1769</a>			sub_category = maintenanceFeature.originDataType,</span>
+<span id="L1770" class="line"><a href="#L1770">1770</a>			exp_id = maintenanceFeature.id,</span>
+<span id="L1771" class="line"><a href="#L1771">1771</a>			exp_group = childIndex,</span>
+<span id="L1772" class="line"><a href="#L1772">1772</a>			xml_version = maintenanceFeature.metaVersion,</span>
+<span id="L1773" class="line"><a href="#L1773">1773</a>			env_name = env_name,</span>
+<span id="L1774" class="line"><a href="#L1774">1774</a>		}</span>
+<span id="L1775" class="line"><a href="#L1775">1775</a>		DcUtil:UserTrack(dcData)</span>
+<span id="L1776" class="line"><a href="#L1776">1776</a>		return</span>
+<span id="L1777" class="line"><a href="#L1777">1777</a>	end</span>
+<span id="L1778" class="line"><a href="#L1778">1778</a>	local data = {maintenanceFeature,childIndex,env_name}</span>
+<span id="L1779" class="line"><a href="#L1779">1779</a>    self._dcCache = self._dcCache or {}</span>
+<span id="L1780" class="line"><a href="#L1780">1780</a>    table.insert(self._dcCache,data)</span>
+<span id="L1781" class="line"><a href="#L1781">1781</a>    if self._dcTrigger then</span>
+<span id="L1782" class="line"><a href="#L1782">1782</a>        cancelTimeOut(self._dcTrigger)</span>
+<span id="L1783" class="line"><a href="#L1783">1783</a>    end</span>
+<span id="L1784" class="line"><a href="#L1784">1784</a>    local function doDC()</span>
+<span id="L1785" class="line"><a href="#L1785">1785</a>        local list = self._dcCache</span>
+<span id="L1786" class="line"><a href="#L1786">1786</a>        self._dcCache = nil</span>
+<span id="L1787" class="line"><a href="#L1787">1787</a>		if not list or #list&lt;=0 then return end</span>
+<span id="L1788" class="line"><a href="#L1788">1788</a></span>
+<span id="L1789" class="line"><a href="#L1789">1789</a>		local result = {}</span>
+<span id="L1790" class="line"><a href="#L1790">1790</a>		for k, v in ipairs(list) do</span>
+<span id="L1791" class="line"><a href="#L1791">1791</a>			local maintenanceFeature,childIndex,env_name = unpack(v)</span>
+<span id="L1792" class="line"><a href="#L1792">1792</a>			table.insert(result,{</span>
+<span id="L1793" class="line"><a href="#L1793">1793</a>				exp_id = maintenanceFeature.id,</span>
+<span id="L1794" class="line"><a href="#L1794">1794</a>				xml_version = maintenanceFeature.metaVersion,</span>
+<span id="L1795" class="line"><a href="#L1795">1795</a>				exp_group = childIndex,</span>
+<span id="L1796" class="line"><a href="#L1796">1796</a>				env_name = env_name,</span>
+<span id="L1797" class="line"><a href="#L1797">1797</a>			})</span>
+<span id="L1798" class="line"><a href="#L1798">1798</a>		end</span>
+<span id="L1799" class="line"><a href="#L1799">1799</a></span>
+<span id="L1800" class="line"><a href="#L1800">1800</a>		-- print(#list,ttsd(result))</span>
+<span id="L1801" class="line"><a href="#L1801">1801</a></span>
+<span id="L1802" class="line"><a href="#L1802">1802</a>		local dcData = {</span>
+<span id="L1803" class="line"><a href="#L1803">1803</a>			category = &#x27;shiyan_exp_trigger&#x27;,</span>
+<span id="L1804" class="line"><a href="#L1804">1804</a>			sub_category = maintenanceFeature.originDataType,</span>
+<span id="L1805" class="line"><a href="#L1805">1805</a>			switch_info = mime.b64(table.serialize(result))</span>
+<span id="L1806" class="line"><a href="#L1806">1806</a>		}</span>
+<span id="L1807" class="line"><a href="#L1807">1807</a>		DcUtil:UserTrack(dcData)</span>
+<span id="L1808" class="line"><a href="#L1808">1808</a>    end</span>
+<span id="L1809" class="line"><a href="#L1809">1809</a>	if _G.mainSceneInitialized then</span>
+<span id="L1810" class="line"><a href="#L1810">1810</a>		self._dcTrigger = setTimeOut(doDC,5)</span>
+<span id="L1811" class="line"><a href="#L1811">1811</a>	end</span>
+<span id="L1812" class="line"><a href="#L1812">1812</a>end</span>
+<span id="L1813" class="line"><a href="#L1813">1813</a></span>
+<span id="L1814" class="line"><a href="#L1814">1814</a>function MaintenanceManager:getGroupChildRangeMap( maintenanceName )</span>
+<span id="L1815" class="line"><a href="#L1815">1815</a></span>
+<span id="L1816" class="line"><a href="#L1816">1816</a>	if not maintenanceName then return nil end</span>
+<span id="L1817" class="line"><a href="#L1817">1817</a></span>
+<span id="L1818" class="line"><a href="#L1818">1818</a>	if not self.groupChildRangeMap then</span>
+<span id="L1819" class="line"><a href="#L1819">1819</a>		self.groupChildRangeMap = {}</span>
+<span id="L1820" class="line"><a href="#L1820">1820</a>	end</span>
+<span id="L1821" class="line"><a href="#L1821">1821</a></span>
+<span id="L1822" class="line"><a href="#L1822">1822</a>	if self.groupChildRangeMap[maintenanceName] then</span>
+<span id="L1823" class="line"><a href="#L1823">1823</a>		return self.groupChildRangeMap[maintenanceName]</span>
+<span id="L1824" class="line"><a href="#L1824">1824</a>	end</span>
+<span id="L1825" class="line"><a href="#L1825">1825</a></span>
+<span id="L1826" class="line"><a href="#L1826">1826</a>	local feature = self:getMaintenanceByKey( maintenanceName )</span>
+<span id="L1827" class="line"><a href="#L1827">1827</a>	local rangeMap = nil</span>
+<span id="L1828" class="line"><a href="#L1828">1828</a></span>
+<span id="L1829" class="line"><a href="#L1829">1829</a>	if feature and feature.modeValue then</span>
+<span id="L1830" class="line"><a href="#L1830">1830</a></span>
+<span id="L1831" class="line"><a href="#L1831">1831</a>		rangeMap = {}</span>
+<span id="L1832" class="line"><a href="#L1832">1832</a></span>
+<span id="L1833" class="line"><a href="#L1833">1833</a>		local totalWeigh = feature.totalGroupWeigh</span>
+<span id="L1834" class="line"><a href="#L1834">1834</a>		local blockNum = 10000</span>
+<span id="L1835" class="line"><a href="#L1835">1835</a></span>
+<span id="L1836" class="line"><a href="#L1836">1836</a>		if feature.modeValue == MaintenanceModeType.kGroup and feature.groupTail and type(feature.groupTail) == &quot;number&quot; then</span>
+<span id="L1837" class="line"><a href="#L1837">1837</a>			blockNum = math.pow(10, feature.groupTail)</span>
+<span id="L1838" class="line"><a href="#L1838">1838</a>		end</span>
+<span id="L1839" class="line"><a href="#L1839">1839</a>		-- printx( 1 , &quot;----------------------------~~~~!!!!!!&quot;)</span>
+<span id="L1840" class="line"><a href="#L1840">1840</a>		for k1,v1 in ipairs(feature.groupChild) do</span>
+<span id="L1841" class="line"><a href="#L1841">1841</a></span>
+<span id="L1842" class="line"><a href="#L1842">1842</a>			local currWeighValue = tonumber(   ( (v1.weighT - v1.weigh) / totalWeigh * blockNum )   )</span>
+<span id="L1843" class="line"><a href="#L1843">1843</a>			local nextWeighValue = tonumber(   ( v1.weighT / totalWeigh * blockNum ) - 1  )</span>
+<span id="L1844" class="line"><a href="#L1844">1844</a></span>
+<span id="L1845" class="line"><a href="#L1845">1845</a>			-- printx( 1 , &quot;currWeighValue =&quot; , currWeighValue , &quot;nextWeighValue&quot; , nextWeighValue )</span>
+<span id="L1846" class="line"><a href="#L1846">1846</a></span>
+<span id="L1847" class="line"><a href="#L1847">1847</a>			local moduleStr = &quot;&quot;</span>
+<span id="L1848" class="line"><a href="#L1848">1848</a></span>
+<span id="L1849" class="line"><a href="#L1849">1849</a>			for k2,v2 in ipairs( v1.modules ) do</span>
+<span id="L1850" class="line"><a href="#L1850">1850</a>				moduleStr = moduleStr .. tostring(v2) .. &quot; &quot;</span>
+<span id="L1851" class="line"><a href="#L1851">1851</a>			end</span>
+<span id="L1852" class="line"><a href="#L1852">1852</a></span>
+<span id="L1853" class="line"><a href="#L1853">1853</a>			if nextWeighValue &lt; currWeighValue then</span>
+<span id="L1854" class="line"><a href="#L1854">1854</a>				rangeMap[k1] = { startId = -1 , endId = -1 , modules = v1.modules , str = moduleStr , algorithmId = v1.algorithmId }</span>
+<span id="L1855" class="line"><a href="#L1855">1855</a>			elseif currWeighValue &lt; 0 then</span>
+<span id="L1856" class="line"><a href="#L1856">1856</a>				if nextWeighValue &lt; 0 then</span>
+<span id="L1857" class="line"><a href="#L1857">1857</a>					rangeMap[k1] = { startId = -1 , endId = -1 , modules = v1.modules , str = moduleStr , algorithmId = v1.algorithmId }</span>
+<span id="L1858" class="line"><a href="#L1858">1858</a>				else</span>
+<span id="L1859" class="line"><a href="#L1859">1859</a>					rangeMap[k1] = { startId = 0 , endId = math.floor(nextWeighValue) , modules = v1.modules , str = moduleStr , algorithmId = v1.algorithmId }</span>
+<span id="L1860" class="line"><a href="#L1860">1860</a>				end</span>
+<span id="L1861" class="line"><a href="#L1861">1861</a>			elseif currWeighValue &gt;= (blockNum - 1) then</span>
+<span id="L1862" class="line"><a href="#L1862">1862</a>				rangeMap[k1] = { startId = -1 , endId = -1 , modules = v1.modules , str = moduleStr , algorithmId = v1.algorithmId }</span>
+<span id="L1863" class="line"><a href="#L1863">1863</a>			else</span>
+<span id="L1864" class="line"><a href="#L1864">1864</a>				rangeMap[k1] = { startId = math.floor(currWeighValue) , endId = math.floor(nextWeighValue) , modules = v1.modules , str = moduleStr , algorithmId = v1.algorithmId }</span>
+<span id="L1865" class="line"><a href="#L1865">1865</a>			end</span>
+<span id="L1866" class="line"><a href="#L1866">1866</a></span>
+<span id="L1867" class="line"><a href="#L1867">1867</a>			if rangeMap[k1].startId &gt;= 0 and rangeMap[k1].endId &gt;=0 then</span>
+<span id="L1868" class="line"><a href="#L1868">1868</a>				rangeMap[k1].weighLength = rangeMap[k1].endId - rangeMap[k1].startId + 1</span>
+<span id="L1869" class="line"><a href="#L1869">1869</a>			else</span>
+<span id="L1870" class="line"><a href="#L1870">1870</a>				rangeMap[k1].weighLength = 0</span>
+<span id="L1871" class="line"><a href="#L1871">1871</a>			end</span>
+<span id="L1872" class="line"><a href="#L1872">1872</a>		end</span>
+<span id="L1873" class="line"><a href="#L1873">1873</a></span>
+<span id="L1874" class="line"><a href="#L1874">1874</a>	end</span>
+<span id="L1875" class="line"><a href="#L1875">1875</a>	self.groupChildRangeMap[maintenanceName] = rangeMap</span>
+<span id="L1876" class="line"><a href="#L1876">1876</a></span>
+<span id="L1877" class="line"><a href="#L1877">1877</a>	return rangeMap</span>
+<span id="L1878" class="line"><a href="#L1878">1878</a>end</span>
+<span id="L1879" class="line"><a href="#L1879">1879</a></span>
+<span id="L1880" class="line"><a href="#L1880">1880</a></span>
+<span id="L1881" class="line"><a href="#L1881">1881</a></span>
+<span id="L1882" class="line"><a href="#L1882">1882</a>function MaintenanceManager:printGroupRange( maintenanceName )</span>
+<span id="L1883" class="line"><a href="#L1883">1883</a>	local feature = self:getMaintenanceByKey( maintenanceName )</span>
+<span id="L1884" class="line"><a href="#L1884">1884</a>	local rangeMap = self:getGroupChildRangeMap( maintenanceName )</span>
+<span id="L1885" class="line"><a href="#L1885">1885</a></span>
+<span id="L1886" class="line"><a href="#L1886">1886</a>	if rangeMap then</span>
+<span id="L1887" class="line"><a href="#L1887">1887</a>		printx( -6 , &quot;  maintenanceName = &quot; , maintenanceName)</span>
+<span id="L1888" class="line"><a href="#L1888">1888</a>		if feature.modeValue == MaintenanceModeType.kGroup then</span>
+<span id="L1889" class="line"><a href="#L1889">1889</a>			printx( -6 , &quot;  按uid尾号后&quot; .. tostring(feature.groupTail) .. &quot;位分组&quot;)</span>
+<span id="L1890" class="line"><a href="#L1890">1890</a>		elseif feature.modeValue == MaintenanceModeType.kOrthogonalGroup or feature.modeValue == MaintenanceModeType.kOrthogonalGroupV2 then</span>
+<span id="L1891" class="line"><a href="#L1891">1891</a>			printx( -6 , &quot;  按MD5后&quot; .. tostring(feature.groupTail) .. &quot;位分组&quot;)</span>
+<span id="L1892" class="line"><a href="#L1892">1892</a>		end</span>
+<span id="L1893" class="line"><a href="#L1893">1893</a></span>
+<span id="L1894" class="line"><a href="#L1894">1894</a>		for k3,v3 in ipairs( rangeMap ) do</span>
+<span id="L1895" class="line"><a href="#L1895">1895</a>			printx( -6 , &quot;  group&quot; .. tostring(k3) .. &quot;   &quot; ..  tostring(v3.startId) .. &quot; ~ &quot; .. tostring(v3.endId) .. &quot;  weighLength: &quot; .. tostring(v3.weighLength) .. &quot;    modules: &quot; .. v3.str )</span>
+<span id="L1896" class="line"><a href="#L1896">1896</a>		end</span>
+<span id="L1897" class="line"><a href="#L1897">1897</a>	end</span>
+<span id="L1898" class="line"><a href="#L1898">1898</a></span>
+<span id="L1899" class="line"><a href="#L1899">1899</a>	return rangeMap</span>
+<span id="L1900" class="line"><a href="#L1900">1900</a>end</span>
+<span id="L1901" class="line"><a href="#L1901">1901</a></span>
+<span id="L1902" class="line"><a href="#L1902">1902</a>function MaintenanceManager:getValue(key)</span>
+<span id="L1903" class="line"><a href="#L1903">1903</a>	local maintenance = self:getMaintenanceByKey(key)</span>
+<span id="L1904" class="line"><a href="#L1904">1904</a>	if maintenance then</span>
+<span id="L1905" class="line"><a href="#L1905">1905</a>		return maintenance.value</span>
+<span id="L1906" class="line"><a href="#L1906">1906</a>	else</span>
+<span id="L1907" class="line"><a href="#L1907">1907</a>		return nil</span>
+<span id="L1908" class="line"><a href="#L1908">1908</a>	end</span>
+<span id="L1909" class="line"><a href="#L1909">1909</a>end</span>
+<span id="L1910" class="line"><a href="#L1910">1910</a></span>
+<span id="L1911" class="line"><a href="#L1911">1911</a>-- since version 1.30, value = [0, 10000]</span>
+<span id="L1912" class="line"><a href="#L1912">1912</a>function MaintenanceManager:isAvailbleForUid(key, uid, threshold)</span>
+<span id="L1913" class="line"><a href="#L1913">1913</a>	local maintenance = self:getMaintenanceByKey(key)</span>
+<span id="L1914" class="line"><a href="#L1914">1914</a>	if maintenance and maintenance.enable then -- 开关已打开</span>
+<span id="L1915" class="line"><a href="#L1915">1915</a>		local uidEndWith = nil</span>
+<span id="L1916" class="line"><a href="#L1916">1916</a>		if maintenance.value ~= nil then</span>
+<span id="L1917" class="line"><a href="#L1917">1917</a>			uidEndWith = tonumber(maintenance.value)</span>
+<span id="L1918" class="line"><a href="#L1918">1918</a>		end</span>
+<span id="L1919" class="line"><a href="#L1919">1919</a></span>
+<span id="L1920" class="line"><a href="#L1920">1920</a>		if uidEndWith == nil then -- uid无限制</span>
+<span id="L1921" class="line"><a href="#L1921">1921</a>			return true</span>
+<span id="L1922" class="line"><a href="#L1922">1922</a>		else -- 在灰度范围内</span>
+<span id="L1923" class="line"><a href="#L1923">1923</a>			uid = tonumber(uid) or 0</span>
+<span id="L1924" class="line"><a href="#L1924">1924</a>			threshold = tonumber(threshold) or 100</span>
+<span id="L1925" class="line"><a href="#L1925">1925</a>			return (uid % threshold) &lt; uidEndWith</span>
+<span id="L1926" class="line"><a href="#L1926">1926</a>		end</span>
+<span id="L1927" class="line"><a href="#L1927">1927</a>	end</span>
+<span id="L1928" class="line"><a href="#L1928">1928</a>	return false</span>
+<span id="L1929" class="line"><a href="#L1929">1929</a>end</span>
+<span id="L1930" class="line"><a href="#L1930">1930</a></span>
+<span id="L1931" class="line"><a href="#L1931">1931</a>function MaintenanceManager:getExtra(key)</span>
+<span id="L1932" class="line"><a href="#L1932">1932</a>	local maintenance = self:getMaintenanceByKey(key)</span>
+<span id="L1933" class="line"><a href="#L1933">1933</a>	if maintenance then</span>
+<span id="L1934" class="line"><a href="#L1934">1934</a>		return maintenance.extra</span>
+<span id="L1935" class="line"><a href="#L1935">1935</a>	else</span>
+<span id="L1936" class="line"><a href="#L1936">1936</a>		return nil</span>
+<span id="L1937" class="line"><a href="#L1937">1937</a>	end</span>
+<span id="L1938" class="line"><a href="#L1938">1938</a>end</span>
+<span id="L1939" class="line"><a href="#L1939">1939</a></span>
+<span id="L1940" class="line"><a href="#L1940">1940</a>function MaintenanceManager:getLevelRangesByExtra(key)</span>
+<span id="L1941" class="line"><a href="#L1941">1941</a></span>
+<span id="L1942" class="line"><a href="#L1942">1942</a>	local cacheKey = tostring(&quot;LevelRangesByExtra&quot;) .. &quot;_&quot; .. tostring(key)</span>
+<span id="L1943" class="line"><a href="#L1943">1943</a>	if self.resultCache[cacheKey] then</span>
+<span id="L1944" class="line"><a href="#L1944">1944</a>		return table.clone( self.resultCache[cacheKey] )</span>
+<span id="L1945" class="line"><a href="#L1945">1945</a>	end</span>
+<span id="L1946" class="line"><a href="#L1946">1946</a></span>
+<span id="L1947" class="line"><a href="#L1947">1947</a>	local extra = self:getExtra(key)</span>
+<span id="L1948" class="line"><a href="#L1948">1948</a></span>
+<span id="L1949" class="line"><a href="#L1949">1949</a>	local resultList = nil</span>
+<span id="L1950" class="line"><a href="#L1950">1950</a></span>
+<span id="L1951" class="line"><a href="#L1951">1951</a>	if extra then</span>
+<span id="L1952" class="line"><a href="#L1952">1952</a>		resultList = {}</span>
+<span id="L1953" class="line"><a href="#L1953">1953</a>		local ranges = string.split(extra, &quot;,&quot;)</span>
+<span id="L1954" class="line"><a href="#L1954">1954</a>		local values = nil</span>
+<span id="L1955" class="line"><a href="#L1955">1955</a>		local startLevel, endLevel = 0, 0</span>
+<span id="L1956" class="line"><a href="#L1956">1956</a>		for i, range in ipairs(ranges) do</span>
+<span id="L1957" class="line"><a href="#L1957">1957</a>			values = string.split(range, &quot;-&quot;)</span>
+<span id="L1958" class="line"><a href="#L1958">1958</a>			if #values == 1 then</span>
+<span id="L1959" class="line"><a href="#L1959">1959</a>				startLevel = tonumber(values[1]) or 0</span>
+<span id="L1960" class="line"><a href="#L1960">1960</a>				table.insert(resultList, {startLevel=startLevel, endLevel = startLevel})</span>
+<span id="L1961" class="line"><a href="#L1961">1961</a>			elseif #values == 2 then</span>
+<span id="L1962" class="line"><a href="#L1962">1962</a>				startLevel = tonumber(values[1]) or 0</span>
+<span id="L1963" class="line"><a href="#L1963">1963</a>				endLevel = tonumber(values[2]) or 0</span>
+<span id="L1964" class="line"><a href="#L1964">1964</a>				if startLevel &gt; endLevel then startLevel, endLevel = endLevel, startLevel end</span>
+<span id="L1965" class="line"><a href="#L1965">1965</a>				table.insert(resultList, {startLevel=startLevel, endLevel = endLevel})</span>
+<span id="L1966" class="line"><a href="#L1966">1966</a>			end</span>
+<span id="L1967" class="line"><a href="#L1967">1967</a>		end</span>
+<span id="L1968" class="line"><a href="#L1968">1968</a>	end</span>
+<span id="L1969" class="line"><a href="#L1969">1969</a></span>
+<span id="L1970" class="line"><a href="#L1970">1970</a>	self.resultCache[cacheKey] = resultList</span>
+<span id="L1971" class="line"><a href="#L1971">1971</a>	return resultList</span>
+<span id="L1972" class="line"><a href="#L1972">1972</a>end</span>
+<span id="L1973" class="line"><a href="#L1973">1973</a></span>
+<span id="L1974" class="line"><a href="#L1974">1974</a>function MaintenanceManager:isNoMaintenanceBeforeRelease()</span>
+<span id="L1975" class="line"><a href="#L1975">1975</a>    local bundleVersion = _G.fullBundleVersion or majorBundleVersion</span>
+<span id="L1976" class="line"><a href="#L1976">1976</a>    local mVer = CCUserDefault:sharedUserDefault():getStringForKey(&quot;maintenance_game_ver&quot;)</span>
+<span id="L1977" class="line"><a href="#L1977">1977</a>    -- 已经拉取到本版本的maintenance配置，那么不是提审模式</span>
+<span id="L1978" class="line"><a href="#L1978">1978</a>    if mVer == bundleVersion then</span>
+<span id="L1979" class="line"><a href="#L1979">1979</a>        return false</span>
+<span id="L1980" class="line"><a href="#L1980">1980</a>    else</span>
+<span id="L1981" class="line"><a href="#L1981">1981</a>        local publishDate = os.time2({year = 2021, month = 02, day = 01, hour = 10})</span>
+<span id="L1982" class="line"><a href="#L1982">1982</a>        if StartupConfig.getInstance().getStringForKey then</span>
+<span id="L1983" class="line"><a href="#L1983">1983</a>            local dateStr = StartupConfig.getInstance():getStringForKey(&quot;PublishDate&quot;, &quot;&quot;)</span>
+<span id="L1984" class="line"><a href="#L1984">1984</a>            local dateArr = string.split(dateStr, &quot;-&quot;)</span>
+<span id="L1985" class="line"><a href="#L1985">1985</a>            if dateArr and #dateArr &gt;= 3 then</span>
+<span id="L1986" class="line"><a href="#L1986">1986</a>                publishDate = os.time2({year = tonumber(dateArr[1]), month = tonumber(dateArr[2]), day = tonumber(dateArr[3]), hour = 10})</span>
+<span id="L1987" class="line"><a href="#L1987">1987</a>            end</span>
+<span id="L1988" class="line"><a href="#L1988">1988</a>        end</span>
+<span id="L1989" class="line"><a href="#L1989">1989</a>        if (os.time() &lt; publishDate) then</span>
+<span id="L1990" class="line"><a href="#L1990">1990</a>            -- 没拉取到maintenance，发版前记为提审模式</span>
+<span id="L1991" class="line"><a href="#L1991">1991</a>            return true</span>
+<span id="L1992" class="line"><a href="#L1992">1992</a>        end</span>
+<span id="L1993" class="line"><a href="#L1993">1993</a>    end</span>
+<span id="L1994" class="line"><a href="#L1994">1994</a>    return false</span>
+<span id="L1995" class="line"><a href="#L1995">1995</a>end</span>
+<span id="L1996" class="line"><a href="#L1996">1996</a></span>
+<span id="L1997" class="line"><a href="#L1997">1997</a>function MaintenanceManager:isMiniGameInReview()</span>
+<span id="L1998" class="line"><a href="#L1998">1998</a>	if EnvUtil:isDYMiniGame() then</span>
+<span id="L1999" class="line"><a href="#L1999">1999</a>		return MaintenanceManager:getInstance():isEnabled(&quot;DYMiniGameInReview&quot;, false)</span>
+<span id="L2000" class="line"><a href="#L2000">2000</a>	end</span>
+<span id="L2001" class="line"><a href="#L2001">2001</a></span>
+<span id="L2002" class="line"><a href="#L2002">2002</a>	if EnvUtil:isALIPAYMiniGame() then</span>
+<span id="L2003" class="line"><a href="#L2003">2003</a>		return MaintenanceManager:getInstance():isEnabled(&quot;AlipayMiniGameInReview&quot;, false)</span>
+<span id="L2004" class="line"><a href="#L2004">2004</a>	end</span>
+<span id="L2005" class="line"><a href="#L2005">2005</a></span>
+<span id="L2006" class="line"><a href="#L2006">2006</a>	if EnvUtil:isUnionMiniGame() then</span>
+<span id="L2007" class="line"><a href="#L2007">2007</a>		return MaintenanceManager:getInstance():isEnabled(&quot;UnionMiniGameInReview&quot;, false)</span>
+<span id="L2008" class="line"><a href="#L2008">2008</a>	end</span>
+<span id="L2009" class="line"><a href="#L2009">2009</a></span>
+<span id="L2010" class="line"><a href="#L2010">2010</a>	if EnvUtil:isKuaiShouMiniGame() then</span>
+<span id="L2011" class="line"><a href="#L2011">2011</a>		return MaintenanceManager:getInstance():isEnabled(&quot;KuaiShouMiniGameInReview&quot;, false)</span>
+<span id="L2012" class="line"><a href="#L2012">2012</a>	end</span>
+<span id="L2013" class="line"><a href="#L2013">2013</a></span>
+<span id="L2014" class="line"><a href="#L2014">2014</a>	if EnvUtil:isJdMiniGame() then</span>
+<span id="L2015" class="line"><a href="#L2015">2015</a>		return MaintenanceManager:getInstance():isEnabled(&quot;JdMiniGameInReview&quot;, false)</span>
+<span id="L2016" class="line"><a href="#L2016">2016</a>	end</span>
+<span id="L2017" class="line"><a href="#L2017">2017</a>	return MaintenanceManager:getInstance():isEnabled(&quot;MiniGameInReview&quot;, false)</span>
+<span id="L2018" class="line"><a href="#L2018">2018</a>end</span>
+<span id="L2019" class="line"><a href="#L2019">2019</a></span>
+<span id="L2020" class="line"><a href="#L2020">2020</a>function MaintenanceManager:isInReview(includeMini)</span>
+<span id="L2021" class="line"><a href="#L2021">2021</a>	if EnvUtil:isAndroid() then</span>
+<span id="L2022" class="line"><a href="#L2022">2022</a>		local platformFlag = PlatformConfig:isPlatform(PlatformNameEnum.kHuaWei) or PlatformConfig:isPlatform(PlatformNameEnum.kHonor)</span>
+<span id="L2023" class="line"><a href="#L2023">2023</a>		local isCdnVersion = platformFlag and  require(&quot;amf.middleware.multiplatform.system.android.PackageUtil&quot;).isCDNOnly()</span>
+<span id="L2024" class="line"><a href="#L2024">2024</a>        if isCdnVersion then</span>
+<span id="L2025" class="line"><a href="#L2025">2025</a>            -- cdn</span>
+<span id="L2026" class="line"><a href="#L2026">2026</a>            return false</span>
+<span id="L2027" class="line"><a href="#L2027">2027</a>        end</span>
+<span id="L2028" class="line"><a href="#L2028">2028</a>        if MaintenanceManager:getInstance():isEnabled(&quot;AndroidInReview&quot;, false) then</span>
+<span id="L2029" class="line"><a href="#L2029">2029</a>			return true</span>
+<span id="L2030" class="line"><a href="#L2030">2030</a>		else</span>
+<span id="L2031" class="line"><a href="#L2031">2031</a>            if table.includes({&quot;huawei&quot;,&quot;oppo&quot;,&quot;bbk&quot;,&quot;honor&quot;,&quot;mi&quot;}, _G._PLATFORM_NAME) then</span>
+<span id="L2032" class="line"><a href="#L2032">2032</a>                return MaintenanceManager:isNoMaintenanceBeforeRelease()</span>
+<span id="L2033" class="line"><a href="#L2033">2033</a>            end</span>
+<span id="L2034" class="line"><a href="#L2034">2034</a>            return false</span>
+<span id="L2035" class="line"><a href="#L2035">2035</a>        end</span>
+<span id="L2036" class="line"><a href="#L2036">2036</a>	elseif EnvUtil:isIOS() then</span>
+<span id="L2037" class="line"><a href="#L2037">2037</a>        if MaintenanceManager:getInstance():isEnabled(&quot;reviewVersion&quot;, false) then</span>
+<span id="L2038" class="line"><a href="#L2038">2038</a>			return true</span>
+<span id="L2039" class="line"><a href="#L2039">2039</a>		else</span>
+<span id="L2040" class="line"><a href="#L2040">2040</a>			return MaintenanceManager:isNoMaintenanceBeforeRelease()</span>
+<span id="L2041" class="line"><a href="#L2041">2041</a>		end</span>
+<span id="L2042" class="line"><a href="#L2042">2042</a>	elseif EnvUtil:isOhos() then</span>
+<span id="L2043" class="line"><a href="#L2043">2043</a>        if MaintenanceManager:getInstance():isEnabled(&quot;OhosInReview&quot;, false) then</span>
+<span id="L2044" class="line"><a href="#L2044">2044</a>            return true</span>
+<span id="L2045" class="line"><a href="#L2045">2045</a>        else</span>
+<span id="L2046" class="line"><a href="#L2046">2046</a>            return MaintenanceManager:isNoMaintenanceBeforeRelease()</span>
+<span id="L2047" class="line"><a href="#L2047">2047</a>        end</span>
+<span id="L2048" class="line"><a href="#L2048">2048</a>	elseif EnvUtil:isMiniGame() and includeMini then</span>
+<span id="L2049" class="line"><a href="#L2049">2049</a>		return self:isMiniGameInReview()</span>
+<span id="L2050" class="line"><a href="#L2050">2050</a>	end</span>
+<span id="L2051" class="line"><a href="#L2051">2051</a>	return false</span>
+<span id="L2052" class="line"><a href="#L2052">2052</a>end</span>
+<span id="L2053" class="line"><a href="#L2053">2053</a></span>
+<span id="L2054" class="line"><a href="#L2054">2054</a>-- notice: is&#x27;t a static function, no &#x27;self&#x27; in it</span>
+<span id="L2055" class="line"><a href="#L2055">2055</a>function MaintenanceManager.isInCertainPlatformReview(pf)</span>
+<span id="L2056" class="line"><a href="#L2056">2056</a>	if not pf then return false end</span>
+<span id="L2057" class="line"><a href="#L2057">2057</a>	if not EnvUtil:isAndroidPlatform(pf) then return false end</span>
+<span id="L2058" class="line"><a href="#L2058">2058</a>	-- if pf == PlatformNameEnum.kBilibili then</span>
+<span id="L2059" class="line"><a href="#L2059">2059</a>	-- 	return not MaintenanceManager:getInstance():isEnabledInGroup( &quot;bilibili_turn&quot;,&quot;ON&quot; )</span>
+<span id="L2060" class="line"><a href="#L2060">2060</a>	-- end</span>
+<span id="L2061" class="line"><a href="#L2061">2061</a></span>
+<span id="L2062" class="line"><a href="#L2062">2062</a>	return false</span>
+<span id="L2063" class="line"><a href="#L2063">2063</a>end</span>
+<span id="L2064" class="line"><a href="#L2064">2064</a></span>
+<span id="L2065" class="line"><a href="#L2065">2065</a>function MaintenanceManager:getCurrentGroupData(maintenanceName,checkTime)</span>
+<span id="L2066" class="line"><a href="#L2066">2066</a>	local maintenanceFeature = self:getMaintenanceByKey(maintenanceName)</span>
+<span id="L2067" class="line"><a href="#L2067">2067</a>	if not maintenanceFeature then</span>
+<span id="L2068" class="line"><a href="#L2068">2068</a>		-- 无开关</span>
+<span id="L2069" class="line"><a href="#L2069">2069</a>		if log then log(&quot;getCurrentGroupName r NO DATA&quot;,maintenanceName) end</span>
+<span id="L2070" class="line"><a href="#L2070">2070</a>		return</span>
+<span id="L2071" class="line"><a href="#L2071">2071</a>	end</span>
+<span id="L2072" class="line"><a href="#L2072">2072</a>	if not maintenanceFeature.enable then</span>
+<span id="L2073" class="line"><a href="#L2073">2073</a>		-- 已关闭</span>
+<span id="L2074" class="line"><a href="#L2074">2074</a>		if log then log(&quot;getCurrentGroupName r not enable&quot;,maintenanceName) end</span>
+<span id="L2075" class="line"><a href="#L2075">2075</a>		return</span>
+<span id="L2076" class="line"><a href="#L2076">2076</a>	end</span>
+<span id="L2077" class="line"><a href="#L2077">2077</a>	-- 过期判断。注意大部分业务场景中，时间判断可能需要实时检测，不能使用一直缓存的结果</span>
+<span id="L2078" class="line"><a href="#L2078">2078</a>	if checkTime then</span>
+<span id="L2079" class="line"><a href="#L2079">2079</a>		local bInOpenTime = self:isEnabledConsiderBeginAndEndDate(maintenanceName, false)</span>
+<span id="L2080" class="line"><a href="#L2080">2080</a>		if not bInOpenTime then</span>
+<span id="L2081" class="line"><a href="#L2081">2081</a>			-- 已过期</span>
+<span id="L2082" class="line"><a href="#L2082">2082</a>			if log then log(&quot;getCurrentGroupName r not inOpenTime&quot;,maintenanceName,self:isEnabled(maintenanceName, false),maintenanceFeature.beginDate,maintenanceFeature.endDate) end</span>
+<span id="L2083" class="line"><a href="#L2083">2083</a>			return</span>
+<span id="L2084" class="line"><a href="#L2084">2084</a>		end</span>
+<span id="L2085" class="line"><a href="#L2085">2085</a>	end</span>
+<span id="L2086" class="line"><a href="#L2086">2086</a>	local dummyData = self._dummyMaintenanceMaps and self._dummyMaintenanceMaps[maintenanceName]</span>
+<span id="L2087" class="line"><a href="#L2087">2087</a>	if dummyData then</span>
+<span id="L2088" class="line"><a href="#L2088">2088</a>		-- 测试数据</span>
+<span id="L2089" class="line"><a href="#L2089">2089</a>		for _ , key in ipairs( dummyData ) do</span>
+<span id="L2090" class="line"><a href="#L2090">2090</a>			if type(key) == &quot;string&quot; then</span>
+<span id="L2091" class="line"><a href="#L2091">2091</a>				return key</span>
+<span id="L2092" class="line"><a href="#L2092">2092</a>			end</span>
+<span id="L2093" class="line"><a href="#L2093">2093</a>		end</span>
+<span id="L2094" class="line"><a href="#L2094">2094</a>		-- 测试数据 未命中</span>
+<span id="L2095" class="line"><a href="#L2095">2095</a>		if log then log(&quot;getCurrentGroupName r not in dummyData&quot;,maintenanceName,ttsd(dummyData)) end</span>
+<span id="L2096" class="line"><a href="#L2096">2096</a>		return</span>
+<span id="L2097" class="line"><a href="#L2097">2097</a>	end</span>
+<span id="L2098" class="line"><a href="#L2098">2098</a>    local uid = getSafeUid()</span>
+<span id="L2099" class="line"><a href="#L2099">2099</a>	local childIndex , algorithmId, onlyOneGroupLeft = self:getChildIndexAndalgorithmId( maintenanceFeature , uid )</span>
+<span id="L2100" class="line"><a href="#L2100">2100</a>	if not childIndex then</span>
+<span id="L2101" class="line"><a href="#L2101">2101</a>		-- 分组未命中</span>
+<span id="L2102" class="line"><a href="#L2102">2102</a>		if log then log(&quot;getCurrentGroupName r NO childIndex&quot;,maintenanceName,ttsd(maintenanceFeature)) end</span>
+<span id="L2103" class="line"><a href="#L2103">2103</a>		return</span>
+<span id="L2104" class="line"><a href="#L2104">2104</a>	end</span>
+<span id="L2105" class="line"><a href="#L2105">2105</a>	local groupData = maintenanceFeature.groupChild[childIndex]</span>
+<span id="L2106" class="line"><a href="#L2106">2106</a>	if not groupData then</span>
+<span id="L2107" class="line"><a href="#L2107">2107</a>		if log then log(&quot;getCurrentGroupName r NO groupData&quot;,maintenanceName,childIndex) end</span>
+<span id="L2108" class="line"><a href="#L2108">2108</a>		return</span>
+<span id="L2109" class="line"><a href="#L2109">2109</a>	end</span>
+<span id="L2110" class="line"><a href="#L2110">2110</a>	if log then log(&quot;getCurrentGroupName result&quot;,maintenanceName,childIndex,ttsd(groupData)) end</span>
+<span id="L2111" class="line"><a href="#L2111">2111</a>	return groupData</span>
+<span id="L2112" class="line"><a href="#L2112">2112</a>end</span>
+<span id="L2113" class="line"><a href="#L2113">2113</a></span>
+<span id="L2114" class="line"><a href="#L2114">2114</a>-- 关卡外关闭按钮测试新ui分组</span>
+<span id="L2115" class="line"><a href="#L2115">2115</a>function MaintenanceManager:isCloseBtnTestNewUI()</span>
+<span id="L2116" class="line"><a href="#L2116">2116</a>	return true</span>
+<span id="L2117" class="line"><a href="#L2117">2117</a>end</span></pre></main></html>

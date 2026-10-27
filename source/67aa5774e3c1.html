@@ -1,0 +1,183 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/collectcard/view/OpenCardFlowPanelVM.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="67aa5774e3c1.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/collectcard/view/OpenCardFlowPanelVM.lua</h1><p>SHA256 7bf776612923098ba290e53598b68a08c673632116c4e654fdc638f0b6001496</p><pre><span id="L1" class="line"><a href="#L1">1</a>local ShowRewardsPanelVM = require &quot;amf.middleware.ui.kit.panel.reward.ShowRewardsPanelVM&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local CollectCardEventCenter = require &quot;amf.feature.localactivity.collectcard.event.CollectCardEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>local OpenCardFlowPanelVM = class(&quot;OpenCardFlowPanelVM&quot;, ShowRewardsPanelVM)</span>
+<span id="L5" class="line"><a href="#L5">5</a>local Builder = newBuilder(OpenCardFlowPanelVM)</span>
+<span id="L6" class="line"><a href="#L6">6</a>local OpenCardFlowIdSeed = 0</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>function OpenCardFlowPanelVM:_createPanel(...)</span>
+<span id="L10" class="line"><a href="#L10">10</a>    local OpenCardFlowPanel = require_debug &quot;amf.feature.localactivity.collectcard.view.OpenCardFlowPanel&quot;</span>
+<span id="L11" class="line"><a href="#L11">11</a>    return OpenCardFlowPanel:create(OpenCardFlowPanelVM, ...)</span>
+<span id="L12" class="line"><a href="#L12">12</a>end</span>
+<span id="L13" class="line"><a href="#L13">13</a></span>
+<span id="L14" class="line"><a href="#L14">14</a>function OpenCardFlowPanelVM:init(delegate)</span>
+<span id="L15" class="line"><a href="#L15">15</a>    ShowRewardsPanelVM.init(self, delegate)</span>
+<span id="L16" class="line"><a href="#L16">16</a>    OpenCardFlowIdSeed = OpenCardFlowIdSeed + 1</span>
+<span id="L17" class="line"><a href="#L17">17</a>    self.openCardFlowId = OpenCardFlowIdSeed</span>
+<span id="L18" class="line"><a href="#L18">18</a>    self.totalNum = #self.rewards</span>
+<span id="L19" class="line"><a href="#L19">19</a>    self:registerEvent()</span>
+<span id="L20" class="line"><a href="#L20">20</a>end</span>
+<span id="L21" class="line"><a href="#L21">21</a></span>
+<span id="L22" class="line"><a href="#L22">22</a>function OpenCardFlowPanelVM:isMyOpenCardAnimEvent(event)</span>
+<span id="L23" class="line"><a href="#L23">23</a>    local data = event:getData() or {}</span>
+<span id="L24" class="line"><a href="#L24">24</a>    printx(33, &quot;OpenCardFlowPanelVM:isMyOpenCardAnimEvent, self.openCardFlowId:&quot;, self.openCardFlowId, &quot;data.openCardFlowId:&quot;, data.openCardFlowId)</span>
+<span id="L25" class="line"><a href="#L25">25</a>    return data.openCardFlowId == self.openCardFlowId</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>function OpenCardFlowPanelVM:registerEvent()</span>
+<span id="L29" class="line"><a href="#L29">29</a>    local onCardPackAnimShowFunc = function(context, ...)</span>
+<span id="L30" class="line"><a href="#L30">30</a>        self.onCardPackAnimShow(context, ...) </span>
+<span id="L31" class="line"><a href="#L31">31</a>    end</span>
+<span id="L32" class="line"><a href="#L32">32</a>    CollectCardEventCenter:register(CollectCardEvent.CARD_PACK_ANIM_SHOW, onCardPackAnimShowFunc, self)</span>
+<span id="L33" class="line"><a href="#L33">33</a>    self.onCardPackAnimShowFunc = onCardPackAnimShowFunc</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>    local onCardPackAnimOpenFunc = function(context, ...)</span>
+<span id="L36" class="line"><a href="#L36">36</a>        self.onCardPackAnimOpen(context, ...) </span>
+<span id="L37" class="line"><a href="#L37">37</a>    end</span>
+<span id="L38" class="line"><a href="#L38">38</a>    CollectCardEventCenter:register(CollectCardEvent.CARD_PACK_ANIM_OPEN, onCardPackAnimOpenFunc, self)</span>
+<span id="L39" class="line"><a href="#L39">39</a>    self.onCardPackAnimOpenFunc = onCardPackAnimOpenFunc</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>    local onCardPackAnimOpeningFunc = function(context, ...)</span>
+<span id="L42" class="line"><a href="#L42">42</a>        self.onCardPackAnimOpening(context, ...) </span>
+<span id="L43" class="line"><a href="#L43">43</a>    end</span>
+<span id="L44" class="line"><a href="#L44">44</a>    CollectCardEventCenter:register(CollectCardEvent.CARD_PACK_ANIM_OPENING, onCardPackAnimOpeningFunc, self)</span>
+<span id="L45" class="line"><a href="#L45">45</a>    self.onCardPackAnimOpeningFunc = onCardPackAnimOpeningFunc</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>    local onCardPackAnimStopAtLastFunc = function(context, ...)</span>
+<span id="L48" class="line"><a href="#L48">48</a>        self.onCardPackAnimStopAtLast(context, ...) </span>
+<span id="L49" class="line"><a href="#L49">49</a>    end</span>
+<span id="L50" class="line"><a href="#L50">50</a>    CollectCardEventCenter:register(CollectCardEvent.CARD_PACK_ANIM_STOP_AT_LAST, onCardPackAnimStopAtLastFunc, self)</span>
+<span id="L51" class="line"><a href="#L51">51</a>    self.onCardPackAnimStopAtLastFunc = onCardPackAnimStopAtLastFunc</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>    local onCardPackAnimSkipFunc = function(context, ...)</span>
+<span id="L54" class="line"><a href="#L54">54</a>        self.onCardPackAnimSkip(context, ...) </span>
+<span id="L55" class="line"><a href="#L55">55</a>    end</span>
+<span id="L56" class="line"><a href="#L56">56</a>    CollectCardEventCenter:register(CollectCardEvent.CARD_PACK_ANIM_SKIP, onCardPackAnimSkipFunc, self)</span>
+<span id="L57" class="line"><a href="#L57">57</a>    self.onCardPackAnimSkipFunc = onCardPackAnimSkipFunc</span>
+<span id="L58" class="line"><a href="#L58">58</a></span>
+<span id="L59" class="line"><a href="#L59">59</a>    local onCardPackAnimFinishFunc = function(context, ...)</span>
+<span id="L60" class="line"><a href="#L60">60</a>        self.onCardPackAnimFinish(context, ...) </span>
+<span id="L61" class="line"><a href="#L61">61</a>    end</span>
+<span id="L62" class="line"><a href="#L62">62</a>    CollectCardEventCenter:register(CollectCardEvent.CARD_PACK_ANIM_FINISH, onCardPackAnimFinishFunc, self)</span>
+<span id="L63" class="line"><a href="#L63">63</a>    self.onCardPackAnimFinishFunc = onCardPackAnimFinishFunc</span>
+<span id="L64" class="line"><a href="#L64">64</a>end</span>
+<span id="L65" class="line"><a href="#L65">65</a></span>
+<span id="L66" class="line"><a href="#L66">66</a>function OpenCardFlowPanelVM:unRegisterEvent()</span>
+<span id="L67" class="line"><a href="#L67">67</a>    CollectCardEventCenter:unregister(CollectCardEvent.CARD_PACK_ANIM_SHOW, self.onCardPackAnimShowFunc)</span>
+<span id="L68" class="line"><a href="#L68">68</a>    CollectCardEventCenter:unregister(CollectCardEvent.CARD_PACK_ANIM_OPEN, self.onCardPackAnimOpenFunc)</span>
+<span id="L69" class="line"><a href="#L69">69</a>    CollectCardEventCenter:unregister(CollectCardEvent.CARD_PACK_ANIM_OPENING, self.onCardPackAnimOpeningFunc)</span>
+<span id="L70" class="line"><a href="#L70">70</a>    CollectCardEventCenter:unregister(CollectCardEvent.CARD_PACK_ANIM_STOP_AT_LAST, self.onCardPackAnimStopAtLastFunc)</span>
+<span id="L71" class="line"><a href="#L71">71</a>    CollectCardEventCenter:unregister(CollectCardEvent.CARD_PACK_ANIM_SKIP, self.onCardPackAnimSkipFunc)</span>
+<span id="L72" class="line"><a href="#L72">72</a>    CollectCardEventCenter:unregister(CollectCardEvent.CARD_PACK_ANIM_FINISH, self.onCardPackAnimFinishFunc)</span>
+<span id="L73" class="line"><a href="#L73">73</a>end</span>
+<span id="L74" class="line"><a href="#L74">74</a></span>
+<span id="L75" class="line"><a href="#L75">75</a>function OpenCardFlowPanelVM:onCloseBtnTapped()</span>
+<span id="L76" class="line"><a href="#L76">76</a>    -- 先看流程是否已经走完</span>
+<span id="L77" class="line"><a href="#L77">77</a>    CollectCardEventCenter:notifyEnsureCallback(CollectCardEvent.CARD_PACK_FLOW_BACK_CLICKED, {</span>
+<span id="L78" class="line"><a href="#L78">78</a>        openCardFlowId = self.openCardFlowId,</span>
+<span id="L79" class="line"><a href="#L79">79</a>    }, nil, function()</span>
+<span id="L80" class="line"><a href="#L80">80</a>        if self.isDisposed then return end</span>
+<span id="L81" class="line"><a href="#L81">81</a>        local mgr = _G.amfBean(&quot;CollectCardManager&quot;)</span>
+<span id="L82" class="line"><a href="#L82">82</a>        local Const = mgr:getConst()</span>
+<span id="L83" class="line"><a href="#L83">83</a>        mgr:playEffect(Const.Sound.CLICK_COMMON_01)</span>
+<span id="L84" class="line"><a href="#L84">84</a>        mgr:playHaptics(Const.Haptics.BUTTON_NORMAL)</span>
+<span id="L85" class="line"><a href="#L85">85</a>        ShowRewardsPanelVM.onCloseBtnTapped(self)</span>
+<span id="L86" class="line"><a href="#L86">86</a>    end)</span>
+<span id="L87" class="line"><a href="#L87">87</a>end</span>
+<span id="L88" class="line"><a href="#L88">88</a></span>
+<span id="L89" class="line"><a href="#L89">89</a>function OpenCardFlowPanelVM:close()</span>
+<span id="L90" class="line"><a href="#L90">90</a>    self:_close()</span>
+<span id="L91" class="line"><a href="#L91">91</a>end</span>
+<span id="L92" class="line"><a href="#L92">92</a></span>
+<span id="L93" class="line"><a href="#L93">93</a>function OpenCardFlowPanelVM:recycle()</span>
+<span id="L94" class="line"><a href="#L94">94</a>    self:unRegisterEvent()</span>
+<span id="L95" class="line"><a href="#L95">95</a>    ShowRewardsPanelVM.recycle(self)</span>
+<span id="L96" class="line"><a href="#L96">96</a>end</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>function OpenCardFlowPanelVM:onEnterPanelRun()</span>
+<span id="L99" class="line"><a href="#L99">99</a>    printx(33, &quot;OpenCardFlowPanelVM:onEnterPanelRun&quot;)</span>
+<span id="L100" class="line"><a href="#L100">100</a>    local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L101" class="line"><a href="#L101">101</a>    deferred.success()</span>
+<span id="L102" class="line"><a href="#L102">102</a>    :next(function()</span>
+<span id="L103" class="line"><a href="#L103">103</a>        printx(33, &quot;OpenCardFlowPanelVM:onEnterPanelRun 1&quot;)</span>
+<span id="L104" class="line"><a href="#L104">104</a>        if self.isDisposed then return deferred.error() end</span>
+<span id="L105" class="line"><a href="#L105">105</a>        local d = deferred.new()</span>
+<span id="L106" class="line"><a href="#L106">106</a>        self:callViewFuncWithCallback(&quot;showBubbleAndLight&quot;, function()</span>
+<span id="L107" class="line"><a href="#L107">107</a>            d:resolve()</span>
+<span id="L108" class="line"><a href="#L108">108</a>        end)</span>
+<span id="L109" class="line"><a href="#L109">109</a>        return d</span>
+<span id="L110" class="line"><a href="#L110">110</a>    end)</span>
+<span id="L111" class="line"><a href="#L111">111</a>    :next(function()</span>
+<span id="L112" class="line"><a href="#L112">112</a>        printx(33, &quot;OpenCardFlowPanelVM:onEnterPanelRun 2&quot;)</span>
+<span id="L113" class="line"><a href="#L113">113</a>        if self.isDisposed then return deferred.error() end</span>
+<span id="L114" class="line"><a href="#L114">114</a>        local d = deferred.new()</span>
+<span id="L115" class="line"><a href="#L115">115</a>        self:callViewFuncWithCallback(&quot;showTitle&quot;, function()</span>
+<span id="L116" class="line"><a href="#L116">116</a>            d:resolve()</span>
+<span id="L117" class="line"><a href="#L117">117</a>        end)</span>
+<span id="L118" class="line"><a href="#L118">118</a>        return d</span>
+<span id="L119" class="line"><a href="#L119">119</a>    end)</span>
+<span id="L120" class="line"><a href="#L120">120</a>    :next(function()</span>
+<span id="L121" class="line"><a href="#L121">121</a>        printx(33, &quot;OpenCardFlowPanelVM:onEnterPanelRun 3&quot;)</span>
+<span id="L122" class="line"><a href="#L122">122</a>        if self.isDisposed then return deferred.error() end</span>
+<span id="L123" class="line"><a href="#L123">123</a>        local d = deferred.new()</span>
+<span id="L124" class="line"><a href="#L124">124</a>        self:callViewFuncWithCallback(&quot;showCloseBtn&quot;)</span>
+<span id="L125" class="line"><a href="#L125">125</a>        d:resolve()</span>
+<span id="L126" class="line"><a href="#L126">126</a>        return d</span>
+<span id="L127" class="line"><a href="#L127">127</a>    end)</span>
+<span id="L128" class="line"><a href="#L128">128</a>end</span>
+<span id="L129" class="line"><a href="#L129">129</a></span>
+<span id="L130" class="line"><a href="#L130">130</a>function OpenCardFlowPanelVM:onKeyBackClicked()</span>
+<span id="L131" class="line"><a href="#L131">131</a>    CollectCardEventCenter:notifyEnsureCallback(CollectCardEvent.CARD_PACK_FLOW_BACK_CLICKED, {</span>
+<span id="L132" class="line"><a href="#L132">132</a>        openCardFlowId = self.openCardFlowId,</span>
+<span id="L133" class="line"><a href="#L133">133</a>    }, nil, function()</span>
+<span id="L134" class="line"><a href="#L134">134</a>        if self.isDisposed then return end</span>
+<span id="L135" class="line"><a href="#L135">135</a>        self:close()</span>
+<span id="L136" class="line"><a href="#L136">136</a>    end)</span>
+<span id="L137" class="line"><a href="#L137">137</a>end</span>
+<span id="L138" class="line"><a href="#L138">138</a></span>
+<span id="L139" class="line"><a href="#L139">139</a>function OpenCardFlowPanelVM:onCardPackAnimShow(event)</span>
+<span id="L140" class="line"><a href="#L140">140</a>    if self.isDisposed then return end</span>
+<span id="L141" class="line"><a href="#L141">141</a>    if not self:isMyOpenCardAnimEvent(event) then return end</span>
+<span id="L142" class="line"><a href="#L142">142</a>end</span>
+<span id="L143" class="line"><a href="#L143">143</a></span>
+<span id="L144" class="line"><a href="#L144">144</a>function OpenCardFlowPanelVM:onCardPackAnimOpen(event)</span>
+<span id="L145" class="line"><a href="#L145">145</a>    if self.isDisposed then return end</span>
+<span id="L146" class="line"><a href="#L146">146</a>    if not self:isMyOpenCardAnimEvent(event) then return end</span>
+<span id="L147" class="line"><a href="#L147">147</a>end</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>function OpenCardFlowPanelVM:onCardPackAnimOpening(event)</span>
+<span id="L150" class="line"><a href="#L150">150</a>    if self.isDisposed then return end</span>
+<span id="L151" class="line"><a href="#L151">151</a>    if not self:isMyOpenCardAnimEvent(event) then return end</span>
+<span id="L152" class="line"><a href="#L152">152</a>    local data = event:getData()</span>
+<span id="L153" class="line"><a href="#L153">153</a>    local openingIdx = data.openingIdx</span>
+<span id="L154" class="line"><a href="#L154">154</a>    local totalNum = self.totalNum</span>
+<span id="L155" class="line"><a href="#L155">155</a>    if totalNum == 1 then</span>
+<span id="L156" class="line"><a href="#L156">156</a>        self:callViewFunc(&quot;setSubTitleStr&quot;, &quot;恭喜你获得以下卡片&quot;)</span>
+<span id="L157" class="line"><a href="#L157">157</a>    else</span>
+<span id="L158" class="line"><a href="#L158">158</a>        self:callViewFunc(&quot;setSubTitleStr&quot;, string.format(&quot;开启第%d/%d个卡包，获得以下卡片&quot;, openingIdx, totalNum))</span>
+<span id="L159" class="line"><a href="#L159">159</a>    end</span>
+<span id="L160" class="line"><a href="#L160">160</a>end</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>function OpenCardFlowPanelVM:onCardPackAnimStopAtLast(event)</span>
+<span id="L163" class="line"><a href="#L163">163</a>    if self.isDisposed then return end</span>
+<span id="L164" class="line"><a href="#L164">164</a>    if not self:isMyOpenCardAnimEvent(event) then return end</span>
+<span id="L165" class="line"><a href="#L165">165</a>end</span>
+<span id="L166" class="line"><a href="#L166">166</a></span>
+<span id="L167" class="line"><a href="#L167">167</a>function OpenCardFlowPanelVM:onCardPackAnimSkip(event)</span>
+<span id="L168" class="line"><a href="#L168">168</a>    if self.isDisposed then return end</span>
+<span id="L169" class="line"><a href="#L169">169</a>    if not self:isMyOpenCardAnimEvent(event) then return end</span>
+<span id="L170" class="line"><a href="#L170">170</a>    local data = event:getData() or {}</span>
+<span id="L171" class="line"><a href="#L171">171</a>    local skippedNum = data.skippedNum or self.totalNum</span>
+<span id="L172" class="line"><a href="#L172">172</a>    self:callViewFunc(&quot;setSubTitleStr&quot;, string.format(&quot;开启了剩余%d个卡包，获得以下卡片&quot;, skippedNum))</span>
+<span id="L173" class="line"><a href="#L173">173</a>end</span>
+<span id="L174" class="line"><a href="#L174">174</a></span>
+<span id="L175" class="line"><a href="#L175">175</a>function OpenCardFlowPanelVM:onCardPackAnimFinish(event)</span>
+<span id="L176" class="line"><a href="#L176">176</a>    printx(33, &quot;OpenCardFlowPanelVM:onCardPackAnimFinish&quot;, self.isDisposed) --- IGNORE ---</span>
+<span id="L177" class="line"><a href="#L177">177</a>    if self.isDisposed then return end</span>
+<span id="L178" class="line"><a href="#L178">178</a>    if not self:isMyOpenCardAnimEvent(event) then return end</span>
+<span id="L179" class="line"><a href="#L179">179</a>    printx(33, &quot;OpenCardFlowPanelVM:onCardPackAnimFinish 关闭开包界面&quot;) --- IGNORE ---</span>
+<span id="L180" class="line"><a href="#L180">180</a>    self:_close()</span>
+<span id="L181" class="line"><a href="#L181">181</a>end</span>
+<span id="L182" class="line"><a href="#L182">182</a></span>
+<span id="L183" class="line"><a href="#L183">183</a>return OpenCardFlowPanelVM</span></pre></main></html>

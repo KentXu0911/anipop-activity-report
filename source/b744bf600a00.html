@@ -1,0 +1,352 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/giftpackage/module/store/shopreward/view/ShopRewardStoreView.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="b744bf600a00.lua" download>下载Lua原文</a></p><h1>amf/feature/giftpackage/module/store/shopreward/view/ShopRewardStoreView.lua</h1><p>SHA256 7b52105ee18603d227590696aa5ce760767825276ac2af305cf84fcadb64950b</p><pre><span id="L1" class="line"><a href="#L1">1</a>local StoreGoodsGiftView = force_require &quot;amf.feature.giftpackage.common.view.store.StoreGoodsGiftView&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local Res = require &quot;amf.feature.localactivity.shopreward.const.Res&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local TimeUtil = require &quot;amf.middleware.ui.util.TimeUtil&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local ActionCreator = require &quot;amf.middleware.ui.util.ActionCreator&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local ShopRewardEventCenter = require &quot;amf.feature.localactivity.shopreward.event.ShopRewardEventCenter&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>---@class ShopRewardStoreView : StoreGoodsGiftView</span>
+<span id="L8" class="line"><a href="#L8">8</a>local ShopRewardStoreView = class(&quot;ShopRewardStoreView&quot;, StoreGoodsGiftView)</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>local GUIDE_STEP_DURATION = 10 / 30</span>
+<span id="L11" class="line"><a href="#L11">11</a>local DEFAULT_STEP_DURATION = 3 / 30</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>local oriLabelCfg = {</span>
+<span id="L14" class="line"><a href="#L14">14</a>    goldBg = {</span>
+<span id="L15" class="line"><a href="#L15">15</a>        init = {},</span>
+<span id="L16" class="line"><a href="#L16">16</a>        actions = {</span>
+<span id="L17" class="line"><a href="#L17">17</a>            {time = 3/30, scale = 1.49},</span>
+<span id="L18" class="line"><a href="#L18">18</a>            {time = 2/30, scale = 1.45},</span>
+<span id="L19" class="line"><a href="#L19">19</a>            {delay = 8/30, time = 5/30, scale = 0.95},</span>
+<span id="L20" class="line"><a href="#L20">20</a>            {time = 3/30, scale = 1}</span>
+<span id="L21" class="line"><a href="#L21">21</a>        }</span>
+<span id="L22" class="line"><a href="#L22">22</a>    },</span>
+<span id="L23" class="line"><a href="#L23">23</a>    goldLabel = {</span>
+<span id="L24" class="line"><a href="#L24">24</a>        init = {},</span>
+<span id="L25" class="line"><a href="#L25">25</a>        actions = {</span>
+<span id="L26" class="line"><a href="#L26">26</a>            {time = 3/30, scale = 1.49},</span>
+<span id="L27" class="line"><a href="#L27">27</a>            {time = 2/30, scale = 1.45},</span>
+<span id="L28" class="line"><a href="#L28">28</a>            {delay = 8/30, time = 5/30, scale = 0.95},</span>
+<span id="L29" class="line"><a href="#L29">29</a>            {time = 3/30, scale = 1}</span>
+<span id="L30" class="line"><a href="#L30">30</a>        }</span>
+<span id="L31" class="line"><a href="#L31">31</a>    },</span>
+<span id="L32" class="line"><a href="#L32">32</a>    line = {</span>
+<span id="L33" class="line"><a href="#L33">33</a>        init = {</span>
+<span id="L34" class="line"><a href="#L34">34</a>            scale = {x = 0, y = 1}</span>
+<span id="L35" class="line"><a href="#L35">35</a>        },</span>
+<span id="L36" class="line"><a href="#L36">36</a>        actions = {</span>
+<span id="L37" class="line"><a href="#L37">37</a>            {delay = 3/30, time = 5/30, scale = {x = 1, y = 1}}</span>
+<span id="L38" class="line"><a href="#L38">38</a>        }</span>
+<span id="L39" class="line"><a href="#L39">39</a>    },</span>
+<span id="L40" class="line"><a href="#L40">40</a>    lineLayer = {</span>
+<span id="L41" class="line"><a href="#L41">41</a>        init = {},</span>
+<span id="L42" class="line"><a href="#L42">42</a>        actions = {</span>
+<span id="L43" class="line"><a href="#L43">43</a>            {time = 3/30, scale = 1.49},</span>
+<span id="L44" class="line"><a href="#L44">44</a>            {time = 2/30, scale = 1.45},</span>
+<span id="L45" class="line"><a href="#L45">45</a>            {delay = 8/30, time = 5/30, scale = 0.95},</span>
+<span id="L46" class="line"><a href="#L46">46</a>            {time = 3/30, scale = 1}</span>
+<span id="L47" class="line"><a href="#L47">47</a>        }</span>
+<span id="L48" class="line"><a href="#L48">48</a>    }</span>
+<span id="L49" class="line"><a href="#L49">49</a>}</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>function ShopRewardStoreView:initCustomUI()</span>
+<span id="L52" class="line"><a href="#L52">52</a>    StoreGoodsGiftView.initCustomUI(self)</span>
+<span id="L53" class="line"><a href="#L53">53</a>    UICreateUtil:loadPlist(Res.Plist.NUMFRAME)</span>
+<span id="L54" class="line"><a href="#L54">54</a>    UICreateUtil:loadSpineRes(Res.Spine.ZHAN)</span>
+<span id="L55" class="line"><a href="#L55">55</a>    self.isShopRewardStoreView = true</span>
+<span id="L56" class="line"><a href="#L56">56</a>    self:updateGoldIconNum()</span>
+<span id="L57" class="line"><a href="#L57">57</a>    self:registerGuideLineAnimEvent()</span>
+<span id="L58" class="line"><a href="#L58">58</a>end</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>function ShopRewardStoreView:setSpecialTag()</span>
+<span id="L61" class="line"><a href="#L61">61</a>    local sTag = self.giftData and self.giftData:getExtraValue(&quot;tagText&quot;)</span>
+<span id="L62" class="line"><a href="#L62">62</a>    if sTag then</span>
+<span id="L63" class="line"><a href="#L63">63</a>        self.layout:setCornerText(sTag, 1.33)</span>
+<span id="L64" class="line"><a href="#L64">64</a>    end</span>
+<span id="L65" class="line"><a href="#L65">65</a>end</span>
+<span id="L66" class="line"><a href="#L66">66</a></span>
+<span id="L67" class="line"><a href="#L67">67</a>function ShopRewardStoreView:registerGuideLineAnimEvent()</span>
+<span id="L68" class="line"><a href="#L68">68</a>    if self.guideLineAnimListener then return end</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>    self.guideLineAnimListener = function(event)</span>
+<span id="L71" class="line"><a href="#L71">71</a>        self:onGuideLineAnimPlay(event)</span>
+<span id="L72" class="line"><a href="#L72">72</a>    end</span>
+<span id="L73" class="line"><a href="#L73">73</a>    ShopRewardEventCenter:register(ShopRewardEvent.GUIDE_LINE_ANIM_PLAY, self.guideLineAnimListener)</span>
+<span id="L74" class="line"><a href="#L74">74</a>end</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>function ShopRewardStoreView:unregisterGuideLineAnimEvent()</span>
+<span id="L77" class="line"><a href="#L77">77</a>    if not self.guideLineAnimListener then return end</span>
+<span id="L78" class="line"><a href="#L78">78</a></span>
+<span id="L79" class="line"><a href="#L79">79</a>    ShopRewardEventCenter:unregister(ShopRewardEvent.GUIDE_LINE_ANIM_PLAY, self.guideLineAnimListener)</span>
+<span id="L80" class="line"><a href="#L80">80</a>    self.guideLineAnimListener = nil</span>
+<span id="L81" class="line"><a href="#L81">81</a>end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>function ShopRewardStoreView:onGuideLineAnimPlay(event)</span>
+<span id="L84" class="line"><a href="#L84">84</a>    if self.isDisposed then return end</span>
+<span id="L85" class="line"><a href="#L85">85</a></span>
+<span id="L86" class="line"><a href="#L86">86</a>    self.shopRewardGuideLineAnimTriggered = true</span>
+<span id="L87" class="line"><a href="#L87">87</a>    self:playShopRewardAnimWithDelay(self:getShopRewardGuideAnimDelay(), true)</span>
+<span id="L88" class="line"><a href="#L88">88</a>end</span>
+<span id="L89" class="line"><a href="#L89">89</a></span>
+<span id="L90" class="line"><a href="#L90">90</a>function ShopRewardStoreView:playShopRewardAnimWithDelay(delay, forcePlay)</span>
+<span id="L91" class="line"><a href="#L91">91</a>    setTimeOut(function()</span>
+<span id="L92" class="line"><a href="#L92">92</a>        if self.isDisposed then return end</span>
+<span id="L93" class="line"><a href="#L93">93</a>        if self.shopRewardAnimPlayed then return end</span>
+<span id="L94" class="line"><a href="#L94">94</a>        if not forcePlay and self.shopRewardGuideLineAnimTriggered then return end</span>
+<span id="L95" class="line"><a href="#L95">95</a>        if not forcePlay and self:shouldWaitStoreGuideLineAnim() then</span>
+<span id="L96" class="line"><a href="#L96">96</a>            self.shopRewardAnimTimerStarted = false</span>
+<span id="L97" class="line"><a href="#L97">97</a>            self:startShopRewardAnimDelayTimer()</span>
+<span id="L98" class="line"><a href="#L98">98</a>            return</span>
+<span id="L99" class="line"><a href="#L99">99</a>        end</span>
+<span id="L100" class="line"><a href="#L100">100</a></span>
+<span id="L101" class="line"><a href="#L101">101</a>        self.shopRewardAnimPlayed = true</span>
+<span id="L102" class="line"><a href="#L102">102</a>        self:playOriginGoldAnim()</span>
+<span id="L103" class="line"><a href="#L103">103</a>        self:replaceStoreTextWithShopRewardPriceNode()</span>
+<span id="L104" class="line"><a href="#L104">104</a>        self:playShopRewardPriceAnim()</span>
+<span id="L105" class="line"><a href="#L105">105</a>        self:setWaitingStoreGuideLineAnim(false)</span>
+<span id="L106" class="line"><a href="#L106">106</a>    end, delay or self:getShopRewardAnimDelay())</span>
+<span id="L107" class="line"><a href="#L107">107</a>end</span>
+<span id="L108" class="line"><a href="#L108">108</a></span>
+<span id="L109" class="line"><a href="#L109">109</a>function ShopRewardStoreView:setPayProgressInfo(info)</span>
+<span id="L110" class="line"><a href="#L110">110</a>    StoreGoodsGiftView.setPayProgressInfo(self, info)</span>
+<span id="L111" class="line"><a href="#L111">111</a>    self.storeGiftIndex = info and info.showPos</span>
+<span id="L112" class="line"><a href="#L112">112</a>    self:startShopRewardAnimDelayTimer()</span>
+<span id="L113" class="line"><a href="#L113">113</a>end</span>
+<span id="L114" class="line"><a href="#L114">114</a></span>
+<span id="L115" class="line"><a href="#L115">115</a>function ShopRewardStoreView:startShopRewardAnimDelayTimer()</span>
+<span id="L116" class="line"><a href="#L116">116</a>    if self.shopRewardAnimTimerStarted then return end</span>
+<span id="L117" class="line"><a href="#L117">117</a>    self.shopRewardAnimTimerStarted = true</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>    self:playShopRewardAnimWithDelay(self:getShopRewardAnimDelay())</span>
+<span id="L120" class="line"><a href="#L120">120</a>end</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>function ShopRewardStoreView:shouldWaitStoreGuideLineAnim()</span>
+<span id="L123" class="line"><a href="#L123">123</a>    local manager = _G.amfBean(&quot;ShopRewardManager&quot;)</span>
+<span id="L124" class="line"><a href="#L124">124</a>    return manager and manager.shouldWaitStoreGuideLineAnim and manager:shouldWaitStoreGuideLineAnim()</span>
+<span id="L125" class="line"><a href="#L125">125</a>end</span>
+<span id="L126" class="line"><a href="#L126">126</a></span>
+<span id="L127" class="line"><a href="#L127">127</a>function ShopRewardStoreView:setWaitingStoreGuideLineAnim(isWaiting)</span>
+<span id="L128" class="line"><a href="#L128">128</a>    local manager = _G.amfBean(&quot;ShopRewardManager&quot;)</span>
+<span id="L129" class="line"><a href="#L129">129</a>    if not manager or not manager.setWaitingStoreGuideLineAnim then return end</span>
+<span id="L130" class="line"><a href="#L130">130</a></span>
+<span id="L131" class="line"><a href="#L131">131</a>    manager:setWaitingStoreGuideLineAnim(isWaiting)</span>
+<span id="L132" class="line"><a href="#L132">132</a>end</span>
+<span id="L133" class="line"><a href="#L133">133</a></span>
+<span id="L134" class="line"><a href="#L134">134</a>function ShopRewardStoreView:getShopRewardAnimDelay()</span>
+<span id="L135" class="line"><a href="#L135">135</a>    return 0.5 + self:getShopRewardDefaultAnimDelay()</span>
+<span id="L136" class="line"><a href="#L136">136</a>end</span>
+<span id="L137" class="line"><a href="#L137">137</a></span>
+<span id="L138" class="line"><a href="#L138">138</a>function ShopRewardStoreView:getShopRewardGuideAnimDelay()</span>
+<span id="L139" class="line"><a href="#L139">139</a>    local index = tonumber(self.storeGiftIndex) or 1</span>
+<span id="L140" class="line"><a href="#L140">140</a>    return math.max(index - 1, 0) * GUIDE_STEP_DURATION</span>
+<span id="L141" class="line"><a href="#L141">141</a>end</span>
+<span id="L142" class="line"><a href="#L142">142</a></span>
+<span id="L143" class="line"><a href="#L143">143</a>function ShopRewardStoreView:getShopRewardDefaultAnimDelay()</span>
+<span id="L144" class="line"><a href="#L144">144</a>    local index = tonumber(self.storeGiftIndex) or 1</span>
+<span id="L145" class="line"><a href="#L145">145</a>    return math.max(index - 1, 0) * DEFAULT_STEP_DURATION</span>
+<span id="L146" class="line"><a href="#L146">146</a>end</span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>function ShopRewardStoreView:replaceStoreTextWithShopRewardPriceNode()</span>
+<span id="L149" class="line"><a href="#L149">149</a>    if self.isDisposed then return end</span>
+<span id="L150" class="line"><a href="#L150">150</a>    if self.shopRewardPriceNode then return end</span>
+<span id="L151" class="line"><a href="#L151">151</a>    local layout = self.layout</span>
+<span id="L152" class="line"><a href="#L152">152</a>    if not layout or not layout.storeNode then return end</span>
+<span id="L153" class="line"><a href="#L153">153</a></span>
+<span id="L154" class="line"><a href="#L154">154</a>    local uiData = require &quot;amf.feature.localactivity.shopreward.view.uisource.ShopRewardPriceNode_UI&quot;</span>
+<span id="L155" class="line"><a href="#L155">155</a>    local priceNode = UIBuilder:buildUI(uiData, self)</span>
+<span id="L156" class="line"><a href="#L156">156</a>    priceNode:setPositionXY(0, -211)</span>
+<span id="L157" class="line"><a href="#L157">157</a>    layout.storeNode:addChild(priceNode)</span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>    self.shopRewardPriceNode = priceNode</span>
+<span id="L160" class="line"><a href="#L160">160</a></span>
+<span id="L161" class="line"><a href="#L161">161</a>    -- 节点</span>
+<span id="L162" class="line"><a href="#L162">162</a>    self.priceText:setString(tostring(self:getActivityPackageGoldNum()))</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>end</span>
+<span id="L165" class="line"><a href="#L165">165</a></span>
+<span id="L166" class="line"><a href="#L166">166</a>function ShopRewardStoreView:playShopRewardPriceAnim()</span>
+<span id="L167" class="line"><a href="#L167">167</a>    if self.isDisposed then return end</span>
+<span id="L168" class="line"><a href="#L168">168</a></span>
+<span id="L169" class="line"><a href="#L169">169</a>    local spine = UICreateUtil:createSpine(Res.Spine.ZHAN)</span>
+<span id="L170" class="line"><a href="#L170">170</a>    local spine2 = UICreateUtil:createSpine(Res.Spine.ZHAN)</span>
+<span id="L171" class="line"><a href="#L171">171</a>    self.shopRewardPriceNode:addChildAt(spine, 0)</span>
+<span id="L172" class="line"><a href="#L172">172</a>    spine:playOnce(&quot;b&quot;)</span>
+<span id="L173" class="line"><a href="#L173">173</a>    self.shopRewardPriceNode:addChildAt(spine2, 3)</span>
+<span id="L174" class="line"><a href="#L174">174</a>    spine2:playOnce(&quot;a&quot;, function()</span>
+<span id="L175" class="line"><a href="#L175">175</a>        setTimeOut(function()</span>
+<span id="L176" class="line"><a href="#L176">176</a>        if self.isDisposed then return end</span>
+<span id="L177" class="line"><a href="#L177">177</a>            if not isSafeCocosObj(spine2) then return end</span>
+<span id="L178" class="line"><a href="#L178">178</a>            spine2:playLoop(&quot;c&quot;)</span>
+<span id="L179" class="line"><a href="#L179">179</a>        end, 3)</span>
+<span id="L180" class="line"><a href="#L180">180</a>    end)</span>
+<span id="L181" class="line"><a href="#L181">181</a></span>
+<span id="L182" class="line"><a href="#L182">182</a>    spine:setPositionXY(147, 65)</span>
+<span id="L183" class="line"><a href="#L183">183</a>    spine2:setPositionXY(147, 65)</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>    local cfg = {</span>
+<span id="L186" class="line"><a href="#L186">186</a>        price = {</span>
+<span id="L187" class="line"><a href="#L187">187</a>            init = {</span>
+<span id="L188" class="line"><a href="#L188">188</a>                opacity = 0,</span>
+<span id="L189" class="line"><a href="#L189">189</a>                scale = 1</span>
+<span id="L190" class="line"><a href="#L190">190</a>            },</span>
+<span id="L191" class="line"><a href="#L191">191</a>            actions ={</span>
+<span id="L192" class="line"><a href="#L192">192</a>                {delay = 18/30, time = 3/30, scale = 1.25, opacity = 255},</span>
+<span id="L193" class="line"><a href="#L193">193</a>                {delay = 5/30, time = 2/30, scale = 0.98},</span>
+<span id="L194" class="line"><a href="#L194">194</a>                {time = 5/30, scale = 1}</span>
+<span id="L195" class="line"><a href="#L195">195</a>            }</span>
+<span id="L196" class="line"><a href="#L196">196</a>        },</span>
+<span id="L197" class="line"><a href="#L197">197</a>        timeNode = {</span>
+<span id="L198" class="line"><a href="#L198">198</a>            init = {</span>
+<span id="L199" class="line"><a href="#L199">199</a>                opacity = 0,</span>
+<span id="L200" class="line"><a href="#L200">200</a>            },</span>
+<span id="L201" class="line"><a href="#L201">201</a>            actions = {</span>
+<span id="L202" class="line"><a href="#L202">202</a>                {delay = 29/30, time = 6/30, opacity = 255}</span>
+<span id="L203" class="line"><a href="#L203">203</a>            }</span>
+<span id="L204" class="line"><a href="#L204">204</a>        }</span>
+<span id="L205" class="line"><a href="#L205">205</a>    }</span>
+<span id="L206" class="line"><a href="#L206">206</a>    ActionCreator.new(cfg, function(key)</span>
+<span id="L207" class="line"><a href="#L207">207</a>        if key == &quot;price&quot; then</span>
+<span id="L208" class="line"><a href="#L208">208</a>            return self.priceText</span>
+<span id="L209" class="line"><a href="#L209">209</a>        elseif key == &quot;timeNode&quot; then</span>
+<span id="L210" class="line"><a href="#L210">210</a>            return self.timeNode</span>
+<span id="L211" class="line"><a href="#L211">211</a>        end</span>
+<span id="L212" class="line"><a href="#L212">212</a>    end):execute()</span>
+<span id="L213" class="line"><a href="#L213">213</a>end</span>
+<span id="L214" class="line"><a href="#L214">214</a></span>
+<span id="L215" class="line"><a href="#L215">215</a>function ShopRewardStoreView:getActivityPackageGoldNum()</span>
+<span id="L216" class="line"><a href="#L216">216</a>    local packageId = self.giftData and self.giftData.getGoodsId and self.giftData:getGoodsId()</span>
+<span id="L217" class="line"><a href="#L217">217</a>    if not packageId then return 0 end</span>
+<span id="L218" class="line"><a href="#L218">218</a></span>
+<span id="L219" class="line"><a href="#L219">219</a>    local manager = _G.amfBean(&quot;ShopRewardManager&quot;)</span>
+<span id="L220" class="line"><a href="#L220">220</a>    return manager and manager:getPackageGoldNum(packageId) or 0</span>
+<span id="L221" class="line"><a href="#L221">221</a>end</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>function ShopRewardStoreView:getOriginPackageGoldNum()</span>
+<span id="L224" class="line"><a href="#L224">224</a>    local packageId = self.giftData and self.giftData.getGoodsId and self.giftData:getGoodsId()</span>
+<span id="L225" class="line"><a href="#L225">225</a>    if not packageId then return 0 end</span>
+<span id="L226" class="line"><a href="#L226">226</a></span>
+<span id="L227" class="line"><a href="#L227">227</a>    local manager = _G.amfBean(&quot;ShopRewardManager&quot;)</span>
+<span id="L228" class="line"><a href="#L228">228</a>    if not manager then return 0 end</span>
+<span id="L229" class="line"><a href="#L229">229</a></span>
+<span id="L230" class="line"><a href="#L230">230</a>    local originPackageId = manager:getOriginPackageIdByActivityPackageId(packageId)</span>
+<span id="L231" class="line"><a href="#L231">231</a>    if not originPackageId then return 0 end</span>
+<span id="L232" class="line"><a href="#L232">232</a></span>
+<span id="L233" class="line"><a href="#L233">233</a>    return manager:getPackageGoldNum(originPackageId) or 0</span>
+<span id="L234" class="line"><a href="#L234">234</a>end</span>
+<span id="L235" class="line"><a href="#L235">235</a></span>
+<span id="L236" class="line"><a href="#L236">236</a>function ShopRewardStoreView:updateGoldIconNum()</span>
+<span id="L237" class="line"><a href="#L237">237</a>    if not self.layout or not self.layout.operateAllPropItem then return end</span>
+<span id="L238" class="line"><a href="#L238">238</a></span>
+<span id="L239" class="line"><a href="#L239">239</a>    local goldNum = self:getOriginPackageGoldNum()</span>
+<span id="L240" class="line"><a href="#L240">240</a>    self.layout:operateAllPropItem(function(propItem)</span>
+<span id="L241" class="line"><a href="#L241">241</a>        if propItem.itemId ~= AMFPropId.GOLD then return end</span>
+<span id="L242" class="line"><a href="#L242">242</a></span>
+<span id="L243" class="line"><a href="#L243">243</a>        propItem.num = goldNum</span>
+<span id="L244" class="line"><a href="#L244">244</a>        if propItem.setGoldLabel then</span>
+<span id="L245" class="line"><a href="#L245">245</a>            propItem:setGoldLabel(goldNum)</span>
+<span id="L246" class="line"><a href="#L246">246</a>        elseif propItem.goldNumText then</span>
+<span id="L247" class="line"><a href="#L247">247</a>            propItem.goldNumText:setString(tostring(goldNum))</span>
+<span id="L248" class="line"><a href="#L248">248</a>        elseif propItem.goldLabel then</span>
+<span id="L249" class="line"><a href="#L249">249</a>            propItem.goldLabel:setString(tostring(goldNum))</span>
+<span id="L250" class="line"><a href="#L250">250</a>        elseif propItem.numWidget then</span>
+<span id="L251" class="line"><a href="#L251">251</a>            propItem.numWidget:setString(tostring(goldNum))</span>
+<span id="L252" class="line"><a href="#L252">252</a>        end</span>
+<span id="L253" class="line"><a href="#L253">253</a>    end, true)</span>
+<span id="L254" class="line"><a href="#L254">254</a>end</span>
+<span id="L255" class="line"><a href="#L255">255</a></span>
+<span id="L256" class="line"><a href="#L256">256</a>function ShopRewardStoreView:playOriginGoldAnim()</span>
+<span id="L257" class="line"><a href="#L257">257</a>    if not self.layout or not self.layout.operateAllPropItem then</span>
+<span id="L258" class="line"><a href="#L258">258</a>        return</span>
+<span id="L259" class="line"><a href="#L259">259</a>    end</span>
+<span id="L260" class="line"><a href="#L260">260</a></span>
+<span id="L261" class="line"><a href="#L261">261</a>    self.layout:operateAllPropItem(function(propItem)</span>
+<span id="L262" class="line"><a href="#L262">262</a>        if propItem.itemId ~= AMFPropId.GOLD then return end</span>
+<span id="L263" class="line"><a href="#L263">263</a></span>
+<span id="L264" class="line"><a href="#L264">264</a>        local bg = propItem.getGoldNumBg and propItem:getGoldNumBg()</span>
+<span id="L265" class="line"><a href="#L265">265</a>        local label = propItem.getGoldLabel and propItem:getGoldLabel()</span>
+<span id="L266" class="line"><a href="#L266">266</a>        local lineLayer = Layer:create()</span>
+<span id="L267" class="line"><a href="#L267">267</a>        lineLayer:ignoreAnchorPointForPosition(false)</span>
+<span id="L268" class="line"><a href="#L268">268</a>        local line = LayerColor:create()</span>
+<span id="L269" class="line"><a href="#L269">269</a>        line:setColor(hex2ccc4(&quot;8A111AFF&quot;))</span>
+<span id="L270" class="line"><a href="#L270">270</a>        line:setOpacity(255)</span>
+<span id="L271" class="line"><a href="#L271">271</a>        line:setContentSize(CCSizeMake(170, 4))</span>
+<span id="L272" class="line"><a href="#L272">272</a>        line:setAnchorPoint(ccp(0, 0.5))</span>
+<span id="L273" class="line"><a href="#L273">273</a>        lineLayer:addChild(line)</span>
+<span id="L274" class="line"><a href="#L274">274</a>        line:setPositionXY(-line:getContentSize().width/2, -line:getContentSize().height/2)</span>
+<span id="L275" class="line"><a href="#L275">275</a>        lineLayer:setRotation(-4)</span>
+<span id="L276" class="line"><a href="#L276">276</a>        if label then</span>
+<span id="L277" class="line"><a href="#L277">277</a>            local labelParent = label:getParent()</span>
+<span id="L278" class="line"><a href="#L278">278</a>            if labelParent then</span>
+<span id="L279" class="line"><a href="#L279">279</a>                lineLayer:setPositionXY(label:getPositionX(), label:getPositionY())</span>
+<span id="L280" class="line"><a href="#L280">280</a>                labelParent:addChildAfter(lineLayer, label)</span>
+<span id="L281" class="line"><a href="#L281">281</a>            else</span>
+<span id="L282" class="line"><a href="#L282">282</a>                LayoutUtil:centerAdd(label, lineLayer)</span>
+<span id="L283" class="line"><a href="#L283">283</a>            end</span>
+<span id="L284" class="line"><a href="#L284">284</a>        else</span>
+<span id="L285" class="line"><a href="#L285">285</a>            propItem:addChild(lineLayer)</span>
+<span id="L286" class="line"><a href="#L286">286</a>        end</span>
+<span id="L287" class="line"><a href="#L287">287</a>        ActionCreator.new(oriLabelCfg, function(key)</span>
+<span id="L288" class="line"><a href="#L288">288</a>            if key == &quot;goldBg&quot; then</span>
+<span id="L289" class="line"><a href="#L289">289</a>                return bg</span>
+<span id="L290" class="line"><a href="#L290">290</a>            elseif key == &quot;goldLabel&quot; then</span>
+<span id="L291" class="line"><a href="#L291">291</a>                return label</span>
+<span id="L292" class="line"><a href="#L292">292</a>            elseif key == &quot;line&quot; then</span>
+<span id="L293" class="line"><a href="#L293">293</a>                return line</span>
+<span id="L294" class="line"><a href="#L294">294</a>            elseif key == &quot;lineLayer&quot; then</span>
+<span id="L295" class="line"><a href="#L295">295</a>                return lineLayer</span>
+<span id="L296" class="line"><a href="#L296">296</a>            end</span>
+<span id="L297" class="line"><a href="#L297">297</a>        end):execute()</span>
+<span id="L298" class="line"><a href="#L298">298</a>        return true</span>
+<span id="L299" class="line"><a href="#L299">299</a>    end, true)</span>
+<span id="L300" class="line"><a href="#L300">300</a>end</span>
+<span id="L301" class="line"><a href="#L301">301</a></span>
+<span id="L302" class="line"><a href="#L302">302</a>function ShopRewardStoreView:updateByTime(remainTime)</span>
+<span id="L303" class="line"><a href="#L303">303</a>    if remainTime &lt; 0 then return end</span>
+<span id="L304" class="line"><a href="#L304">304</a>    if not self.timeText then return end</span>
+<span id="L305" class="line"><a href="#L305">305</a></span>
+<span id="L306" class="line"><a href="#L306">306</a>    local ret = TimeUtil:timeFormatVer1({</span>
+<span id="L307" class="line"><a href="#L307">307</a>        endTimeInSec = TimeKit:timeInSec() + remainTime,</span>
+<span id="L308" class="line"><a href="#L308">308</a>    })</span>
+<span id="L309" class="line"><a href="#L309">309</a>    self.timeText:setString(ret.retString)</span>
+<span id="L310" class="line"><a href="#L310">310</a>end</span>
+<span id="L311" class="line"><a href="#L311">311</a></span>
+<span id="L312" class="line"><a href="#L312">312</a>function ShopRewardStoreView:initTimeLimit()</span>
+<span id="L313" class="line"><a href="#L313">313</a>    local endTime = self.giftData:getEndTime()</span>
+<span id="L314" class="line"><a href="#L314">314</a>    if endTime and endTime &gt; 0 then</span>
+<span id="L315" class="line"><a href="#L315">315</a>        local remain = endTime - TimeKit:timeInSec()</span>
+<span id="L316" class="line"><a href="#L316">316</a>        if remain &gt; 0 then</span>
+<span id="L317" class="line"><a href="#L317">317</a>            self._tickId = TimerUtil.addAlarm(function()</span>
+<span id="L318" class="line"><a href="#L318">318</a>                if self.isDisposed then</span>
+<span id="L319" class="line"><a href="#L319">319</a>                    self:removeTimeLimitTimer()</span>
+<span id="L320" class="line"><a href="#L320">320</a>                    return</span>
+<span id="L321" class="line"><a href="#L321">321</a>                end</span>
+<span id="L322" class="line"><a href="#L322">322</a>                remain = endTime - TimeKit:timeInSec()</span>
+<span id="L323" class="line"><a href="#L323">323</a>                self:updateByTime(remain)</span>
+<span id="L324" class="line"><a href="#L324">324</a>                if remain &lt;= 0 then</span>
+<span id="L325" class="line"><a href="#L325">325</a>                    self:removeTimeLimitTimer()</span>
+<span id="L326" class="line"><a href="#L326">326</a>                    self:onCountDownEnd()</span>
+<span id="L327" class="line"><a href="#L327">327</a>                end</span>
+<span id="L328" class="line"><a href="#L328">328</a>            end, 1, 0)</span>
+<span id="L329" class="line"><a href="#L329">329</a>            self:updateByTime(remain)</span>
+<span id="L330" class="line"><a href="#L330">330</a>        else</span>
+<span id="L331" class="line"><a href="#L331">331</a>            self:updateByTime(0)</span>
+<span id="L332" class="line"><a href="#L332">332</a>            self:onCountDownEnd()</span>
+<span id="L333" class="line"><a href="#L333">333</a>        end</span>
+<span id="L334" class="line"><a href="#L334">334</a>    end</span>
+<span id="L335" class="line"><a href="#L335">335</a>end</span>
+<span id="L336" class="line"><a href="#L336">336</a></span>
+<span id="L337" class="line"><a href="#L337">337</a>function ShopRewardStoreView:removeTimeLimitTimer()</span>
+<span id="L338" class="line"><a href="#L338">338</a>    if self._tickId then</span>
+<span id="L339" class="line"><a href="#L339">339</a>        TimerUtil.removeAlarm(self._tickId)</span>
+<span id="L340" class="line"><a href="#L340">340</a>        self._tickId = nil</span>
+<span id="L341" class="line"><a href="#L341">341</a>    end</span>
+<span id="L342" class="line"><a href="#L342">342</a>end</span>
+<span id="L343" class="line"><a href="#L343">343</a></span>
+<span id="L344" class="line"><a href="#L344">344</a>function ShopRewardStoreView:dispose()</span>
+<span id="L345" class="line"><a href="#L345">345</a>    self:removeTimeLimitTimer()</span>
+<span id="L346" class="line"><a href="#L346">346</a>    UICreateUtil:unloadPlist(Res.Plist.NUMFRAME)</span>
+<span id="L347" class="line"><a href="#L347">347</a>    UICreateUtil:unloadSpineRes(Res.Spine.ZHAN)</span>
+<span id="L348" class="line"><a href="#L348">348</a>    self:unregisterGuideLineAnimEvent()</span>
+<span id="L349" class="line"><a href="#L349">349</a>    StoreGoodsGiftView.dispose(self)</span>
+<span id="L350" class="line"><a href="#L350">350</a>end</span>
+<span id="L351" class="line"><a href="#L351">351</a></span>
+<span id="L352" class="line"><a href="#L352">352</a>return ShopRewardStoreView</span></pre></main></html>

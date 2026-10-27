@@ -1,0 +1,641 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/climbtower/ClimbTowerManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="4188dd6c17f7.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/climbtower/ClimbTowerManager.lua</h1><p>SHA256 eb3e0e5639b8635ed67265eb38894dca748af912e3dacbc725356e2d1a499773</p><pre><span id="L1" class="line"><a href="#L1">1</a>local BaseFeatureManager = require &quot;amf.middleware.activity.base.BaseFeatureManager&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local IconTipEventCenter = require(&quot;amf.feature.icontip.event.IconTipEventCenter&quot;)</span>
+<span id="L4" class="line"><a href="#L4">4</a>local ClimbTowerEventCenter = require &quot;amf.feature.localactivity.climbtower.event.ClimbTowerEventCenter&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local PropEventCenter = require &quot;amf.middleware.prop.event.PropEventCenter&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local StoreEventCenter = require &quot;amf.feature.store.event.StoreEventCenter&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>local ClimbTowerManager = class(&quot;ClimbTowerManager&quot;, BaseFeatureManager)</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>local RES_LABEL = &quot;climbtower&quot;</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>function ClimbTowerManager:_getConstPath()</span>
+<span id="L14" class="line"><a href="#L14">14</a>    return &quot;amf.feature.localactivity.climbtower.const.ClimbTowerConst&quot;</span>
+<span id="L15" class="line"><a href="#L15">15</a>end</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a>function ClimbTowerManager:_getModelPath()</span>
+<span id="L18" class="line"><a href="#L18">18</a>    return &quot;amf.feature.localactivity.climbtower.model.ClimbTowerModel&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a>end</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>function ClimbTowerManager:_getExtraPlugsConfigList()</span>
+<span id="L22" class="line"><a href="#L22">22</a>    return {</span>
+<span id="L23" class="line"><a href="#L23">23</a>        {</span>
+<span id="L24" class="line"><a href="#L24">24</a>            key = &quot;Download&quot;,</span>
+<span id="L25" class="line"><a href="#L25">25</a>        },</span>
+<span id="L26" class="line"><a href="#L26">26</a>        {</span>
+<span id="L27" class="line"><a href="#L27">27</a>            key = &quot;Panel&quot;,</span>
+<span id="L28" class="line"><a href="#L28">28</a>        },</span>
+<span id="L29" class="line"><a href="#L29">29</a>        {</span>
+<span id="L30" class="line"><a href="#L30">30</a>            key = &quot;Rewards&quot;,</span>
+<span id="L31" class="line"><a href="#L31">31</a>        },</span>
+<span id="L32" class="line"><a href="#L32">32</a>        {</span>
+<span id="L33" class="line"><a href="#L33">33</a>            key = &quot;DC&quot;,</span>
+<span id="L34" class="line"><a href="#L34">34</a>            path = {</span>
+<span id="L35" class="line"><a href="#L35">35</a>                plugPath = &quot;amf.feature.localactivity.climbtower.dc.ClimbTowerDC&quot;,</span>
+<span id="L36" class="line"><a href="#L36">36</a>            }</span>
+<span id="L37" class="line"><a href="#L37">37</a>        },</span>
+<span id="L38" class="line"><a href="#L38">38</a>        {</span>
+<span id="L39" class="line"><a href="#L39">39</a>            key = &quot;LocalPush&quot;,</span>
+<span id="L40" class="line"><a href="#L40">40</a>            path = {</span>
+<span id="L41" class="line"><a href="#L41">41</a>                plugPath = &quot;amf.feature.localactivity.climbtower.plug.LocalPush&quot;,</span>
+<span id="L42" class="line"><a href="#L42">42</a>                const    = self:_getConstPath(),</span>
+<span id="L43" class="line"><a href="#L43">43</a>            },</span>
+<span id="L44" class="line"><a href="#L44">44</a>        },</span>
+<span id="L45" class="line"><a href="#L45">45</a>    }</span>
+<span id="L46" class="line"><a href="#L46">46</a>end</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>function ClimbTowerManager:_init()</span>
+<span id="L49" class="line"><a href="#L49">49</a>    self:initActInfo()</span>
+<span id="L50" class="line"><a href="#L50">50</a>    self:registerEvents()</span>
+<span id="L51" class="line"><a href="#L51">51</a>end</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>function ClimbTowerManager:setAutoPopupMgr(manager)</span>
+<span id="L54" class="line"><a href="#L54">54</a>    self.autoPopupMgr = manager</span>
+<span id="L55" class="line"><a href="#L55">55</a>    self:_registerAutoPopup()</span>
+<span id="L56" class="line"><a href="#L56">56</a>end</span>
+<span id="L57" class="line"><a href="#L57">57</a></span>
+<span id="L58" class="line"><a href="#L58">58</a>function ClimbTowerManager:setStoreManager(manager)</span>
+<span id="L59" class="line"><a href="#L59">59</a>    self.storeManager = manager</span>
+<span id="L60" class="line"><a href="#L60">60</a>end</span>
+<span id="L61" class="line"><a href="#L61">61</a></span>
+<span id="L62" class="line"><a href="#L62">62</a>function ClimbTowerManager:setActivityMgr(activityMgr)</span>
+<span id="L63" class="line"><a href="#L63">63</a>    self.activityMgr = activityMgr</span>
+<span id="L64" class="line"><a href="#L64">64</a>end</span>
+<span id="L65" class="line"><a href="#L65">65</a></span>
+<span id="L66" class="line"><a href="#L66">66</a>function ClimbTowerManager:initActInfo()</span>
+<span id="L67" class="line"><a href="#L67">67</a>    if not self.actPlug then return end</span>
+<span id="L68" class="line"><a href="#L68">68</a>    local actInfo = self.actPlug:getActInfo()</span>
+<span id="L69" class="line"><a href="#L69">69</a>    self:getModel():syncActInfo(actInfo)</span>
+<span id="L70" class="line"><a href="#L70">70</a>    if actInfo then self:loadRes() end</span>
+<span id="L71" class="line"><a href="#L71">71</a>end</span>
+<span id="L72" class="line"><a href="#L72">72</a></span>
+<span id="L73" class="line"><a href="#L73">73</a>function ClimbTowerManager:updateData(data, fromServer)</span>
+<span id="L74" class="line"><a href="#L74">74</a>    if not data then return end</span>
+<span id="L75" class="line"><a href="#L75">75</a>    self:getModel():assignData(data)</span>
+<span id="L76" class="line"><a href="#L76">76</a>    self:updateTipView()</span>
+<span id="L77" class="line"><a href="#L77">77</a>end</span>
+<span id="L78" class="line"><a href="#L78">78</a></span>
+<span id="L79" class="line"><a href="#L79">79</a>function ClimbTowerManager:registerEvents()</span>
+<span id="L80" class="line"><a href="#L80">80</a>    _G.amfEC:registerSystem(self)</span>
+<span id="L81" class="line"><a href="#L81">81</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)</span>
+<span id="L82" class="line"><a href="#L82">82</a>    IconTipEventCenter:register(IconTipEvent.CHECK_ICON_TIP, self.onActCheckIconTip, self)</span>
+<span id="L83" class="line"><a href="#L83">83</a>    PropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)</span>
+<span id="L84" class="line"><a href="#L84">84</a>    StoreEventCenter:register(_G.StoreEvent.STORE_AFTER_BUY, self.onStoreAfterBuy, self)</span>
+<span id="L85" class="line"><a href="#L85">85</a>end</span>
+<span id="L86" class="line"><a href="#L86">86</a></span>
+<span id="L87" class="line"><a href="#L87">87</a>function ClimbTowerManager:_onCustomGain(event)</span>
+<span id="L88" class="line"><a href="#L88">88</a>    local reward = event and event:getData() or {}</span>
+<span id="L89" class="line"><a href="#L89">89</a>    if reward.itemId ~= self:getConst().TicketItemId then return end</span>
+<span id="L90" class="line"><a href="#L90">90</a></span>
+<span id="L91" class="line"><a href="#L91">91</a>    self:addTicket(reward.num or 0)</span>
+<span id="L92" class="line"><a href="#L92">92</a>end</span>
+<span id="L93" class="line"><a href="#L93">93</a></span>
+<span id="L94" class="line"><a href="#L94">94</a>function ClimbTowerManager:onSystemEnterBackground(event)</span>
+<span id="L95" class="line"><a href="#L95">95</a>    self:callLocalPushFunc(&quot;tryRegisterPush&quot;)</span>
+<span id="L96" class="line"><a href="#L96">96</a>end</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>function ClimbTowerManager:onSystemEnterForeground(event)</span>
+<span id="L99" class="line"><a href="#L99">99</a>    self:callLocalPushFunc(&quot;cancelPush&quot;)</span>
+<span id="L100" class="line"><a href="#L100">100</a>end</span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a>function ClimbTowerManager:onActActInfoUpdate(event)</span>
+<span id="L103" class="line"><a href="#L103">103</a>    local data = event and event:getData() or {}</span>
+<span id="L104" class="line"><a href="#L104">104</a>    local actInfos = data.actInfos or {}</span>
+<span id="L105" class="line"><a href="#L105">105</a>    local fromServer = data.fromServer</span>
+<span id="L106" class="line"><a href="#L106">106</a>    local actInfo = actInfos[tostring(self:getConst().actId)]</span>
+<span id="L107" class="line"><a href="#L107">107</a></span>
+<span id="L108" class="line"><a href="#L108">108</a>    if fromServer and not actInfo then</span>
+<span id="L109" class="line"><a href="#L109">109</a>        self:getModel():reset()</span>
+<span id="L110" class="line"><a href="#L110">110</a>        self:callLocalPushFunc(&quot;cancelPush&quot;)</span>
+<span id="L111" class="line"><a href="#L111">111</a>    elseif fromServer and actInfo then</span>
+<span id="L112" class="line"><a href="#L112">112</a>        self:getModel():syncActInfo(actInfo)</span>
+<span id="L113" class="line"><a href="#L113">113</a>        self:loadRes()</span>
+<span id="L114" class="line"><a href="#L114">114</a>    end</span>
+<span id="L115" class="line"><a href="#L115">115</a>end</span>
+<span id="L116" class="line"><a href="#L116">116</a></span>
+<span id="L117" class="line"><a href="#L117">117</a>function ClimbTowerManager:onActCheckIconTip(event)</span>
+<span id="L118" class="line"><a href="#L118">118</a>    local data = event and event:getData() or {}</span>
+<span id="L119" class="line"><a href="#L119">119</a>    local stage = data.stage</span>
+<span id="L120" class="line"><a href="#L120">120</a>    if stage ~= &quot;STAGE_TWO&quot; and stage ~= &quot;STAGE_FOUR&quot; then return end</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>    self:checkIconTip()</span>
+<span id="L123" class="line"><a href="#L123">123</a>end</span>
+<span id="L124" class="line"><a href="#L124">124</a></span>
+<span id="L125" class="line"><a href="#L125">125</a>function ClimbTowerManager:isEnabled()</span>
+<span id="L126" class="line"><a href="#L126">126</a>    return self:getModel():isDataEnabled()</span>
+<span id="L127" class="line"><a href="#L127">127</a>end</span>
+<span id="L128" class="line"><a href="#L128">128</a></span>
+<span id="L129" class="line"><a href="#L129">129</a>function ClimbTowerManager:getDataByKey(key)</span>
+<span id="L130" class="line"><a href="#L130">130</a>    return self:getModel():getDataByKey(key)</span>
+<span id="L131" class="line"><a href="#L131">131</a>end</span>
+<span id="L132" class="line"><a href="#L132">132</a></span>
+<span id="L133" class="line"><a href="#L133">133</a>function ClimbTowerManager:getConfigByKey(key)</span>
+<span id="L134" class="line"><a href="#L134">134</a>    return self:getModel():getConfigByKey(key)</span>
+<span id="L135" class="line"><a href="#L135">135</a>end</span>
+<span id="L136" class="line"><a href="#L136">136</a></span>
+<span id="L137" class="line"><a href="#L137">137</a>function ClimbTowerManager:getClaimedMap()</span>
+<span id="L138" class="line"><a href="#L138">138</a>    return self:getModel():getClaimedMap()</span>
+<span id="L139" class="line"><a href="#L139">139</a>end</span>
+<span id="L140" class="line"><a href="#L140">140</a></span>
+<span id="L141" class="line"><a href="#L141">141</a>function ClimbTowerManager:getLayerContent(layerId, cellIndex)</span>
+<span id="L142" class="line"><a href="#L142">142</a>    return self:getModel():getLayerContent(layerId, cellIndex)</span>
+<span id="L143" class="line"><a href="#L143">143</a>end</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>function ClimbTowerManager:getLayerContentMap()</span>
+<span id="L146" class="line"><a href="#L146">146</a>    return self:getConfigByKey(&quot;layerContentMap&quot;) or {}</span>
+<span id="L147" class="line"><a href="#L147">147</a>end</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>function ClimbTowerManager:getLocalCache(key, needTime)</span>
+<span id="L150" class="line"><a href="#L150">150</a>    return self:getModel():getLocalCache(key, needTime)</span>
+<span id="L151" class="line"><a href="#L151">151</a>end</span>
+<span id="L152" class="line"><a href="#L152">152</a></span>
+<span id="L153" class="line"><a href="#L153">153</a>function ClimbTowerManager:setLocalCache(key, needTime, value)</span>
+<span id="L154" class="line"><a href="#L154">154</a>    self:getModel():setLocalCache(key, needTime, value)</span>
+<span id="L155" class="line"><a href="#L155">155</a>end</span>
+<span id="L156" class="line"><a href="#L156">156</a></span>
+<span id="L157" class="line"><a href="#L157">157</a>function ClimbTowerManager:addTicket(num)</span>
+<span id="L158" class="line"><a href="#L158">158</a>    if not num or num &lt;= 0 then return end</span>
+<span id="L159" class="line"><a href="#L159">159</a>    if not self:isEnabled() then return end</span>
+<span id="L160" class="line"><a href="#L160">160</a></span>
+<span id="L161" class="line"><a href="#L161">161</a>    local cur = self:getDataByKey(&quot;ticket&quot;) or 0</span>
+<span id="L162" class="line"><a href="#L162">162</a>    local total = cur + num</span>
+<span id="L163" class="line"><a href="#L163">163</a>    self:getModel():setDataByKey(&quot;ticket&quot;, total)</span>
+<span id="L164" class="line"><a href="#L164">164</a></span>
+<span id="L165" class="line"><a href="#L165">165</a>    local actInfo = self.activityMgr:getActInfo(self:getConst().actId)</span>
+<span id="L166" class="line"><a href="#L166">166</a>    if actInfo and actInfo.extra then</span>
+<span id="L167" class="line"><a href="#L167">167</a>        local extraData = table.deserialize(actInfo.extra) or {}</span>
+<span id="L168" class="line"><a href="#L168">168</a>        extraData.ticket = total</span>
+<span id="L169" class="line"><a href="#L169">169</a>        actInfo.extra = table.serialize(extraData)</span>
+<span id="L170" class="line"><a href="#L170">170</a>        self:callPlug(&quot;Act&quot;, &quot;setActInfo&quot;, actInfo)</span>
+<span id="L171" class="line"><a href="#L171">171</a>    end</span>
+<span id="L172" class="line"><a href="#L172">172</a></span>
+<span id="L173" class="line"><a href="#L173">173</a>    self:updateTipView()</span>
+<span id="L174" class="line"><a href="#L174">174</a></span>
+<span id="L175" class="line"><a href="#L175">175</a>    ClimbTowerEventCenter:dispatch(ClimbTowerEvent.TICKET_ADDED, {</span>
+<span id="L176" class="line"><a href="#L176">176</a>        addNum = num,</span>
+<span id="L177" class="line"><a href="#L177">177</a>        total  = total,</span>
+<span id="L178" class="line"><a href="#L178">178</a>    })</span>
+<span id="L179" class="line"><a href="#L179">179</a>end</span>
+<span id="L180" class="line"><a href="#L180">180</a></span>
+<span id="L181" class="line"><a href="#L181">181</a>---任意一种奖励领取动作（领奖期/大奖/剩余奖券兑换）成功回包后，把本地 reward 标记。</span>
+<span id="L182" class="line"><a href="#L182">182</a>function ClimbTowerManager:clearReward()</span>
+<span id="L183" class="line"><a href="#L183">183</a>    if not self:isEnabled() then return end</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>    self:getModel():setDataByKey(&quot;reward&quot;, false)</span>
+<span id="L186" class="line"><a href="#L186">186</a></span>
+<span id="L187" class="line"><a href="#L187">187</a>    local actInfo = self.activityMgr:getActInfo(self:getConst().actId)</span>
+<span id="L188" class="line"><a href="#L188">188</a>    if actInfo then</span>
+<span id="L189" class="line"><a href="#L189">189</a>        actInfo.reward = false</span>
+<span id="L190" class="line"><a href="#L190">190</a>        self:callPlug(&quot;Act&quot;, &quot;setActInfo&quot;, actInfo)</span>
+<span id="L191" class="line"><a href="#L191">191</a>    end</span>
+<span id="L192" class="line"><a href="#L192">192</a>end</span>
+<span id="L193" class="line"><a href="#L193">193</a></span>
+<span id="L194" class="line"><a href="#L194">194</a>---剩余奖券兑换/领奖期补领奖励成功后，清掉本地奖券数据。</span>
+<span id="L195" class="line"><a href="#L195">195</a>function ClimbTowerManager:clearRecycleTickets()</span>
+<span id="L196" class="line"><a href="#L196">196</a>    if not self:isEnabled() then return end</span>
+<span id="L197" class="line"><a href="#L197">197</a></span>
+<span id="L198" class="line"><a href="#L198">198</a>    self:getModel():assignRecycleData()</span>
+<span id="L199" class="line"><a href="#L199">199</a>end</span>
+<span id="L200" class="line"><a href="#L200">200</a></span>
+<span id="L201" class="line"><a href="#L201">201</a>function ClimbTowerManager:tryDcQualify()</span>
+<span id="L202" class="line"><a href="#L202">202</a>    if not self:isEnabled() then return end</span>
+<span id="L203" class="line"><a href="#L203">203</a></span>
+<span id="L204" class="line"><a href="#L204">204</a>    local key = self:getConst().DCKey.QUALIFY_DAILY</span>
+<span id="L205" class="line"><a href="#L205">205</a>    if (self:getLocalCache(key, true) or 0) &gt;= 1 then return end</span>
+<span id="L206" class="line"><a href="#L206">206</a>    self:setLocalCache(key, true, 1)</span>
+<span id="L207" class="line"><a href="#L207">207</a></span>
+<span id="L208" class="line"><a href="#L208">208</a>    self:callPlug(&quot;DC&quot;, &quot;dcQualify&quot;, self:getConst().actId)</span>
+<span id="L209" class="line"><a href="#L209">209</a>end</span>
+<span id="L210" class="line"><a href="#L210">210</a></span>
+<span id="L211" class="line"><a href="#L211">211</a>function ClimbTowerManager:tryDcJoin()</span>
+<span id="L212" class="line"><a href="#L212">212</a>    if not self:isEnabled() then return end</span>
+<span id="L213" class="line"><a href="#L213">213</a></span>
+<span id="L214" class="line"><a href="#L214">214</a>    local key = self:getConst().DCKey.JOIN_DAILY</span>
+<span id="L215" class="line"><a href="#L215">215</a>    if (self:getLocalCache(key, true) or 0) &gt;= 1 then return end</span>
+<span id="L216" class="line"><a href="#L216">216</a>    self:setLocalCache(key, true, 1)</span>
+<span id="L217" class="line"><a href="#L217">217</a></span>
+<span id="L218" class="line"><a href="#L218">218</a>    self:callPlug(&quot;DC&quot;, &quot;dcJoin&quot;, self:getConst().actId)</span>
+<span id="L219" class="line"><a href="#L219">219</a>end</span>
+<span id="L220" class="line"><a href="#L220">220</a></span>
+<span id="L221" class="line"><a href="#L221">221</a>function ClimbTowerManager:isInMainTime()</span>
+<span id="L222" class="line"><a href="#L222">222</a>    return self:getModel():isInMainTime()</span>
+<span id="L223" class="line"><a href="#L223">223</a>end</span>
+<span id="L224" class="line"><a href="#L224">224</a></span>
+<span id="L225" class="line"><a href="#L225">225</a>function ClimbTowerManager:isInRewardTime()</span>
+<span id="L226" class="line"><a href="#L226">226</a>    return self:getModel():isInRewardTime()</span>
+<span id="L227" class="line"><a href="#L227">227</a>end</span>
+<span id="L228" class="line"><a href="#L228">228</a></span>
+<span id="L229" class="line"><a href="#L229">229</a>function ClimbTowerManager:getMainBeginTime()</span>
+<span id="L230" class="line"><a href="#L230">230</a>    return self:getModel():getMainBeginTime()</span>
+<span id="L231" class="line"><a href="#L231">231</a>end</span>
+<span id="L232" class="line"><a href="#L232">232</a></span>
+<span id="L233" class="line"><a href="#L233">233</a>function ClimbTowerManager:getMainEndTime()</span>
+<span id="L234" class="line"><a href="#L234">234</a>    return self:getModel():getMainEndTime()</span>
+<span id="L235" class="line"><a href="#L235">235</a>end</span>
+<span id="L236" class="line"><a href="#L236">236</a></span>
+<span id="L237" class="line"><a href="#L237">237</a>function ClimbTowerManager:getEndTime()</span>
+<span id="L238" class="line"><a href="#L238">238</a>    return self:getModel():getEndTime()</span>
+<span id="L239" class="line"><a href="#L239">239</a>end</span>
+<span id="L240" class="line"><a href="#L240">240</a></span>
+<span id="L241" class="line"><a href="#L241">241</a>function ClimbTowerManager:getBeginTime()</span>
+<span id="L242" class="line"><a href="#L242">242</a>    return self:getModel():getBeginTime()</span>
+<span id="L243" class="line"><a href="#L243">243</a>end</span>
+<span id="L244" class="line"><a href="#L244">244</a></span>
+<span id="L245" class="line"><a href="#L245">245</a>function ClimbTowerManager:hasGuideIndex(index)</span>
+<span id="L246" class="line"><a href="#L246">246</a>    return self:getModel():hasGuideIndex(index)</span>
+<span id="L247" class="line"><a href="#L247">247</a>end</span>
+<span id="L248" class="line"><a href="#L248">248</a></span>
+<span id="L249" class="line"><a href="#L249">249</a>function ClimbTowerManager:addGuideIndex(index)</span>
+<span id="L250" class="line"><a href="#L250">250</a>    self:getModel():addGuideIndex(index)</span>
+<span id="L251" class="line"><a href="#L251">251</a>end</span>
+<span id="L252" class="line"><a href="#L252">252</a></span>
+<span id="L253" class="line"><a href="#L253">253</a>function ClimbTowerManager:getTicketRefundByPackageId(packageId)</span>
+<span id="L254" class="line"><a href="#L254">254</a>    return self:getModel():getTicketRefundByPackageId(packageId)</span>
+<span id="L255" class="line"><a href="#L255">255</a>end</span>
+<span id="L256" class="line"><a href="#L256">256</a></span>
+<span id="L257" class="line"><a href="#L257">257</a>function ClimbTowerManager:getRefundPackageIdList()</span>
+<span id="L258" class="line"><a href="#L258">258</a>    return self:getModel():getRefundPackageIdList()</span>
+<span id="L259" class="line"><a href="#L259">259</a>end</span>
+<span id="L260" class="line"><a href="#L260">260</a></span>
+<span id="L261" class="line"><a href="#L261">261</a>function ClimbTowerManager:getFirstRefundPackageId()</span>
+<span id="L262" class="line"><a href="#L262">262</a>    return self:getModel():getFirstRefundPackageId()</span>
+<span id="L263" class="line"><a href="#L263">263</a>end</span>
+<span id="L264" class="line"><a href="#L264">264</a></span>
+<span id="L265" class="line"><a href="#L265">265</a>function ClimbTowerManager:hasAnyRefundPackage()</span>
+<span id="L266" class="line"><a href="#L266">266</a>    return self:getFirstRefundPackageId() ~= nil</span>
+<span id="L267" class="line"><a href="#L267">267</a>end</span>
+<span id="L268" class="line"><a href="#L268">268</a></span>
+<span id="L269" class="line"><a href="#L269">269</a>function ClimbTowerManager:getPeriodId()</span>
+<span id="L270" class="line"><a href="#L270">270</a>    return self:getDataByKey(&quot;periodId&quot;)</span>
+<span id="L271" class="line"><a href="#L271">271</a>end</span>
+<span id="L272" class="line"><a href="#L272">272</a></span>
+<span id="L273" class="line"><a href="#L273">273</a>function ClimbTowerManager:_registerAutoPopup()</span>
+<span id="L274" class="line"><a href="#L274">274</a>    require &quot;amf.middleware.autopop.config.AutoPopupConst&quot;</span>
+<span id="L275" class="line"><a href="#L275">275</a>    local PCP            = _G.PopupCheckPoint</span>
+<span id="L276" class="line"><a href="#L276">276</a>    local autoPopupMgr   = self.autoPopupMgr</span>
+<span id="L277" class="line"><a href="#L277">277</a>    local PopStage       = AutoPopupConst.PopStage</span>
+<span id="L278" class="line"><a href="#L278">278</a></span>
+<span id="L279" class="line"><a href="#L279">279</a>    autoPopupMgr:registerPopup({</span>
+<span id="L280" class="line"><a href="#L280">280</a>        checkPoint = PCP.CLIMB_TOWER_TRIGGER,</span>
+<span id="L281" class="line"><a href="#L281">281</a>        stages     = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },</span>
+<span id="L282" class="line"><a href="#L282">282</a>        check      = function()</span>
+<span id="L283" class="line"><a href="#L283">283</a>            if not self:isEnabled() then return false end</span>
+<span id="L284" class="line"><a href="#L284">284</a>            -- 正式期和领奖期各弹一次，本地缓存记录（needTime=false 跨日持久），key 拼入 periodId 按期隔离</span>
+<span id="L285" class="line"><a href="#L285">285</a>            local periodId           = tostring(self:getPeriodId() or &quot;&quot;)</span>
+<span id="L286" class="line"><a href="#L286">286</a>            local TRIGGER_MAIN_KEY   = &quot;climb_tower_trigger_main_&quot; .. periodId</span>
+<span id="L287" class="line"><a href="#L287">287</a>            local TRIGGER_REWARD_KEY = &quot;climb_tower_trigger_reward_&quot; .. periodId</span>
+<span id="L288" class="line"><a href="#L288">288</a>            -- 正式期：本期正式期内未弹过</span>
+<span id="L289" class="line"><a href="#L289">289</a>            if self:isInMainTime() and self:getTotalTickets() &gt; 0 then</span>
+<span id="L290" class="line"><a href="#L290">290</a>                return (self:getLocalCache(TRIGGER_MAIN_KEY, false) or 0) &lt; 1</span>
+<span id="L291" class="line"><a href="#L291">291</a>            end</span>
+<span id="L292" class="line"><a href="#L292">292</a>            -- 领奖期：本期领奖期内未弹过</span>
+<span id="L293" class="line"><a href="#L293">293</a>            if self:getModel():isInRewardTime() and self:getTotalTickets() &gt; 0 then</span>
+<span id="L294" class="line"><a href="#L294">294</a>                return (self:getLocalCache(TRIGGER_REWARD_KEY, false) or 0) &lt; 1</span>
+<span id="L295" class="line"><a href="#L295">295</a>            end</span>
+<span id="L296" class="line"><a href="#L296">296</a>            return false</span>
+<span id="L297" class="line"><a href="#L297">297</a>        end,</span>
+<span id="L298" class="line"><a href="#L298">298</a>        creator    = function(_, onPopOver)</span>
+<span id="L299" class="line"><a href="#L299">299</a>            return function()</span>
+<span id="L300" class="line"><a href="#L300">300</a>                -- 正式期和领奖期各弹一次，本地缓存记录（needTime=false 跨日持久），key 拼入 periodId 按期隔离</span>
+<span id="L301" class="line"><a href="#L301">301</a>                local periodId           = tostring(self:getPeriodId() or &quot;&quot;)</span>
+<span id="L302" class="line"><a href="#L302">302</a>                local TRIGGER_MAIN_KEY   = &quot;climb_tower_trigger_main_&quot; .. periodId</span>
+<span id="L303" class="line"><a href="#L303">303</a>                local TRIGGER_REWARD_KEY = &quot;climb_tower_trigger_reward_&quot; .. periodId</span>
+<span id="L304" class="line"><a href="#L304">304</a>                -- 本地记录本期弹出，防止重复弹</span>
+<span id="L305" class="line"><a href="#L305">305</a>                if self:isInMainTime() then</span>
+<span id="L306" class="line"><a href="#L306">306</a>                    self:setLocalCache(TRIGGER_MAIN_KEY, false, 1)</span>
+<span id="L307" class="line"><a href="#L307">307</a>                else</span>
+<span id="L308" class="line"><a href="#L308">308</a>                    self:setLocalCache(TRIGGER_REWARD_KEY, false, 1)</span>
+<span id="L309" class="line"><a href="#L309">309</a>                end</span>
+<span id="L310" class="line"><a href="#L310">310</a>                self:openActivity(onPopOver)</span>
+<span id="L311" class="line"><a href="#L311">311</a>            end</span>
+<span id="L312" class="line"><a href="#L312">312</a>        end,</span>
+<span id="L313" class="line"><a href="#L313">313</a>    })</span>
+<span id="L314" class="line"><a href="#L314">314</a></span>
+<span id="L315" class="line"><a href="#L315">315</a></span>
+<span id="L316" class="line"><a href="#L316">316</a>end</span>
+<span id="L317" class="line"><a href="#L317">317</a></span>
+<span id="L318" class="line"><a href="#L318">318</a>function ClimbTowerManager:getGrandLayerId()</span>
+<span id="L319" class="line"><a href="#L319">319</a>    return self:getConst().GrandLayerId</span>
+<span id="L320" class="line"><a href="#L320">320</a>end</span>
+<span id="L321" class="line"><a href="#L321">321</a></span>
+<span id="L322" class="line"><a href="#L322">322</a>function ClimbTowerManager:getCurrentLayerId()</span>
+<span id="L323" class="line"><a href="#L323">323</a>    return self:getDataByKey(&quot;currentLayerId&quot;) or 1</span>
+<span id="L324" class="line"><a href="#L324">324</a>end</span>
+<span id="L325" class="line"><a href="#L325">325</a></span>
+<span id="L326" class="line"><a href="#L326">326</a>function ClimbTowerManager:getLayerDrawCount(layerId)</span>
+<span id="L327" class="line"><a href="#L327">327</a>    layerId = layerId or self:getCurrentLayerId()</span>
+<span id="L328" class="line"><a href="#L328">328</a>    local layerMap = (self:getClaimedMap() or {})[layerId] or {}</span>
+<span id="L329" class="line"><a href="#L329">329</a>    local count = 0</span>
+<span id="L330" class="line"><a href="#L330">330</a>    for _ in pairs(layerMap) do</span>
+<span id="L331" class="line"><a href="#L331">331</a>        count = count + 1</span>
+<span id="L332" class="line"><a href="#L332">332</a>    end</span>
+<span id="L333" class="line"><a href="#L333">333</a>    return count</span>
+<span id="L334" class="line"><a href="#L334">334</a>end</span>
+<span id="L335" class="line"><a href="#L335">335</a></span>
+<span id="L336" class="line"><a href="#L336">336</a>function ClimbTowerManager:getTotalTickets()</span>
+<span id="L337" class="line"><a href="#L337">337</a>    -- nil 防御：活动数据被清后主面板定时器仍可能 tick 一次</span>
+<span id="L338" class="line"><a href="#L338">338</a>    return (self:getDataByKey(&quot;ticket&quot;) or 0) + (self:getDataByKey(&quot;freeTicket&quot;) or 0)</span>
+<span id="L339" class="line"><a href="#L339">339</a>end</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>function ClimbTowerManager:hasFreeTicket()</span>
+<span id="L342" class="line"><a href="#L342">342</a>    return (self:getDataByKey(&quot;freeTicket&quot;) or 0) &gt; 0</span>
+<span id="L343" class="line"><a href="#L343">343</a>end</span>
+<span id="L344" class="line"><a href="#L344">344</a></span>
+<span id="L345" class="line"><a href="#L345">345</a>function ClimbTowerManager:isGrandPrizeClaimed()</span>
+<span id="L346" class="line"><a href="#L346">346</a>    return self:getDataByKey(&quot;gotFinalReward&quot;) == true</span>
+<span id="L347" class="line"><a href="#L347">347</a>end</span>
+<span id="L348" class="line"><a href="#L348">348</a></span>
+<span id="L349" class="line"><a href="#L349">349</a>function ClimbTowerManager:isCurrentLayerOnlyLevelUpLeft()</span>
+<span id="L350" class="line"><a href="#L350">350</a>    local model = self:getModel()</span>
+<span id="L351" class="line"><a href="#L351">351</a>    local layerId = self:getCurrentLayerId()</span>
+<span id="L352" class="line"><a href="#L352">352</a>    local list = model:getLayerContentList(layerId)</span>
+<span id="L353" class="line"><a href="#L353">353</a>    local claimedLayerMap = (self:getClaimedMap() or {})[layerId] or {}</span>
+<span id="L354" class="line"><a href="#L354">354</a>    local hasUnclaimedCell = false</span>
+<span id="L355" class="line"><a href="#L355">355</a></span>
+<span id="L356" class="line"><a href="#L356">356</a>    for cellIndex, cell in ipairs(list) do</span>
+<span id="L357" class="line"><a href="#L357">357</a>        local cellId = cell.cellIndex or cellIndex</span>
+<span id="L358" class="line"><a href="#L358">358</a>        if not claimedLayerMap[cellId] then</span>
+<span id="L359" class="line"><a href="#L359">359</a>            if not cell.levelUpReward then</span>
+<span id="L360" class="line"><a href="#L360">360</a>                return false</span>
+<span id="L361" class="line"><a href="#L361">361</a>            end</span>
+<span id="L362" class="line"><a href="#L362">362</a>            hasUnclaimedCell = true</span>
+<span id="L363" class="line"><a href="#L363">363</a>        end</span>
+<span id="L364" class="line"><a href="#L364">364</a>    end</span>
+<span id="L365" class="line"><a href="#L365">365</a></span>
+<span id="L366" class="line"><a href="#L366">366</a>    return hasUnclaimedCell</span>
+<span id="L367" class="line"><a href="#L367">367</a>end</span>
+<span id="L368" class="line"><a href="#L368">368</a></span>
+<span id="L369" class="line"><a href="#L369">369</a>function ClimbTowerManager:hasGrandPrizePending()</span>
+<span id="L370" class="line"><a href="#L370">370</a>    if self:isGrandPrizeClaimed() then return false end</span>
+<span id="L371" class="line"><a href="#L371">371</a>    return self:getCurrentLayerId() &gt;= self:getGrandLayerId()</span>
+<span id="L372" class="line"><a href="#L372">372</a>end</span>
+<span id="L373" class="line"><a href="#L373">373</a></span>
+<span id="L374" class="line"><a href="#L374">374</a>function ClimbTowerManager:hasReward()</span>
+<span id="L375" class="line"><a href="#L375">375</a>    if not self:isEnabled() then return false end</span>
+<span id="L376" class="line"><a href="#L376">376</a>    return self:getDataByKey(&quot;reward&quot;) or false</span>
+<span id="L377" class="line"><a href="#L377">377</a>end</span>
+<span id="L378" class="line"><a href="#L378">378</a></span>
+<span id="L379" class="line"><a href="#L379">379</a>function ClimbTowerManager:getMsgNum()</span>
+<span id="L380" class="line"><a href="#L380">380</a>    if not self:isEnabled() then return 0 end</span>
+<span id="L381" class="line"><a href="#L381">381</a>    local drawCost = self:getDataByKey(&quot;drawNeedTicketNum&quot;)</span>
+<span id="L382" class="line"><a href="#L382">382</a>    if not drawCost then return self:getDataByKey(&quot;msgNum&quot;) end</span>
+<span id="L383" class="line"><a href="#L383">383</a></span>
+<span id="L384" class="line"><a href="#L384">384</a>    return self:getTotalTickets() &gt;= drawCost and 1 or 0</span>
+<span id="L385" class="line"><a href="#L385">385</a>end</span>
+<span id="L386" class="line"><a href="#L386">386</a></span>
+<span id="L387" class="line"><a href="#L387">387</a>function ClimbTowerManager:updateTipView()</span>
+<span id="L388" class="line"><a href="#L388">388</a>    if self.actPlug then</span>
+<span id="L389" class="line"><a href="#L389">389</a>        self.actPlug:updateTipView()</span>
+<span id="L390" class="line"><a href="#L390">390</a>    end</span>
+<span id="L391" class="line"><a href="#L391">391</a>end</span>
+<span id="L392" class="line"><a href="#L392">392</a></span>
+<span id="L393" class="line"><a href="#L393">393</a>function ClimbTowerManager:_incrementTipPopCount(tipKey)</span>
+<span id="L394" class="line"><a href="#L394">394</a>    self:setLocalCache(tipKey, true, (self:getLocalCache(tipKey, true) or 0) + 1)</span>
+<span id="L395" class="line"><a href="#L395">395</a>end</span>
+<span id="L396" class="line"><a href="#L396">396</a></span>
+<span id="L397" class="line"><a href="#L397">397</a>function ClimbTowerManager:_canShowJoinTip()</span>
+<span id="L398" class="line"><a href="#L398">398</a>    local Const = self:getConst()</span>
+<span id="L399" class="line"><a href="#L399">399</a>    local key = Const.TipKey.JOIN</span>
+<span id="L400" class="line"><a href="#L400">400</a>    if (self:getLocalCache(key, true) or 0) &gt;= Const.TipDailyLimit[key] then return false end</span>
+<span id="L401" class="line"><a href="#L401">401</a>    return self:hasFreeTicket()</span>
+<span id="L402" class="line"><a href="#L402">402</a>end</span>
+<span id="L403" class="line"><a href="#L403">403</a></span>
+<span id="L404" class="line"><a href="#L404">404</a>function ClimbTowerManager:_canShowNextLayerTip()</span>
+<span id="L405" class="line"><a href="#L405">405</a>    local Const = self:getConst()</span>
+<span id="L406" class="line"><a href="#L406">406</a>    local key = Const.TipKey.NEXT_LAYER</span>
+<span id="L407" class="line"><a href="#L407">407</a>    if (self:getLocalCache(key, true) or 0) &gt;= Const.TipDailyLimit[key] then return false end</span>
+<span id="L408" class="line"><a href="#L408">408</a>    if self:getCurrentLayerId() &gt;= (self:getGrandLayerId() - 1) then return false end</span>
+<span id="L409" class="line"><a href="#L409">409</a>    return self:isCurrentLayerOnlyLevelUpLeft()</span>
+<span id="L410" class="line"><a href="#L410">410</a>end</span>
+<span id="L411" class="line"><a href="#L411">411</a></span>
+<span id="L412" class="line"><a href="#L412">412</a>function ClimbTowerManager:_canShowGrandPushTip()</span>
+<span id="L413" class="line"><a href="#L413">413</a>    local Const = self:getConst()</span>
+<span id="L414" class="line"><a href="#L414">414</a>    local key = Const.TipKey.GRAND_PUSH</span>
+<span id="L415" class="line"><a href="#L415">415</a>    if (self:getLocalCache(key, true) or 0) &gt;= Const.TipDailyLimit[key] then return false end</span>
+<span id="L416" class="line"><a href="#L416">416</a>    if self:isGrandPrizeClaimed() then return false end</span>
+<span id="L417" class="line"><a href="#L417">417</a>    return self:getCurrentLayerId() &gt;= (self:getGrandLayerId() - 1)</span>
+<span id="L418" class="line"><a href="#L418">418</a>end</span>
+<span id="L419" class="line"><a href="#L419">419</a></span>
+<span id="L420" class="line"><a href="#L420">420</a>function ClimbTowerManager:_pickActiveTipKey()</span>
+<span id="L421" class="line"><a href="#L421">421</a>    local Const = self:getConst()</span>
+<span id="L422" class="line"><a href="#L422">422</a>    if self:_canShowGrandPushTip() then return Const.TipKey.GRAND_PUSH end</span>
+<span id="L423" class="line"><a href="#L423">423</a>    if self:_canShowNextLayerTip() then return Const.TipKey.NEXT_LAYER end</span>
+<span id="L424" class="line"><a href="#L424">424</a>    if self:_canShowJoinTip()      then return Const.TipKey.JOIN       end</span>
+<span id="L425" class="line"><a href="#L425">425</a>    return nil</span>
+<span id="L426" class="line"><a href="#L426">426</a>end</span>
+<span id="L427" class="line"><a href="#L427">427</a></span>
+<span id="L428" class="line"><a href="#L428">428</a>function ClimbTowerManager:checkIconTip(config)</span>
+<span id="L429" class="line"><a href="#L429">429</a>    if not self:isEnabled() then return false end</span>
+<span id="L430" class="line"><a href="#L430">430</a>    if not self:isInMainTime() then return end</span>
+<span id="L431" class="line"><a href="#L431">431</a></span>
+<span id="L432" class="line"><a href="#L432">432</a>    local IconTipEventCenter = require(&quot;amf.feature.icontip.event.IconTipEventCenter&quot;)</span>
+<span id="L433" class="line"><a href="#L433">433</a>    local tipKey = self:_pickActiveTipKey()</span>
+<span id="L434" class="line"><a href="#L434">434</a>    if not tipKey then return end</span>
+<span id="L435" class="line"><a href="#L435">435</a></span>
+<span id="L436" class="line"><a href="#L436">436</a>    local Const = self:getConst()</span>
+<span id="L437" class="line"><a href="#L437">437</a></span>
+<span id="L438" class="line"><a href="#L438">438</a>    IconTipEventCenter:dispatch(IconTipEvent.ADD_ICON_TIP, {</span>
+<span id="L439" class="line"><a href="#L439">439</a>        iconKey   = tostring(self:getConst().actId),</span>
+<span id="L440" class="line"><a href="#L440">440</a>        iconType  = IconTipType.MESSAGE,</span>
+<span id="L441" class="line"><a href="#L441">441</a>        priority  = &quot;A&quot;,</span>
+<span id="L442" class="line"><a href="#L442">442</a>        typeIndex = 1,</span>
+<span id="L443" class="line"><a href="#L443">443</a>        creatorDelegate = {</span>
+<span id="L444" class="line"><a href="#L444">444</a>            text     = Const.TipDesc[tipKey] or &quot;&quot;,</span>
+<span id="L445" class="line"><a href="#L445">445</a>            tipsType = HomeIconTipsType.ONLY_TEXT,</span>
+<span id="L446" class="line"><a href="#L446">446</a>        },</span>
+<span id="L447" class="line"><a href="#L447">447</a>        popFunc = function()</span>
+<span id="L448" class="line"><a href="#L448">448</a>            self:_incrementTipPopCount(tipKey)</span>
+<span id="L449" class="line"><a href="#L449">449</a>        end,</span>
+<span id="L450" class="line"><a href="#L450">450</a>        config = config,</span>
+<span id="L451" class="line"><a href="#L451">451</a>    })</span>
+<span id="L452" class="line"><a href="#L452">452</a>end</span>
+<span id="L453" class="line"><a href="#L453">453</a></span>
+<span id="L454" class="line"><a href="#L454">454</a>function ClimbTowerManager:loadRes()</span>
+<span id="L455" class="line"><a href="#L455">455</a>    if self.isResLoaded then</span>
+<span id="L456" class="line"><a href="#L456">456</a>        return deferred.success()</span>
+<span id="L457" class="line"><a href="#L457">457</a>    end</span>
+<span id="L458" class="line"><a href="#L458">458</a></span>
+<span id="L459" class="line"><a href="#L459">459</a>    if not self.loadResDeferred then</span>
+<span id="L460" class="line"><a href="#L460">460</a>        self.loadResDeferred = _G.amfBean(&quot;AssetsUtil&quot;):loadMiniLabels({ RES_LABEL }):next(function()</span>
+<span id="L461" class="line"><a href="#L461">461</a>            self.isResLoaded = true</span>
+<span id="L462" class="line"><a href="#L462">462</a>        end, function()</span>
+<span id="L463" class="line"><a href="#L463">463</a>            self.loadResDeferred = nil</span>
+<span id="L464" class="line"><a href="#L464">464</a>        end)</span>
+<span id="L465" class="line"><a href="#L465">465</a>    end</span>
+<span id="L466" class="line"><a href="#L466">466</a>    return self.loadResDeferred</span>
+<span id="L467" class="line"><a href="#L467">467</a>end</span>
+<span id="L468" class="line"><a href="#L468">468</a></span>
+<span id="L469" class="line"><a href="#L469">469</a>function ClimbTowerManager:openActivity(closeCallback, extra, userClick, duanMianData)</span>
+<span id="L470" class="line"><a href="#L470">470</a>    ActivityEventCenter:dispatch(ActivityEvent.OPEN_ACTIVITY, {</span>
+<span id="L471" class="line"><a href="#L471">471</a>        actId = self:getConst().actId,</span>
+<span id="L472" class="line"><a href="#L472">472</a>        failCallback = closeCallback,</span>
+<span id="L473" class="line"><a href="#L473">473</a>        endCallback = closeCallback,</span>
+<span id="L474" class="line"><a href="#L474">474</a>        userClick = userClick,</span>
+<span id="L475" class="line"><a href="#L475">475</a>        extra = extra,</span>
+<span id="L476" class="line"><a href="#L476">476</a>        duanMianData = duanMianData</span>
+<span id="L477" class="line"><a href="#L477">477</a>    })</span>
+<span id="L478" class="line"><a href="#L478">478</a>end</span>
+<span id="L479" class="line"><a href="#L479">479</a></span>
+<span id="L480" class="line"><a href="#L480">480</a>--region gift display extension: 商店 banner + 礼包奖券角标 + 商店引导2</span>
+<span id="L481" class="line"><a href="#L481">481</a>function ClimbTowerManager:isShopBannerActive()</span>
+<span id="L482" class="line"><a href="#L482">482</a>    if not self.isResLoaded then return false end</span>
+<span id="L483" class="line"><a href="#L483">483</a>    if not self:isEnabled() then return false end</span>
+<span id="L484" class="line"><a href="#L484">484</a>    if not self:isInMainTime() then return false end</span>
+<span id="L485" class="line"><a href="#L485">485</a>    if not self:hasAnyRefundPackage() then return false end</span>
+<span id="L486" class="line"><a href="#L486">486</a>    if self:isGrandPrizeClaimed() then return false end</span>
+<span id="L487" class="line"><a href="#L487">487</a>    return true</span>
+<span id="L488" class="line"><a href="#L488">488</a>end</span>
+<span id="L489" class="line"><a href="#L489">489</a></span>
+<span id="L490" class="line"><a href="#L490">490</a>function ClimbTowerManager:getStoreHeaderEntry()</span>
+<span id="L491" class="line"><a href="#L491">491</a>    if not self:isShopBannerActive() then return nil end</span>
+<span id="L492" class="line"><a href="#L492">492</a>    return {</span>
+<span id="L493" class="line"><a href="#L493">493</a>        inset  = 190,</span>
+<span id="L494" class="line"><a href="#L494">494</a>        offset = ccp(349, 0),</span>
+<span id="L495" class="line"><a href="#L495">495</a>        createView = function()</span>
+<span id="L496" class="line"><a href="#L496">496</a>            local ClimbTowerShopBanner = require &quot;amf/feature/localactivity/climbtower/view/ClimbTowerShopBanner&quot;</span>
+<span id="L497" class="line"><a href="#L497">497</a>            local banner = ClimbTowerShopBanner:create()</span>
+<span id="L498" class="line"><a href="#L498">498</a>            banner:setMainEndTime(self:getMainEndTime())</span>
+<span id="L499" class="line"><a href="#L499">499</a>            banner:setFlyItemId(self:getConst().TicketItemId)</span>
+<span id="L500" class="line"><a href="#L500">500</a>            banner:setOnClick(function()</span>
+<span id="L501" class="line"><a href="#L501">501</a>                self:openActivity(nil, { dcEntry = &quot;new_store&quot; }, true, nil)</span>
+<span id="L502" class="line"><a href="#L502">502</a>            end)</span>
+<span id="L503" class="line"><a href="#L503">503</a>            return banner</span>
+<span id="L504" class="line"><a href="#L504">504</a>        end,</span>
+<span id="L505" class="line"><a href="#L505">505</a>    }</span>
+<span id="L506" class="line"><a href="#L506">506</a>end</span>
+<span id="L507" class="line"><a href="#L507">507</a></span>
+<span id="L508" class="line"><a href="#L508">508</a>function ClimbTowerManager:getGiftDisplayBubbleItem(giftData)</span>
+<span id="L509" class="line"><a href="#L509">509</a>    if not giftData then return nil end</span>
+<span id="L510" class="line"><a href="#L510">510</a>    if not self:isShopBannerActive() then return nil end</span>
+<span id="L511" class="line"><a href="#L511">511</a></span>
+<span id="L512" class="line"><a href="#L512">512</a>    local num = self:getTicketRefundByPackageId(giftData:getGoodsId()) or 0</span>
+<span id="L513" class="line"><a href="#L513">513</a>    if num &lt;= 0 then return nil end</span>
+<span id="L514" class="line"><a href="#L514">514</a></span>
+<span id="L515" class="line"><a href="#L515">515</a>    return {</span>
+<span id="L516" class="line"><a href="#L516">516</a>        itemId = self:getConst().TicketItemId,</span>
+<span id="L517" class="line"><a href="#L517">517</a>        num = num,</span>
+<span id="L518" class="line"><a href="#L518">518</a>    }</span>
+<span id="L519" class="line"><a href="#L519">519</a>end</span>
+<span id="L520" class="line"><a href="#L520">520</a></span>
+<span id="L521" class="line"><a href="#L521">521</a>function ClimbTowerManager:getStoreGuideEntry(context)</span>
+<span id="L522" class="line"><a href="#L522">522</a>    if not self:isShopBannerActive() then return nil end</span>
+<span id="L523" class="line"><a href="#L523">523</a></span>
+<span id="L524" class="line"><a href="#L524">524</a>    local GuideIndex = self:getConst().GuideIndex</span>
+<span id="L525" class="line"><a href="#L525">525</a>    if self:hasGuideIndex(GuideIndex.STORE_GUIDE_2_IN_STORE) then return nil end</span>
+<span id="L526" class="line"><a href="#L526">526</a></span>
+<span id="L527" class="line"><a href="#L527">527</a>    local source = context and context.source</span>
+<span id="L528" class="line"><a href="#L528">528</a>    if not source then return nil end</span>
+<span id="L529" class="line"><a href="#L529">529</a></span>
+<span id="L530" class="line"><a href="#L530">530</a>    local scene = Director:sharedDirector():getRunningScene()</span>
+<span id="L531" class="line"><a href="#L531">531</a>    if scene and scene:is(UBFGamePlayScene) then return nil end</span>
+<span id="L532" class="line"><a href="#L532">532</a></span>
+<span id="L533" class="line"><a href="#L533">533</a>    local AccurateSource = _G.StoreConfig.AccurateSource</span>
+<span id="L534" class="line"><a href="#L534">534</a>    if source == AccurateSource.Click_GS_AddStepPanel</span>
+<span id="L535" class="line"><a href="#L535">535</a>            or source == AccurateSource.Click_UBF_AddStepPanel_Top_First</span>
+<span id="L536" class="line"><a href="#L536">536</a>            or source == AccurateSource.Click_UBF_AddStepPanel_Top_Second</span>
+<span id="L537" class="line"><a href="#L537">537</a>            or source == AccurateSource.Auto_GS_AddStep5Discount</span>
+<span id="L538" class="line"><a href="#L538">538</a>            or source == AccurateSource.Auto_GS_AddStep5</span>
+<span id="L539" class="line"><a href="#L539">539</a>            or source == AccurateSource.Auto_GS_AddStep2Discount</span>
+<span id="L540" class="line"><a href="#L540">540</a>            or source == AccurateSource.Auto_GS_AddStep2</span>
+<span id="L541" class="line"><a href="#L541">541</a>            or source == AccurateSource.Auto_WR_AddStep</span>
+<span id="L542" class="line"><a href="#L542">542</a>            or source == AccurateSource.Auto_GS_BuyProps then</span>
+<span id="L543" class="line"><a href="#L543">543</a>        return nil</span>
+<span id="L544" class="line"><a href="#L544">544</a>    end</span>
+<span id="L545" class="line"><a href="#L545">545</a>    return {</span>
+<span id="L546" class="line"><a href="#L546">546</a>        showGuide = function(storePanel)</span>
+<span id="L547" class="line"><a href="#L547">547</a>            local ClimbTowerStoreGuide2 = require(&quot;amf/feature/localactivity/climbtower/view/ClimbTowerStoreGuide2&quot;)</span>
+<span id="L548" class="line"><a href="#L548">548</a>            local guide = ClimbTowerStoreGuide2.new({</span>
+<span id="L549" class="line"><a href="#L549">549</a>                storePanel       = storePanel,</span>
+<span id="L550" class="line"><a href="#L550">550</a>                targetPackageId  = self:getFirstRefundPackageId(),</span>
+<span id="L551" class="line"><a href="#L551">551</a>                ticketItemId     = self:getConst().TicketItemId,</span>
+<span id="L552" class="line"><a href="#L552">552</a>                scrollTime       = 0,</span>
+<span id="L553" class="line"><a href="#L553">553</a>            })</span>
+<span id="L554" class="line"><a href="#L554">554</a>            if guide:show() then</span>
+<span id="L555" class="line"><a href="#L555">555</a>                self:addGuideIndex(GuideIndex.STORE_GUIDE_2_IN_STORE)</span>
+<span id="L556" class="line"><a href="#L556">556</a>            end</span>
+<span id="L557" class="line"><a href="#L557">557</a>            return guide</span>
+<span id="L558" class="line"><a href="#L558">558</a>        end,</span>
+<span id="L559" class="line"><a href="#L559">559</a>    }</span>
+<span id="L560" class="line"><a href="#L560">560</a>end</span>
+<span id="L561" class="line"><a href="#L561">561</a></span>
+<span id="L562" class="line"><a href="#L562">562</a>---商店购买成功事件回调：后端礼包 rewardList **不包含**我们的奖券，前端按配置补发。</span>
+<span id="L563" class="line"><a href="#L563">563</a>---流程：拿 packageId → 查 packageTicketRefund 配置 → 创建奖券道具飞行动画 → 飞行完成后</span>
+<span id="L564" class="line"><a href="#L564">564</a>---调 self:addTicket(num)（addTicket 内部已写 actInfo + dispatch TICKET_ADDED，cocos 主面板</span>
+<span id="L565" class="line"><a href="#L565">565</a>---订阅 TICKET_ADDED 后会自动 pushTickets + pushDrawButtonState）。</span>
+<span id="L566" class="line"><a href="#L566">566</a>---飞行落点优先用 banner 的「去抽奖」按钮（StorePanel:resolveStoreHeaderFlyPos）；如果商店关闭</span>
+<span id="L567" class="line"><a href="#L567">567</a>---或 banner 不在，则跳过飞行直接加券（保证 server-side 状态一致）。</span>
+<span id="L568" class="line"><a href="#L568">568</a>function ClimbTowerManager:onStoreAfterBuy(event)</span>
+<span id="L569" class="line"><a href="#L569">569</a>    if not self:isEnabled() then return end</span>
+<span id="L570" class="line"><a href="#L570">570</a>    if not self:isInMainTime() then return end</span>
+<span id="L571" class="line"><a href="#L571">571</a></span>
+<span id="L572" class="line"><a href="#L572">572</a>    local payload = event and event:getData()</span>
+<span id="L573" class="line"><a href="#L573">573</a>    if not payload then return end</span>
+<span id="L574" class="line"><a href="#L574">574</a></span>
+<span id="L575" class="line"><a href="#L575">575</a>    local giftData   = payload.giftData</span>
+<span id="L576" class="line"><a href="#L576">576</a>    local storePanel = payload.storePanel</span>
+<span id="L577" class="line"><a href="#L577">577</a>    if not giftData or not giftData.getGoodsId then return end</span>
+<span id="L578" class="line"><a href="#L578">578</a></span>
+<span id="L579" class="line"><a href="#L579">579</a>    local packageId = giftData:getGoodsId()</span>
+<span id="L580" class="line"><a href="#L580">580</a>    local num = self:getTicketRefundByPackageId(packageId) or 0</span>
+<span id="L581" class="line"><a href="#L581">581</a>    if num &lt;= 0 then return end</span>
+<span id="L582" class="line"><a href="#L582">582</a></span>
+<span id="L583" class="line"><a href="#L583">583</a>    self:playTicketRefundFly(num, storePanel, function()</span>
+<span id="L584" class="line"><a href="#L584">584</a>        _G.GainPropData:create()</span>
+<span id="L585" class="line"><a href="#L585">585</a>            :setFeature(&quot;happy_climb&quot;)</span>
+<span id="L586" class="line"><a href="#L586">586</a>            :setSource(tostring(packageId))</span>
+<span id="L587" class="line"><a href="#L587">587</a>            :setProps({ {itemId = self:getConst().TicketItemId, num = num} })</span>
+<span id="L588" class="line"><a href="#L588">588</a>            :setExtraMap({ pay_type = &quot;3&quot; })</span>
+<span id="L589" class="line"><a href="#L589">589</a>            :execute()</span>
+<span id="L590" class="line"><a href="#L590">590</a>    end)</span>
+<span id="L591" class="line"><a href="#L591">591</a>end</span>
+<span id="L592" class="line"><a href="#L592">592</a></span>
+<span id="L593" class="line"><a href="#L593">593</a>---创建奖券道具的飞行动画，飞向 banner「去抽奖」按钮。</span>
+<span id="L594" class="line"><a href="#L594">594</a>---startWorldPos 取屏幕中心（与主面板入场动画一致）；targetWorldPos 走 StorePanel</span>
+<span id="L595" class="line"><a href="#L595">595</a>---:resolveStoreHeaderFlyPos(TicketItemId) —— banner 内 setFlyItemId 已注入 TicketItemId</span>
+<span id="L596" class="line"><a href="#L596">596</a>---只接收奖券飞行，其他 itemId 返回 nil。</span>
+<span id="L597" class="line"><a href="#L597">597</a>---FlyItemContext / TransactionEvent.FLY_ITEMS 自动挂到 scene.topLayer，跨 panel 也能飞。</span>
+<span id="L598" class="line"><a href="#L598">598</a>function ClimbTowerManager:playTicketRefundFly(num, storePanel, callback)</span>
+<span id="L599" class="line"><a href="#L599">599</a>    local TicketItemId = self:getConst().TicketItemId</span>
+<span id="L600" class="line"><a href="#L600">600</a></span>
+<span id="L601" class="line"><a href="#L601">601</a>    local targetWorldPos</span>
+<span id="L602" class="line"><a href="#L602">602</a>    if storePanel and not storePanel.isDisposed and storePanel.resolveStoreHeaderFlyPos then</span>
+<span id="L603" class="line"><a href="#L603">603</a>        targetWorldPos = storePanel:resolveStoreHeaderFlyPos(TicketItemId)</span>
+<span id="L604" class="line"><a href="#L604">604</a>    end</span>
+<span id="L605" class="line"><a href="#L605">605</a></span>
+<span id="L606" class="line"><a href="#L606">606</a>    if not targetWorldPos then</span>
+<span id="L607" class="line"><a href="#L607">607</a>        safeRunCall(callback)</span>
+<span id="L608" class="line"><a href="#L608">608</a>        return</span>
+<span id="L609" class="line"><a href="#L609">609</a>    end</span>
+<span id="L610" class="line"><a href="#L610">610</a></span>
+<span id="L611" class="line"><a href="#L611">611</a>    local visibleArea = _G.fullScreenSizeManager:getVisibleArea()</span>
+<span id="L612" class="line"><a href="#L612">612</a>    local startWorldPos = ccp(</span>
+<span id="L613" class="line"><a href="#L613">613</a>        visibleArea.origin.x + visibleArea.size.width  * 0.5,</span>
+<span id="L614" class="line"><a href="#L614">614</a>        visibleArea.origin.y + visibleArea.size.height * 0.5</span>
+<span id="L615" class="line"><a href="#L615">615</a>    )</span>
+<span id="L616" class="line"><a href="#L616">616</a></span>
+<span id="L617" class="line"><a href="#L617">617</a>    require &quot;amf.middleware.ui.kit.animation.fly.transaction.FlyItemContext&quot;</span>
+<span id="L618" class="line"><a href="#L618">618</a>    local flyContext = FlyItemContext.new({</span>
+<span id="L619" class="line"><a href="#L619">619</a>        {</span>
+<span id="L620" class="line"><a href="#L620">620</a>            itemId     = TicketItemId,</span>
+<span id="L621" class="line"><a href="#L621">621</a>            num        = num,</span>
+<span id="L622" class="line"><a href="#L622">622</a>            targetPos  = ccp(targetWorldPos.x, targetWorldPos.y),</span>
+<span id="L623" class="line"><a href="#L623">623</a>            duration   = 0.5,</span>
+<span id="L624" class="line"><a href="#L624">624</a>            scale      = 1.0,</span>
+<span id="L625" class="line"><a href="#L625">625</a>            shandowNum = 3,</span>
+<span id="L626" class="line"><a href="#L626">626</a>        }</span>
+<span id="L627" class="line"><a href="#L627">627</a>    }, ccp(startWorldPos.x, startWorldPos.y)):setFinishCallback(function()</span>
+<span id="L628" class="line"><a href="#L628">628</a>        self:playEffect(self:getConst().Sound.TICKET_COLLECT)</span>
+<span id="L629" class="line"><a href="#L629">629</a>        safeRunCall(callback)</span>
+<span id="L630" class="line"><a href="#L630">630</a>    end)</span>
+<span id="L631" class="line"><a href="#L631">631</a>    _G.amfTransaction(TransactionEvent.FLY_ITEMS, flyContext)</span>
+<span id="L632" class="line"><a href="#L632">632</a>end</span>
+<span id="L633" class="line"><a href="#L633">633</a></span>
+<span id="L634" class="line"><a href="#L634">634</a>function ClimbTowerManager:playEffect(type, loop)</span>
+<span id="L635" class="line"><a href="#L635">635</a>    local filePath = &quot;amf/activity/climbtower/sound/&quot; .. type</span>
+<span id="L636" class="line"><a href="#L636">636</a>    self[type .. &quot;_effect&quot;] = GamePlayMusicPlayer.getInstance():playEffect(filePath, nil, loop)</span>
+<span id="L637" class="line"><a href="#L637">637</a>end</span>
+<span id="L638" class="line"><a href="#L638">638</a></span>
+<span id="L639" class="line"><a href="#L639">639</a>--endregion</span>
+<span id="L640" class="line"><a href="#L640">640</a></span>
+<span id="L641" class="line"><a href="#L641">641</a>return ClimbTowerManager</span></pre></main></html>

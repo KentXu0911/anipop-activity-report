@@ -1,0 +1,92 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/pet/config/PetDecoInLevelSkinConfig.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="e0a152364ecf.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/pet/config/PetDecoInLevelSkinConfig.lua</h1><p>SHA256 bd1cda0164672ea7f15cb788dc1a5543d80c9020eb300854f36982095633b181</p><pre><span id="L1" class="line"><a href="#L1">1</a>local baseConfig = require &quot;ubf.UBFActivity.actFolder.PetitPet.PetDecoInLevelSkinConfig&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local parts = {}</span>
+<span id="L4" class="line"><a href="#L4">4</a>for partName, partType in pairs(baseConfig.parts) do</span>
+<span id="L5" class="line"><a href="#L5">5</a>    parts[partName] = partType</span>
+<span id="L6" class="line"><a href="#L6">6</a>end</span>
+<span id="L7" class="line"><a href="#L7">7</a>parts.wing = &quot;4&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>local decoMetas = {}</span>
+<span id="L10" class="line"><a href="#L10">10</a>for itemId, meta in pairs(baseConfig.decoMetas) do</span>
+<span id="L11" class="line"><a href="#L11">11</a>    decoMetas[itemId] = meta</span>
+<span id="L12" class="line"><a href="#L12">12</a>end</span>
+<span id="L13" class="line"><a href="#L13">13</a></span>
+<span id="L14" class="line"><a href="#L14">14</a>local outsideLevelDecos = {</span>
+<span id="L15" class="line"><a href="#L15">15</a>    itemMetas = {</span>
+<span id="L16" class="line"><a href="#L16">16</a>        [53733] = { part = &quot;2&quot; },</span>
+<span id="L17" class="line"><a href="#L17">17</a>        [53737] = { part = &quot;4&quot; },</span>
+<span id="L18" class="line"><a href="#L18">18</a>    },</span>
+<span id="L19" class="line"><a href="#L19">19</a>}</span>
+<span id="L20" class="line"><a href="#L20">20</a>for itemId, meta in pairs(outsideLevelDecos.itemMetas) do</span>
+<span id="L21" class="line"><a href="#L21">21</a>    decoMetas[itemId] = meta</span>
+<span id="L22" class="line"><a href="#L22">22</a>end</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>local config = {</span>
+<span id="L25" class="line"><a href="#L25">25</a>    parts = parts,</span>
+<span id="L26" class="line"><a href="#L26">26</a>    decoMetas = decoMetas,</span>
+<span id="L27" class="line"><a href="#L27">27</a>    outsideLevelDecos = outsideLevelDecos,</span>
+<span id="L28" class="line"><a href="#L28">28</a>    defaultWearingDecos = {</span>
+<span id="L29" class="line"><a href="#L29">29</a>        [&quot;1&quot;] = 53701,</span>
+<span id="L30" class="line"><a href="#L30">30</a>        [&quot;3&quot;] = 53710,</span>
+<span id="L31" class="line"><a href="#L31">31</a>        [&quot;2&quot;] = 53733,</span>
+<span id="L32" class="line"><a href="#L32">32</a>    },</span>
+<span id="L33" class="line"><a href="#L33">33</a>    emptyDecos = {</span>
+<span id="L34" class="line"><a href="#L34">34</a>        [53733] = true,</span>
+<span id="L35" class="line"><a href="#L35">35</a>    },</span>
+<span id="L36" class="line"><a href="#L36">36</a>}</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>function config.getDecoMeta(itemId)</span>
+<span id="L39" class="line"><a href="#L39">39</a>    itemId = tonumber(itemId) or itemId</span>
+<span id="L40" class="line"><a href="#L40">40</a>    return config.decoMetas[itemId]</span>
+<span id="L41" class="line"><a href="#L41">41</a>end</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>function config.isDecoSupported(itemId)</span>
+<span id="L44" class="line"><a href="#L44">44</a>    return config.getDecoMeta(itemId) ~= nil</span>
+<span id="L45" class="line"><a href="#L45">45</a>end</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>function config.isEmptyDeco(itemId)</span>
+<span id="L48" class="line"><a href="#L48">48</a>    itemId = tonumber(itemId) or itemId</span>
+<span id="L49" class="line"><a href="#L49">49</a>    return config.emptyDecos[itemId] == true</span>
+<span id="L50" class="line"><a href="#L50">50</a>end</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a>function config.getDefaultWearingDecos()</span>
+<span id="L53" class="line"><a href="#L53">53</a>    local result = {}</span>
+<span id="L54" class="line"><a href="#L54">54</a>    for partType, itemId in pairs(config.defaultWearingDecos) do</span>
+<span id="L55" class="line"><a href="#L55">55</a>        result[partType] = itemId</span>
+<span id="L56" class="line"><a href="#L56">56</a>    end</span>
+<span id="L57" class="line"><a href="#L57">57</a>    return result</span>
+<span id="L58" class="line"><a href="#L58">58</a>end</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>function config.resolveWearingDecos(wearingDecos)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    if type(wearingDecos) ~= &quot;table&quot; then</span>
+<span id="L62" class="line"><a href="#L62">62</a>        return config.getDefaultWearingDecos(), true</span>
+<span id="L63" class="line"><a href="#L63">63</a>    end</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>    for _, itemId in pairs(wearingDecos) do</span>
+<span id="L66" class="line"><a href="#L66">66</a>        if itemId ~= nil and tonumber(itemId) ~= 0 and not config.isDecoSupported(itemId) then</span>
+<span id="L67" class="line"><a href="#L67">67</a>            return config.getDefaultWearingDecos(), true</span>
+<span id="L68" class="line"><a href="#L68">68</a>        end</span>
+<span id="L69" class="line"><a href="#L69">69</a>    end</span>
+<span id="L70" class="line"><a href="#L70">70</a></span>
+<span id="L71" class="line"><a href="#L71">71</a>    local result = config.getDefaultWearingDecos()</span>
+<span id="L72" class="line"><a href="#L72">72</a>    for partType, itemId in pairs(wearingDecos) do</span>
+<span id="L73" class="line"><a href="#L73">73</a>        local meta = config.getDecoMeta(itemId)</span>
+<span id="L74" class="line"><a href="#L74">74</a>        if meta then</span>
+<span id="L75" class="line"><a href="#L75">75</a>            result[tostring(meta.part or partType)] = tonumber(itemId) or itemId</span>
+<span id="L76" class="line"><a href="#L76">76</a>        end</span>
+<span id="L77" class="line"><a href="#L77">77</a>    end</span>
+<span id="L78" class="line"><a href="#L78">78</a>    return result, false</span>
+<span id="L79" class="line"><a href="#L79">79</a>end</span>
+<span id="L80" class="line"><a href="#L80">80</a></span>
+<span id="L81" class="line"><a href="#L81">81</a>function config.resolveWearingDecosForLevel(wearingDecos)</span>
+<span id="L82" class="line"><a href="#L82">82</a>    local result, didFallback = config.resolveWearingDecos(wearingDecos)</span>
+<span id="L83" class="line"><a href="#L83">83</a>    for partType, itemId in pairs(result) do</span>
+<span id="L84" class="line"><a href="#L84">84</a>        itemId = tonumber(itemId) or itemId</span>
+<span id="L85" class="line"><a href="#L85">85</a>        if config.isEmptyDeco(itemId) or baseConfig.decoMetas[itemId] == nil then</span>
+<span id="L86" class="line"><a href="#L86">86</a>            result[partType] = nil</span>
+<span id="L87" class="line"><a href="#L87">87</a>        end</span>
+<span id="L88" class="line"><a href="#L88">88</a>    end</span>
+<span id="L89" class="line"><a href="#L89">89</a>    return result, didFallback</span>
+<span id="L90" class="line"><a href="#L90">90</a>end</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>return config</span></pre></main></html>

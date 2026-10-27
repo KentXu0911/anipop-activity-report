@@ -1,0 +1,44 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/autopop/fsm/PopupStandByState.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="22f775a40d35.lua" download>下载Lua原文</a></p><h1>amf/middleware/autopop/fsm/PopupStandByState.lua</h1><p>SHA256 4f41362e387622a351ee03012abf6437081bf40e9953e671e68ce4843d0b8fd4</p><pre><span id="L1" class="line"><a href="#L1">1</a>local AutoPopupDebugLog = require &quot;amf.middleware.autopop.AutoPopupDebugLog&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local PopupStandByState = class(&quot;PopupStandByState&quot;)</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>function PopupStandByState:create(fsm)</span>
+<span id="L6" class="line"><a href="#L6">6</a>	local state = PopupStandByState.new()</span>
+<span id="L7" class="line"><a href="#L7">7</a>	state:init(fsm)</span>
+<span id="L8" class="line"><a href="#L8">8</a>	return state</span>
+<span id="L9" class="line"><a href="#L9">9</a>end</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>function PopupStandByState:init(fsm)</span>
+<span id="L12" class="line"><a href="#L12">12</a>	self.fsm = fsm</span>
+<span id="L13" class="line"><a href="#L13">13</a>	self._autoPopupMgr = fsm:getAutoPopupMgr()</span>
+<span id="L14" class="line"><a href="#L14">14</a>end</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>function PopupStandByState:onEnter(lastPopStage)</span>
+<span id="L17" class="line"><a href="#L17">17</a>	AutoPopupDebugLog:log(&quot;PopupStandByState:onEnter()&quot;)</span>
+<span id="L18" class="line"><a href="#L18">18</a>	self._autoPopupMgr:enableTouch()</span>
+<span id="L19" class="line"><a href="#L19">19</a>	if lastPopStage then</span>
+<span id="L20" class="line"><a href="#L20">20</a>		AutoPopupDebugLog:finishPopupScene(&quot;completed&quot;)</span>
+<span id="L21" class="line"><a href="#L21">21</a>	end</span>
+<span id="L22" class="line"><a href="#L22">22</a>	self._autoPopupMgr:setPopStage(nil)</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>	if not lastPopStage then return end</span>
+<span id="L25" class="line"><a href="#L25">25</a>	self._autoPopupMgr:setLastPopStage(lastPopStage)</span>
+<span id="L26" class="line"><a href="#L26">26</a>	local sum = self._autoPopupMgr:getTmpPopTypePopSum() </span>
+<span id="L27" class="line"><a href="#L27">27</a>	self._autoPopupMgr:setLastPopStagePopSum(sum)</span>
+<span id="L28" class="line"><a href="#L28">28</a></span>
+<span id="L29" class="line"><a href="#L29">29</a>	self._autoPopupMgr:clearTmpPopTypePopNum()</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>	self._autoPopupMgr:handleStage4AfterStartGameNoPop(lastPopStage)</span>
+<span id="L32" class="line"><a href="#L32">32</a>    </span>
+<span id="L33" class="line"><a href="#L33">33</a>    self._autoPopupMgr:handleAfterPopupEnd(lastPopStage)</span>
+<span id="L34" class="line"><a href="#L34">34</a>end</span>
+<span id="L35" class="line"><a href="#L35">35</a></span>
+<span id="L36" class="line"><a href="#L36">36</a>function PopupStandByState:onExit()</span>
+<span id="L37" class="line"><a href="#L37">37</a>	AutoPopupDebugLog:log(&quot;PopupStandByState:onExit()&quot;)</span>
+<span id="L38" class="line"><a href="#L38">38</a>	self._autoPopupMgr:disableTouch()</span>
+<span id="L39" class="line"><a href="#L39">39</a>end</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>function PopupStandByState:reset()</span>
+<span id="L42" class="line"><a href="#L42">42</a>end</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>return PopupStandByState</span></pre></main></html>

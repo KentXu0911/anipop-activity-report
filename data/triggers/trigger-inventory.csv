@@ -1,0 +1,1159 @@
+﻿id,kind,source,line,sha256,function,checkpoint,stages,localactivity_module,is_debug_or_test,review,code
+TR001,direct_call,amf/feature/accountbind/minibind/MiniAccountBindingManager.lua,165,bb6c6bfb8a633e914fa9dfc05d0d8d50df510776b2a190913d03d17d844a00e8,MiniAccountBindingManager:_registerStage2Popup(),PopupCheckPoint.DY_PHONE_BIND_STAGE2,STAGE_TWO,,False,indexed_not_semantically_closed,":registerPopup({
+		checkPoint = PopupCheckPoint.DY_PHONE_BIND_STAGE2,
+		stages = {AutoPopupConst.PopStage.STAGE_TWO},
+		check = function()
+			if _G.getTopPassedLevelId() > 30 then return false end
+			if not self._snsBindLogic:isDyPhoneBindExperimentEnabled() then return false end
+			return self._snsBindLogic:canShowPhoneBindButton()
+		end,
+		creator = function(_, onPopOver)
+			return function()
+				self._snsBindLogic:onPhoneBindButtonTapped(true, onPopOver)
+			end
+		end,
+	}"
+TR002,direct_call,amf/feature/accountbind/minibind/MiniAccountBindingManager.lua,565,bb6c6bfb8a633e914fa9dfc05d0d8d50df510776b2a190913d03d17d844a00e8,MiniAccountBindingManager:onActEnterStage4(evt),":addPopupConfig(PopupCheckPoint.PHONE_BIND, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PHONE_BIND, creator)"
+TR003,direct_call,amf/feature/accountbind/phonebind/module/phonebindact/PhoneBindActManager.lua,444,5937b87723750a8c957f5e86cb67165a52871d6923a793e4936892c45861af40,PhoneBindActManager:onActEnterStage4(evt),":addPopupConfig(PopupCheckPoint.BIND_PHONE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.BIND_PHONE, creator)"
+TR004,direct_call,amf/feature/ad/incite/InciteManager.lua,2345,fd357ebb5a6cfa72fd7cc929929323fc9714934ce3d3301421b32cd18dbc7d0a,InciteManager:onActEnterStage4(evt),":addPopupConfig(PopupCheckPoint.AD_GUIDE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.AD_GUIDE, creator)"
+TR005,direct_call,amf/feature/competition/CompetitionTransferManager.lua,511,0bc43fd441f7390a47b40ccc0f6a620acd5c4dce704bed05b0f921c784526886,CompetitionTransferManager:addAuditionsEntryPopup(params),":addPopupConfig(popupCheckPoint, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(popupCheckPoint, creator)"
+TR006,direct_call,amf/feature/dailyreward/mark/MarkManager.lua,118,b62a5284e5d5d5ff8e5dc48e93e2ffd26ba0dbccf729503ea74c49ae294c676d,MarkManager:onActEnterStage2(evt),":addPopupConfig(PopupCheckPoint.MARK, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.MARK, creator)"
+TR007,direct_call,amf/feature/dailyreward/promotedaily/logic/PromoteDailyAutoPopoutLogic.lua,102,ce42b11056169e72755e58b7cf1014ff55fcc43a71924d83522fa2fcde7ffa5e,PromoteDailyAutoPopLogic:_addRepairStage2Popup(needTrigger),":addPopupConfig(PopupCheckPoint.PROMOTE_DAILY_REPAIR_STAGE2, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PROMOTE_DAILY_REPAIR_STAGE2, creator)"
+TR008,direct_call,amf/feature/dailyreward/promotedaily/logic/PromoteDailyAutoPopoutLogic.lua,153,ce42b11056169e72755e58b7cf1014ff55fcc43a71924d83522fa2fcde7ffa5e,PromoteDailyAutoPopLogic:doActEnterStage4(data),":addPopupConfig(PopupCheckPoint.PROMOTE_DAILY, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PROMOTE_DAILY, creator)"
+TR009,direct_call,amf/feature/desktopwidget/logic/DesktopWidgetManager.lua,461,2a3be6be2b1abff57a25956e13fb1afb7053016a21f2a15d8f49a1cd89dd89eb,DesktopWidgetManager:checkPopAct(today),":addPopupConfig(PopupCheckPoint.WIDGET_REWARD_ACT, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WIDGET_REWARD_ACT, creator)"
+TR010,direct_call,amf/feature/friend/module/friendrecommend/FriendRecommendManager.lua,151,27fed34547afe134a4fcae251420289f9a724884b6101f6e9652a3ecbe08fe54,FriendRecommendManager:onActEnterStage4(data),":addPopupConfig(PopupCheckPoint.LUCKY_ENERGY_BOTTLE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.LUCKY_ENERGY_BOTTLE, creator)"
+TR011,direct_call,amf/feature/fruittree/FruitTreeManager.lua,182,881842d8099f935526931787e5b7c943ed67cce97aef3a6362a51f1582f4fa93,FruitTreeManager:onActEnterStage4(evt),":addPopupConfig(PopupCheckPoint.FEATURE_UNLOCK_GUIDE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.FEATURE_UNLOCK_GUIDE, creator)"
+TR012,direct_call,amf/feature/fruittree/act/collectword/CollectWordManager.lua,558,7b7ca4e2f6f1f26dcf5148eab2d71a820b43df6c2c20371252df00ebde79ca7e,CollectWordManager:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.COLLECT_WORD, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.COLLECT_WORD, creator)"
+TR013,direct_call,amf/feature/fulllevel/fulllevelatmosphere/module/NewLevelAtmosphereModule.lua,293,241aba1c21345c6f0ace48989f7b5cbf632df0a4baf74c106586881f032c70f7,NewLevelAtmosphereModule:doPopFullLevelOpenPanel(),":addPopupConfig(PopupCheckPoint.FULL_LEVEL_OPEN_PANEL, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.FULL_LEVEL_OPEN_PANEL, creator)"
+TR014,direct_call,amf/feature/fulllevel/starwandbuff/StarWandBuffManager.lua,961,537e99dcb0c2990cdf4a01fd0b5f457e776d905fc06089c2e12fa35f7b4b10fb,Manager:tryDoButtonCloudGuide(),":addPopupConfig(PopupCheckPoint.STARWANDBUFF_GUIDE, function()",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.STARWANDBUFF_GUIDE, function()"
+TR015,direct_call,amf/feature/fullstarlevellib/FullStarLevelLibManager.lua,240,241aa618a8690ef27551273ee5a6f87d9d820862f5bc9782e245014e27296503,FullStarLevelLibManager:onActEnterStage4(data),":addPopupConfig(PopupCheckPoint.FULL_STAR_LEVEL_LIB, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.FULL_STAR_LEVEL_LIB, creator)"
+TR016,direct_call,amf/feature/giftpackage/module/singleicon/dailyspecial/DailySpecialAIModule.lua,186,c53e2ee158f0644b143d3205ec9925af8d07c5b8c1b849b73578d30cbac3c6c6,DailySpecialAIModule:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.DAILY_SPECIAL_AI_GIFT_PACKAGE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.DAILY_SPECIAL_AI_GIFT_PACKAGE, creator)"
+TR017,direct_call,amf/feature/giftpackage/module/singleicon/icebreaking/IceBreakingGiftModule.lua,325,547a943c84949694d6f7a5b7a8e7fa257ce38182c75aec666fb50144a1379d38,IceBreakingGiftModule:tryAutoPopup(),":addPopupConfig(popupKey, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(popupKey, creator)"
+TR018,direct_call,amf/feature/honorrank/HonorRankManager.lua,152,77615959b25d054819c9c04a26366087224ed6f7f0926815ee63911eeea7b2b9,HonorRankManager:tryGetPeakRewardData(),":addPopupConfig(PopupCheckPoint.PEAK_RANK_REWARD, function()",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PEAK_RANK_REWARD, function()"
+TR019,direct_call,amf/feature/localactivity/addfivestepupgrade/AddFiveUpgradeManager.lua,1495,b003beac3c2f07edace8bc9c6390503f8da87626a35cd4606ee4432f3f8b932b,Manager:doAddFiveStepPopup(saveParam),":addPopupConfig(PopupCheckPoint.ADD_FIVE_STEP, creator)",,addfivestepupgrade,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.ADD_FIVE_STEP, creator)"
+TR020,direct_call,amf/feature/localactivity/battlepass/BattlePassManager.lua,262,582fb8682d07b3c964050a10c0b2b0cad6aa7d4a9d3fc5bdd932e11fd469b37f,Manager:_registerAutoPopup(),PCP.BATTLE_PASS_TRIGGER,STAGE_TWO|STAGE_FOUR,battlepass,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PCP.BATTLE_PASS_TRIGGER,
+        stages     = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+        check      = function()
+            return self:isEnabled()
+                and autoPopupMgr:getPermanentShowNum(PCP.BATTLE_PASS_TRIGGER) < 1
+        end,
+        creator    = function(_, onPopOver)
+            return function()
+                autoPopupMgr:sendPermanentData(PCP.BATTLE_PASS_TRIGGER)
+                self:openActivity(onPopOver)
+            end
+        end
+    }"
+TR021,direct_call,amf/feature/localactivity/battlepass/BattlePassManager.lua,277,582fb8682d07b3c964050a10c0b2b0cad6aa7d4a9d3fc5bdd932e11fd469b37f,Manager:_registerAutoPopup(),PCP.BATTLE_PASS_UNBUY_COMPLETE,STAGE_FOUR,battlepass,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PCP.BATTLE_PASS_UNBUY_COMPLETE,
+        stages     = { PopStage.STAGE_FOUR },
+        check      = function()
+            return self:isEnabled()
+                and not self:getModel():getBattlePassVip()
+                and self:_isAllTaskCompleted()
+                and autoPopupMgr:getPermanentShowNum(PCP.BATTLE_PASS_UNBUY_COMPLETE) < 1
+        end,
+        creator    = function(_, onPopOver)
+            return function()
+                autoPopupMgr:sendPermanentData(PCP.BATTLE_PASS_UNBUY_COMPLETE)
+                self:openActivity(onPopOver)
+            end
+        end
+    }"
+TR022,direct_call,amf/feature/localactivity/battlepass/BattlePassManager.lua,294,582fb8682d07b3c964050a10c0b2b0cad6aa7d4a9d3fc5bdd932e11fd469b37f,Manager:_registerAutoPopup(),PCP.BATTLE_PASS_BUY_COMPLETE,STAGE_TWO|STAGE_FOUR,battlepass,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PCP.BATTLE_PASS_BUY_COMPLETE,
+        stages     = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+        check      = function()
+            return self:isEnabled()
+                and self:getModel():getBattlePassVip()
+                and self:_isAllTaskCompleted()
+                and autoPopupMgr:getPermanentShowNum(PCP.BATTLE_PASS_BUY_COMPLETE) < 1
+        end,
+        creator    = function(_, onPopOver)
+            return function()
+                autoPopupMgr:sendPermanentData(PCP.BATTLE_PASS_BUY_COMPLETE)
+                self:openActivity(onPopOver)
+            end
+        end
+    }"
+TR023,direct_call,amf/feature/localactivity/battlepass/BattlePassManager.lua,311,582fb8682d07b3c964050a10c0b2b0cad6aa7d4a9d3fc5bdd932e11fd469b37f,Manager:_registerAutoPopup(),PCP.BATTLE_PASS_REWARD_SETTLE,STAGE_TWO|STAGE_FOUR,battlepass,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PCP.BATTLE_PASS_REWARD_SETTLE,
+        stages     = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+        check      = function()
+            return self:isInRewardTime()
+                and self:isEnabled2()
+                and autoPopupMgr:getPermanentShowNum(PCP.BATTLE_PASS_REWARD_SETTLE) < 1
+        end,
+        creator    = function(_, onPopOver)
+            return function()
+                autoPopupMgr:sendPermanentData(PCP.BATTLE_PASS_REWARD_SETTLE)
+                self:_openRewardSettlePanel(onPopOver)
+            end
+        end
+    }"
+TR024,plugin_config,amf/feature/localactivity/biggiveaway/BigGiveAwayManager.lua,37,fd4def6eab5d15873adb1d415413df5702cd12667f4eb708d7c57b77201b3a00,Manager:_getAutoPopConfigList(),PopupCheckPoint.BIG_GIVEAWAY_STAGE4_POP,STAGE_FOUR,biggiveaway,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.BIG_GIVEAWAY_STAGE4_POP,
+            actId = self:getConst().actId,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                return self:isAutoPopupSupported()
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:callActFunc(""openActivity"", {
+                        failCallback = onPopOver,
+                        endCallback = onPopOver,
+                        userClick = false,
+                    })
+                end
+            end,
+        }"
+TR025,plugin_config,amf/feature/localactivity/bigvineskinact/BigVineSkinActManager.lua,75,8135ebb3b2f5621ac1e36a907b489ddf23159baa75c28f672cc3963a859c6c6a,Manager:_getAutoPopConfigList(),PopupCheckPoint.BIG_VINE_SKIN_TRIGGER_DAY1,STAGE_TWO|STAGE_FOUR,bigvineskinact,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_TRIGGER_DAY1,
+            stages = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanPopTriggerDay1MainPanel()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popTriggerDay1MainPanel(onPopOver)
+                end
+            end,
+        }"
+TR026,plugin_config,amf/feature/localactivity/bigvineskinact/BigVineSkinActManager.lua,89,8135ebb3b2f5621ac1e36a907b489ddf23159baa75c28f672cc3963a859c6c6a,Manager:_getAutoPopConfigList(),PopupCheckPoint.BIG_VINE_SKIN_SCHEDULED_DAY,STAGE_FOUR,bigvineskinact,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_SCHEDULED_DAY,
+            stages = { PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanPopScheduledDayMainPanel()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popScheduledDayMainPanel(onPopOver)
+                end
+            end,
+        }"
+TR027,plugin_config,amf/feature/localactivity/bigvineskinact/BigVineSkinActManager.lua,103,8135ebb3b2f5621ac1e36a907b489ddf23159baa75c28f672cc3963a859c6c6a,Manager:_getAutoPopConfigList(),PopupCheckPoint.BIG_VINE_SKIN_TRIAL_EXPIRED,STAGE_TWO|STAGE_FOUR,bigvineskinact,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_TRIAL_EXPIRED,
+            stages = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanPopTrialExpiredPanel()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popTrialExpiredPanel(onPopOver)
+                end
+            end,
+        }"
+TR028,plugin_config,amf/feature/localactivity/bigvineskinact/BigVineSkinActManager.lua,117,8135ebb3b2f5621ac1e36a907b489ddf23159baa75c28f672cc3963a859c6c6a,Manager:_getAutoPopConfigList(),PopupCheckPoint.BIG_VINE_SKIN_TRIAL_CARD,STAGE_FOUR,bigvineskinact,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_TRIAL_CARD,
+            stages = { PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanPopTrialCardPanel()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popTrialCardPanel(onPopOver)
+                end
+            end,
+        }"
+TR029,plugin_config,amf/feature/localactivity/bigvineskinact/BigVineSkinActManager.lua,131,8135ebb3b2f5621ac1e36a907b489ddf23159baa75c28f672cc3963a859c6c6a,Manager:_getAutoPopConfigList(),PopupCheckPoint.BIG_VINE_SKIN_OWNED_GUIDE,STAGE_FOUR,bigvineskinact,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.BIG_VINE_SKIN_OWNED_GUIDE,
+            stages = { PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanPopOwnedSkinGuide()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popOwnedSkinGuide(onPopOver)
+                end
+            end,
+        }"
+TR030,plugin_config,amf/feature/localactivity/block/BlockManager.lua,103,a8cb6d072e02b194955e215b6d4c82ba237e51d2b63e5dbfe1a21324a22f00c7,Manager:_getAutoPopConfigList(),PopupCheckPoint.BLOCK_STAGE4_POP,STAGE_FOUR,block,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.BLOCK_STAGE4_POP,
+            actId = self:getConst().actId,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                if not self:isActivitySupported(self:getConst().actId) then return false end
+                if not self:isEnabled() then return false end
+                return not shouldReduceAutoPopup(self)
+                    and (self:checkCanPop() == true
+                        or not self:getFlagFromLocalByKey(""MainPanelShow"", true))
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    if not self:isEnabled() then
+                        safeRunCall(onPopOver)
+                        return
+                    end
+                    if not self:getFlagFromLocalByKey(""MainPanelShow"", true) then
+                        self:setFlagToLocalByKey(""MainPanelShow"", true, true)
+                        self:callActFunc(""openActivity"", {
+                            failCallback = onPopOver,
+                            endCallback = onPopOver,
+                            extra = {},
+                        })
+                        return
+                    end
+                    if self.showYinliuStage4 then
+                        self:showYinliuStage4(onPopOver)
+                    else
+                        safeRunCall(onPopOver)
+                    end
+                end
+            end,
+        }"
+TR031,direct_call,amf/feature/localactivity/climbtower/ClimbTowerManager.lua,279,eb3e0e5639b8635ed67265eb38894dca748af912e3dacbc725356e2d1a499773,ClimbTowerManager:_registerAutoPopup(),PCP.CLIMB_TOWER_TRIGGER,STAGE_TWO|STAGE_FOUR,climbtower,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PCP.CLIMB_TOWER_TRIGGER,
+        stages     = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+        check      = function()
+            if not self:isEnabled() then return false end
+            -- 正式期和领奖期各弹一次，本地缓存记录（needTime=false 跨日持久），key 拼入 periodId 按期隔离
+            local periodId           = tostring(self:getPeriodId() or """")
+            local TRIGGER_MAIN_KEY   = ""climb_tower_trigger_main_"" .. periodId
+            local TRIGGER_REWARD_KEY = ""climb_tower_trigger_reward_"" .. periodId
+            -- 正式期：本期正式期内未弹过
+            if self:isInMainTime() and self:getTotalTickets() > 0 then
+                return (self:getLocalCache(TRIGGER_MAIN_KEY, false) or 0) < 1
+            end
+            -- 领奖期：本期领奖期内未弹过
+            if self:getModel():isInRewardTime() and self:getTotalTickets() > 0 then
+                return (self:getLocalCache(TRIGGER_REWARD_KEY, false) or 0) < 1
+            end
+            return false
+        end,
+        creator    = function(_, onPopOver)
+            return function()
+                -- 正式期和领奖期各弹一次，本地缓存记录（needTime=false 跨日持久），key 拼入 periodId 按期隔离
+                local periodId           = tostring(self:getPeriodId() or """")
+                local TRIGGER_MAIN_KEY   = ""climb_tower_trigger_main_"" .. periodId
+                local TRIGGER_REWARD_KEY = ""climb_tower_trigger_reward_"" .. periodId
+                -- 本地记录本期弹出，防止重复弹
+                if self:isInMainTime() then
+                    self:setLocalCache(TRIGGER_MAIN_KEY, false, 1)
+                else
+                    self:setLocalCache(TRIGGER_REWARD_KEY, false, 1)
+                end
+                self:openActivity(onPopOver)
+            end
+        end,
+    }"
+TR032,direct_call,amf/feature/localactivity/coinpromotions/CoinPromotionsMgr.lua,638,2f3bf7e406627b697418ffaa4048866843b439fbfa312614c958085d7752667e,Manager:onActEnterStage3(),":addPopupConfig(PopupCheckPoint.COIN_PROMOTIONS_POP, creator, 5066)",,coinpromotions,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.COIN_PROMOTIONS_POP, creator, 5066)"
+TR033,direct_call,amf/feature/localactivity/collectcard/CollectCardManager.lua,1191,21a3575249471d7309fa112507d67d3d7bff70025c1c890104799bb94b4c586a,Manager:tryPlayActIconUnlockAnimInStage4(),":addPopupConfig(PopupCheckPoint.FEATURE_UNLOCK_GUIDE, creator)",,collectcard,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.FEATURE_UNLOCK_GUIDE, creator)"
+TR034,plugin_config,amf/feature/localactivity/collectcard/CollectCardManager.lua,336,21a3575249471d7309fa112507d67d3d7bff70025c1c890104799bb94b4c586a,Manager:_getAutoPopConfigList(),PopupCheckPoint.COLLECT_CARD_FLOW_POP_STAGE2,STAGE_TWO,collectcard,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.COLLECT_CARD_FLOW_POP_STAGE2,
+            stages = {PopStage.STAGE_TWO},
+            actId = self.ACT_ID,
+            check = function(stageParams)
+                -- 注册式强弹的 check/pop 收到的是场景事件对象，事件数据经 getData 取。
+                local stageData = stageParams:getData() or {}
+                -- 仅本次启动首次进入主场景时补开卡包
+                return self:isActValid()
+                    and stageData.isFirstEnter == true
+                    and self:_tryAutoPopOpenCardPackFlowCond()
+            end,
+            pop = function(_, onPopOver)
+                return self:createOpenCardPackFlowCreator(onPopOver)
+            end,
+        }"
+TR035,plugin_config,amf/feature/localactivity/collectcard/CollectCardManager.lua,352,21a3575249471d7309fa112507d67d3d7bff70025c1c890104799bb94b4c586a,Manager:_getAutoPopConfigList(),PopupCheckPoint.COLLECT_CARD_FLOW_POP_STAGE4,STAGE_FOUR,collectcard,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.COLLECT_CARD_FLOW_POP_STAGE4,
+            stages = {PopStage.STAGE_FOUR},
+            actId = self.ACT_ID,
+            check = function()
+                return self:isActValid()
+                    and self:_tryAutoPopOpenCardPackFlowCond()
+            end,
+            pop = function(_, onPopOver)
+                return self:createOpenCardPackFlowCreator(onPopOver)
+            end,
+        }"
+TR036,plugin_config,amf/feature/localactivity/collectcard/CollectCardManager.lua,364,21a3575249471d7309fa112507d67d3d7bff70025c1c890104799bb94b4c586a,Manager:_getAutoPopConfigList(),PopupCheckPoint.COLLECT_CARD_DAILY_GIFT_POP,STAGE_FOUR,collectcard,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.COLLECT_CARD_DAILY_GIFT_POP,
+            stages = {PopStage.STAGE_FOUR},
+            actId = self.ACT_ID,
+            check = function()
+                return self:isActValid()
+                    and self:_tryDailyPopGiftPaenlCond()
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    local isOpenedGiftPanel = false
+                    local function closePanelCallback()
+                        self:getGiftModule():setAutoPopup()
+                        safeRunCall(onPopOver)
+                    end
+                    local function openedCallback(ret)
+                        isOpenedGiftPanel = ret
+                        if not isOpenedGiftPanel then
+                            closePanelCallback()
+                        end
+                    end
+                    self:tryDownLoadRes(true):next(function()
+                        if self._isCreaingNewCardPanel then
+                            closePanelCallback()
+                            return
+                        end
+                        self:openNewCardPanel(closePanelCallback, {}, false, openedCallback)
+                    end, function()
+                        closePanelCallback()
+                    end)
+                end
+            end,
+        }"
+TR037,plugin_config,amf/feature/localactivity/collectcard/CollectCardManager.lua,397,21a3575249471d7309fa112507d67d3d7bff70025c1c890104799bb94b4c586a,Manager:_getAutoPopConfigList(),PopupCheckPoint.COLLECT_CARD_PROGRESS_TIP,STAGE_FOUR,collectcard,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.COLLECT_CARD_PROGRESS_TIP,
+            stages = {PopStage.STAGE_FOUR},
+            -- actId = self.ACT_ID, -- 不看做活动强弹，此tip按理说应该是受icon tip管理
+            check = function()
+                return self:isActValid()
+                    and self:_tryProgressTipPopCond()
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    local currentInfo = self:getProgressTipInfo()
+                    if not currentInfo or not currentInfo.tier then
+                        safeRunCall(onPopOver)
+                        return
+                    end
+
+                    local icon = self.iconModule:getActivityIcon()
+                    local shown = false
+                    if icon and icon.showProgressTip and not icon.isDisposed then
+                        shown = icon:showProgressTip(currentInfo) == true
+                    end
+                    if shown then
+                        local currentPopKey = self:_getProgressTipPopLocalKey(currentInfo.tier)
+                        self:setFlagToLocalByKey(currentPopKey, false, true)
+                        self._progressTipShowed = true
+                    end
+                    safeRunCall(onPopOver)
+                end
+            end,
+        }"
+TR038,plugin_config,amf/feature/localactivity/collectcard/ThreeForOneGiftModule.lua,226,b3cd9496dcef0f943de8ed65b2040cdb37afa6ddbe3a48f74bf7cdbb5d117920,ThreeForOneGiftModule:getAutoPopConfigList(),PopupCheckPoint.COLLECT_CARD_THREE_FOR_ONE_MAIN_POP,STAGE_TWO|STAGE_FOUR,collectcard,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.COLLECT_CARD_THREE_FOR_ONE_MAIN_POP,
+            stages = {AutoPopupConst.PopStage.STAGE_TWO, AutoPopupConst.PopStage.STAGE_FOUR},
+            actId = self.ACT_ID,
+            check = function(stageParams)
+                return self:checkStrongPush(stageParams)
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:popStrongPush(onPopOver)
+                end
+            end,
+        }"
+TR039,direct_call,amf/feature/localactivity/dailylevel/DailyLevelMgr.lua,445,d1cd1a6507ea36f1dfb92f2a9c227c24ff4ef0757be026297c1fb1099063676a,DailyLevelMgr:_registerAutoPopup(),PopupCheckPoint.DAILY_LEVEL_STAGE2,STAGE_TWO,dailylevel,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PopupCheckPoint.DAILY_LEVEL_STAGE2,
+        stages = { PopStage.STAGE_TWO },
+        check = function()
+            return self:canPopStage2()
+        end,
+        creator = function(_, onPopOver)
+            return function()
+                if not self:canPopStage2() then
+                    safeRunCall(onPopOver)
+                    return
+                end
+                self:openMainPanel({
+                    closeCallback = onPopOver,
+                    loading = true,
+                    autoPopup = true,
+                    autoPopupCheck = function()
+                        return self:canPopStage2()
+                    end,
+                })
+            end
+        end,
+    }"
+TR040,direct_call,amf/feature/localactivity/dailylevel/DailyLevelMgr.lua,469,d1cd1a6507ea36f1dfb92f2a9c227c24ff4ef0757be026297c1fb1099063676a,DailyLevelMgr:_registerAutoPopup(),PopupCheckPoint.DAILY_LEVEL_STAGE4,STAGE_FOUR,dailylevel,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PopupCheckPoint.DAILY_LEVEL_STAGE4,
+        stages = { PopStage.STAGE_FOUR },
+        check = function()
+            return self:canPopStage4()
+        end,
+        creator = function(_, onPopOver)
+            return function()
+                if not self:canPopStage4() then
+                    safeRunCall(onPopOver)
+                    return
+                end
+                self:openMainPanel({
+                    closeCallback = onPopOver,
+                    loading = false,
+                    autoPopup = true,
+                    autoPopupCheck = function()
+                        return self:canPopStage4()
+                    end,
+                })
+            end
+        end,
+    }"
+TR041,direct_call,amf/feature/localactivity/eliminatefestival2026comic/EliminateFestival2026ComicManager.lua,30,612b283f23aa2bcc7dd9d54a79a800ed2e6a9d2f2704f9ce228b65028179829c,Manager:_registerAutoPopup(),PopupCheckPoint.ELIMINATE_FESTIVAL_2026_COMIC_STAGE2,STAGE_TWO,eliminatefestival2026comic,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PopupCheckPoint.ELIMINATE_FESTIVAL_2026_COMIC_STAGE2,
+        stages = { popStage.STAGE_TWO },
+        check = function()
+            if self:isDebugForceStage2Popup() then
+                return true
+            end
+            return self:canAutoPopup()
+        end,
+        creator = function(_, onPopOver)
+            return function()
+                -- 需求口径：展示过程中闪退也算成功展示，因此面板打开前立即写标记。
+                self:_markDisplayed()
+                self:openComicPanel(onPopOver)
+            end
+        end,
+    }"
+TR042,direct_call,amf/feature/localactivity/eliminatefestival2026comic/EliminateFestival2026ComicManager.lua,48,612b283f23aa2bcc7dd9d54a79a800ed2e6a9d2f2704f9ce228b65028179829c,Manager:_registerAutoPopup(),PopupCheckPoint.ELIMINATE_FESTIVAL_2026_COMIC_STAGE4,STAGE_FOUR,eliminatefestival2026comic,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PopupCheckPoint.ELIMINATE_FESTIVAL_2026_COMIC_STAGE4,
+        stages = { popStage.STAGE_FOUR },
+        check = function()
+            if self:isDebugForceStage2Popup() then
+                return true
+            end
+            return self:canAutoPopup()
+        end,
+        creator = function(_, onPopOver)
+            return function()
+                -- 需求口径：展示过程中闪退也算成功展示，因此面板打开前立即写标记。
+                self:_markDisplayed()
+                self:openComicPanel(onPopOver)
+            end
+        end,
+    }"
+TR043,direct_call,amf/feature/localactivity/exploremapgame/ExploreMapGameManager.lua,364,89bc46bb5d0832dedb52f2470f9132417ad19c5f3242a9606dca50e7b1b729e9,Manager:_registerAutoPopup(),popupCheckPoint,STAGE_FOUR,exploremapgame,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = popupCheckPoint,
+        stages = { AutoPopupConst.PopStage.STAGE_FOUR },
+        check = function()
+            return self:isEnabled() and (not self:isGraduated())
+        end,
+        creator = function(_, onPopOver)
+            return function()
+                self:openActivity(onPopOver, { from = ""popoup"" }, false)
+            end
+        end,
+    }"
+TR044,direct_call,amf/feature/localactivity/exploremapgame/ExploreMapGameManager.lua,377,89bc46bb5d0832dedb52f2470f9132417ad19c5f3242a9606dca50e7b1b729e9,Manager:_registerAutoPopup(),PopupCheckPoint.EXPLORE_MAP_GAME_YINLIU_STAGE4_POP,STAGE_FOUR,exploremapgame,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PopupCheckPoint.EXPLORE_MAP_GAME_YINLIU_STAGE4_POP,
+        stages = { AutoPopupConst.PopStage.STAGE_FOUR },
+        check = function()
+            return self:checkCanPopYinliuStage4()
+        end,
+        creator = function(_, onPopOver)
+            return function()
+                self:showYinliuStage4(onPopOver)
+            end
+        end,
+    }"
+TR045,direct_call,amf/feature/localactivity/exploremapgame/ExploreMapGameManager.lua,390,89bc46bb5d0832dedb52f2470f9132417ad19c5f3242a9606dca50e7b1b729e9,Manager:_registerAutoPopup(),PopupCheckPoint.EXPLORE_MAP_GAME_DAILY_GIFT_POP,STAGE_FOUR,exploremapgame,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PopupCheckPoint.EXPLORE_MAP_GAME_DAILY_GIFT_POP,
+        stages = { AutoPopupConst.PopStage.STAGE_FOUR },
+        check = function()
+            return self:checkPopState4Gift()
+        end,
+        creator = function(_, onPopOver)
+            return function()
+                self:popStage4Gift(onPopOver)
+            end
+        end,
+    }"
+TR046,plugin_config,amf/feature/localactivity/fishingwinner/FishingWinnerManager.lua,52,9a6ed81993b615a63e5c19acb6ab1ae731bddfa657efcc27c69b8b14f74fe78f,Manager:_getAutoPopConfigList(),PopupCheckPoint.FISHING_WINNER_STAGE4_POP,STAGE_FOUR,fishingwinner,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.FISHING_WINNER_STAGE4_POP,
+            actId = Manager.ACT_ID,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                if not self:isActivitySupported(Manager.ACT_ID) then return false end
+                return isAutoPopupLevelEffective()
+                    and not shouldReduceAutoPopup(self)
+                    and self:checkPopFunction4() == true
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:popFunction4(onPopOver)
+                end
+            end,
+        }"
+TR047,plugin_config,amf/feature/localactivity/fishingwinner/FishingWinnerManager.lua,68,9a6ed81993b615a63e5c19acb6ab1ae731bddfa657efcc27c69b8b14f74fe78f,Manager:_getAutoPopConfigList(),PopupCheckPoint.FISHING_WINNER_MAIN_STAGE4,STAGE_FOUR,fishingwinner,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.FISHING_WINNER_MAIN_STAGE4,
+            actId = Manager.ACT_ID,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                if not self:isActivitySupported(Manager.ACT_ID) then return false end
+                return isAutoPopupLevelEffective()
+                    and self:isEnabled()
+                    and not shouldReduceAutoPopup(self)
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:openActivity(onPopOver, nil, false)
+                end
+            end,
+        }"
+TR048,plugin_config,amf/feature/localactivity/gemmining/GemMiningManager.lua,640,dc728a38442db34691c3df2fadb87e5bd7da8dbf66f321239bb88fe9f3d596ba,Manager:_getAutoPopConfigList(),PCP.GEM_MINING_MAIN_POP_STAGE_4,STAGE_FOUR,gemmining,False,indexed_not_semantically_closed,"{
+            checkPoint = PCP.GEM_MINING_MAIN_POP_STAGE_4,
+            manualOpen = ACT_ID,
+            stages = { PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanPopMainPanelStage4()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popMainPanelStage4(onPopOver)
+                end
+            end,
+        }"
+TR049,plugin_config,amf/feature/localactivity/gladiator/GladiatorMgr.lua,1059,0c739deb09234f0d8c6a19146c3839c3fa64033dbc4c2634b3386b4c211a02aa,Manager:_getAutoPopConfigList(),PopupCheckPoint.GLADIATOR_STAGE4_POP,STAGE_FOUR,gladiator,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.GLADIATOR_STAGE4_POP,
+            actId = Manager.ACT_ID,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                if not _G.amfBean(""ActivityMgr""):isActSupported(Manager.ACT_ID) then return false end
+                return not shouldReduceAutoPopup(self)
+                    and self:checkCanOpenJoinPanel(true) == true
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    if not self:isEnabled() then
+                        safeRunCall(onPopOver)
+                        return
+                    end
+                    self:openJoinPanel(onPopOver)
+                end
+            end,
+        }"
+TR050,direct_call,amf/feature/localactivity/happydelivery/HappyDeliveryManager.lua,200,5e87ac5b4be71ae8281525c17e83547543f4c8c478ec77ff8a1722a9633fec7b,HappyDeliveryManager:tryDailyPopTip(),":addPopupConfig(PopupCheckPoint.HAPPY_DELIVERY_TIP_STAGE4, creator)",,happydelivery,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.HAPPY_DELIVERY_TIP_STAGE4, creator)"
+TR051,direct_call,amf/feature/localactivity/happymatch/HappyMatchManager.lua,792,8395ad7dba2d8d163d173140c0253257cf12ad5ea57aca0ba90a4e3217a78a21,Manager:_registerYinLiuAutoPopup(),getYinLiuCheckPoint(),STAGE_FOUR,happymatch,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = getYinLiuCheckPoint(),
+        stages = { AutoPopupConst.PopStage.STAGE_FOUR },
+        check = function(stageParams)
+            local params = unwrapYinLiuStageParams(stageParams)
+            return self:canPopMainPanelInScene4(params) or self:canPopYinLiu2(params) or self:canPopYinLiu1(params)
+        end,
+        creator = function(stageParams, onPopOver)
+            local params = unwrapYinLiuStageParams(stageParams)
+            return function()
+                if self:canPopMainPanelInScene4(params) then
+                    self:_markMainPanelScene4PopSuccess()
+                    self:openActivity(onPopOver, {
+                        from = MAIN_PANEL_SCENE4_POP_CONFIG.FROM,
+                    }, false)
+                    return
+                end
+                if self:canPopYinLiu2(params) then
+                    self:popYinLiu2(onPopOver)
+                    return
+                end
+                if self:canPopYinLiu1(params) then
+                    self:popYinLiu1(onPopOver)
+                    return
+                end
+                safeRunCall(onPopOver)
+            end
+        end,
+    }"
+TR052,plugin_config,amf/feature/localactivity/layeredtilematch/LayeredTileMatchManager.lua,435,1f9d3fe67d46c4e36008f8ac321720c0be4d133a9028e24454161641c22a7cf8,Manager:_getAutoPopConfigList(),PCP.LAYERED_TILE_MATCH_MAIN_POP_STAGE_4,STAGE_FOUR,layeredtilematch,False,indexed_not_semantically_closed,"{
+            checkPoint = PCP.LAYERED_TILE_MATCH_MAIN_POP_STAGE_4,
+            manualOpen = self:getActId(),
+            stages = { PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanPopMainPanelStage4()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popMainPanelStage4(onPopOver)
+                end
+            end,
+        }"
+TR053,plugin_config,amf/feature/localactivity/layeredtilematch/LayeredTileMatchManager.lua,449,1f9d3fe67d46c4e36008f8ac321720c0be4d133a9028e24454161641c22a7cf8,Manager:_getAutoPopConfigList(),PCP.LAYERED_TILE_MATCH_DAILY_GIFT_POP,STAGE_FOUR,layeredtilematch,False,indexed_not_semantically_closed,"{
+            checkPoint = PCP.LAYERED_TILE_MATCH_DAILY_GIFT_POP,
+            stages = { PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanPopDailyGiftStage4()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popDailyGiftStage4(onPopOver)
+                end
+            end,
+        }"
+TR054,plugin_config,amf/feature/localactivity/luckydelivery/LuckyDeliveryManager.lua,333,8662218d6375bca49cfa3422cedb5bd331bd7943f7fb876accdb0a10502faa38,LuckyDeliveryManager:_getAutoPopConfigList(),PCP.LUCKY_DELIVERY_TIP,STAGE_TWO|STAGE_FOUR,luckydelivery,False,indexed_not_semantically_closed,"{
+            checkPoint = PCP.LUCKY_DELIVERY_TIP,
+            stages     = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+            check      = function()
+                return self:isResReady() and self:canPopDailyTip()
+            end,
+            creator    = function(_, onPopOver)
+                return function()
+                    if not self:canPopDailyTip() then
+                        safeRunCall(onPopOver)
+                        return
+                    end
+                    self:showLuckyDeliveryTip(onPopOver, false)
+                end
+            end,
+        }"
+TR055,plugin_config,amf/feature/localactivity/luckydelivery/LuckyDeliveryManager.lua,349,8662218d6375bca49cfa3422cedb5bd331bd7943f7fb876accdb0a10502faa38,LuckyDeliveryManager:_getAutoPopConfigList(),PCP.LUCKY_DELIVERY_STAGE3,STAGE_THREE,luckydelivery,False,indexed_not_semantically_closed,"{
+            checkPoint = PCP.LUCKY_DELIVERY_STAGE3,
+            stages     = { PopStage.STAGE_THREE },
+            check      = function()
+                return self:isResReady() and self:canPopStage3BoxAnim()
+            end,
+            creator    = function(_, onPopOver)
+                return function()
+                    if not self:canPopStage3BoxAnim() then
+                        safeRunCall(onPopOver)
+                        return
+                    end
+                    self:requestAndPlayExpressOpenResults(onPopOver)
+                end
+            end,
+        }"
+TR056,plugin_config,amf/feature/localactivity/luckydeliverypass/LuckyDeliveryPassManager.lua,142,8593ce6eb2ddfad45bbd65c8e1982ce4d0b07ff16440e31197b34f41f14cfe77,LuckyDeliveryPassManager:_getAutoPopConfigList(),PCP.LUCKY_DELIVERY_PASS_COMPENSATE,STAGE_TWO|STAGE_FOUR,luckydeliverypass,False,indexed_not_semantically_closed,"{
+            checkPoint = PCP.LUCKY_DELIVERY_PASS_COMPENSATE,
+            stages     = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+            check      = function()
+                if not _G.amfBean(""LuckyDeliveryManager""):isResReady() then
+                    return false
+                end
+
+                if self:_isCompensateRewardPeriodPopup() then
+                    return true
+                end
+
+                local dailyKey = self:_getCompensateFormalDailyKey()
+                return dailyKey and (self:getModel():getLocalCache(dailyKey, true) or 0) < 1
+            end,
+            creator    = function(_, onPopOver)
+                return function()
+                    local rewardPeriodPopup = self:_isCompensateRewardPeriodPopup()
+                    local dailyKey = self:_getCompensateFormalDailyKey()
+                    if not rewardPeriodPopup and not dailyKey then
+                        safeRunCall(onPopOver)
+                        return
+                    end
+
+                    if dailyKey and (self:getModel():getLocalCache(dailyKey, true) or 0) >= 1 then
+                        safeRunCall(onPopOver)
+                        return
+                    end
+
+                    if dailyKey then
+                        self:getModel():setLocalCache(dailyKey, true, 1)
+                    end
+                    self:openMainPanel(onPopOver)
+                end
+            end,
+        }"
+TR057,plugin_config,amf/feature/localactivity/luckyfarmstar/LuckyFarmStarManager.lua,48,85bad0bf338d511b6339ed67090c3bb62a257853dec6f87cef4f536962f10689,Manager:_getAutoPopConfigList(),PopupCheckPoint.LUCKY_FARM_STAR_NOTICE,STAGE_TWO,luckyfarmstar,False,indexed_not_semantically_closed,"{
+            -- 仅场景2；活动类中位于超级魔力鸟复活卡之前；每期一次由 noticeDisplayedEndTime 控制；打开统一通知面板。
+            checkPoint = PopupCheckPoint.LUCKY_FARM_STAR_NOTICE,
+            stages = { PopStage.STAGE_TWO },
+            check = function()
+                return self:canPopNotice()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:tryPopNotice(onPopOver)
+                end
+            end,
+        }"
+TR058,direct_call,amf/feature/localactivity/magicrush/MagicRushManager.lua,93,e65efa54649865d7684f98e8b192dde2b81f1372527a376df1a919c234ffed41,Manager:_registerAutoPopups(),PopupCheckPoint.MAGIC_RUSH_STAGE4_POP,STAGE_FOUR,magicrush,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PopupCheckPoint.MAGIC_RUSH_STAGE4_POP,
+        actId = self:getConst().actId,
+        stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+        check = function()
+            -- isEnabled 已包含 isDataEnabled 与活动时间窗（主时间/领奖期）。
+            if not self:isActivitySupported(self:getConst().actId) then return false end
+            if not self:isEnabled() then return false end
+            if _G.getTopLevelId() < 101 then return false end
+            -- R1/R2/R3 分组互斥（由 isNewVersion 与 magic_1v1_pop 开关决定）。
+            -- R1：每日最多弹出 1 次；R2：不限制；R3：新版本流程。
+            if rule == ""R1"" then
+                return not self:getDailyPopupFlag()
+                    and self:isInPrepare()
+                    and not self:shouldReduceAutoPopup()
+            end
+            if rule == ""R3"" then
+                -- 每日主面板未弹过则弹；已弹过仅展示获胜结算。
+                if not self:getDailyPopupFlag() then
+                    return not self:shouldReduceAutoPopup()
+                end
+                if self:isToBeSettledNormal() then
+                    local myScore, enemyScore = self:getMatchScore()
+                    return self:checkWinState(myScore, enemyScore) == self:getConst().MatchState.WIN
+                end
+                return false
+            end
+            -- R2：不限制次数
+            return self:isInPrepare() and not self:shouldReduceAutoPopup()
+        end,
+        pop = function(_, onPopOver)
+            return function()
+                -- R1 弹出即落当日标记，供 check 拦截同日再次弹出。
+                if rule == ""R1"" then
+                    self:setDailyPopupFlag()
+                end
+                self:openActivity({
+                    failCallback = onPopOver,
+                    endCallback = onPopOver,
+                })
+            end
+        end,
+    }"
+TR059,plugin_config,amf/feature/localactivity/merge/MergeManager.lua,85,086963d08e5cddf6b4e0f91f9b50e5d94c4289effe0f4ddd04bae34e345cead1,MergeManager:_getAutoPopConfigList(),PopupCheckPoint.MERGE_STAGE4_MAIN,STAGE_FOUR,merge,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.MERGE_STAGE4_MAIN,
+            actId = self.ACT_ID,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                if not self:isActivitySupported(self.ACT_ID) then return false end
+                return not EnvUtil:isMiniGame()
+                    and not self:ignoreForTopLevelPlayer()
+                    and self:canPopInScene4()
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:popInScene4(onPopOver)
+                end
+            end,
+        }"
+TR060,plugin_config,amf/feature/localactivity/merge/MergeManager.lua,101,086963d08e5cddf6b4e0f91f9b50e5d94c4289effe0f4ddd04bae34e345cead1,MergeManager:_getAutoPopConfigList(),PopupCheckPoint.MERGE_MAIN_STAGE2,STAGE_TWO|STAGE_FOUR,merge,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.MERGE_MAIN_STAGE2,
+            actId = self.ACT_ID,
+            stages = {
+                AutoPopupConst.PopStage.STAGE_TWO,
+                AutoPopupConst.PopStage.STAGE_FOUR,
+            },
+            check = function()
+                if not self:isActivitySupported(self.ACT_ID) then return false end
+                return self:isEnabled()
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:openActivity(onPopOver, nil, false)
+                end
+            end,
+        }"
+TR061,plugin_config,amf/feature/localactivity/merge/MergeManager.lua,118,086963d08e5cddf6b4e0f91f9b50e5d94c4289effe0f4ddd04bae34e345cead1,MergeManager:_getAutoPopConfigList(),PopupCheckPoint.MERGE_DAILY_REWARD,STAGE_THREE,merge,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.MERGE_DAILY_REWARD,
+            actId = self.ACT_ID,
+            stages = {AutoPopupConst.PopStage.STAGE_THREE},
+            check = function()
+                if not self:isActivitySupported(self.ACT_ID) then return false end
+                return self:isEnabled()
+                    and not self:ignoreForTopLevelPlayer()
+                    and self:checkCanPopDailyGetRewardPanel() == true
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    if self:isEnabled() and self:checkCanPopDailyGetRewardPanel() then
+                        self:tryPopDailyGetRewardPanel(onPopOver)
+                    else
+                        safeRunCall(onPopOver)
+                    end
+                end
+            end,
+        }"
+TR062,plugin_config,amf/feature/localactivity/merge/MergeManager.lua,138,086963d08e5cddf6b4e0f91f9b50e5d94c4289effe0f4ddd04bae34e345cead1,MergeManager:_getAutoPopConfigList(),PopupCheckPoint.MERGE_STAGE4_SECONDARY,STAGE_FOUR,merge,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.MERGE_STAGE4_SECONDARY,
+            actId = self.ACT_ID,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                if not self:isActivitySupported(self.ACT_ID) then return false end
+                return not self:ignoreForTopLevelPlayer() and self:canPopInScene5()
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:popInScene5(onPopOver)
+                end
+            end,
+        }"
+TR063,plugin_config,amf/feature/localactivity/mergeevolution/MergeEvolutionManager.lua,136,47c0e06ed2df25546d29943f5f5dc071e817ce5ca08972287eb794b9cf43b0b5,Manager:_getAutoPopConfigList(),PopupCheckPoint.MERGE_EVOLUTION_STAGE4_POP,STAGE_FOUR,mergeevolution,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.MERGE_EVOLUTION_STAGE4_POP,
+            actId = self:getConst().actId,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                if not self:isActivitySupported(self:getConst().actId) then return false end
+                return self:checkCanPop() == true
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:popFunction(onPopOver)
+                end
+            end,
+        }"
+TR064,plugin_config,amf/feature/localactivity/midautumnnationalday2026/MidAutumnNationalDay2026Manager.lua,53,d1eea9523560ccffa9bfacc5d100493cf8780eb662bd753622c83e631bbd6d63,Manager:_getAutoPopConfigList(),PopupCheckPoint.MID_AUTUMN_NATIONAL_DAY_2026_MAIN_POP_STAGE_2,STAGE_TWO,midautumnnationalday2026,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.MID_AUTUMN_NATIONAL_DAY_2026_MAIN_POP_STAGE_2,
+            -- 手动打开活动后同步标记该 checkpoint，避免当天再次进入强弹。
+            manualOpen = self:getActId(),
+            stages = { PopStage.STAGE_TWO },
+            check = function()
+                return self:checkCanPopMainPanel()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popMainPanel(onPopOver)
+                end
+            end,
+        }"
+TR065,plugin_config,amf/feature/localactivity/musicmaster/MusicMasterManager.lua,135,b3d899121cf11a7a73358fcac5451742d20d69058f9c6114f1467a47e5dc32fa,MusicMasterManager:_getAutoPopConfigList(),PopupCheckPoint.MUSIC_MASTER,STAGE_THREE|STAGE_FOUR|STAGE_THREE|STAGE_THREE,musicmaster,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.MUSIC_MASTER,
+            stages = {PopStage.STAGE_THREE, PopStage.STAGE_FOUR},
+            actId = MusicMasterConfig.ACT_ID,
+            check = function(stageParams)
+                if stageParams.popStage == PopStage.STAGE_THREE then
+                    return self.musicMasterPopMudule:checkPopOnStage3(stageParams)
+                end
+                return self.musicMasterPopMudule:checkCanPopStage4() == true
+            end,
+            pop = function(stageParams, onPopOver)
+                if stageParams.popStage == PopStage.STAGE_THREE then
+                    local _, popInfo = self.musicMasterPopMudule:checkPopOnStage3(stageParams)
+                    return function()
+                        self.musicMasterIconMudule:updateIcon(""stage3_tip"")
+                        self.musicMasterPopMudule:popOnStage3(popInfo, onPopOver)
+                    end
+                end
+                return function()
+                    self.musicMasterPopMudule:doPopStage4(onPopOver)
+                end
+            end,
+        }"
+TR066,direct_call,amf/feature/localactivity/newbiegiftoptimize/NewbieGiftOptimizeMgr.lua,782,6e62dd3c62df38e3f08a686cbbec495bc128e00d26f7852ebe986f8550dfa225,Manager:onActEnterMainScene(evt),":addPopupConfig(PopupCheckPoint.NEWBIEOPTIMIZE_STAGE, creator)",,newbiegiftoptimize,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.NEWBIEOPTIMIZE_STAGE, creator)"
+TR067,direct_call,amf/feature/localactivity/newbiegiftoptimize/NewbieGiftOptimizeMgr.lua,800,6e62dd3c62df38e3f08a686cbbec495bc128e00d26f7852ebe986f8550dfa225,Manager:onActEnterStage3(),":addPopupConfig(PopupCheckPoint.NEWBIEOPTIMIZE_STAGE, creator)",,newbiegiftoptimize,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.NEWBIEOPTIMIZE_STAGE, creator)"
+TR068,direct_call,amf/feature/localactivity/newbiegiftoptimize/NewbieGiftOptimizeMgr.lua,817,6e62dd3c62df38e3f08a686cbbec495bc128e00d26f7852ebe986f8550dfa225,Manager:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.NEWBIEOPTIMIZE_STAGE, creator)",,newbiegiftoptimize,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.NEWBIEOPTIMIZE_STAGE, creator)"
+TR069,plugin_config,amf/feature/localactivity/pengpeng2026/PengPeng2026Manager.lua,61,affd43951c5f623b16f4c288176fda2997fa04c0e8920e4b976688473f3c65d0,Manager:_getAutoPopConfigList(),PCP.PENGPENG2026_MAIN_PANEL_STAGE4,STAGE_FOUR,pengpeng2026,False,indexed_not_semantically_closed,"{
+            checkPoint = PCP.PENGPENG2026_MAIN_PANEL_STAGE4,
+            stages = {PopStage.STAGE_FOUR},
+            check = function()
+                return self:checkCanPopMainPanelStage4()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popMainPanelStage4(onPopOver)
+                end
+            end,
+        }"
+TR070,plugin_config,amf/feature/localactivity/pengpeng2026/PengPeng2026Manager.lua,74,affd43951c5f623b16f4c288176fda2997fa04c0e8920e4b976688473f3c65d0,Manager:_getAutoPopConfigList(),PCP.PENGPENG2026_ATTRACT_PANEL_STAGE4,STAGE_FOUR,pengpeng2026,False,indexed_not_semantically_closed,"{
+            checkPoint = PCP.PENGPENG2026_ATTRACT_PANEL_STAGE4,
+            stages = {PopStage.STAGE_FOUR},
+            check = function()
+                return self:checkCanPopAttractPanel()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popAttractPanel(onPopOver)
+                end
+            end,
+        }"
+TR071,plugin_config,amf/feature/localactivity/pet/PetManager.lua,345,1ed6f3e236a3322434cba5835e864c097d5bac3e4f241c711df8bfdbc4255d0c,PetManager:_getAutoPopConfigList(),self:getMainPanelAutoPopupKey(),STAGE_TWO,pet,False,indexed_not_semantically_closed,"{
+            checkPoint = self:getMainPanelAutoPopupKey(),
+            stages = { PopStage.STAGE_TWO },
+            check = function()
+                local candidate = self:selectWingAutoPopCandidate(2)
+                return candidate ~= nil
+            end,
+            creator = function(_, onPopOver)
+                local candidate = self:selectWingAutoPopCandidate(2)
+                return function()
+                    self:openWingAutoPop(candidate, onPopOver)
+                end
+            end,
+        }"
+TR072,direct_call,amf/feature/localactivity/returngift/giftmodule/ReturnGiftModule_Vine.lua,323,a2fa69ed903303d98db5c1b279938048bc2014f68474a4d0f93066806c24021d,ReturnGiftModule_Vine:tryAutoPopup(),":addPopupConfig(popupKey, creator)",,returngift,False,indexed_not_semantically_closed,":addPopupConfig(popupKey, creator)"
+TR073,direct_call,amf/feature/localactivity/sh01/SH01Manager.lua,139,39ec457f419e59aac46bbb71475a0abd41cf8b37882e3dbf17deff3a0f6dd870,Manager:onActEnterStage2(evt),":addPopupConfig(PopupCheckPoint.SH01_MAIN_POP, creator)",,sh01,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.SH01_MAIN_POP, creator)"
+TR074,direct_call,amf/feature/localactivity/sh01/SH01Manager.lua,155,39ec457f419e59aac46bbb71475a0abd41cf8b37882e3dbf17deff3a0f6dd870,Manager:onActEnterStage4(evt),":addPopupConfig(PopupCheckPoint.SH01_MAIN_POP, creator)",,sh01,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.SH01_MAIN_POP, creator)"
+TR075,direct_call,amf/feature/localactivity/shopreward/logic/ShopRewardMainPopupLogic.lua,82,b8cdf190233a44ffdf281da131982dc9c29aed3bd3da7dad3d77843fbe384220,ShopRewardMainPopupLogic:tryMainPopup(),":addPopupConfig(PopupCheckPoint.SHOP_REWARD_MAIN_POP, creator)",,shopreward,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.SHOP_REWARD_MAIN_POP, creator)"
+TR076,direct_call,amf/feature/localactivity/sprintgiftpackage/SprintGiftPackageManager.lua,1252,f8fa4ab5037cc3c1b5ba3b632c413a7538eedec520394e48f58a843d6a291103,Manager:onActEnterStage2(evt),":addPopupConfig(PopupCheckPoint.SPRINT_GIFT_CHECK_STAGE_2, creator)",,sprintgiftpackage,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.SPRINT_GIFT_CHECK_STAGE_2, creator)"
+TR077,direct_call,amf/feature/localactivity/sprintrealprize/SprintRealPrizeManager.lua,477,981c33022400ba93c4dba9835eec3d1bff0522176dd48f41db86f21bb18125f8,Manager:tryAutoPopup(),":addPopupConfig(popupKey, creator)",,sprintrealprize,False,indexed_not_semantically_closed,":addPopupConfig(popupKey, creator)"
+TR078,direct_call,amf/feature/localactivity/sprintrealprize2/SprintRealPrizeManagerV2.lua,477,037d6f0ef49d4ca0649f160c497b7c1f04e836df41ec96a73962ffa2d1f53fa1,Manager:tryAutoPopup(),":addPopupConfig(popupKey, creator)",,sprintrealprize2,False,indexed_not_semantically_closed,":addPopupConfig(popupKey, creator)"
+TR079,plugin_config,amf/feature/localactivity/superbirdshare/superbirdshareManager.lua,58,230c29304998ca2da33270470655feaad291d8c32a0d62dc5d8260608fdc969b,Manager:_getAutoPopConfigList(),PopupCheckPoint.SUPER_BIRD_SHARE_FIRST_STAGE4,STAGE_FOUR,superbirdshare,False,indexed_not_semantically_closed,"{
+            -- 正式期首次参与活动，主面板场景4强弹1次；按期频次由框架限制控制。
+            checkPoint = PopupCheckPoint.SUPER_BIRD_SHARE_FIRST_STAGE4,
+            stages = { PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanPopFirstMainPanelStage4()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popFirstMainPanelStage4(onPopOver)
+                end
+            end,
+        }"
+TR080,plugin_config,amf/feature/localactivity/superbirdshare/superbirdshareManager.lua,71,230c29304998ca2da33270470655feaad291d8c32a0d62dc5d8260608fdc969b,Manager:_getAutoPopConfigList(),PopupCheckPoint.SUPER_BIRD_SHARE_REWARD,STAGE_TWO|STAGE_FOUR,superbirdshare,False,indexed_not_semantically_closed,"{
+            -- 有活动奖励可领取时，主面板场景2/4强弹；场景2每天最多一次，场景4不限制。
+            checkPoint = PopupCheckPoint.SUPER_BIRD_SHARE_REWARD,
+            stages = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+            check = function(stageParams)
+                return self:checkCanPopRewardMainPanel(stageParams)
+            end,
+            creator = function(stageParams, onPopOver)
+                return function()
+                    self:popRewardMainPanel(onPopOver, stageParams)
+                end
+            end,
+        }"
+TR081,plugin_config,amf/feature/localactivity/supermagicbird/SuperMagicBird2024Manager.lua,79,565e8c77ec6f98ed4eb74d640af215aab48ad647a168e1bb8f319ed56f101eda,SuperMagicBird2024Manager:_getAutoPopConfigList(),PopupCheckPoint.SUPER_MAGIC_BIRD_REVIVE_CONFIRM,STAGE_FOUR,supermagicbird,False,indexed_not_semantically_closed,"{
+            -- 仅场景4；条件触发类最高优先级；玩家带超鸟失败并实际断鸟后的下一次场景4，复活卡可用时弹出激活二次确认面板；次数由一次性断鸟标记控制。
+            checkPoint = PopupCheckPoint.SUPER_MAGIC_BIRD_REVIVE_CONFIRM,
+            stages = { PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanAutoPopReviveConfirm()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popReviveConfirmAutoPop(onPopOver)
+                end
+            end,
+        }"
+TR082,plugin_config,amf/feature/localactivity/supermagicbird/SuperMagicBird2024Manager.lua,92,565e8c77ec6f98ed4eb74d640af215aab48ad647a168e1bb8f319ed56f101eda,SuperMagicBird2024Manager:_getAutoPopConfigList(),PopupCheckPoint.SUPER_MAGIC_BIRD_REVIVE,STAGE_TWO|STAGE_FOUR,supermagicbird,False,indexed_not_semantically_closed,"{
+            -- 场景2、场景4每天最多弹出一次，活动类优先级仅次于签到面板；未领取时先领取再展示，已领取时直接展示。
+            checkPoint = PopupCheckPoint.SUPER_MAGIC_BIRD_REVIVE,
+            stages = { PopStage.STAGE_TWO, PopStage.STAGE_FOUR },
+            check = function()
+                return self:checkCanAutoPop()
+            end,
+            creator = function(stageParams, onPopOver)
+                return function()
+                    self:openReviveCardDeliveryAutoPop(onPopOver, stageParams.popStage)
+                end
+            end,
+        }"
+TR083,plugin_config,amf/feature/localactivity/supermagicbirdrealgift/SuperMagicBirdRealGiftManager.lua,75,eb3aa1018d4edf0656b2105b8255f6e14eb0c8bb1bfb0b29e30ee07a32644224,Manager:_getAutoPopConfigList(),PopupCheckPoint.SUPER_MAGIC_BIRD_REAL_GIFT_STAGE2,STAGE_TWO,supermagicbirdrealgift,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.SUPER_MAGIC_BIRD_REAL_GIFT_STAGE2,
+            stages = { PopStage.STAGE_TWO },
+            check = function()
+                return self:checkCanPopMainPanelStage2()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popMainPanelStage2(onPopOver)
+                end
+            end,
+        }"
+TR084,plugin_config,amf/feature/localactivity/underthesin/UnderTheSinMgr.lua,309,f2329b4f306e91f3dbeb5d4cc0187d1d855e571e8120b247d84734774829c06a,Manager:_getAutoPopConfigList(),PCP.UNDERTHESIN_STAGE4_POP,STAGE_FOUR,underthesin,False,indexed_not_semantically_closed,"{
+            checkPoint = PCP.UNDERTHESIN_STAGE4_POP,
+            stages = { PopStage.STAGE_FOUR },
+            actId = self:getConst().actId,
+            check = function()
+                return self:checkCanPopStage4()
+            end,
+            creator = function(_, onPopOver)
+                return function()
+                    self:popStage4(onPopOver)
+                end
+            end,
+        }"
+TR085,direct_call,amf/feature/localactivity/waterfallgift/WaterfallGiftManager.lua,592,01756a2ac2d0c57020bc7a9d7548944b9953487c675f18f84da9980175a474af,WaterfallGiftManager:onGiftAutoSyncEnd(),":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT, creator)",,waterfallgift,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT, creator)"
+TR086,direct_call,amf/feature/localactivity/waterfallgift/WaterfallGiftManager.lua,614,01756a2ac2d0c57020bc7a9d7548944b9953487c675f18f84da9980175a474af,WaterfallGiftManager:onActEnterStage3(),":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT, creator)",,waterfallgift,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT, creator)"
+TR087,direct_call,amf/feature/localactivity/waterfallgift/WaterfallGiftManager.lua,630,01756a2ac2d0c57020bc7a9d7548944b9953487c675f18f84da9980175a474af,WaterfallGiftManager:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT, creator)",,waterfallgift,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT, creator)"
+TR088,direct_call,amf/feature/localactivity/waterfallgift/WaterfallGiftManager.lua,868,01756a2ac2d0c57020bc7a9d7548944b9953487c675f18f84da9980175a474af,WaterfallGiftManager:popDyOfferTipPanel(),":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT_DY_OFFER, creator)",,waterfallgift,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT_DY_OFFER, creator)"
+TR089,direct_call,amf/feature/localactivity/waterfallgiftprogress/WaterfallGiftProgressManager.lua,784,a1b96592897a10a780e95c8633acfebf0eaf0310f6105447078cb074cc466723,WaterfallGiftProgressManager:onGiftAutoSyncEnd(),":addPopupConfig(PopupCheckPoint.WATERFALL_PROGRESS, creator)",,waterfallgiftprogress,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WATERFALL_PROGRESS, creator)"
+TR090,direct_call,amf/feature/localactivity/waterfallgiftprogress/WaterfallGiftProgressManager.lua,807,a1b96592897a10a780e95c8633acfebf0eaf0310f6105447078cb074cc466723,WaterfallGiftProgressManager:onActEnterStage3(),":addPopupConfig(PopupCheckPoint.WATERFALL_PROGRESS, creator)",,waterfallgiftprogress,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WATERFALL_PROGRESS, creator)"
+TR091,direct_call,amf/feature/localactivity/waterfallgiftprogress/WaterfallGiftProgressManager.lua,828,a1b96592897a10a780e95c8633acfebf0eaf0310f6105447078cb074cc466723,WaterfallGiftProgressManager:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.WATERFALL_PROGRESS, creator)",,waterfallgiftprogress,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WATERFALL_PROGRESS, creator)"
+TR092,direct_call,amf/feature/localactivity/waterfallgiftprogress/WaterfallGiftProgressManager.lua,1062,a1b96592897a10a780e95c8633acfebf0eaf0310f6105447078cb074cc466723,WaterfallGiftProgressManager:popDyOfferTipPanel(),":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT_DY_OFFER, creator)",,waterfallgiftprogress,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WATERFALL_GIFT_DY_OFFER, creator)"
+TR093,plugin_config,amf/feature/localactivity/weektask/WeekTaskManager.lua,69,0416e961e4a65863cf9f9306a79cee4711060e5a669c983e9c39a4149cd6258d,WeekTaskManager:_getAutoPopConfigList(),PopupCheckPoint.WEEK_TASK_STAGE4_MAIN,STAGE_FOUR,weektask,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.WEEK_TASK_STAGE4_MAIN,
+            actId = self:getConst().ACT_ID,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                if not self:isActivitySupported(self:getConst().ACT_ID) then return false end
+                return self:isEnabled()
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:openActivity(onPopOver, nil, false)
+                end
+            end,
+        }"
+TR094,plugin_config,amf/feature/localactivity/weektask/WeekTaskManager.lua,83,0416e961e4a65863cf9f9306a79cee4711060e5a669c983e9c39a4149cd6258d,WeekTaskManager:_getAutoPopConfigList(),PopupCheckPoint.WEEK_TASK_STAGE3_POP,STAGE_THREE|STAGE_FOUR,weektask,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.WEEK_TASK_STAGE3_POP,
+            actId = self:getConst().ACT_ID,
+            stages = {
+                AutoPopupConst.PopStage.STAGE_THREE,
+                AutoPopupConst.PopStage.STAGE_FOUR,
+            },
+            check = function()
+                if not self:isActivitySupported(self:getConst().ACT_ID) then return false end
+                return not ignoreForTopLevelPlayer() and self:checkCanPopStage3() == true
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:doPopStage3(onPopOver)
+                end
+            end,
+        }"
+TR095,plugin_config,amf/feature/localactivity/winrepeatrank/WinRepeatRankManager.lua,402,f4e737e9897965942f9dc0e0af6506d28c322c9bc8f03271302db867588390cd,WinRepeatRankManager:_getAutoPopConfigList(),PopupCheckPoint.WIN_REPEAT_RANK_STAGE3_POP,STAGE_THREE,winrepeatrank,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.WIN_REPEAT_RANK_STAGE3_POP,
+            actId = self.ACT_ID,
+            stages = {AutoPopupConst.PopStage.STAGE_THREE},
+            check = function()
+                if not _G.amfBean(""ActivityMgr""):isActSupported(self.ACT_ID) then return false end
+                -- 注册式强弹会在活动数据异步到达前执行 check；此时不能进入
+                -- getCurTimeRankRaceType 的时间比较。
+                return self:isEnabled() and isAutoPopupLevelEffective()
+                    and self:checkCanPopStage3()
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:popStage3(onPopOver)
+                end
+            end,
+        }"
+TR096,plugin_config,amf/feature/localactivity/winrepeatrank/WinRepeatRankManager.lua,419,f4e737e9897965942f9dc0e0af6506d28c322c9bc8f03271302db867588390cd,WinRepeatRankManager:_getAutoPopConfigList(),PopupCheckPoint.WIN_REPEAT_RANK_STAGE4_POP,STAGE_FOUR,winrepeatrank,False,indexed_not_semantically_closed,"{
+            checkPoint = PopupCheckPoint.WIN_REPEAT_RANK_STAGE4_POP,
+            actId = self.ACT_ID,
+            stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+            check = function()
+                if not _G.amfBean(""ActivityMgr""):isActSupported(self.ACT_ID) then return false end
+                return self:isEnabled() and isAutoPopupLevelEffective()
+                    and not blockedForTopLevelPlayer()
+                    and (self:checkCanPopMainPanel()
+                        or self:checkCanPopMainPanelForGroupReward())
+            end,
+            pop = function(_, onPopOver)
+                return function()
+                    self:popMainPanel(onPopOver, 4)
+                end
+            end,
+        }"
+TR097,direct_call,amf/feature/mainscene/module/icon/view/iconbutton/ActivityCenterIcon.lua,187,5222254133e16622e62eebb27807a7fc1d04d1c681bcb863a38bcd50c989857e,ActivityCenterIcon:tryAddMoveGuideAutoPop(),":addPopupConfig(PopupCheckPoint.ACTIVITY_CENTER_MOVE_GUIDE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.ACTIVITY_CENTER_MOVE_GUIDE, creator)"
+TR098,direct_call,amf/feature/mainscene/module/icon/view/iconbutton/FriendIcon.lua,134,b610b1e98686f12ccf4d52fcd2b373b1601fa6ec90cfb8946ad3349b5f40c60e,FriendIcon:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.WECHAT_FRIEND_GUIDE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.WECHAT_FRIEND_GUIDE, creator)"
+TR099,direct_call,amf/feature/mainscene/module/icon/view/iconbutton/FriendIcon.lua,158,b610b1e98686f12ccf4d52fcd2b373b1601fa6ec90cfb8946ad3349b5f40c60e,FriendIcon:onActEnterStage2(evt),":addPopupConfig(PopupCheckPoint.MINI_FRIEND_MOVE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.MINI_FRIEND_MOVE, creator)"
+TR100,direct_call,amf/feature/mainscene/module/icon/view/iconbutton/GameClubIcon.lua,132,92e6e73fb57d413cb5cd7be8adc29c3e004fef03b3d09f882f09ed5ffd3bfae5,GameClubIcon:onActEnterStage2(),":addPopupConfig(PopupCheckPoint.GAME_CLUB_GUIDE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.GAME_CLUB_GUIDE, creator)"
+TR101,direct_call,amf/feature/mainscene/module/icon/view/iconbutton/LuckyBagPartyIcon.lua,325,f5d9cda79a5fb5e69a5a8ab4e5e2070dd15750d3ed0beed139f8b117409f7d07,LuckyBagPartyIcon:tryAddMoveGuideAutoPop(),":addPopupConfig(PopupCheckPoint.LUCKY_BAG_PARTY_MOVE_GUIDE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.LUCKY_BAG_PARTY_MOVE_GUIDE, creator)"
+TR102,direct_call,amf/feature/mainscenebutton/MainSceneButtonManager.lua,275,b903250fcd97ccfdb05e67dd31417334742b8a5c7b2dda424069b349b4b9522a,MainSceneButtonManager:tryAddAutoPop(),":addPopupConfig(PopupCheckPoint.MAIN_SCENE_BUTTON, function()",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.MAIN_SCENE_BUTTON, function()"
+TR103,direct_call,amf/feature/minihub/adddesktopshortcut/DesktopShortcutManager.lua,412,829eeff856906150f692c698a709ae07b9df8702b8e9484aac37c4c1ade6caac,DesktopShortcutManager:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.KS_DESKTOP_SHORTCUT, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.KS_DESKTOP_SHORTCUT, creator)"
+TR104,direct_call,amf/feature/minihub/addmine/system/mini/AddMineManager.lua,323,a300db6a5e2a48ff0f74a067f9a20ab1e3752896b1483ea2aa7a0113b85650b8,AddMineManager:handleEnterStage2(evt),":addPopupConfig(PopupCheckPoint.ADD_MINE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.ADD_MINE, creator)"
+TR105,direct_call,amf/feature/minihub/addmine/system/mini/AddMineManager.lua,336,a300db6a5e2a48ff0f74a067f9a20ab1e3752896b1483ea2aa7a0113b85650b8,AddMineManager:handleEnterStage4(evt),":addPopupConfig(PopupCheckPoint.ADD_MINE_STAGE4, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.ADD_MINE_STAGE4, creator)"
+TR106,direct_call,amf/feature/minihub/addsidebar/AddSidebarManager.lua,116,0ae92500807b5272c64230777bdbb3ab8c8407d21d52eb591750070c1f9c8656,AddSidebarManager:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.KS_GAMECENTER_REVISIT, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.KS_GAMECENTER_REVISIT, creator)"
+TR107,direct_call,amf/feature/minihub/alipaydesktopshortcut/AliPayDesktopShortcutManager.lua,464,a70fd4aad2e08bfaa188923208601c295891d490c479087f36648736891905a2,AliPayDesktopShortcutManager:_registerFirstLoginAutoPopup(popStage),firstLoginCheckPoint,STAGE_TWO|STAGE_FOUR,,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = firstLoginCheckPoint,
+        stages = { popStage.STAGE_TWO, popStage.STAGE_FOUR },
+        check = function()
+            local canPopup = self:_getAutoPopupState(
+                AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY,
+                false
+            )
+            return canPopup
+        end,
+        creator = function(_, onPopOver)
+            return self:_createAutoPopupCreator(
+                onPopOver,
+                AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY,
+                firstLoginCheckPoint,
+                false
+            )
+        end,
+    }"
+TR108,direct_call,amf/feature/minihub/alipaydesktopshortcut/AliPayDesktopShortcutManager.lua,488,a70fd4aad2e08bfaa188923208601c295891d490c479087f36648736891905a2,AliPayDesktopShortcutManager:_registerStreakBreakAutoPopup(popStage),streakBreakCheckPoint,STAGE_TWO|STAGE_FOUR,,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = streakBreakCheckPoint,
+        stages = { popStage.STAGE_TWO, popStage.STAGE_FOUR },
+        check = function()
+            local canPopup = self:_getAutoPopupState(
+                AliPayDesktopShortcutManager.STREAK_BREAK_AUTO_POP_CACHE_KEY,
+                true
+            )
+            local firstLoginCanPopup = self:_getAutoPopupState(
+                AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY,
+                false
+            )
+            local inCountdown = callIfExists(self._model, ""isDeskTopVisitStreakBreak"") == true
+            canPopup = canPopup and not firstLoginCanPopup and inCountdown
+            return canPopup
+        end,
+        creator = function(_, onPopOver)
+            return self:_createAutoPopupCreator(
+                onPopOver,
+                AliPayDesktopShortcutManager.STREAK_BREAK_AUTO_POP_CACHE_KEY,
+                streakBreakCheckPoint,
+                true
+            )
+        end,
+    }"
+TR109,direct_call,amf/feature/minihub/alipaygamecenter/AliPayGameCenterManager.lua,340,9f531f7f995a1e078d34cd2dc941c966ba49e72a734989c62cc50c814a46a773,Manager:onActEnterStage4(),":addPopupConfig(popupCheckPoint, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(popupCheckPoint, creator)"
+TR110,direct_call,amf/feature/minihub/kspromotion/KSPromotionManager.lua,119,7dc8060bc43d9f191a1920b1b4d6cef731cccbc102a6c7c6a6ad698158467aac,KSPromotionManager:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.KS_PROMOTION, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.KS_PROMOTION, creator)"
+TR111,direct_call,amf/feature/minihub/recommendationfeed/RecommendationFeedManager.lua,380,01f0685707b7cd270756f8d907e87891cc58231cd4fe3190c17b6bc9fee5a77c,RecommendationFeedManager:registerFeedSubscribePopup(),PopupCheckPoint.DY_FEED_SUBSCRIBE_GUIDE,STAGE_FOUR,,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PopupCheckPoint.DY_FEED_SUBSCRIBE_GUIDE,
+        stages = {AutoPopupConst.PopStage.STAGE_FOUR},
+        check = function()
+            return self:isFeedSubscribeGuideEligible()
+                and self:getFeedSubscribeRequestParams() ~= nil
+                and self:getFeedSubscribeStatus() ~= true
+        end,
+        creator = function(_, onPopOver)
+            return function()
+                -- 计数由 AutoPopupMgr 在 creator 调用前统一消耗；强弹直接调用抖音订阅接口。
+                local params = self:getFeedSubscribeRequestParams()
+                if not params then
+                    safeRunCall(onPopOver)
+                    return
+                end
+
+                local t2 = FeedContext.isNewUser() and 3 or 4
+                self:requestFeedSubscribe(params, function()
+                    safeRunCall(onPopOver)
+                end, { t1 = 2, t2 = t2 })
+            end
+        end,
+    }"
+TR112,direct_call,amf/feature/personalhub/personalcenter/system/common/PersonalCenterManager.lua,3070,3acb316e943af3e44859ffb6aead6830c0aad0a8d5c513b7d2b708c7cbfe139f,PersonalCenterManager:onActEnterStage3(evt),":addPopupConfig(PopupCheckPoint.PERSONAL_CARD_GUIDE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PERSONAL_CARD_GUIDE, creator)"
+TR113,direct_call,amf/feature/personalhub/personalcenter/system/common/PersonalCenterManager.lua,3101,3acb316e943af3e44859ffb6aead6830c0aad0a8d5c513b7d2b708c7cbfe139f,PersonalCenterManager:onActEnterStage4(evt),":addPopupConfig(PopupCheckPoint.PERSONAL_CARD_GUIDE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PERSONAL_CARD_GUIDE, creator)"
+TR114,direct_call,amf/feature/promotionevent2025/system/PromotionEvent2025Manager.lua,924,c79b7e01074c0dd7c0204c463858081d202635d6bb0dff27606fc510dfcda91e,PromotionEvent2025Manager:tryAutoPopPromotionCardPack(),":addPopupConfig(PopupCheckPoint.PROMOTION_CARD_PACK_POP_STAGE4, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PROMOTION_CARD_PACK_POP_STAGE4, creator)"
+TR115,direct_call,amf/feature/promotionevent2025/system/PromotionEvent2025Manager.lua,2446,c79b7e01074c0dd7c0204c463858081d202635d6bb0dff27606fc510dfcda91e,PromotionEvent2025Manager:onActEnterStage4(data),":addPopupConfig(PopupCheckPoint.PROMOTION_2025, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PROMOTION_2025, creator)"
+TR116,direct_call,amf/feature/recall/recall2025/Recall2025Manager.lua,68,522f6d0d56a5ddea15c74d6c2d9b6dce6792916a3d1d73ed3bbaac05768c64fc,Manager:onActEnterStage4(),":addPopupConfig(PopupCheckPoint.RECALL_2025_STAGE4, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.RECALL_2025_STAGE4, creator)"
+TR117,direct_call,amf/feature/winningstreak/module/bottle/WinningStreakBottleManager.lua,292,ed870d01dfbc575bf57e9b8e93682245234c53372a321978fff3e9dd00fad06d,WinningStreakBottleManager:onActEnterStage3(),":addPopupConfig(PopupCheckPoint.COMBO_BOTTLE, function ( ... )",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.COMBO_BOTTLE, function ( ... )"
+TR118,direct_call,amf/feature/winningstreak/module/colorfulstar/ColorfulStarWinRepeatManager.lua,310,0b4cd888fa33ef19acecc7b3415aa927b42938aee0f3be61d2816eca61ed7146,ColorfulStarWinRepeatManager:onActEnterStage4(evt),":addPopupConfig(PopupCheckPoint.COLORFUL_WIN_GUIDE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.COLORFUL_WIN_GUIDE, creator)"
+TR119,direct_call,amf/feature/winningstreak/module/memefox/MeMeFoxManager.lua,59,df43d4c042cdd634aed8ff7ce5faf4aaf8a1dd7ddab8cd13728d459058e7d3ff,MeMeFoxManager:_registerAutoPopup(),PopupCheckPoint.CONTINUOUS_TARGET_CHECK,STAGE_THREE,,False,indexed_not_semantically_closed,":registerPopup({
+        checkPoint = PopupCheckPoint.CONTINUOUS_TARGET_CHECK,
+        stages = {AutoPopupConst.PopStage.STAGE_THREE},
+        actId = 4042,
+        check = function()
+            return self:stage3OrInLevelCanPop() == true
+        end,
+        pop = function(stageParams, onPopOver)
+            -- check/pop 收到的是强弹场景事件对象，事件数据要经 getData 取。
+            local nextLevelModeData = (stageParams:getData() or {}).nextLevelModeData
+            self:cleanPopReason()
+            return self:_createStage3PopupCreator({
+                source = 3,
+                autoPlayNextLevel = nextLevelModeData and nextLevelModeData.autoPlayNextLevel or false,
+            }, onPopOver)
+        end,
+    }"
+TR120,direct_call,amf/middleware/activity/activitycenter/module/ActivityCenterBannerModule.lua,71,6ec9b72996ff2a0e07371ef523a309ab0fd50650db9534511ebfd7c67f864878,ActivityCenterBannerModule:tryAddAutoPop(),":addPopupConfig(PopupCheckPoint.ACTIVITY_CENTER_BANNER, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.ACTIVITY_CENTER_BANNER, creator)"
+TR121,direct_call,amf/middleware/activity/base/plug/AutoPopPlug.lua,33,25c35c9d2be0c4a0eace442076b75c347534f57cd8280b96f0065319aa77bf00,AutoPopPlug:registerPopup(config),:registerPopup(config),,,False,indexed_not_semantically_closed,:registerPopup(config)
+TR122,direct_call,amf/middleware/activity/base/plug/AutoPopPlug.lua,40,25c35c9d2be0c4a0eace442076b75c347534f57cd8280b96f0065319aa77bf00,AutoPopPlug:registerPopups(configs),:registerPopup(config),,,False,indexed_not_semantically_closed,:registerPopup(config)
+TR123,direct_call,amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua,403,036ae5f95a1cfbac7e91dba615bed39c17c3019e716d4e330e857ec9957016a9,Stage2EnterSceneHandler:checkDyOpenStartPanel(),":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)"
+TR124,direct_call,amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua,445,036ae5f95a1cfbac7e91dba615bed39c17c3019e716d4e330e857ec9957016a9,Stage2EnterSceneHandler:checkDyOpenStartPanel(),":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)"
+TR125,direct_call,amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua,484,036ae5f95a1cfbac7e91dba615bed39c17c3019e716d4e330e857ec9957016a9,Stage2EnterSceneHandler:checkDyOpenStartPanel(),":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)"
+TR126,direct_call,amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua,558,036ae5f95a1cfbac7e91dba615bed39c17c3019e716d4e330e857ec9957016a9,Stage2EnterSceneHandler:checkDyOfflineRewardPanel(),":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.DY_MINI_OPEN_START_PANEL, creator)"
+TR127,direct_call,amf/middleware/autopop/module/poptype/ActivityHandler.lua,50,e2293a031e01f06237766acd71cdad7e180a0ceb28e7c9897f7c78c60d2a497e,ActivityHandler:handleActivityNew(params),":addPopupConfig(PopupCheckPoint.ACT_NEW, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.ACT_NEW, creator)"
+TR128,direct_call,amf/middleware/autopop/module/poptype/ActivityHandler.lua,75,e2293a031e01f06237766acd71cdad7e180a0ceb28e7c9897f7c78c60d2a497e,ActivityHandler:handleActivitySH01(params),":addPopupConfig(PopupCheckPoint.SH01_MAIN_POP, delayCreator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.SH01_MAIN_POP, delayCreator)"
+TR129,direct_call,amf/middleware/autopop/module/poptype/ConditionHandler.lua,82,ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240,ConditionHandler:handlePlayLevelBack(params),":addPopupConfig(PopupCheckPoint.PLAY_LEVEL_BACK, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PLAY_LEVEL_BACK, creator)"
+TR130,direct_call,amf/middleware/autopop/module/poptype/ConditionHandler.lua,100,ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240,ConditionHandler:handleOpenStartLevelPanel(params),":addPopupConfig(PopupCheckPoint.EXIT_LEVEL_JUMP, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.EXIT_LEVEL_JUMP, creator)"
+TR131,direct_call,amf/middleware/autopop/module/poptype/ConditionHandler.lua,139,ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240,ConditionHandler:handleActCustomizedPanelStage3(params),":addPopupConfig(_popupCheckPoint, creator, actId)",,,False,indexed_not_semantically_closed,":addPopupConfig(_popupCheckPoint, creator, actId)"
+TR132,direct_call,amf/middleware/autopop/module/poptype/ConditionHandler.lua,179,ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240,ConditionHandler:handleActCustomizedPanelStage4(params),":addPopupConfig(_popupCheckPoint, creator, actId)",,,False,indexed_not_semantically_closed,":addPopupConfig(_popupCheckPoint, creator, actId)"
+TR133,direct_call,amf/middleware/autopop/module/poptype/CrashResumeHandler.lua,120,254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc,CrashResumeHandler:handleMainAndHide(params),":addPopupConfig(PopupCheckPoint.CRASH_RESUME_MAIN, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.CRASH_RESUME_MAIN, creator)"
+TR134,direct_call,amf/middleware/autopop/module/poptype/CrashResumeHandler.lua,533,254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc,CrashResumeHandler:handleAutoStartLevel(params),":addPopupConfig(PopupCheckPoint.AUTO_START_LEVEL, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.AUTO_START_LEVEL, creator)"
+TR135,direct_call,amf/middleware/autopop/module/poptype/CrashResumeHandler.lua,595,254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc,CrashResumeHandler:handleBackUserAutoStartLevel(params),":addPopupConfig(PopupCheckPoint.AUTO_START_LEVEL_BACK_USER, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.AUTO_START_LEVEL_BACK_USER, creator)"
+TR136,direct_call,amf/middleware/autopop/module/poptype/CrashResumeHandler.lua,656,254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc,CrashResumeHandler:handleFeedTrialAutoStartLevel(params),":addPopupConfig(popupCheckPoint, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(popupCheckPoint, creator)"
+TR137,direct_call,amf/middleware/autopop/module/poptype/CrashResumeHandler.lua,767,254fd63cc49f27c34c8c623fbde20d274cda8af1ae069c9a148466a20ba577bc,CrashResumeHandler:handleRecallOpenStartPanel(params),":addPopupConfig(PopupCheckPoint.RECALL_OPEN_START_PANEL, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.RECALL_OPEN_START_PANEL, creator)"
+TR138,direct_call,amf/middleware/autopop/module/poptype/FunctionHandler.lua,105,31660341bd096dd41ffa6d7122dd1437ef352d24d4beccd6a994c027becf64a0,FunctionHandler:handleScrollToCurrentLevel(params),":addPopupConfig(PopupCheckPoint.SCROLL_TO_CURRENT_LEVEL, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.SCROLL_TO_CURRENT_LEVEL, creator)"
+TR139,direct_call,amf/middleware/autopop/module/poptype/OutsideHandler.lua,63,85036943aa9686801d423611db6269fc2af2eb43f597112c52f72412e2759655,OutsideHandler:handleClickBindWechatPay(params),":addPopupConfig(PopupCheckPoint.CLICK_LINK_BIND_WECHAT_PAY, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.CLICK_LINK_BIND_WECHAT_PAY, creator)"
+TR140,direct_call,amf/middleware/autopop/module/poptype/OutsideHandler.lua,80,85036943aa9686801d423611db6269fc2af2eb43f597112c52f72412e2759655,OutsideHandler:handleClickLinkWechatFAQ(params),":addPopupConfig(PopupCheckPoint.CLICK_LINK_WECHAT_FAQ, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.CLICK_LINK_WECHAT_FAQ, creator)"
+TR141,direct_call,amf/middleware/autopop/module/poptype/PolicyHandler.lua,49,d2fd0f7e17c45de5615c76a8ab585a74b28cd84614ca5e7abf0b0083f3fa3a49,PolicyHandler:handleForbidPlaying(popType),":addPopupConfig(PopupCheckPoint.FORBID_PLAYING, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.FORBID_PLAYING, creator)"
+TR142,direct_call,amf/middleware/autopop/module/poptype/PolicyHandler.lua,72,d2fd0f7e17c45de5615c76a8ab585a74b28cd84614ca5e7abf0b0083f3fa3a49,PolicyHandler:handleAntiAddiction(alertType),":addPopupConfig(PopupCheckPoint.ANTI_ADDICTION, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.ANTI_ADDICTION, creator)"
+TR143,direct_call,amf/middleware/autopop/module/poptype/PolicyHandler.lua,84,d2fd0f7e17c45de5615c76a8ab585a74b28cd84614ca5e7abf0b0083f3fa3a49,PolicyHandler:handleRecallShiMing(),":addPopupConfig(PopupCheckPoint.RECALL_SHIMING, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.RECALL_SHIMING, creator)"
+TR144,direct_call,amf/middleware/autopop/module/poptype/PolicyHandler.lua,104,d2fd0f7e17c45de5615c76a8ab585a74b28cd84614ca5e7abf0b0083f3fa3a49,PolicyHandler:handleHWShiMingSyncAlert(params),":addPopupConfig(PopupCheckPoint.HW_SHIMING_SYNC_ALERT, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.HW_SHIMING_SYNC_ALERT, creator)"
+TR145,direct_call,amf/middleware/autopop/module/poptype/RecallHandler.lua,69,4eb00378fa343de993bf670085ce1d50b16e822dc8536eb199a8aeca473c9784,RecallHandler:handleReflow2025(params),":addPopupConfig(PopupCheckPoint.RECALL_2025_STAGE2, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.RECALL_2025_STAGE2, creator)"
+TR146,direct_call,amf/middleware/autopop/module/poptype/SystemHandler.lua,48,3a8d5e12227cd557defd69cad347c985e877b80a1d8abaadb5c21448964f0bd6,SystemHandler:handleSLAlert(),":addPopupConfig(PopupCheckPoint.SL_ALERT, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.SL_ALERT, creator)"
+TR147,direct_call,amf/middleware/autopop/module/poptype/SystemHandler.lua,71,3a8d5e12227cd557defd69cad347c985e877b80a1d8abaadb5c21448964f0bd6,SystemHandler:handleAnnouncement(params),":addPopupConfig(PopupCheckPoint.ANNOUNCEMENT, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.ANNOUNCEMENT, creator)"
+TR148,direct_call,amf/middleware/autopop/module/poptype/SystemHandler.lua,96,3a8d5e12227cd557defd69cad347c985e877b80a1d8abaadb5c21448964f0bd6,SystemHandler:handlePkgUpdate(),":addPopupConfig(PopupCheckPoint.PKG_UPDATE, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.PKG_UPDATE, creator)"
+TR149,direct_call,amf/middleware/autopop/module/poptype/TempActPanelHandler.lua,75,27a0e8295bad0fc55667aab9d41f2ef1abcc0920caf65af17ae5f0550d2aa75c,"TempActPanelHandler:handleActMainPanel(params, popupCheckPoint)",":addPopupConfig(popupCheckPoint, creator, actId)",,,False,indexed_not_semantically_closed,":addPopupConfig(popupCheckPoint, creator, actId)"
+TR150,direct_call,amf/middleware/autopop/module/registration/PopupRegistration.lua,312,e68f2ce8275bbb19736f0a4f4348b8251e40becd3a29a6847011ff184591152a,PopupRegistration:_enqueueRegisteredPopup(candidate),:addPopupConfig(,,,False,indexed_not_semantically_closed,:addPopupConfig(
+TR151,direct_call,amf/middleware/notification/submsg/system/SubMsgBase.lua,181,fb9984475c30d38faf5a9af99c0160230dc61163ff5ec014471a1888c2e39a2b,SubMsgBase:handleEnterStage2(evt),":addPopupConfig(PopupCheckPoint.SUB_MSG, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.SUB_MSG, creator)"
+TR152,direct_call,amf/middleware/notification/submsg/system/SubMsgBase.lua,196,fb9984475c30d38faf5a9af99c0160230dc61163ff5ec014471a1888c2e39a2b,SubMsgBase:handleEnterStage4(evt),":addPopupConfig(PopupCheckPoint.SUB_MSG_STAGE4, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(PopupCheckPoint.SUB_MSG_STAGE4, creator)"
+TR153,direct_call,amf/middleware/setting/option/widescreen/system/WideScreenLogic.lua,211,27f99491ecf5716fb785321781cc8df2cccd4ed78fde1d78591bd91ea12d9115,WideScreenLogic:tryAddPop(),":addPopupConfig(key, creator)",,,False,indexed_not_semantically_closed,":addPopupConfig(key, creator)"

@@ -1,0 +1,1715 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/addfivestepupgrade/AddFiveUpgradeManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="21a69c72595e.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/addfivestepupgrade/AddFiveUpgradeManager.lua</h1><p>SHA256 b003beac3c2f07edace8bc9c6390503f8da87626a35cd4606ee4432f3f8b932b</p><pre><span id="L1" class="line"><a href="#L1">1</a>-- TODO @shihao 待查levelId区分</span>
+<span id="L2" class="line"><a href="#L2">2</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local ActionUtil = require &quot;amf.middleware.ui.util.ActionUtil&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local Tween = require &quot;amf.middleware.ui.util.Tween&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local NumberUtil = require &quot;amf.middleware.ui.util.NumberUtil&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local PropRegister = require &#x27;amf.feature.localactivity.addfivestepupgrade.props.PropRegister&#x27;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local AddFiveStepModel = require &#x27;amf.feature.localactivity.addfivestepupgrade.model.AddFiveStepModel&#x27;</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>local Manager = class(&quot;AddFiveUpgradeManager&quot;)</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>local AddFiveStepConfig = require &#x27;amf.feature.localactivity.addfivestepupgrade.config.AddFiveStepConfig&#x27;</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>-- require &#x27;amf.feature.localactivity.addfivestepupgrade.AddFiveUpgradeManager_http&#x27;</span>
+<span id="L14" class="line"><a href="#L14">14</a></span>
+<span id="L15" class="line"><a href="#L15">15</a>-- 主线</span>
+<span id="L16" class="line"><a href="#L16">16</a>Manager.ACT_ID = 5311</span>
+<span id="L17" class="line"><a href="#L17">17</a>-- Manager.DCGameName = &quot;long_tail&quot;</span>
+<span id="L18" class="line"><a href="#L18">18</a>-- Manager.DCFeature = &quot;long_tail&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a>-- Manager.DCSource = &quot;act_&quot;..Manager.ACT_ID</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>local printChannel = 11</span>
+<span id="L22" class="line"><a href="#L22">22</a>local selfLogOpened = false</span>
+<span id="L23" class="line"><a href="#L23">23</a>local oldPrintx = printx</span>
+<span id="L24" class="line"><a href="#L24">24</a>local function printx( ... ) </span>
+<span id="L25" class="line"><a href="#L25">25</a>	if EnvUtil:isDevelopMode() then </span>
+<span id="L26" class="line"><a href="#L26">26</a>		if selfLogOpened then</span>
+<span id="L27" class="line"><a href="#L27">27</a>			oldPrintx(...)</span>
+<span id="L28" class="line"><a href="#L28">28</a>			UWarning(&quot;长尾：&quot;,...)</span>
+<span id="L29" class="line"><a href="#L29">29</a>		end</span>
+<span id="L30" class="line"><a href="#L30">30</a>	end</span>
+<span id="L31" class="line"><a href="#L31">31</a>end</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>function Manager:initialize()</span>
+<span id="L34" class="line"><a href="#L34">34</a>    PropRegister:register()</span>
+<span id="L35" class="line"><a href="#L35">35</a>    self:registerEvents()</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>    self.serverData = AddFiveStepModel:create(&quot;AddFiveUpgradeManager&quot;)</span>
+<span id="L38" class="line"><a href="#L38">38</a></span>
+<span id="L39" class="line"><a href="#L39">39</a>    self._isResReady = false</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>	-- self.canShowMainPanel = false </span>
+<span id="L42" class="line"><a href="#L42">42</a>	-- -- self.canShowAddFiveGift = false </span>
+<span id="L43" class="line"><a href="#L43">43</a>	-- -- self.bIsOriginGroup = false</span>
+<span id="L44" class="line"><a href="#L44">44</a>	-- -- self.bIsEnergtGroup = false</span>
+<span id="L45" class="line"><a href="#L45">45</a>	-- -- self.bUseNewEnergyReward = false</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>	-- if EnvUtil:isMiniGame() then</span>
+<span id="L48" class="line"><a href="#L48">48</a>	-- 	local MaintenanceName = &quot;minigame_plusstep&quot;</span>
+<span id="L49" class="line"><a href="#L49">49</a>	-- 	if MaintenanceManager:getInstance():isEnabledInGroup(MaintenanceName, &quot;Buff&quot;) then</span>
+<span id="L50" class="line"><a href="#L50">50</a>	-- 		self.canShowMainPanel = true </span>
+<span id="L51" class="line"><a href="#L51">51</a>	-- 	end</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>	-- 	-- if MaintenanceManager:getInstance():isEnabledInGroup(MaintenanceName, &quot;Pack&quot;) then</span>
+<span id="L54" class="line"><a href="#L54">54</a>	-- 	-- 	self.canShowAddFiveGift = true </span>
+<span id="L55" class="line"><a href="#L55">55</a>	-- 	-- end</span>
+<span id="L56" class="line"><a href="#L56">56</a>	-- else</span>
+<span id="L57" class="line"><a href="#L57">57</a>	-- 	self.canShowMainPanel = self:canOpenMainPanelForNewGroup()</span>
+<span id="L58" class="line"><a href="#L58">58</a>	-- 	-- self.canShowAddFiveGift = self:canOpenGiftForNewGroup()</span>
+<span id="L59" class="line"><a href="#L59">59</a>	-- end</span>
+<span id="L60" class="line"><a href="#L60">60</a></span>
+<span id="L61" class="line"><a href="#L61">61</a>	-- self.bIsEnergtGroup = true</span>
+<span id="L62" class="line"><a href="#L62">62</a>	-- self.bUseNewEnergyReward = true</span>
+<span id="L63" class="line"><a href="#L63">63</a></span>
+<span id="L64" class="line"><a href="#L64">64</a>	-- self:initSaveStartPanelParam()</span>
+<span id="L65" class="line"><a href="#L65">65</a>	-- -- self:initSaveGiftParam()</span>
+<span id="L66" class="line"><a href="#L66">66</a>	-- self:initSaveStartPanelShowInfoParam()</span>
+<span id="L67" class="line"><a href="#L67">67</a>	-- self:initSaveStartPanelInGameInfoParam()</span>
+<span id="L68" class="line"><a href="#L68">68</a>	-- self:initSaveStartPanelProbability()</span>
+<span id="L69" class="line"><a href="#L69">69</a>	-- self:initSaveStartPanelShowHistory()</span>
+<span id="L70" class="line"><a href="#L70">70</a>	-- self:initSaveActiveInfoForPopRewardPanel()</span>
+<span id="L71" class="line"><a href="#L71">71</a>	-- self:registerGiftEvents()</span>
+<span id="L72" class="line"><a href="#L72">72</a></span>
+<span id="L73" class="line"><a href="#L73">73</a>	self:onPreDownLoadRes()</span>
+<span id="L74" class="line"><a href="#L74">74</a></span>
+<span id="L75" class="line"><a href="#L75">75</a>	--[[</span>
+<span id="L76" class="line"><a href="#L76">76</a>	-- 这是个前端用来查问题的点，不需要的话不打也可以</span>
+<span id="L77" class="line"><a href="#L77">77</a>	UBFGlobal:getLogic(UBFUiLogicId.UI_VIEW_LOGIC_MANAGER):registerUiEventListener(UBFUiEventType.NODE_ENTER, function(eventData)</span>
+<span id="L78" class="line"><a href="#L78">78</a>        local nodeId = eventData.nodeId</span>
+<span id="L79" class="line"><a href="#L79">79</a>        if nodeId == UBFPlpNodeId.ROOT then</span>
+<span id="L80" class="line"><a href="#L80">80</a>            -- 通知给关卡外的一些数据</span>
+<span id="L81" class="line"><a href="#L81">81</a>            local levelId, levelScene, playId</span>
+<span id="L82" class="line"><a href="#L82">82</a>			local sceneMgr = UBFGameSceneManager and UBFGameSceneManager:getInstance()</span>
+<span id="L83" class="line"><a href="#L83">83</a>			if sceneMgr then</span>
+<span id="L84" class="line"><a href="#L84">84</a>			    local levelInfo = sceneMgr:getLevelInfo()</span>
+<span id="L85" class="line"><a href="#L85">85</a>			    levelId = levelInfo.levelId</span>
+<span id="L86" class="line"><a href="#L86">86</a>			    levelScene = levelInfo.levelScene</span>
+<span id="L87" class="line"><a href="#L87">87</a>			    playId = levelInfo.playId</span>
+<span id="L88" class="line"><a href="#L88">88</a>			    self:passLevelPanelDC(levelId, playId)</span>
+<span id="L89" class="line"><a href="#L89">89</a>			end</span>
+<span id="L90" class="line"><a href="#L90">90</a>        end</span>
+<span id="L91" class="line"><a href="#L91">91</a>    end)</span>
+<span id="L92" class="line"><a href="#L92">92</a>	--]]</span>
+<span id="L93" class="line"><a href="#L93">93</a>end</span>
+<span id="L94" class="line"><a href="#L94">94</a></span>
+<span id="L95" class="line"><a href="#L95">95</a>function Manager:onPreDownLoadRes()</span>
+<span id="L96" class="line"><a href="#L96">96</a>    _G.amfBean(&quot;AssetsUtil&quot;):preloadMiniLabels({&quot;addfivestepupgrade&quot;}, false):next(function()</span>
+<span id="L97" class="line"><a href="#L97">97</a>        self._isResReady = true</span>
+<span id="L98" class="line"><a href="#L98">98</a>    end, function()</span>
+<span id="L99" class="line"><a href="#L99">99</a>    end)</span>
+<span id="L100" class="line"><a href="#L100">100</a>end</span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a>function Manager:isResReady()</span>
+<span id="L103" class="line"><a href="#L103">103</a>	return self._isResReady</span>
+<span id="L104" class="line"><a href="#L104">104</a>end</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>function Manager:registerEvents()</span>
+<span id="L107" class="line"><a href="#L107">107</a>    _G.amfEC:registerFeature(self)</span>
+<span id="L108" class="line"><a href="#L108">108</a>    _G.amfEC:registerSystem(self)</span>
+<span id="L109" class="line"><a href="#L109">109</a>end</span>
+<span id="L110" class="line"><a href="#L110">110</a></span>
+<span id="L111" class="line"><a href="#L111">111</a>-- function Manager:registerGiftEvents()</span>
+<span id="L112" class="line"><a href="#L112">112</a>-- end</span>
+<span id="L113" class="line"><a href="#L113">113</a></span>
+<span id="L114" class="line"><a href="#L114">114</a>--[[</span>
+<span id="L115" class="line"><a href="#L115">115</a>function Manager:isEnabled()</span>
+<span id="L116" class="line"><a href="#L116">116</a>	if selfLogOpened then printx(printChannel,&quot;AddFiveUpgradeManager:isEnabled 1111111111&quot;) end</span>
+<span id="L117" class="line"><a href="#L117">117</a>	local actData = UBFAddFiveUpgradeDataUtil:getValidActData()</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>	if selfLogOpened then printx(printChannel,&quot;AddFiveUpgradeManager:isEnabled 22222222&quot;, tts(actData)) end</span>
+<span id="L120" class="line"><a href="#L120">120</a>	if actData then </span>
+<span id="L121" class="line"><a href="#L121">121</a>		return true and self._isResReady</span>
+<span id="L122" class="line"><a href="#L122">122</a>	end</span>
+<span id="L123" class="line"><a href="#L123">123</a>	return false</span>
+<span id="L124" class="line"><a href="#L124">124</a>end</span>
+<span id="L125" class="line"><a href="#L125">125</a></span>
+<span id="L126" class="line"><a href="#L126">126</a>function Manager:isEnabled2()</span>
+<span id="L127" class="line"><a href="#L127">127</a>	if selfLogOpened then printx(printChannel,&quot;AddFiveUpgradeManager:isEnabled2 1111111111&quot;) end</span>
+<span id="L128" class="line"><a href="#L128">128</a>	local actData = UBFAddFiveUpgradeDataUtil:getValidActDataV2()</span>
+<span id="L129" class="line"><a href="#L129">129</a></span>
+<span id="L130" class="line"><a href="#L130">130</a>	if selfLogOpened then printx(printChannel,&quot;AddFiveUpgradeManager:isEnabled2 22222222&quot;,tts(actData)) end</span>
+<span id="L131" class="line"><a href="#L131">131</a>	if actData then </span>
+<span id="L132" class="line"><a href="#L132">132</a>		return true and self._isResReady</span>
+<span id="L133" class="line"><a href="#L133">133</a>	end</span>
+<span id="L134" class="line"><a href="#L134">134</a>	return false</span>
+<span id="L135" class="line"><a href="#L135">135</a>end</span>
+<span id="L136" class="line"><a href="#L136">136</a></span>
+<span id="L137" class="line"><a href="#L137">137</a>function Manager:canOpenMainPanelForNewGroup()</span>
+<span id="L138" class="line"><a href="#L138">138</a>	-- 测试废弃了</span>
+<span id="L139" class="line"><a href="#L139">139</a>	-- local bCanOpenNewGroup = UBFAddFiveUpgradeDataUtil:_isActNewGroupEnable()</span>
+<span id="L140" class="line"><a href="#L140">140</a></span>
+<span id="L141" class="line"><a href="#L141">141</a>	-- if bCanOpenNewGroup then</span>
+<span id="L142" class="line"><a href="#L142">142</a>	-- 	local MaintenanceName = &quot;plus_five_test&quot;</span>
+<span id="L143" class="line"><a href="#L143">143</a>	-- 	local canOpenMainPanel = false</span>
+<span id="L144" class="line"><a href="#L144">144</a>	-- 	if MaintenanceManager:getInstance():isEnabledInGroup( MaintenanceName , &quot;G1&quot;) or </span>
+<span id="L145" class="line"><a href="#L145">145</a>	-- 		MaintenanceManager:getInstance():isEnabledInGroup( MaintenanceName , &quot;G2&quot;) then</span>
+<span id="L146" class="line"><a href="#L146">146</a>	-- 		canOpenMainPanel = true</span>
+<span id="L147" class="line"><a href="#L147">147</a>	-- 	end</span>
+<span id="L148" class="line"><a href="#L148">148</a>	-- 	return canOpenMainPanel</span>
+<span id="L149" class="line"><a href="#L149">149</a>	-- else</span>
+<span id="L150" class="line"><a href="#L150">150</a>		--等级没满足新开关走老的</span>
+<span id="L151" class="line"><a href="#L151">151</a>		local MaintenanceName = &quot;plusfive_double&quot;</span>
+<span id="L152" class="line"><a href="#L152">152</a>		local bInOnGroup = MaintenanceManager:getInstance():isEnabledInGroup( MaintenanceName , &quot;ON&quot; )</span>
+<span id="L153" class="line"><a href="#L153">153</a>		return bInOnGroup</span>
+<span id="L154" class="line"><a href="#L154">154</a>	-- end</span>
+<span id="L155" class="line"><a href="#L155">155</a>end</span>
+<span id="L156" class="line"><a href="#L156">156</a></span>
+<span id="L157" class="line"><a href="#L157">157</a>function Manager:canOpenGiftForNewGroup()</span>
+<span id="L158" class="line"><a href="#L158">158</a>	-- 测试废弃了</span>
+<span id="L159" class="line"><a href="#L159">159</a>	-- local bCanOpenNewGroup = UBFAddFiveUpgradeDataUtil:_isActNewGroupEnable()</span>
+<span id="L160" class="line"><a href="#L160">160</a></span>
+<span id="L161" class="line"><a href="#L161">161</a>	-- if bCanOpenNewGroup then</span>
+<span id="L162" class="line"><a href="#L162">162</a>	-- 	local MaintenanceName = &quot;plus_five_test&quot;</span>
+<span id="L163" class="line"><a href="#L163">163</a>	-- 	local canOpenGift = false</span>
+<span id="L164" class="line"><a href="#L164">164</a>	-- 	if MaintenanceManager:getInstance():isEnabledInGroup( MaintenanceName , &quot;G1&quot;) or </span>
+<span id="L165" class="line"><a href="#L165">165</a>	-- 		MaintenanceManager:getInstance():isEnabledInGroup( MaintenanceName , &quot;G3&quot;) then</span>
+<span id="L166" class="line"><a href="#L166">166</a>	-- 		canOpenGift = true</span>
+<span id="L167" class="line"><a href="#L167">167</a>	-- 	end</span>
+<span id="L168" class="line"><a href="#L168">168</a>	-- 	return canOpenGift</span>
+<span id="L169" class="line"><a href="#L169">169</a>	-- else</span>
+<span id="L170" class="line"><a href="#L170">170</a>		--等级没满足新开关走老的</span>
+<span id="L171" class="line"><a href="#L171">171</a>		local MaintenanceName = &quot;plusfive_double&quot;</span>
+<span id="L172" class="line"><a href="#L172">172</a>		local bInOnGroup = MaintenanceManager:getInstance():isEnabledInGroup( MaintenanceName , &quot;ON&quot; )</span>
+<span id="L173" class="line"><a href="#L173">173</a>		return bInOnGroup</span>
+<span id="L174" class="line"><a href="#L174">174</a>	-- end</span>
+<span id="L175" class="line"><a href="#L175">175</a>end</span>
+<span id="L176" class="line"><a href="#L176">176</a>--]]</span>
+<span id="L177" class="line"><a href="#L177">177</a></span>
+<span id="L178" class="line"><a href="#L178">178</a>function Manager:getActInfo()</span>
+<span id="L179" class="line"><a href="#L179">179</a>	return _G.amfBean(&quot;ActivityMgr&quot;):getActInfo( Manager.ACT_ID )</span>
+<span id="L180" class="line"><a href="#L180">180</a>end</span>
+<span id="L181" class="line"><a href="#L181">181</a></span>
+<span id="L182" class="line"><a href="#L182">182</a>--[[</span>
+<span id="L183" class="line"><a href="#L183">183</a>function Manager:onActEnterMainScene(evt)</span>
+<span id="L184" class="line"><a href="#L184">184</a>	if selfLogOpened then printx(printChannel,&quot;AddFiveUpgradeManager:onActEnterMainScene&quot;) end</span>
+<span id="L185" class="line"><a href="#L185">185</a>	--回到homeScene，清除进关前存的数据</span>
+<span id="L186" class="line"><a href="#L186">186</a>	local data = evt:getData()</span>
+<span id="L187" class="line"><a href="#L187">187</a>    if data.firstEnter then return end</span>
+<span id="L188" class="line"><a href="#L188">188</a></span>
+<span id="L189" class="line"><a href="#L189">189</a>	self:saveStartPanelParam({})</span>
+<span id="L190" class="line"><a href="#L190">190</a>end</span>
+<span id="L191" class="line"><a href="#L191">191</a>--]]</span>
+<span id="L192" class="line"><a href="#L192">192</a></span>
+<span id="L193" class="line"><a href="#L193">193</a>--[[</span>
+<span id="L194" class="line"><a href="#L194">194</a>function Manager:startLevelDataChange(levelId)</span>
+<span id="L195" class="line"><a href="#L195">195</a></span>
+<span id="L196" class="line"><a href="#L196">196</a>	if selfLogOpened then printx(printChannel,&quot;AddFiveUpgradeManager:startLevelDataChange 000000&quot;, levelId ) end</span>
+<span id="L197" class="line"><a href="#L197">197</a></span>
+<span id="L198" class="line"><a href="#L198">198</a>	if not self:isEnabled() then return end </span>
+<span id="L199" class="line"><a href="#L199">199</a></span>
+<span id="L200" class="line"><a href="#L200">200</a>	if selfLogOpened then printx(printChannel,&quot;AddFiveUpgradeManager:startLevelDataChange 11111&quot;, levelId ) end</span>
+<span id="L201" class="line"><a href="#L201">201</a></span>
+<span id="L202" class="line"><a href="#L202">202</a>	local saveShowInfo = self:getSaveStartPanelShowInfoParam()</span>
+<span id="L203" class="line"><a href="#L203">203</a>	if not table.isEmpty(saveShowInfo) and saveShowInfo.levelId and saveShowInfo.levelId == levelId then</span>
+<span id="L204" class="line"><a href="#L204">204</a>	    self:saveSaveStartPanelShowHistory( saveShowInfo.levelId, saveShowInfo.failNum )</span>
+<span id="L205" class="line"><a href="#L205">205</a>	    self:clearSaveStartPanelShowInfoParam()</span>
+<span id="L206" class="line"><a href="#L206">206</a></span>
+<span id="L207" class="line"><a href="#L207">207</a>	    if selfLogOpened then printx(printChannel,&quot;AddFiveUpgradeManager:startLevelDataChange 222222&quot;, tts(saveShowInfo) ) end</span>
+<span id="L208" class="line"><a href="#L208">208</a>	end</span>
+<span id="L209" class="line"><a href="#L209">209</a>	self:addStartPanelInGameInfoParam(levelId)</span>
+<span id="L210" class="line"><a href="#L210">210</a>	</span>
+<span id="L211" class="line"><a href="#L211">211</a>	local startParam = self:getSaveStartPanelParam()</span>
+<span id="L212" class="line"><a href="#L212">212</a></span>
+<span id="L213" class="line"><a href="#L213">213</a>	if selfLogOpened then printx(printChannel,&quot;AddFiveUpgradeManager:startLevelDataChange 3333&quot;, tts(startParam) ) end</span>
+<span id="L214" class="line"><a href="#L214">214</a></span>
+<span id="L215" class="line"><a href="#L215">215</a>	--记录激活 成功等信息</span>
+<span id="L216" class="line"><a href="#L216">216</a>	if not table.isEmpty(startParam) then</span>
+<span id="L217" class="line"><a href="#L217">217</a>		self:saveSaveActiveInfoForPopRewardPanel(startParam)</span>
+<span id="L218" class="line"><a href="#L218">218</a>	end</span>
+<span id="L219" class="line"><a href="#L219">219</a></span>
+<span id="L220" class="line"><a href="#L220">220</a>	self:saveStartPanelParam({})</span>
+<span id="L221" class="line"><a href="#L221">221</a>end</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>function Manager:onActBeforeStartLevel(evt)</span>
+<span id="L224" class="line"><a href="#L224">224</a>	if not self:isEnabled() then return end </span>
+<span id="L225" class="line"><a href="#L225">225</a>	local data = evt.data</span>
+<span id="L226" class="line"><a href="#L226">226</a>    if not data then return end</span>
+<span id="L227" class="line"><a href="#L227">227</a></span>
+<span id="L228" class="line"><a href="#L228">228</a>    if selfLogOpened then printx(printChannel,&quot;onActBeforeStartLevel&quot;, tts(data)) end</span>
+<span id="L229" class="line"><a href="#L229">229</a></span>
+<span id="L230" class="line"><a href="#L230">230</a>    self:startLevelDataChange(data.levelId)</span>
+<span id="L231" class="line"><a href="#L231">231</a>end</span>
+<span id="L232" class="line"><a href="#L232">232</a>--]]</span>
+<span id="L233" class="line"><a href="#L233">233</a></span>
+<span id="L234" class="line"><a href="#L234">234</a>----------开始面板弹出</span>
+<span id="L235" class="line"><a href="#L235">235</a>--[[</span>
+<span id="L236" class="line"><a href="#L236">236</a>function Manager:ignoreForTopLevelPlayer()</span>
+<span id="L237" class="line"><a href="#L237">237</a>    local userState = _G.amfBean(&quot;UserStateManager&quot;):getUserSegmentState()</span>
+<span id="L238" class="line"><a href="#L238">238</a>    if userState == _G.UserStateConst.UserLevelState.MHZC then</span>
+<span id="L239" class="line"><a href="#L239">239</a>        return false</span>
+<span id="L240" class="line"><a href="#L240">240</a>    end</span>
+<span id="L241" class="line"><a href="#L241">241</a></span>
+<span id="L242" class="line"><a href="#L242">242</a>    local topLevelId = _G.getTopLevelId()</span>
+<span id="L243" class="line"><a href="#L243">243</a>    if not _G.amfBean(&quot;LevelUnLockManager&quot;):isTopNewMainLevel(topLevelId) then </span>
+<span id="L244" class="line"><a href="#L244">244</a>        return false</span>
+<span id="L245" class="line"><a href="#L245">245</a>    end</span>
+<span id="L246" class="line"><a href="#L246">246</a></span>
+<span id="L247" class="line"><a href="#L247">247</a>    if not _G.amfBean(&quot;LevelUnLockManager&quot;):isInNewLevelTime() then </span>
+<span id="L248" class="line"><a href="#L248">248</a>        return false</span>
+<span id="L249" class="line"><a href="#L249">249</a>    end</span>
+<span id="L250" class="line"><a href="#L250">250</a>    </span>
+<span id="L251" class="line"><a href="#L251">251</a>    return true</span>
+<span id="L252" class="line"><a href="#L252">252</a>end</span>
+<span id="L253" class="line"><a href="#L253">253</a></span>
+<span id="L254" class="line"><a href="#L254">254</a>function Manager:checkCurTimeCanPop()</span>
+<span id="L255" class="line"><a href="#L255">255</a>	return not self:ignoreForTopLevelPlayer()</span>
+<span id="L256" class="line"><a href="#L256">256</a>end</span>
+<span id="L257" class="line"><a href="#L257">257</a></span>
+<span id="L258" class="line"><a href="#L258">258</a>function Manager:checkCanPopOnStartPanel(levelId, playId)</span>
+<span id="L259" class="line"><a href="#L259">259</a>	--是否可以弹在开始面板上</span>
+<span id="L260" class="line"><a href="#L260">260</a>	--1,是否有actInfo</span>
+<span id="L261" class="line"><a href="#L261">261</a>	--2，是不是在可展示时间</span>
+<span id="L262" class="line"><a href="#L262">262</a>	--3，失败次数是否够了</span>
+<span id="L263" class="line"><a href="#L263">263</a>	-- do </span>
+<span id="L264" class="line"><a href="#L264">264</a>	-- 	self:saveStartPanelParam( {levleId=levelId,failNum = 3,curPayTag=0} )</span>
+<span id="L265" class="line"><a href="#L265">265</a>	-- 	return true </span>
+<span id="L266" class="line"><a href="#L266">266</a>	-- end </span>
+<span id="L267" class="line"><a href="#L267">267</a>	self.canShowMainPanel = self:canOpenMainPanelForNewGroup()</span>
+<span id="L268" class="line"><a href="#L268">268</a>		</span>
+<span id="L269" class="line"><a href="#L269">269</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 检测开始面板强弹开始&quot;) end</span>
+<span id="L270" class="line"><a href="#L270">270</a></span>
+<span id="L271" class="line"><a href="#L271">271</a>	if not self.canShowMainPanel then return end </span>
+<span id="L272" class="line"><a href="#L272">272</a></span>
+<span id="L273" class="line"><a href="#L273">273</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 校验开关通过&quot;) end</span>
+<span id="L274" class="line"><a href="#L274">274</a>	if not self:isEnabled() then return end </span>
+<span id="L275" class="line"><a href="#L275">275</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 校验活动时间&quot;) end</span>
+<span id="L276" class="line"><a href="#L276">276</a>	if not self:checkCurTimeCanPop() then return end </span>
+<span id="L277" class="line"><a href="#L277">277</a></span>
+<span id="L278" class="line"><a href="#L278">278</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 校验强弹时机通过，不在新关时间内&quot;) end</span>
+<span id="L279" class="line"><a href="#L279">279</a></span>
+<span id="L280" class="line"><a href="#L280">280</a>	local actData = UBFAddFiveUpgradeDataUtil:getValidActData()</span>
+<span id="L281" class="line"><a href="#L281">281</a>	if not actData then return end </span>
+<span id="L282" class="line"><a href="#L282">282</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 校验数据通过，有后端发来的数据&quot;, actData.levelID, levelId ) end</span>
+<span id="L283" class="line"><a href="#L283">283</a>	if actData.levelID ~= levelId then return end</span>
+<span id="L284" class="line"><a href="#L284">284</a></span>
+<span id="L285" class="line"><a href="#L285">285</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 校验levelId通过，当前打的关与记录失败的关卡一致&quot;) end</span>
+<span id="L286" class="line"><a href="#L286">286</a>	local topLevelId = _G.getTopLevelId()</span>
+<span id="L287" class="line"><a href="#L287">287</a>	if topLevelId ~= levelId then return end </span>
+<span id="L288" class="line"><a href="#L288">288</a></span>
+<span id="L289" class="line"><a href="#L289">289</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 校验levelId通过，当前打的是top关&quot;) end</span>
+<span id="L290" class="line"><a href="#L290">290</a>	local topLevelHasPassed = _G.amfBean(&quot;LevelAreaManager&quot;):hasPassedLevelEx(topLevelId)</span>
+<span id="L291" class="line"><a href="#L291">291</a>	if topLevelHasPassed then return end </span>
+<span id="L292" class="line"><a href="#L292">292</a></span>
+<span id="L293" class="line"><a href="#L293">293</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 校验levelId通过，当前关卡是首次打关&quot;) end</span>
+<span id="L294" class="line"><a href="#L294">294</a></span>
+<span id="L295" class="line"><a href="#L295">295</a>	--1111111 判断曝光限制</span>
+<span id="L296" class="line"><a href="#L296">296</a>	--22222222判断cd期</span>
+<span id="L297" class="line"><a href="#L297">297</a>	--333333333先判断有没有保存好的当前关的触发信息</span>
+<span id="L298" class="line"><a href="#L298">298</a>	--44444444如果没有再重新判断，并保存起来</span>
+<span id="L299" class="line"><a href="#L299">299</a></span>
+<span id="L300" class="line"><a href="#L300">300</a>	-- local curTime = TimeKit:timeInSec()</span>
+<span id="L301" class="line"><a href="#L301">301</a>	local curTime = TimeKit:timeInSec()</span>
+<span id="L302" class="line"><a href="#L302">302</a>	local oneHourSec = 60*60</span>
+<span id="L303" class="line"><a href="#L303">303</a>	local oneDayTime = oneHourSec*24</span>
+<span id="L304" class="line"><a href="#L304">304</a></span>
+<span id="L305" class="line"><a href="#L305">305</a>	--曝光次数 所有玩家24h最多可触发2次地鼠buff</span>
+<span id="L306" class="line"><a href="#L306">306</a>	local startPanelInGameInfoList = self:getSaveStartPanelInGameInfoParam() --{ {time=11},{time=11} }</span>
+<span id="L307" class="line"><a href="#L307">307</a>	local in24HourActiveNum = 0</span>
+<span id="L308" class="line"><a href="#L308">308</a>	for i,v in ipairs(startPanelInGameInfoList) do</span>
+<span id="L309" class="line"><a href="#L309">309</a>		local activeTime = v.time</span>
+<span id="L310" class="line"><a href="#L310">310</a>		if curTime &lt; activeTime + oneDayTime then</span>
+<span id="L311" class="line"><a href="#L311">311</a>			in24HourActiveNum = in24HourActiveNum + 1</span>
+<span id="L312" class="line"><a href="#L312">312</a>		end</span>
+<span id="L313" class="line"><a href="#L313">313</a>	end</span>
+<span id="L314" class="line"><a href="#L314">314</a></span>
+<span id="L315" class="line"><a href="#L315">315</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 曝光次数判断，当前24小时曝光次数&quot;, in24HourActiveNum) end</span>
+<span id="L316" class="line"><a href="#L316">316</a></span>
+<span id="L317" class="line"><a href="#L317">317</a>	if in24HourActiveNum &gt;= 2 then</span>
+<span id="L318" class="line"><a href="#L318">318</a>		return</span>
+<span id="L319" class="line"><a href="#L319">319</a>	end</span>
+<span id="L320" class="line"><a href="#L320">320</a></span>
+<span id="L321" class="line"><a href="#L321">321</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 曝光次数判断，当前24小时曝光次数校验通过&quot;) end</span>
+<span id="L322" class="line"><a href="#L322">322</a>	</span>
+<span id="L323" class="line"><a href="#L323">323</a>	--判断是否在cd期</span>
+<span id="L324" class="line"><a href="#L324">324</a>	local lastGetPromoteRewardTime = math.floor( tonumber(actData.lastGetPromoteRewardTime)/1000 )</span>
+<span id="L325" class="line"><a href="#L325">325</a>	local promoteRewardCdHours = actData.promoteRewardCdHours</span>
+<span id="L326" class="line"><a href="#L326">326</a></span>
+<span id="L327" class="line"><a href="#L327">327</a>	local cdEndTime = lastGetPromoteRewardTime+promoteRewardCdHours*oneHourSec</span>
+<span id="L328" class="line"><a href="#L328">328</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 校验cd时间&quot;, curTime, cdEndTime ) end</span>
+<span id="L329" class="line"><a href="#L329">329</a>	if curTime &lt; cdEndTime then return end</span>
+<span id="L330" class="line"><a href="#L330">330</a></span>
+<span id="L331" class="line"><a href="#L331">331</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 校验cd时间通过&quot; ) end</span>
+<span id="L332" class="line"><a href="#L332">332</a></span>
+<span id="L333" class="line"><a href="#L333">333</a>	--判断是否使用存起来的数据</span>
+<span id="L334" class="line"><a href="#L334">334</a>	local curPayTag = UserTagManager:getUserPaymentTag2ServerVersion()</span>
+<span id="L335" class="line"><a href="#L335">335</a>	local saveShowInfo = self:getSaveStartPanelShowInfoParam()</span>
+<span id="L336" class="line"><a href="#L336">336</a></span>
+<span id="L337" class="line"><a href="#L337">337</a>	local bCanInitInfo = true</span>
+<span id="L338" class="line"><a href="#L338">338</a>	if table.isEmpty(saveShowInfo) then</span>
+<span id="L339" class="line"><a href="#L339">339</a>		bCanInitInfo = true</span>
+<span id="L340" class="line"><a href="#L340">340</a>	else</span>
+<span id="L341" class="line"><a href="#L341">341</a>		if saveShowInfo.levelId == levelId and saveShowInfo.failNum == actData.failTimes then</span>
+<span id="L342" class="line"><a href="#L342">342</a>			--一致性判断</span>
+<span id="L343" class="line"><a href="#L343">343</a>			bCanInitInfo = false</span>
+<span id="L344" class="line"><a href="#L344">344</a>		end</span>
+<span id="L345" class="line"><a href="#L345">345</a>	end</span>
+<span id="L346" class="line"><a href="#L346">346</a></span>
+<span id="L347" class="line"><a href="#L347">347</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 判断使用已保存的随机数据还是重新随机&quot;, tts(saveShowInfo) ) end</span>
+<span id="L348" class="line"><a href="#L348">348</a></span>
+<span id="L349" class="line"><a href="#L349">349</a>	if bCanInitInfo then</span>
+<span id="L350" class="line"><a href="#L350">350</a>		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 重新随机&quot; ) end</span>
+<span id="L351" class="line"><a href="#L351">351</a></span>
+<span id="L352" class="line"><a href="#L352">352</a>		local failNum = actData.failTimes</span>
+<span id="L353" class="line"><a href="#L353">353</a>		local canActivePercent = 0</span>
+<span id="L354" class="line"><a href="#L354">354</a></span>
+<span id="L355" class="line"><a href="#L355">355</a>		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 权重判断信息 付费类型&quot;, curPayTag ) end</span>
+<span id="L356" class="line"><a href="#L356">356</a>		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 权重判断信息 失败次数&quot;, failNum ) end</span>
+<span id="L357" class="line"><a href="#L357">357</a></span>
+<span id="L358" class="line"><a href="#L358">358</a>		if curPayTag &gt;= UsetPaymentTagServer.kNone and curPayTag &lt;= UsetPaymentTagServer.kHigh_4 then</span>
+<span id="L359" class="line"><a href="#L359">359</a></span>
+<span id="L360" class="line"><a href="#L360">360</a></span>
+<span id="L361" class="line"><a href="#L361">361</a>			if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 中低付费判断 开始&quot;  ) end</span>
+<span id="L362" class="line"><a href="#L362">362</a>			local canActive = true</span>
+<span id="L363" class="line"><a href="#L363">363</a>			local saveStartPanelShowHistoryKey = self:getSaveStartPanelShowHistory()</span>
+<span id="L364" class="line"><a href="#L364">364</a></span>
+<span id="L365" class="line"><a href="#L365">365</a>			</span>
+<span id="L366" class="line"><a href="#L366">366</a>			if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 输出历史触发信息&quot;, tts(saveStartPanelShowHistoryKey)  ) end</span>
+<span id="L367" class="line"><a href="#L367">367</a>			local lastActiveFailNum = 0</span>
+<span id="L368" class="line"><a href="#L368">368</a>			if not table.isEmpty(saveStartPanelShowHistoryKey) then</span>
+<span id="L369" class="line"><a href="#L369">369</a>				--差距5关才能再次触发</span>
+<span id="L370" class="line"><a href="#L370">370</a>				if saveStartPanelShowHistoryKey.levelId == levelId then</span>
+<span id="L371" class="line"><a href="#L371">371</a>					lastActiveFailNum = saveStartPanelShowHistoryKey.failNum</span>
+<span id="L372" class="line"><a href="#L372">372</a>				end</span>
+<span id="L373" class="line"><a href="#L373">373</a>				if saveStartPanelShowHistoryKey.levelId == levelId and failNum - saveStartPanelShowHistoryKey.failNum &lt;= 5 then</span>
+<span id="L374" class="line"><a href="#L374">374</a>					if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 中低付费判断 找到了上一次触发的数据，并且上一次到现在间隔没有5次，不能触发&quot;, failNum, saveStartPanelShowHistoryKey.failNum  ) end</span>
+<span id="L375" class="line"><a href="#L375">375</a>					canActive = false</span>
+<span id="L376" class="line"><a href="#L376">376</a>				else</span>
+<span id="L377" class="line"><a href="#L377">377</a>					if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 中低付费判断 记录的关卡与本关不一致，不判断间隔5次了&quot;) end</span>
+<span id="L378" class="line"><a href="#L378">378</a>				end</span>
+<span id="L379" class="line"><a href="#L379">379</a>			else</span>
+<span id="L380" class="line"><a href="#L380">380</a>				if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 中低付费判断 未找到上一次触发的数据，不判断间隔5次了&quot;) end</span>
+<span id="L381" class="line"><a href="#L381">381</a>			end</span>
+<span id="L382" class="line"><a href="#L382">382</a></span>
+<span id="L383" class="line"><a href="#L383">383</a>			if failNum &gt;= 5 and canActive then</span>
+<span id="L384" class="line"><a href="#L384">384</a>				--lastActiveFailNum +1 是因为 间隔5次计算n=0的时候，应该时当前失败减去 last+1. 要不然就直接从1开始算了。</span>
+<span id="L385" class="line"><a href="#L385">385</a>				--比如上次触发10次  当前16次应该是20概率， 如果16-10-5 n=1了，概率会成为40，而不是20</span>
+<span id="L386" class="line"><a href="#L386">386</a>				local subLastFailNum = lastActiveFailNum</span>
+<span id="L387" class="line"><a href="#L387">387</a>				if lastActiveFailNum &gt; 0 then</span>
+<span id="L388" class="line"><a href="#L388">388</a>					subLastFailNum = lastActiveFailNum + 1</span>
+<span id="L389" class="line"><a href="#L389">389</a>				end</span>
+<span id="L390" class="line"><a href="#L390">390</a>				</span>
+<span id="L391" class="line"><a href="#L391">391</a>				local checkFailNum = failNum - subLastFailNum - 5</span>
+<span id="L392" class="line"><a href="#L392">392</a>				canActivePercent = 20 + checkFailNum*20</span>
+<span id="L393" class="line"><a href="#L393">393</a>				if canActivePercent &lt; 0 then</span>
+<span id="L394" class="line"><a href="#L394">394</a>					canActivePercent = 0</span>
+<span id="L395" class="line"><a href="#L395">395</a>				end</span>
+<span id="L396" class="line"><a href="#L396">396</a>			end</span>
+<span id="L397" class="line"><a href="#L397">397</a></span>
+<span id="L398" class="line"><a href="#L398">398</a>		elseif curPayTag &gt;= UsetPaymentTagServer.kHigh_5 and curPayTag &lt;= UsetPaymentTagServer.kHigh_6 then</span>
+<span id="L399" class="line"><a href="#L399">399</a>			-- local levelFlag ,isFirst = MetaManager:getInstance():getLevelDifficultFlag_ForStartPanel( levelId )</span>
+<span id="L400" class="line"><a href="#L400">400</a>			local levelFlag = _G.amfBean(&quot;MetaManager&quot;):getLevelDifficultFlag_ForStartPanel(levelId)</span>
+<span id="L401" class="line"><a href="#L401">401</a>			if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 判断难关超难关 &quot;, levelFlag) end</span>
+<span id="L402" class="line"><a href="#L402">402</a></span>
+<span id="L403" class="line"><a href="#L403">403</a>			local curLevelHadActive = false</span>
+<span id="L404" class="line"><a href="#L404">404</a>			for i,v in ipairs(startPanelInGameInfoList) do</span>
+<span id="L405" class="line"><a href="#L405">405</a>				local activeLevelId = v.levelId or 0</span>
+<span id="L406" class="line"><a href="#L406">406</a>				if levelId == activeLevelId then</span>
+<span id="L407" class="line"><a href="#L407">407</a>					curLevelHadActive = true</span>
+<span id="L408" class="line"><a href="#L408">408</a>				end</span>
+<span id="L409" class="line"><a href="#L409">409</a>			end</span>
+<span id="L410" class="line"><a href="#L410">410</a></span>
+<span id="L411" class="line"><a href="#L411">411</a>			if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 判断本关是否触发过了&quot;, curLevelHadActive) end</span>
+<span id="L412" class="line"><a href="#L412">412</a></span>
+<span id="L413" class="line"><a href="#L413">413</a>			local canActive = false</span>
+<span id="L414" class="line"><a href="#L414">414</a>			if levelFlag == LevelDiffcultFlag.kDiffcult or levelFlag == LevelDiffcultFlag.kExceedinglyDifficult then</span>
+<span id="L415" class="line"><a href="#L415">415</a>				canActive = true</span>
+<span id="L416" class="line"><a href="#L416">416</a>			end</span>
+<span id="L417" class="line"><a href="#L417">417</a></span>
+<span id="L418" class="line"><a href="#L418">418</a>			if not curLevelHadActive and canActive and failNum &gt;= 1 and failNum &lt;= 2 then</span>
+<span id="L419" class="line"><a href="#L419">419</a>				canActivePercent = 50</span>
+<span id="L420" class="line"><a href="#L420">420</a>			end</span>
+<span id="L421" class="line"><a href="#L421">421</a>		end</span>
+<span id="L422" class="line"><a href="#L422">422</a></span>
+<span id="L423" class="line"><a href="#L423">423</a>		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 权重判断信息 计算的权重&quot;, canActivePercent ) end</span>
+<span id="L424" class="line"><a href="#L424">424</a></span>
+<span id="L425" class="line"><a href="#L425">425</a>		local bHasProbability, probability = self:getSaveProbabilityInfo( levelId, failNum )</span>
+<span id="L426" class="line"><a href="#L426">426</a></span>
+<span id="L427" class="line"><a href="#L427">427</a>		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 权重判断信息 检测是否有保存的随机概率值&quot;, bHasProbability, probability ) end</span>
+<span id="L428" class="line"><a href="#L428">428</a></span>
+<span id="L429" class="line"><a href="#L429">429</a>		local randomNum = math.random( 1, 100 )</span>
+<span id="L430" class="line"><a href="#L430">430</a>		if bHasProbability then</span>
+<span id="L431" class="line"><a href="#L431">431</a>			randomNum = probability</span>
+<span id="L432" class="line"><a href="#L432">432</a>			if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 权重判断信息 使用保存的随机概率值&quot;, randomNum ) end</span>
+<span id="L433" class="line"><a href="#L433">433</a>		else</span>
+<span id="L434" class="line"><a href="#L434">434</a>			self:addStartPanelProbability( levelId, failNum, randomNum )</span>
+<span id="L435" class="line"><a href="#L435">435</a>			if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 权重判断信息 存储新的概率随机值&quot;, randomNum ) end</span>
+<span id="L436" class="line"><a href="#L436">436</a>		end</span>
+<span id="L437" class="line"><a href="#L437">437</a></span>
+<span id="L438" class="line"><a href="#L438">438</a>		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 权重判断信息 随机权重结果&quot;, randomNum ) end</span>
+<span id="L439" class="line"><a href="#L439">439</a></span>
+<span id="L440" class="line"><a href="#L440">440</a>		if randomNum &lt;= canActivePercent then</span>
+<span id="L441" class="line"><a href="#L441">441</a>			if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 随机在权重内可以触发&quot; ) end</span>
+<span id="L442" class="line"><a href="#L442">442</a>			-- if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 分组找奖励 bIsOriginGroup&quot;, self.bIsOriginGroup ) end</span>
+<span id="L443" class="line"><a href="#L443">443</a>			-- if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 分组找奖励 bIsEnergtGroup&quot;, self.bIsEnergtGroup ) end</span>
+<span id="L444" class="line"><a href="#L444">444</a></span>
+<span id="L445" class="line"><a href="#L445">445</a>			local function getRewardsFromStr( rewardsStr )</span>
+<span id="L446" class="line"><a href="#L446">446</a>				local rewardStrList = string.split( rewardsStr, &#x27;,&#x27;)</span>
+<span id="L447" class="line"><a href="#L447">447</a>				local rewards = {}</span>
+<span id="L448" class="line"><a href="#L448">448</a>				for i,v in ipairs(rewardStrList) do</span>
+<span id="L449" class="line"><a href="#L449">449</a>					local rewardStr = string.split( v, &#x27;:&#x27;)</span>
+<span id="L450" class="line"><a href="#L450">450</a>					local reward = { itemId = tonumber( rewardStr[1]), num = tonumber( rewardStr[2]) }</span>
+<span id="L451" class="line"><a href="#L451">451</a>					table.insert( rewards, reward )</span>
+<span id="L452" class="line"><a href="#L452">452</a>				end</span>
+<span id="L453" class="line"><a href="#L453">453</a>				return rewards</span>
+<span id="L454" class="line"><a href="#L454">454</a>			end</span>
+<span id="L455" class="line"><a href="#L455">455</a></span>
+<span id="L456" class="line"><a href="#L456">456</a>			local energyNum = _G.amfBean(&quot;UserEnergyManager&quot;):getEnergy()</span>
+<span id="L457" class="line"><a href="#L457">457</a>			local isInfiniteEnergy = _G.amfBean(&quot;UserEnergyManager&quot;):getEnergyState() == UserEnergyState.INFINITE</span>
+<span id="L458" class="line"><a href="#L458">458</a></span>
+<span id="L459" class="line"><a href="#L459">459</a>			local rewards = {}</span>
+<span id="L460" class="line"><a href="#L460">460</a>			local rewardGroupType = AddFiveStepConfig.RewardGroupType.kNone</span>
+<span id="L461" class="line"><a href="#L461">461</a>			-- if self.bIsOriginGroup then</span>
+<span id="L462" class="line"><a href="#L462">462</a>			-- 	rewardGroupType = AddFiveStepConfig.RewardGroupType.kGroupType1</span>
+<span id="L463" class="line"><a href="#L463">463</a>			-- 	rewards = getRewardsFromStr( actData.promoteOriginReward )</span>
+<span id="L464" class="line"><a href="#L464">464</a></span>
+<span id="L465" class="line"><a href="#L465">465</a>			-- 	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 选到了奖励类型1&quot; ) end</span>
+<span id="L466" class="line"><a href="#L466">466</a>			-- elseif self.bIsEnergtGroup then</span>
+<span id="L467" class="line"><a href="#L467">467</a></span>
+<span id="L468" class="line"><a href="#L468">468</a>				-- if self.bUseNewEnergyReward then		-- 分支测试废弃了，全开这个</span>
+<span id="L469" class="line"><a href="#L469">469</a>					local function getRewardsAndGroupTypeByConfig( energyConfig, bFullEnergy )</span>
+<span id="L470" class="line"><a href="#L470">470</a>						local rewardGroupType = AddFiveStepConfig.RewardGroupType.kNone</span>
+<span id="L471" class="line"><a href="#L471">471</a>						local rewards = {}</span>
+<span id="L472" class="line"><a href="#L472">472</a></span>
+<span id="L473" class="line"><a href="#L473">473</a>						local index</span>
+<span id="L474" class="line"><a href="#L474">474</a>						for i,v in ipairs(energyConfig) do</span>
+<span id="L475" class="line"><a href="#L475">475</a>							if table.exist( v.tags, curPayTag ) then </span>
+<span id="L476" class="line"><a href="#L476">476</a>								index = i</span>
+<span id="L477" class="line"><a href="#L477">477</a>								rewards = table.clone( getRewardsFromStr(v.rewards)  )</span>
+<span id="L478" class="line"><a href="#L478">478</a>								break</span>
+<span id="L479" class="line"><a href="#L479">479</a>							end</span>
+<span id="L480" class="line"><a href="#L480">480</a>						end</span>
+<span id="L481" class="line"><a href="#L481">481</a></span>
+<span id="L482" class="line"><a href="#L482">482</a>						if bFullEnergy then</span>
+<span id="L483" class="line"><a href="#L483">483</a>							if index ==1 then</span>
+<span id="L484" class="line"><a href="#L484">484</a>								rewardGroupType = AddFiveStepConfig.RewardGroupType.kGroupType2</span>
+<span id="L485" class="line"><a href="#L485">485</a>							elseif index ==2 then</span>
+<span id="L486" class="line"><a href="#L486">486</a>								rewardGroupType = AddFiveStepConfig.RewardGroupType.kGroupType4</span>
+<span id="L487" class="line"><a href="#L487">487</a>							end</span>
+<span id="L488" class="line"><a href="#L488">488</a>						else</span>
+<span id="L489" class="line"><a href="#L489">489</a>							if index ==1 then</span>
+<span id="L490" class="line"><a href="#L490">490</a>								rewardGroupType = AddFiveStepConfig.RewardGroupType.kGroupType2</span>
+<span id="L491" class="line"><a href="#L491">491</a>							elseif index ==2 then</span>
+<span id="L492" class="line"><a href="#L492">492</a>								rewardGroupType = AddFiveStepConfig.RewardGroupType.kGroupType3</span>
+<span id="L493" class="line"><a href="#L493">493</a>							elseif index == 3 then</span>
+<span id="L494" class="line"><a href="#L494">494</a>								rewardGroupType = AddFiveStepConfig.RewardGroupType.kGroupType5</span>
+<span id="L495" class="line"><a href="#L495">495</a>							end</span>
+<span id="L496" class="line"><a href="#L496">496</a>						end</span>
+<span id="L497" class="line"><a href="#L497">497</a></span>
+<span id="L498" class="line"><a href="#L498">498</a>						return rewards, rewardGroupType</span>
+<span id="L499" class="line"><a href="#L499">499</a>					end</span>
+<span id="L500" class="line"><a href="#L500">500</a></span>
+<span id="L501" class="line"><a href="#L501">501</a>					if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 进入新分组&quot;  ) end</span>
+<span id="L502" class="line"><a href="#L502">502</a></span>
+<span id="L503" class="line"><a href="#L503">503</a>					if energyNum &gt; 5 or isInfiniteEnergy then</span>
+<span id="L504" class="line"><a href="#L504">504</a>						local fullEnergyRewardsByTagsConfig = actData.fullEnergyRewardsByTagsConfig or {}</span>
+<span id="L505" class="line"><a href="#L505">505</a>						rewards, rewardGroupType = getRewardsAndGroupTypeByConfig(fullEnergyRewardsByTagsConfig, true)</span>
+<span id="L506" class="line"><a href="#L506">506</a></span>
+<span id="L507" class="line"><a href="#L507">507</a>						if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 选到了奖励类型&quot;,rewardGroupType  ) end</span>
+<span id="L508" class="line"><a href="#L508">508</a>					else</span>
+<span id="L509" class="line"><a href="#L509">509</a>						local notFullEnergyRewardsByTagsConfig = actData.notFullEnergyRewardsByTagsConfig or {}</span>
+<span id="L510" class="line"><a href="#L510">510</a>						rewards, rewardGroupType = getRewardsAndGroupTypeByConfig(notFullEnergyRewardsByTagsConfig, false)</span>
+<span id="L511" class="line"><a href="#L511">511</a></span>
+<span id="L512" class="line"><a href="#L512">512</a>						if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 选到了奖励类型&quot;,rewardGroupType ) end</span>
+<span id="L513" class="line"><a href="#L513">513</a>					end</span>
+<span id="L514" class="line"><a href="#L514">514</a>				-- else</span>
+<span id="L515" class="line"><a href="#L515">515</a>				-- 	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 进入老分组&quot;  ) end</span>
+<span id="L516" class="line"><a href="#L516">516</a></span>
+<span id="L517" class="line"><a href="#L517">517</a>				-- 	if energyNum &gt; 5 or isInfiniteEnergy then</span>
+<span id="L518" class="line"><a href="#L518">518</a>				-- 		rewardGroupType = AddFiveStepConfig.RewardGroupType.kGroupType2</span>
+<span id="L519" class="line"><a href="#L519">519</a>				-- 		rewards = getRewardsFromStr(actData.promoteEnergyFullReward)</span>
+<span id="L520" class="line"><a href="#L520">520</a></span>
+<span id="L521" class="line"><a href="#L521">521</a>				-- 		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 选到了奖励类型2&quot; ) end</span>
+<span id="L522" class="line"><a href="#L522">522</a>				-- 	else</span>
+<span id="L523" class="line"><a href="#L523">523</a>				-- 		rewardGroupType = AddFiveStepConfig.RewardGroupType.kGroupType3</span>
+<span id="L524" class="line"><a href="#L524">524</a>				-- 		rewards = getRewardsFromStr( actData.promoteEnergyNotFullReward )</span>
+<span id="L525" class="line"><a href="#L525">525</a></span>
+<span id="L526" class="line"><a href="#L526">526</a>				-- 		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 选到了奖励类型3&quot; ) end</span>
+<span id="L527" class="line"><a href="#L527">527</a>				-- 	end</span>
+<span id="L528" class="line"><a href="#L528">528</a>				-- end</span>
+<span id="L529" class="line"><a href="#L529">529</a>			-- end</span>
+<span id="L530" class="line"><a href="#L530">530</a></span>
+<span id="L531" class="line"><a href="#L531">531</a>			if rewardGroupType ~= AddFiveStepConfig.RewardGroupType.kNone then</span>
+<span id="L532" class="line"><a href="#L532">532</a>				local params = { levelId = levelId, failNum = failNum, curPayTag = curPayTag, rewards = rewards, rewardGroupType = rewardGroupType, </span>
+<span id="L533" class="line"><a href="#L533">533</a>					 energyNum = energyNum, isInfiniteEnergy = isInfiniteEnergy, playId = playId or &#x27;&#x27; }</span>
+<span id="L534" class="line"><a href="#L534">534</a>				self:saveStartPanelParam( params )</span>
+<span id="L535" class="line"><a href="#L535">535</a>				self:saveStartPanelShowInfoParam( params )</span>
+<span id="L536" class="line"><a href="#L536">536</a></span>
+<span id="L537" class="line"><a href="#L537">537</a>				if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 随机好了奖励&quot;, tts(params)) end</span>
+<span id="L538" class="line"><a href="#L538">538</a>				if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 检测开始面板强弹结束&quot;) end</span>
+<span id="L539" class="line"><a href="#L539">539</a>				return true</span>
+<span id="L540" class="line"><a href="#L540">540</a>			end</span>
+<span id="L541" class="line"><a href="#L541">541</a>		else</span>
+<span id="L542" class="line"><a href="#L542">542</a>			if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 随机在权重外不可以触发&quot; ) end</span>
+<span id="L543" class="line"><a href="#L543">543</a>		end</span>
+<span id="L544" class="line"><a href="#L544">544</a>	else</span>
+<span id="L545" class="line"><a href="#L545">545</a>		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 使用保存的随机结果&quot; ) end</span>
+<span id="L546" class="line"><a href="#L546">546</a></span>
+<span id="L547" class="line"><a href="#L547">547</a>		local params = { levelId = saveShowInfo.levelId, failNum = saveShowInfo.failNum, </span>
+<span id="L548" class="line"><a href="#L548">548</a>			curPayTag = saveShowInfo.curPayTag, rewards = saveShowInfo.rewards,</span>
+<span id="L549" class="line"><a href="#L549">549</a>			rewardGroupType = saveShowInfo.rewardGroupType,</span>
+<span id="L550" class="line"><a href="#L550">550</a>			energyNum = saveShowInfo.energyNum,</span>
+<span id="L551" class="line"><a href="#L551">551</a>			isInfiniteEnergy = saveShowInfo.isInfiniteEnergy,</span>
+<span id="L552" class="line"><a href="#L552">552</a>			playId = playId or &#x27;&#x27; }</span>
+<span id="L553" class="line"><a href="#L553">553</a>		self:saveStartPanelParam( params )</span>
+<span id="L554" class="line"><a href="#L554">554</a></span>
+<span id="L555" class="line"><a href="#L555">555</a>		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 使用随即好的信息进行弹出&quot;, tts(saveShowInfo)) end</span>
+<span id="L556" class="line"><a href="#L556">556</a>		if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 检测开始面板强弹结束&quot;) end</span>
+<span id="L557" class="line"><a href="#L557">557</a>		return true</span>
+<span id="L558" class="line"><a href="#L558">558</a>	end</span>
+<span id="L559" class="line"><a href="#L559">559</a></span>
+<span id="L560" class="line"><a href="#L560">560</a>	if selfLogOpened then printx(printChannel,&quot;checkCanPopOnStartPanel 检测开始面板强弹结束&quot;) end</span>
+<span id="L561" class="line"><a href="#L561">561</a>end</span>
+<span id="L562" class="line"><a href="#L562">562</a>--]]</span>
+<span id="L563" class="line"><a href="#L563">563</a></span>
+<span id="L564" class="line"><a href="#L564">564</a>--[[</span>
+<span id="L565" class="line"><a href="#L565">565</a>function Manager:initSaveStartPanelProbability()</span>
+<span id="L566" class="line"><a href="#L566">566</a>	local saveStr = self:getFlagFromLocalByKeyStr( AddFiveStepConfig.saveStartPanelProbabilityKey, false )</span>
+<span id="L567" class="line"><a href="#L567">567</a>	if saveStr == &#x27;&#x27; then</span>
+<span id="L568" class="line"><a href="#L568">568</a>		self.startPanelProbability = {}</span>
+<span id="L569" class="line"><a href="#L569">569</a>	else</span>
+<span id="L570" class="line"><a href="#L570">570</a>		self.startPanelProbability = table.deserialize(saveStr)</span>
+<span id="L571" class="line"><a href="#L571">571</a>	end</span>
+<span id="L572" class="line"><a href="#L572">572</a>end</span>
+<span id="L573" class="line"><a href="#L573">573</a></span>
+<span id="L574" class="line"><a href="#L574">574</a>function Manager:getSaveStartPanelProbability()</span>
+<span id="L575" class="line"><a href="#L575">575</a>	--获取开始面板计算完的数据 -- { levelId = levelId, failNum = failNum, curPayTag = curPayTag, rewards={} }</span>
+<span id="L576" class="line"><a href="#L576">576</a>	return self.startPanelProbability</span>
+<span id="L577" class="line"><a href="#L577">577</a>end</span>
+<span id="L578" class="line"><a href="#L578">578</a></span>
+<span id="L579" class="line"><a href="#L579">579</a>function Manager:saveStartPanelProbability(data)</span>
+<span id="L580" class="line"><a href="#L580">580</a>	if selfLogOpened then printx(printChannel,&quot;saveStartPanelProbability &quot;,tts(data)) end</span>
+<span id="L581" class="line"><a href="#L581">581</a>	self.startPanelProbability = table.clone(data)</span>
+<span id="L582" class="line"><a href="#L582">582</a></span>
+<span id="L583" class="line"><a href="#L583">583</a>	local saveStr = table.serialize(self.startPanelProbability)</span>
+<span id="L584" class="line"><a href="#L584">584</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveStartPanelProbabilityKey, false, saveStr )</span>
+<span id="L585" class="line"><a href="#L585">585</a>end</span>
+<span id="L586" class="line"><a href="#L586">586</a></span>
+<span id="L587" class="line"><a href="#L587">587</a>function Manager:getSaveProbabilityInfo( levelId, failNum )</span>
+<span id="L588" class="line"><a href="#L588">588</a>	--获取记录的概率</span>
+<span id="L589" class="line"><a href="#L589">589</a>	local probability = 0</span>
+<span id="L590" class="line"><a href="#L590">590</a>	local bCurHaveProbability = false</span>
+<span id="L591" class="line"><a href="#L591">591</a></span>
+<span id="L592" class="line"><a href="#L592">592</a>	if selfLogOpened then printx(printChannel,&quot;获取历史概率记录 &quot;,tts(self.startPanelProbability)) end</span>
+<span id="L593" class="line"><a href="#L593">593</a>	for i,v in ipairs(self.startPanelProbability) do</span>
+<span id="L594" class="line"><a href="#L594">594</a>		if v.levelId == levelId and v.failNum == failNum then</span>
+<span id="L595" class="line"><a href="#L595">595</a>			bCurHaveProbability = true</span>
+<span id="L596" class="line"><a href="#L596">596</a>			probability = v.probability</span>
+<span id="L597" class="line"><a href="#L597">597</a>			break</span>
+<span id="L598" class="line"><a href="#L598">598</a>		end</span>
+<span id="L599" class="line"><a href="#L599">599</a>	end</span>
+<span id="L600" class="line"><a href="#L600">600</a></span>
+<span id="L601" class="line"><a href="#L601">601</a>	return bCurHaveProbability, probability</span>
+<span id="L602" class="line"><a href="#L602">602</a>end</span>
+<span id="L603" class="line"><a href="#L603">603</a></span>
+<span id="L604" class="line"><a href="#L604">604</a>function Manager:addStartPanelProbability( levelId, failNum, probability )</span>
+<span id="L605" class="line"><a href="#L605">605</a>	--添加触发活动</span>
+<span id="L606" class="line"><a href="#L606">606</a>	local saveInfos = table.clone( self:getSaveStartPanelProbability() )</span>
+<span id="L607" class="line"><a href="#L607">607</a>	if selfLogOpened then printx(printChannel,&quot;addStartPanelProbability 增加概率数据&quot;, tts(saveInfos), levelId, failNum, probability ) end</span>
+<span id="L608" class="line"><a href="#L608">608</a></span>
+<span id="L609" class="line"><a href="#L609">609</a>	local bCurHaveProbability = false</span>
+<span id="L610" class="line"><a href="#L610">610</a>	if not table.isEmpty(saveInfos) then </span>
+<span id="L611" class="line"><a href="#L611">611</a>		for i,v in ipairs(saveInfos) do</span>
+<span id="L612" class="line"><a href="#L612">612</a>			if v.levelId == levelId and v.failNum == failNum then</span>
+<span id="L613" class="line"><a href="#L613">613</a>				bCurHaveProbability = true</span>
+<span id="L614" class="line"><a href="#L614">614</a>				break</span>
+<span id="L615" class="line"><a href="#L615">615</a>			end</span>
+<span id="L616" class="line"><a href="#L616">616</a>		end</span>
+<span id="L617" class="line"><a href="#L617">617</a>	end</span>
+<span id="L618" class="line"><a href="#L618">618</a></span>
+<span id="L619" class="line"><a href="#L619">619</a>	if selfLogOpened then printx(printChannel,&quot;addStartPanelProbability 找出当前关卡是否有记录的概率信息&quot;, bCurHaveProbability ) end</span>
+<span id="L620" class="line"><a href="#L620">620</a></span>
+<span id="L621" class="line"><a href="#L621">621</a>	if bCurHaveProbability == false then</span>
+<span id="L622" class="line"><a href="#L622">622</a>		local info = { levelId = levelId, failNum = failNum, probability = probability }</span>
+<span id="L623" class="line"><a href="#L623">623</a>		table.insert( saveInfos, info )</span>
+<span id="L624" class="line"><a href="#L624">624</a>	end</span>
+<span id="L625" class="line"><a href="#L625">625</a></span>
+<span id="L626" class="line"><a href="#L626">626</a>	--多的去掉,防止无限扩展</span>
+<span id="L627" class="line"><a href="#L627">627</a>	local newSaveInfos = table.clone( saveInfos )</span>
+<span id="L628" class="line"><a href="#L628">628</a>	if #self.startPanelInGameInfoParam &gt; 20 then</span>
+<span id="L629" class="line"><a href="#L629">629</a>		newSaveInfos = {}</span>
+<span id="L630" class="line"><a href="#L630">630</a>		for i = #saveInfos-10, #saveInfos do</span>
+<span id="L631" class="line"><a href="#L631">631</a>			table.insert( newSaveInfos, table.clone(saveInfos[i]) )</span>
+<span id="L632" class="line"><a href="#L632">632</a>		end</span>
+<span id="L633" class="line"><a href="#L633">633</a>	end</span>
+<span id="L634" class="line"><a href="#L634">634</a>	self:saveStartPanelProbability( newSaveInfos )</span>
+<span id="L635" class="line"><a href="#L635">635</a>end</span>
+<span id="L636" class="line"><a href="#L636">636</a></span>
+<span id="L637" class="line"><a href="#L637">637</a>function Manager:initSaveStartPanelInGameInfoParam()</span>
+<span id="L638" class="line"><a href="#L638">638</a>	--记录带着buff进关的时间信息  用来判断24小时能出几次</span>
+<span id="L639" class="line"><a href="#L639">639</a>	local saveStr = self:getFlagFromLocalByKeyStr( AddFiveStepConfig.saveStartPanelInGameInfoKey, false )</span>
+<span id="L640" class="line"><a href="#L640">640</a>	if saveStr == &#x27;&#x27; then</span>
+<span id="L641" class="line"><a href="#L641">641</a>		self.startPanelInGameInfoParam = {}</span>
+<span id="L642" class="line"><a href="#L642">642</a>	else</span>
+<span id="L643" class="line"><a href="#L643">643</a>		self.startPanelInGameInfoParam = table.deserialize(saveStr)</span>
+<span id="L644" class="line"><a href="#L644">644</a>	end</span>
+<span id="L645" class="line"><a href="#L645">645</a>end</span>
+<span id="L646" class="line"><a href="#L646">646</a></span>
+<span id="L647" class="line"><a href="#L647">647</a>function Manager:getSaveStartPanelInGameInfoParam()</span>
+<span id="L648" class="line"><a href="#L648">648</a>	return self.startPanelInGameInfoParam</span>
+<span id="L649" class="line"><a href="#L649">649</a>end</span>
+<span id="L650" class="line"><a href="#L650">650</a></span>
+<span id="L651" class="line"><a href="#L651">651</a>function Manager:addStartPanelInGameInfoParam( levelId )</span>
+<span id="L652" class="line"><a href="#L652">652</a>	--添加触发活动</span>
+<span id="L653" class="line"><a href="#L653">653</a>	local saveParam = self:getSaveStartPanelParam()</span>
+<span id="L654" class="line"><a href="#L654">654</a></span>
+<span id="L655" class="line"><a href="#L655">655</a>	if selfLogOpened then printx(printChannel,&quot;addStartPanelInGameInfoParam 增加激活长尾次数 检测&quot;, tts(saveParam), levelId ) end</span>
+<span id="L656" class="line"><a href="#L656">656</a>	if not table.isEmpty(saveParam) and saveParam.levelId == levelId then </span>
+<span id="L657" class="line"><a href="#L657">657</a></span>
+<span id="L658" class="line"><a href="#L658">658</a>		if selfLogOpened then printx(printChannel,&quot;addStartPanelInGameInfoParam 增加激活长尾次数&quot;, tts(self.startPanelInGameInfoParam)) end</span>
+<span id="L659" class="line"><a href="#L659">659</a></span>
+<span id="L660" class="line"><a href="#L660">660</a>		-- local info = { time = TimeKit:timeInSec(), levelId = levelId }</span>
+<span id="L661" class="line"><a href="#L661">661</a>		local info = { time = TimeKit:timeInSec(), levelId = levelId }</span>
+<span id="L662" class="line"><a href="#L662">662</a>		table.insert( self.startPanelInGameInfoParam, info )</span>
+<span id="L663" class="line"><a href="#L663">663</a></span>
+<span id="L664" class="line"><a href="#L664">664</a>		local saveInfo = table.clone(self.startPanelInGameInfoParam )</span>
+<span id="L665" class="line"><a href="#L665">665</a>		if #self.startPanelInGameInfoParam &gt; 5 then</span>
+<span id="L666" class="line"><a href="#L666">666</a>			saveInfo = {}</span>
+<span id="L667" class="line"><a href="#L667">667</a>			for i= #self.startPanelInGameInfoParam-3, #self.startPanelInGameInfoParam do</span>
+<span id="L668" class="line"><a href="#L668">668</a>				table.insert( saveInfo, table.clone(self.startPanelInGameInfoParam[i]) )</span>
+<span id="L669" class="line"><a href="#L669">669</a>			end</span>
+<span id="L670" class="line"><a href="#L670">670</a>		end</span>
+<span id="L671" class="line"><a href="#L671">671</a></span>
+<span id="L672" class="line"><a href="#L672">672</a>		if selfLogOpened then printx(printChannel,&quot;addStartPanelInGameInfoParam 增加激活长尾次数结果&quot;, tts(saveInfo)) end</span>
+<span id="L673" class="line"><a href="#L673">673</a></span>
+<span id="L674" class="line"><a href="#L674">674</a>		self:saveStartPanelInGameInfoParam( saveInfo )</span>
+<span id="L675" class="line"><a href="#L675">675</a>	end</span>
+<span id="L676" class="line"><a href="#L676">676</a>end</span>
+<span id="L677" class="line"><a href="#L677">677</a></span>
+<span id="L678" class="line"><a href="#L678">678</a>function Manager:saveStartPanelInGameInfoParam(data)</span>
+<span id="L679" class="line"><a href="#L679">679</a>	if selfLogOpened then printx(printChannel,&quot;saveStartPanelInGameInfoParam&quot;,tts(data)) end</span>
+<span id="L680" class="line"><a href="#L680">680</a>	self.startPanelInGameInfoParam = table.clone(data)</span>
+<span id="L681" class="line"><a href="#L681">681</a></span>
+<span id="L682" class="line"><a href="#L682">682</a>	local saveStr = table.serialize(self.startPanelInGameInfoParam)</span>
+<span id="L683" class="line"><a href="#L683">683</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveStartPanelInGameInfoKey, false, saveStr )</span>
+<span id="L684" class="line"><a href="#L684">684</a>end</span>
+<span id="L685" class="line"><a href="#L685">685</a></span>
+<span id="L686" class="line"><a href="#L686">686</a>function Manager:initSaveStartPanelShowInfoParam()</span>
+<span id="L687" class="line"><a href="#L687">687</a>	local saveStr = self:getFlagFromLocalByKeyStr( AddFiveStepConfig.saveStartPanelShowInfoKey, false )</span>
+<span id="L688" class="line"><a href="#L688">688</a>	if saveStr == &#x27;&#x27; then</span>
+<span id="L689" class="line"><a href="#L689">689</a>		self.startPanelShowInfoParam = {}</span>
+<span id="L690" class="line"><a href="#L690">690</a>	else</span>
+<span id="L691" class="line"><a href="#L691">691</a>		self.startPanelShowInfoParam = table.deserialize(saveStr)</span>
+<span id="L692" class="line"><a href="#L692">692</a>	end</span>
+<span id="L693" class="line"><a href="#L693">693</a>end</span>
+<span id="L694" class="line"><a href="#L694">694</a></span>
+<span id="L695" class="line"><a href="#L695">695</a>function Manager:getSaveStartPanelShowInfoParam()</span>
+<span id="L696" class="line"><a href="#L696">696</a>	--获取开始面板计算完的数据 -- { levelId = levelId, failNum = failNum, curPayTag = curPayTag, rewards={} }</span>
+<span id="L697" class="line"><a href="#L697">697</a>	return self.startPanelShowInfoParam</span>
+<span id="L698" class="line"><a href="#L698">698</a>end</span>
+<span id="L699" class="line"><a href="#L699">699</a></span>
+<span id="L700" class="line"><a href="#L700">700</a>function Manager:saveStartPanelShowInfoParam(data)</span>
+<span id="L701" class="line"><a href="#L701">701</a>	if selfLogOpened then printx(printChannel,&quot;saveStartPanelShowInfoParam &quot;,tts(data)) end</span>
+<span id="L702" class="line"><a href="#L702">702</a>	self.startPanelShowInfoParam = table.clone(data)</span>
+<span id="L703" class="line"><a href="#L703">703</a></span>
+<span id="L704" class="line"><a href="#L704">704</a>	local saveStr = table.serialize(self.startPanelShowInfoParam)</span>
+<span id="L705" class="line"><a href="#L705">705</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveStartPanelShowInfoKey, false, saveStr )</span>
+<span id="L706" class="line"><a href="#L706">706</a>end</span>
+<span id="L707" class="line"><a href="#L707">707</a></span>
+<span id="L708" class="line"><a href="#L708">708</a>function Manager:clearSaveStartPanelShowInfoParam()</span>
+<span id="L709" class="line"><a href="#L709">709</a>	self.startPanelShowInfoParam = {}</span>
+<span id="L710" class="line"><a href="#L710">710</a>	local saveStr = table.serialize(self.startPanelShowInfoParam)</span>
+<span id="L711" class="line"><a href="#L711">711</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveStartPanelShowInfoKey, false, saveStr )</span>
+<span id="L712" class="line"><a href="#L712">712</a>end</span>
+<span id="L713" class="line"><a href="#L713">713</a></span>
+<span id="L714" class="line"><a href="#L714">714</a>function Manager:initSaveStartPanelParam()</span>
+<span id="L715" class="line"><a href="#L715">715</a>	local saveStr = self:getFlagFromLocalByKeyStr( AddFiveStepConfig.saveStartPanelParamKey, false )</span>
+<span id="L716" class="line"><a href="#L716">716</a>	if saveStr == &#x27;&#x27; then  </span>
+<span id="L717" class="line"><a href="#L717">717</a>		self.startPanelParam = {}</span>
+<span id="L718" class="line"><a href="#L718">718</a>	else</span>
+<span id="L719" class="line"><a href="#L719">719</a>		self.startPanelParam = table.deserialize(saveStr)</span>
+<span id="L720" class="line"><a href="#L720">720</a>	end</span>
+<span id="L721" class="line"><a href="#L721">721</a>	</span>
+<span id="L722" class="line"><a href="#L722">722</a>end</span>
+<span id="L723" class="line"><a href="#L723">723</a></span>
+<span id="L724" class="line"><a href="#L724">724</a>function Manager:saveStartPanelParam(data)</span>
+<span id="L725" class="line"><a href="#L725">725</a>	if selfLogOpened then printx(printChannel,&quot;saveStartPanelParam &quot;,tts(data)) end</span>
+<span id="L726" class="line"><a href="#L726">726</a>	self.startPanelParam = table.clone(data)</span>
+<span id="L727" class="line"><a href="#L727">727</a></span>
+<span id="L728" class="line"><a href="#L728">728</a>	local saveStr = table.serialize(self.startPanelParam)</span>
+<span id="L729" class="line"><a href="#L729">729</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveStartPanelParamKey, false, saveStr )</span>
+<span id="L730" class="line"><a href="#L730">730</a>end</span>
+<span id="L731" class="line"><a href="#L731">731</a></span>
+<span id="L732" class="line"><a href="#L732">732</a>function Manager:getSaveStartPanelParam()</span>
+<span id="L733" class="line"><a href="#L733">733</a>	if selfLogOpened then printx(printChannel,&quot;getSaveStartPanelParam &quot;,tts(self.startPanelParam)) end</span>
+<span id="L734" class="line"><a href="#L734">734</a>	return self.startPanelParam</span>
+<span id="L735" class="line"><a href="#L735">735</a>end</span>
+<span id="L736" class="line"><a href="#L736">736</a>--]]</span>
+<span id="L737" class="line"><a href="#L737">737</a></span>
+<span id="L738" class="line"><a href="#L738">738</a>--[[</span>
+<span id="L739" class="line"><a href="#L739">739</a>-- 新礼包系统用不到这个了</span>
+<span id="L740" class="line"><a href="#L740">740</a>function Manager:initSaveGiftParam()</span>
+<span id="L741" class="line"><a href="#L741">741</a>	local saveStr = self:getFlagFromLocalByKeyStr( AddFiveStepConfig.saveGiftParamKey, false )</span>
+<span id="L742" class="line"><a href="#L742">742</a>	if saveStr == &#x27;&#x27; then  </span>
+<span id="L743" class="line"><a href="#L743">743</a>		self.giftParam = {}</span>
+<span id="L744" class="line"><a href="#L744">744</a>	else</span>
+<span id="L745" class="line"><a href="#L745">745</a>		self.giftParam = table.deserialize(saveStr)</span>
+<span id="L746" class="line"><a href="#L746">746</a>	end</span>
+<span id="L747" class="line"><a href="#L747">747</a>end</span>
+<span id="L748" class="line"><a href="#L748">748</a></span>
+<span id="L749" class="line"><a href="#L749">749</a>function Manager:saveGiftParam(data)</span>
+<span id="L750" class="line"><a href="#L750">750</a>	if selfLogOpened then printx(printChannel,&quot;saveGiftParam &quot;,tts(data)) end</span>
+<span id="L751" class="line"><a href="#L751">751</a>	self.giftParam = data</span>
+<span id="L752" class="line"><a href="#L752">752</a></span>
+<span id="L753" class="line"><a href="#L753">753</a>	local saveStr = table.serialize(self.giftParam)</span>
+<span id="L754" class="line"><a href="#L754">754</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveGiftParamKey, false, saveStr )</span>
+<span id="L755" class="line"><a href="#L755">755</a>end</span>
+<span id="L756" class="line"><a href="#L756">756</a></span>
+<span id="L757" class="line"><a href="#L757">757</a>function Manager:getSaveGiftParam()</span>
+<span id="L758" class="line"><a href="#L758">758</a>	if selfLogOpened then printx(printChannel,&quot;getSaveGiftParam &quot;,tts(self.giftParam)) end</span>
+<span id="L759" class="line"><a href="#L759">759</a>	return self.giftParam</span>
+<span id="L760" class="line"><a href="#L760">760</a>end</span>
+<span id="L761" class="line"><a href="#L761">761</a>--]]</span>
+<span id="L762" class="line"><a href="#L762">762</a></span>
+<span id="L763" class="line"><a href="#L763">763</a>--[[</span>
+<span id="L764" class="line"><a href="#L764">764</a>function Manager:initSaveStartPanelShowHistory()</span>
+<span id="L765" class="line"><a href="#L765">765</a>	--保存历史触发信息</span>
+<span id="L766" class="line"><a href="#L766">766</a>	local saveStr = self:getFlagFromLocalByKeyStr( AddFiveStepConfig.saveStartPanelShowHistoryKey, false )</span>
+<span id="L767" class="line"><a href="#L767">767</a>	if saveStr == &#x27;&#x27; then</span>
+<span id="L768" class="line"><a href="#L768">768</a>		self.startPanelShowHistory = {}</span>
+<span id="L769" class="line"><a href="#L769">769</a>	else</span>
+<span id="L770" class="line"><a href="#L770">770</a>		self.startPanelShowHistory = table.deserialize(saveStr)</span>
+<span id="L771" class="line"><a href="#L771">771</a>	end</span>
+<span id="L772" class="line"><a href="#L772">772</a>end</span>
+<span id="L773" class="line"><a href="#L773">773</a></span>
+<span id="L774" class="line"><a href="#L774">774</a>function Manager:getSaveStartPanelShowHistory()</span>
+<span id="L775" class="line"><a href="#L775">775</a>	return self.startPanelShowHistory</span>
+<span id="L776" class="line"><a href="#L776">776</a>end</span>
+<span id="L777" class="line"><a href="#L777">777</a></span>
+<span id="L778" class="line"><a href="#L778">778</a>function Manager:saveSaveStartPanelShowHistory(levelId, failNum)</span>
+<span id="L779" class="line"><a href="#L779">779</a>	if selfLogOpened then printx(printChannel,&quot;addSaveStartPanelShowHistory 保存历史触发数据&quot;, levelId, failNum ) end</span>
+<span id="L780" class="line"><a href="#L780">780</a>	-- self.startPanelShowHistory = { time = TimeKit:timeInSec(), levelId = levelId, failNum = failNum }</span>
+<span id="L781" class="line"><a href="#L781">781</a>	self.startPanelShowHistory = { time = TimeKit:timeInSec(), levelId = levelId, failNum = failNum }</span>
+<span id="L782" class="line"><a href="#L782">782</a></span>
+<span id="L783" class="line"><a href="#L783">783</a>	local saveStr = table.serialize(self.startPanelShowHistory)</span>
+<span id="L784" class="line"><a href="#L784">784</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveStartPanelShowHistoryKey, false, saveStr )</span>
+<span id="L785" class="line"><a href="#L785">785</a>end</span>
+<span id="L786" class="line"><a href="#L786">786</a></span>
+<span id="L787" class="line"><a href="#L787">787</a>-------------</span>
+<span id="L788" class="line"><a href="#L788">788</a>function Manager:initSaveActiveInfoForPopRewardPanel()</span>
+<span id="L789" class="line"><a href="#L789">789</a>	--保存历史触发信息</span>
+<span id="L790" class="line"><a href="#L790">790</a>	local saveStr = self:getFlagFromLocalByKeyStr( AddFiveStepConfig.saveActiveInfoForPopRewardPanel, false )</span>
+<span id="L791" class="line"><a href="#L791">791</a></span>
+<span id="L792" class="line"><a href="#L792">792</a>	if selfLogOpened then printx(printChannel,&quot;initSaveActiveInfoForPopRewardPanel 读取任务信息&quot;, saveStr ) end</span>
+<span id="L793" class="line"><a href="#L793">793</a></span>
+<span id="L794" class="line"><a href="#L794">794</a>	if saveStr == &#x27;&#x27; then</span>
+<span id="L795" class="line"><a href="#L795">795</a>		self.saveActiveInfoForPopRewardPanelInfo = {}</span>
+<span id="L796" class="line"><a href="#L796">796</a>	else</span>
+<span id="L797" class="line"><a href="#L797">797</a>		self.saveActiveInfoForPopRewardPanelInfo = table.deserialize(saveStr)</span>
+<span id="L798" class="line"><a href="#L798">798</a>	end</span>
+<span id="L799" class="line"><a href="#L799">799</a></span>
+<span id="L800" class="line"><a href="#L800">800</a>	if selfLogOpened then printx(printChannel,&quot;initSaveActiveInfoForPopRewardPanel 读取任务信息结果&quot;, tts(self.saveActiveInfoForPopRewardPanelInfo) ) end</span>
+<span id="L801" class="line"><a href="#L801">801</a>end</span>
+<span id="L802" class="line"><a href="#L802">802</a></span>
+<span id="L803" class="line"><a href="#L803">803</a>function Manager:getSaveActiveInfoForPopRewardPanel()</span>
+<span id="L804" class="line"><a href="#L804">804</a>	return self.saveActiveInfoForPopRewardPanelInfo</span>
+<span id="L805" class="line"><a href="#L805">805</a>end</span>
+<span id="L806" class="line"><a href="#L806">806</a></span>
+<span id="L807" class="line"><a href="#L807">807</a>function Manager:saveSaveActiveInfoForPopRewardPanel( info )</span>
+<span id="L808" class="line"><a href="#L808">808</a>	if selfLogOpened then printx(printChannel,&quot;saveSaveActiveInfoForPopRewardPanel 激活的任务信息保存&quot;, tts(info) ) end</span>
+<span id="L809" class="line"><a href="#L809">809</a>	self.saveActiveInfoForPopRewardPanelInfo = table.clone(info)</span>
+<span id="L810" class="line"><a href="#L810">810</a></span>
+<span id="L811" class="line"><a href="#L811">811</a>	--添加完成 领奖信息</span>
+<span id="L812" class="line"><a href="#L812">812</a>	self.saveActiveInfoForPopRewardPanelInfo.missionIsComplete = false --是否完成，成功失败都应该设置完成</span>
+<span id="L813" class="line"><a href="#L813">813</a>	self.saveActiveInfoForPopRewardPanelInfo.passLevelType = AddFiveStepConfig.passLevelType.kNone --成功失败标签</span>
+<span id="L814" class="line"><a href="#L814">814</a>	self.saveActiveInfoForPopRewardPanelInfo.missionIsGetReward = false --是否领奖</span>
+<span id="L815" class="line"><a href="#L815">815</a></span>
+<span id="L816" class="line"><a href="#L816">816</a>	local saveStr = table.serialize(self.saveActiveInfoForPopRewardPanelInfo)</span>
+<span id="L817" class="line"><a href="#L817">817</a></span>
+<span id="L818" class="line"><a href="#L818">818</a>	if selfLogOpened then printx(printChannel,&quot;saveSaveActiveInfoForPopRewardPanel 激活的任务信息保存结果&quot;, saveStr ) end</span>
+<span id="L819" class="line"><a href="#L819">819</a></span>
+<span id="L820" class="line"><a href="#L820">820</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveActiveInfoForPopRewardPanel, false, saveStr )</span>
+<span id="L821" class="line"><a href="#L821">821</a>end</span>
+<span id="L822" class="line"><a href="#L822">822</a>--]]</span>
+<span id="L823" class="line"><a href="#L823">823</a></span>
+<span id="L824" class="line"><a href="#L824">824</a>--[[</span>
+<span id="L825" class="line"><a href="#L825">825</a>function Manager:setSaveActiveInfoForPopRewardPanelPassLevel()</span>
+<span id="L826" class="line"><a href="#L826">826</a></span>
+<span id="L827" class="line"><a href="#L827">827</a>	if selfLogOpened then printx(printChannel,&quot;setSaveActiveInfoForPopRewardPanelPassLevel 过关清空存的任务信息&quot;) end</span>
+<span id="L828" class="line"><a href="#L828">828</a></span>
+<span id="L829" class="line"><a href="#L829">829</a>	if table.isEmpty(self.saveActiveInfoForPopRewardPanelInfo) then return end</span>
+<span id="L830" class="line"><a href="#L830">830</a></span>
+<span id="L831" class="line"><a href="#L831">831</a>	self.saveActiveInfoForPopRewardPanelInfo.missionIsComplete = true</span>
+<span id="L832" class="line"><a href="#L832">832</a>	self.saveActiveInfoForPopRewardPanelInfo.passLevelType = AddFiveStepConfig.passLevelType.kPassLevel</span>
+<span id="L833" class="line"><a href="#L833">833</a></span>
+<span id="L834" class="line"><a href="#L834">834</a>	local saveStr = table.serialize(self.saveActiveInfoForPopRewardPanelInfo)</span>
+<span id="L835" class="line"><a href="#L835">835</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveActiveInfoForPopRewardPanel, false, saveStr )</span>
+<span id="L836" class="line"><a href="#L836">836</a>end</span>
+<span id="L837" class="line"><a href="#L837">837</a></span>
+<span id="L838" class="line"><a href="#L838">838</a>function Manager:setSaveActiveInfoForPopRewardPanelFailLevel()</span>
+<span id="L839" class="line"><a href="#L839">839</a></span>
+<span id="L840" class="line"><a href="#L840">840</a>	if table.isEmpty(self.saveActiveInfoForPopRewardPanelInfo) then return end</span>
+<span id="L841" class="line"><a href="#L841">841</a></span>
+<span id="L842" class="line"><a href="#L842">842</a>	self.saveActiveInfoForPopRewardPanelInfo.missionIsComplete = true</span>
+<span id="L843" class="line"><a href="#L843">843</a>	self.saveActiveInfoForPopRewardPanelInfo.passLevelType = AddFiveStepConfig.passLevelType.kFailLevel</span>
+<span id="L844" class="line"><a href="#L844">844</a>	</span>
+<span id="L845" class="line"><a href="#L845">845</a>	local saveStr = table.serialize(self.saveActiveInfoForPopRewardPanelInfo)</span>
+<span id="L846" class="line"><a href="#L846">846</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveActiveInfoForPopRewardPanel, false, saveStr )</span>
+<span id="L847" class="line"><a href="#L847">847</a>end</span>
+<span id="L848" class="line"><a href="#L848">848</a></span>
+<span id="L849" class="line"><a href="#L849">849</a>function Manager:setSaveActiveInfoForPopRewardPanelGetReward()</span>
+<span id="L850" class="line"><a href="#L850">850</a></span>
+<span id="L851" class="line"><a href="#L851">851</a>	if table.isEmpty(self.saveActiveInfoForPopRewardPanelInfo) then return end</span>
+<span id="L852" class="line"><a href="#L852">852</a></span>
+<span id="L853" class="line"><a href="#L853">853</a>	self.saveActiveInfoForPopRewardPanelInfo.missionIsGetReward = true</span>
+<span id="L854" class="line"><a href="#L854">854</a></span>
+<span id="L855" class="line"><a href="#L855">855</a>	local saveStr = table.serialize(self.saveActiveInfoForPopRewardPanelInfo)</span>
+<span id="L856" class="line"><a href="#L856">856</a>	self:saveFlagToLocalByKeyStr( AddFiveStepConfig.saveActiveInfoForPopRewardPanel, false, saveStr )</span>
+<span id="L857" class="line"><a href="#L857">857</a>end</span>
+<span id="L858" class="line"><a href="#L858">858</a>--]]</span>
+<span id="L859" class="line"><a href="#L859">859</a>---------</span>
+<span id="L860" class="line"><a href="#L860">860</a></span>
+<span id="L861" class="line"><a href="#L861">861</a>--[[</span>
+<span id="L862" class="line"><a href="#L862">862</a>--闪退恢复失败</span>
+<span id="L863" class="line"><a href="#L863">863</a>function Manager:onActCrashResumeFailed(data)</span>
+<span id="L864" class="line"><a href="#L864">864</a>	if selfLogOpened then printx(printChannel,&quot;onActCrashResumeFailed&quot;,tts(data)) end</span>
+<span id="L865" class="line"><a href="#L865">865</a></span>
+<span id="L866" class="line"><a href="#L866">866</a>	if not data then return false end</span>
+<span id="L867" class="line"><a href="#L867">867</a>    if not self:isEnabled() then return false end</span>
+<span id="L868" class="line"><a href="#L868">868</a></span>
+<span id="L869" class="line"><a href="#L869">869</a>    --中断连胜</span>
+<span id="L870" class="line"><a href="#L870">870</a>    self:saveStartPanelParam( {} )</span>
+<span id="L871" class="line"><a href="#L871">871</a></span>
+<span id="L872" class="line"><a href="#L872">872</a>	return true</span>
+<span id="L873" class="line"><a href="#L873">873</a>end</span>
+<span id="L874" class="line"><a href="#L874">874</a>--]]</span>
+<span id="L875" class="line"><a href="#L875">875</a></span>
+<span id="L876" class="line"><a href="#L876">876</a>--[[</span>
+<span id="L877" class="line"><a href="#L877">877</a>function Manager:getInGamePlayId()</span>
+<span id="L878" class="line"><a href="#L878">878</a>	local playId = &#x27;&#x27;</span>
+<span id="L879" class="line"><a href="#L879">879</a>	local ubfPlayId = UBFGamePlayBridgeInvoker and UBFGamePlayBridgeInvoker:getPlayId(true)</span>
+<span id="L880" class="line"><a href="#L880">880</a>	if ubfPlayId then</span>
+<span id="L881" class="line"><a href="#L881">881</a>		playId = ubfPlayId</span>
+<span id="L882" class="line"><a href="#L882">882</a>	end</span>
+<span id="L883" class="line"><a href="#L883">883</a>	if selfLogOpened then printx(printChannel,&quot;getInGamePlayId&quot;,playId) end</span>
+<span id="L884" class="line"><a href="#L884">884</a>	return playId		</span>
+<span id="L885" class="line"><a href="#L885">885</a>end</span>
+<span id="L886" class="line"><a href="#L886">886</a>--]]</span>
+<span id="L887" class="line"><a href="#L887">887</a></span>
+<span id="L888" class="line"><a href="#L888">888</a>function Manager:popoutMainPanel( delegate, closeCallback )</span>
+<span id="L889" class="line"><a href="#L889">889</a>	local panelVM = require_debug &quot;amf.feature.localactivity.addfivestepupgrade.view.vm.MainPanelVM&quot;</span>
+<span id="L890" class="line"><a href="#L890">890</a>	local panel = panelVM:create(delegate)</span>
+<span id="L891" class="line"><a href="#L891">891</a>	panel:setCloseCallback(closeCallback)</span>
+<span id="L892" class="line"><a href="#L892">892</a>	panel:popout()</span>
+<span id="L893" class="line"><a href="#L893">893</a>end</span>
+<span id="L894" class="line"><a href="#L894">894</a></span>
+<span id="L895" class="line"><a href="#L895">895</a>function Manager:popoutMainPanelUBF( delegate, closeCallback )</span>
+<span id="L896" class="line"><a href="#L896">896</a>	local panelVM = require_debug &quot;amf.feature.localactivity.addfivestepupgrade.view.vm.MainPanelVM&quot;</span>
+<span id="L897" class="line"><a href="#L897">897</a>	local panel = panelVM:create(delegate)</span>
+<span id="L898" class="line"><a href="#L898">898</a>	panel:setCloseCallback(closeCallback)</span>
+<span id="L899" class="line"><a href="#L899">899</a>	panel:setUBFPopDelegate( { popout = delegate.popoutFunc, removePopout = delegate.removeFunc } )</span>
+<span id="L900" class="line"><a href="#L900">900</a>    panel:popout()</span>
+<span id="L901" class="line"><a href="#L901">901</a>end</span>
+<span id="L902" class="line"><a href="#L902">902</a></span>
+<span id="L903" class="line"><a href="#L903">903</a>-- 提供关卡内需要的方法数据包</span>
+<span id="L904" class="line"><a href="#L904">904</a>function Manager:getInLevelParams()</span>
+<span id="L905" class="line"><a href="#L905">905</a>	local param = {}</span>
+<span id="L906" class="line"><a href="#L906">906</a></span>
+<span id="L907" class="line"><a href="#L907">907</a>	-- 弹出触发面板</span>
+<span id="L908" class="line"><a href="#L908">908</a>	param.popoutTriggerBuffPanel = function(data)</span>
+<span id="L909" class="line"><a href="#L909">909</a>		local delegate = {</span>
+<span id="L910" class="line"><a href="#L910">910</a>			showPanelType = AddFiveStepConfig.ShowPanelType.kStart,</span>
+<span id="L911" class="line"><a href="#L911">911</a>			saveParam = table.clone(data.panelParam),</span>
+<span id="L912" class="line"><a href="#L912">912</a>		}</span>
+<span id="L913" class="line"><a href="#L913">913</a>		self:popoutMainPanel(delegate, data.endCallback)</span>
+<span id="L914" class="line"><a href="#L914">914</a>	end</span>
+<span id="L915" class="line"><a href="#L915">915</a></span>
+<span id="L916" class="line"><a href="#L916">916</a>	-- 弹出领奖面板</span>
+<span id="L917" class="line"><a href="#L917">917</a>	-- 场景3自己调用，不走这里</span>
+<span id="L918" class="line"><a href="#L918">918</a>	param.popoutBuffRewardPanel = function(data)</span>
+<span id="L919" class="line"><a href="#L919">919</a>		-- local delegate = {</span>
+<span id="L920" class="line"><a href="#L920">920</a>		-- 	showPanelType = AddFiveStepConfig.ShowPanelType.kWin,</span>
+<span id="L921" class="line"><a href="#L921">921</a>		-- 	saveParam = table.clone(data.panelParam),</span>
+<span id="L922" class="line"><a href="#L922">922</a>		-- }</span>
+<span id="L923" class="line"><a href="#L923">923</a>		-- self:popoutMainPanel(delegate, data.endCallback)</span>
+<span id="L924" class="line"><a href="#L924">924</a></span>
+<span id="L925" class="line"><a href="#L925">925</a>		local delegate = {</span>
+<span id="L926" class="line"><a href="#L926">926</a>			showPanelType = AddFiveStepConfig.ShowPanelType.kWin,</span>
+<span id="L927" class="line"><a href="#L927">927</a>			saveParam = table.clone(data.panelParam),</span>
+<span id="L928" class="line"><a href="#L928">928</a>			popoutFunc = data.popoutCallback,</span>
+<span id="L929" class="line"><a href="#L929">929</a>			removeFunc = data.removeCallback,</span>
+<span id="L930" class="line"><a href="#L930">930</a>		}</span>
+<span id="L931" class="line"><a href="#L931">931</a>		self:popoutMainPanelUBF(delegate, data.endCallback)</span>
+<span id="L932" class="line"><a href="#L932">932</a>	end</span>
+<span id="L933" class="line"><a href="#L933">933</a></span>
+<span id="L934" class="line"><a href="#L934">934</a>	-- 弹出失败面板</span>
+<span id="L935" class="line"><a href="#L935">935</a>	param.popoutBuffFailPanel = function(data)</span>
+<span id="L936" class="line"><a href="#L936">936</a>		local delegate = {</span>
+<span id="L937" class="line"><a href="#L937">937</a>			showPanelType = AddFiveStepConfig.ShowPanelType.kEnd,</span>
+<span id="L938" class="line"><a href="#L938">938</a>			saveParam = table.clone(data.panelParam),</span>
+<span id="L939" class="line"><a href="#L939">939</a>		}</span>
+<span id="L940" class="line"><a href="#L940">940</a>		self:popoutMainPanel(delegate, data.endCallback)</span>
+<span id="L941" class="line"><a href="#L941">941</a>	end</span>
+<span id="L942" class="line"><a href="#L942">942</a></span>
+<span id="L943" class="line"><a href="#L943">943</a>	return param</span>
+<span id="L944" class="line"><a href="#L944">944</a>end</span>
+<span id="L945" class="line"><a href="#L945">945</a></span>
+<span id="L946" class="line"><a href="#L946">946</a>--[[</span>
+<span id="L947" class="line"><a href="#L947">947</a>----------开始面板弹出</span>
+<span id="L948" class="line"><a href="#L948">948</a>function Manager:getStartParams()</span>
+<span id="L949" class="line"><a href="#L949">949</a>	local param = {}</span>
+<span id="L950" class="line"><a href="#L950">950</a>	param.startPanelPopoutRewards = function(data) </span>
+<span id="L951" class="line"><a href="#L951">951</a>		self:startPanelPopoutRewards(data)</span>
+<span id="L952" class="line"><a href="#L952">952</a>	end</span>
+<span id="L953" class="line"><a href="#L953">953</a>	return param</span>
+<span id="L954" class="line"><a href="#L954">954</a>end</span>
+<span id="L955" class="line"><a href="#L955">955</a></span>
+<span id="L956" class="line"><a href="#L956">956</a>function Manager:startPanelPopoutRewards(data)</span>
+<span id="L957" class="line"><a href="#L957">957</a>	if selfLogOpened then printx(printChannel, &quot;************ startPanelPopoutRewards 1111111&quot;,tts(data)) end</span>
+<span id="L958" class="line"><a href="#L958">958</a></span>
+<span id="L959" class="line"><a href="#L959">959</a>	--开始面板，playId levelId这些都是新的。</span>
+<span id="L960" class="line"><a href="#L960">960</a>	--如果是重玩面板 playId不是关卡内的也是新生成的（要用打关的的话使用oldPlayId）</span>
+<span id="L961" class="line"><a href="#L961">961</a></span>
+<span id="L962" class="line"><a href="#L962">962</a>    local levelId = data.levelId</span>
+<span id="L963" class="line"><a href="#L963">963</a>    local levelScene = data.levelScene</span>
+<span id="L964" class="line"><a href="#L964">964</a>	local startLevelType = data.startLevelType	-- panelLogic.startLevelType</span>
+<span id="L965" class="line"><a href="#L965">965</a>	local playId = data.playId					-- panelLogic.PreContext:getPlayId()</span>
+<span id="L966" class="line"><a href="#L966">966</a>	local byFailPanel = data.byFailPanel			-- panelLogic:curLevelSourceIsFailLevel()</span>
+<span id="L967" class="line"><a href="#L967">967</a>	local endCall = data.onEnd</span>
+<span id="L968" class="line"><a href="#L968">968</a></span>
+<span id="L969" class="line"><a href="#L969">969</a>	local preLevelId = data.levelId</span>
+<span id="L970" class="line"><a href="#L970">970</a>	local preLevelScene = data.levelScene</span>
+<span id="L971" class="line"><a href="#L971">971</a>	local preStartLevelType = data.startLevelType</span>
+<span id="L972" class="line"><a href="#L972">972</a>	local prePlayId = data.gameBoardPlayId or playId</span>
+<span id="L973" class="line"><a href="#L973">973</a></span>
+<span id="L974" class="line"><a href="#L974">974</a>	local function onEnd()</span>
+<span id="L975" class="line"><a href="#L975">975</a>		safeRunCall(endCall)</span>
+<span id="L976" class="line"><a href="#L976">976</a>	end</span>
+<span id="L977" class="line"><a href="#L977">977</a></span>
+<span id="L978" class="line"><a href="#L978">978</a>	if not levelId then </span>
+<span id="L979" class="line"><a href="#L979">979</a>		onEnd()</span>
+<span id="L980" class="line"><a href="#L980">980</a>		return </span>
+<span id="L981" class="line"><a href="#L981">981</a>	end</span>
+<span id="L982" class="line"><a href="#L982">982</a></span>
+<span id="L983" class="line"><a href="#L983">983</a>    if not UBFLevelSceneFunc:isMainLevel(levelScene) then</span>
+<span id="L984" class="line"><a href="#L984">984</a>		onEnd()</span>
+<span id="L985" class="line"><a href="#L985">985</a>        return</span>
+<span id="L986" class="line"><a href="#L986">986</a>    end</span>
+<span id="L987" class="line"><a href="#L987">987</a></span>
+<span id="L988" class="line"><a href="#L988">988</a>	if selfLogOpened then printx(printChannel, &quot;************ startPanelPopoutRewards 22222222&quot;) end</span>
+<span id="L989" class="line"><a href="#L989">989</a></span>
+<span id="L990" class="line"><a href="#L990">990</a>	local function popStartPanel(done)</span>
+<span id="L991" class="line"><a href="#L991">991</a>		if selfLogOpened then printx(printChannel, &quot;************ startPanelPopoutRewards 5555555555555&quot;) end</span>
+<span id="L992" class="line"><a href="#L992">992</a></span>
+<span id="L993" class="line"><a href="#L993">993</a>		if startLevelType == UBFStartLevelType.kAskForHelp then</span>
+<span id="L994" class="line"><a href="#L994">994</a>			safeRunCall(done)</span>
+<span id="L995" class="line"><a href="#L995">995</a>			return</span>
+<span id="L996" class="line"><a href="#L996">996</a>		end</span>
+<span id="L997" class="line"><a href="#L997">997</a></span>
+<span id="L998" class="line"><a href="#L998">998</a>		if selfLogOpened then printx(printChannel, &quot;************ startPanelPopoutRewards 66666666666666666&quot;) end</span>
+<span id="L999" class="line"><a href="#L999">999</a>		if not self:checkCanPopOnStartPanel(levelId, playId) then </span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>			self:saveStartPanelParam( {} )</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>			safeRunCall(done)</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>			return </span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>		end</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a></span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>		if selfLogOpened then printx(printChannel, &quot;************ startPanelPopoutRewards 777777777777777&quot;) end</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>		local saveParam = self:getSaveStartPanelParam()</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>		local delegate = {</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>			showPanelType = AddFiveStepConfig.ShowPanelType.kStart,</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>			saveParam = saveParam,</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>		}</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>		self:popoutMainPanel( delegate, done )</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a></span>
+<span id="L1013" class="line"><a href="#L1013">1013</a>		--弹出开始的时候，就清空未结算的信息</span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>		self:saveSaveActiveInfoForPopRewardPanel({})</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>	end</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a></span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>	if byFailPanel then  </span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>		if selfLogOpened then  printx(printChannel, &quot;************ startPanelPopoutRewards 333333333333&quot;) end</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a></span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>		--失败面板弹出</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>		if not self:isEnabled2() then </span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>			safeRunCall(onEnd)</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>			return </span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>		end</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a></span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>		local saveParam = self:getSaveActiveInfoForPopRewardPanel()</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>		if selfLogOpened then printx(printChannel, &#x27;onActStartPanelPopoutRewards saveParam&#x27;, levelId, preLevelId, playId, prePlayId, tts(saveParam)) end</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>		if table.isEmpty(saveParam) then </span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>			--如果没有记录，尝试弹出开始面板</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>			popStartPanel(onEnd)</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>		else</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>			if selfLogOpened then printx(printChannel, &quot;preLevelId == saveParam.levelId&quot;, preLevelId == saveParam.levelId) end</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>			if selfLogOpened then printx(printChannel, &quot;prePlayId == saveParam.playId&quot;, prePlayId == saveParam.playId) end</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a></span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>			if preLevelId == saveParam.levelId and prePlayId == saveParam.playId and saveParam.missionIsComplete and saveParam.passLevelType == AddFiveStepConfig.passLevelType.kFailLevel then </span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>				--弹出失败面板</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>				local delegate = {</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>					showPanelType = AddFiveStepConfig.ShowPanelType.kEnd,</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>					saveParam = table.clone(saveParam),</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>				}</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>				self:popoutMainPanel( delegate, onEnd )</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a></span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>				--失败清任务</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>				self:saveSaveActiveInfoForPopRewardPanel({})</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>			else</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>				popStartPanel(onEnd)</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>			end</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>		end</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a>	else</span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>		--开始面板弹出</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>		--代打不能算</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>		if selfLogOpened then  printx(printChannel, &quot;************ startPanelPopoutRewards 4444444444&quot;) end</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a>		popStartPanel(onEnd)</span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>	end</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>end</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>--]]</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a></span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>----------过关面板弹出</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>--[[</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>function Manager:passLevelPanelDC(levelId,playId)</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>	if not self:isEnabled2() then </span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>    	return </span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>    end </span>
+<span id="L1064" class="line"><a href="#L1064">1064</a></span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>	local saveParam = self:getSaveActiveInfoForPopRewardPanel()</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a></span>
+<span id="L1067" class="line"><a href="#L1067">1067</a>	if table.isEmpty(saveParam) then return end</span>
+<span id="L1068" class="line"><a href="#L1068">1068</a>	if not saveParam.levelId then return end</span>
+<span id="L1069" class="line"><a href="#L1069">1069</a></span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>	local t5 = false</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>	local t6 = false</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>	if saveParam.missionIsGetReward then</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a>		t5 = true</span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>	end</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>	if saveParam.missionIsComplete then</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>		t6 = true</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>	end</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a></span>
+<span id="L1079" class="line"><a href="#L1079">1079</a>	if UBFAddFiveStepUpgradeUtil then</span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>		UBFAddFiveStepUpgradeUtil:sendDC(&#x27;long_tail&#x27;,&#x27;passPanelShow&#x27;, {</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>			t1 = saveParam.levelId, </span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>			t2 = saveParam.playId, </span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>			t3 = levelId,</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a>			t4 = playId,</span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>			t5 = t5,</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>			t6 = t6,</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>		})</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>	end</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a>end</span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>--]]</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a></span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>--[[</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>function Manager:onActBeforePlayLevelEnd(evt)</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>	-- printx(printChannel, &quot;onActBeforePlayLevelEnd&quot;,tts(evt))</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>	local data = evt.data</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a>	if data.isWin then</span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>		self:onPassLevel(data)</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>	else</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>		self:onFailLevel(data)</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>	end</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>end</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a></span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>function Manager:onFailLevel(data)</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a></span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>	if selfLogOpened then printx(printChannel,&quot;onActFailLevel 111111111&quot;) end</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a></span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>	if not data then return end</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a>    if not data.levelId then return end</span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>    if not data.playId then return end</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>    </span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>    if not self:isEnabled() then return false end</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a></span>
+<span id="L1113" class="line"><a href="#L1113">1113</a>    --取出当前存的信息，判断levelId playId 是否一致， 如果一致执行成功失败判断，更改数据</span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>    local saveActiveInfoForPopRewardPanelInfo = self:getSaveActiveInfoForPopRewardPanel()</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a></span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>    if selfLogOpened then printx(printChannel,&quot;onActFailLevel 2222222&quot;,tts(saveActiveInfoForPopRewardPanelInfo)) end</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a>    if saveActiveInfoForPopRewardPanelInfo.levelId == data.levelId and saveActiveInfoForPopRewardPanelInfo.playId == data.playId then</span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>		self:setSaveActiveInfoForPopRewardPanelFailLevel()</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>    end</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a></span>
+<span id="L1121" class="line"><a href="#L1121">1121</a>    self:saveStartPanelParam( {} )</span>
+<span id="L1122" class="line"><a href="#L1122">1122</a>end</span>
+<span id="L1123" class="line"><a href="#L1123">1123</a></span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>function Manager:onPassLevel(data)</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>end</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a></span>
+<span id="L1127" class="line"><a href="#L1127">1127</a>function Manager:passLevelSetData(data)</span>
+<span id="L1128" class="line"><a href="#L1128">1128</a></span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>	if selfLogOpened then printx(printChannel,&quot;onActPassLevel 111111111&quot;) end</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>    if not data then return end</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>    if not data.levelId then return end</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a>    if not data.playId then return end</span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>    </span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>    if not self:isEnabled() then return false end</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a></span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>    --取出当前存的信息，判断levelId playId 是否一致， 如果一致执行成功失败判断，更改数据</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>    local saveActiveInfoForPopRewardPanelInfo = self:getSaveActiveInfoForPopRewardPanel()</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a></span>
+<span id="L1139" class="line"><a href="#L1139">1139</a>    if selfLogOpened then printx(printChannel,&quot;onActPassLevel 2222222&quot;,tts(saveActiveInfoForPopRewardPanelInfo)) end</span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>    if saveActiveInfoForPopRewardPanelInfo.levelId == data.levelId and saveActiveInfoForPopRewardPanelInfo.playId == data.playId then</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>		self:setSaveActiveInfoForPopRewardPanelPassLevel()</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a>    end</span>
+<span id="L1143" class="line"><a href="#L1143">1143</a></span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>    self:saveStartPanelParam( {} )</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a>end</span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>--]]</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a></span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>------------------------------- 加五步面板 -----------------------------</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>--[[</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>-- 加五步面板检测本关是否有地鼠奖励NPC对话泡</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>-- todo:change</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>function Manager:onActUBFAddFivePanelCheckNPCDialog(param)</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a>	local data = param and param.data</span>
+<span id="L1154" class="line"><a href="#L1154">1154</a>	if not data then return end</span>
+<span id="L1155" class="line"><a href="#L1155">1155</a>	local levelID</span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>	if data.panelContextData then</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a>		levelID = data.panelContextData.levelID</span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>	end</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a></span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>	if selfLogOpened then printx(printChannel, &#x27;onActUBFAddFivePanelCheckNPCDialog data&#x27;, tts(data)) end</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a></span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>	if not levelID then return end</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a></span>
+<span id="L1164" class="line"><a href="#L1164">1164</a>	local popContent = self:_getAddFiveStepPanelNPCPopContent(levelID)</span>
+<span id="L1165" class="line"><a href="#L1165">1165</a>	if popContent then</span>
+<span id="L1166" class="line"><a href="#L1166">1166</a>		data.hasAddFiveUpgradeNPCPop = true</span>
+<span id="L1167" class="line"><a href="#L1167">1167</a>		data.buffType = popContent.buffType</span>
+<span id="L1168" class="line"><a href="#L1168">1168</a>	end</span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>end</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a></span>
+<span id="L1171" class="line"><a href="#L1171">1171</a>function Manager:_getAddFiveStepPanelNPCPopContent(levelID)</span>
+<span id="L1172" class="line"><a href="#L1172">1172</a></span>
+<span id="L1173" class="line"><a href="#L1173">1173</a>	if selfLogOpened then printx(printChannel,&quot;_getAddFiveStepPanelNPCPopContent 获取Npc说话内容 开始&quot;, levelID) end</span>
+<span id="L1174" class="line"><a href="#L1174">1174</a></span>
+<span id="L1175" class="line"><a href="#L1175">1175</a>	if self:isEnabled() then</span>
+<span id="L1176" class="line"><a href="#L1176">1176</a></span>
+<span id="L1177" class="line"><a href="#L1177">1177</a>		local saveParam = self:getSaveActiveInfoForPopRewardPanel()</span>
+<span id="L1178" class="line"><a href="#L1178">1178</a></span>
+<span id="L1179" class="line"><a href="#L1179">1179</a>		local playId = self:getInGamePlayId()</span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>		-- if selfLogOpened then printx(printChannel, &quot;_getAddFiveStepPanelNPCPopContent playId&quot;, playId) end</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a></span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>		if selfLogOpened then printx(printChannel,&quot;_getAddFiveStepPanelNPCPopContent 获取Npc说话内容 条件检测&quot;, playId, tts(saveParam)) end</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a></span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>		if saveParam and saveParam.levelId and saveParam.playId and saveParam.levelId == levelID and saveParam.playId == playId then </span>
+<span id="L1185" class="line"><a href="#L1185">1185</a>			if saveParam.rewardGroupType then</span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>				local buffType = saveParam.rewardGroupType</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a></span>
+<span id="L1188" class="line"><a href="#L1188">1188</a>				if selfLogOpened then printx(printChannel,&quot;_getAddFiveStepPanelNPCPopContent 获取Npc说话内容成功&quot;, levelID, buffType) end</span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>				return {buffType = buffType}</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a>			end </span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>		end</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a>	end </span>
+<span id="L1193" class="line"><a href="#L1193">1193</a></span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>	if selfLogOpened then printx(printChannel,&quot;_getAddFiveStepPanelNPCPopContent 获取Npc说话内容失败&quot;, levelID) end</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>	return nil</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a>end</span>
+<span id="L1197" class="line"><a href="#L1197">1197</a>--]]</span>
+<span id="L1198" class="line"><a href="#L1198">1198</a></span>
+<span id="L1199" class="line"><a href="#L1199">1199</a>------------------礼包 </span>
+<span id="L1200" class="line"><a href="#L1200">1200</a>-- 礼包数据</span>
+<span id="L1201" class="line"><a href="#L1201">1201</a>--[[</span>
+<span id="L1202" class="line"><a href="#L1202">1202</a>function Manager:getPromotionInfo( levelId )</span>
+<span id="L1203" class="line"><a href="#L1203">1203</a></span>
+<span id="L1204" class="line"><a href="#L1204">1204</a>	self.canShowAddFiveGift = self:canOpenGiftForNewGroup()</span>
+<span id="L1205" class="line"><a href="#L1205">1205</a>	</span>
+<span id="L1206" class="line"><a href="#L1206">1206</a>	if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 礼包弹出检测开始&quot;) end</span>
+<span id="L1207" class="line"><a href="#L1207">1207</a>	if not self.canShowAddFiveGift then return end </span>
+<span id="L1208" class="line"><a href="#L1208">1208</a></span>
+<span id="L1209" class="line"><a href="#L1209">1209</a>	if not self:isEnabled() then return end</span>
+<span id="L1210" class="line"><a href="#L1210">1210</a></span>
+<span id="L1211" class="line"><a href="#L1211">1211</a>	if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 数据Enable检测通过&quot;) end</span>
+<span id="L1212" class="line"><a href="#L1212">1212</a></span>
+<span id="L1213" class="line"><a href="#L1213">1213</a>	local topLevelId = _G.getTopLevelId()</span>
+<span id="L1214" class="line"><a href="#L1214">1214</a>	local topLevelHasPassed = _G.amfBean(&quot;LevelAreaManager&quot;):hasPassedLevelEx(levelId)</span>
+<span id="L1215" class="line"><a href="#L1215">1215</a></span>
+<span id="L1216" class="line"><a href="#L1216">1216</a>	--top关已过关不出</span>
+<span id="L1217" class="line"><a href="#L1217">1217</a>	if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 关卡判断&quot;,levelId, topLevelId, topLevelHasPassed) end</span>
+<span id="L1218" class="line"><a href="#L1218">1218</a>	if topLevelHasPassed then return end </span>
+<span id="L1219" class="line"><a href="#L1219">1219</a></span>
+<span id="L1220" class="line"><a href="#L1220">1220</a>	if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 关卡判断通过&quot;) end</span>
+<span id="L1221" class="line"><a href="#L1221">1221</a></span>
+<span id="L1222" class="line"><a href="#L1222">1222</a>	local actData = UBFAddFiveUpgradeDataUtil:getValidActData()</span>
+<span id="L1223" class="line"><a href="#L1223">1223</a></span>
+<span id="L1224" class="line"><a href="#L1224">1224</a>	if not actData then return end </span>
+<span id="L1225" class="line"><a href="#L1225">1225</a>	--top关跟记录的关不一致不出</span>
+<span id="L1226" class="line"><a href="#L1226">1226</a>	if actData.levelID ~= topLevelId then return end</span>
+<span id="L1227" class="line"><a href="#L1227">1227</a>	if topLevelId ~= levelId then return end</span>
+<span id="L1228" class="line"><a href="#L1228">1228</a></span>
+<span id="L1229" class="line"><a href="#L1229">1229</a>	if selfLogOpened then printx(printChannel,&quot;getPromotionInfo topLevel校验通过&quot; ) end</span>
+<span id="L1230" class="line"><a href="#L1230">1230</a></span>
+<span id="L1231" class="line"><a href="#L1231">1231</a>	local saveParam = self:getSaveGiftParam()</span>
+<span id="L1232" class="line"><a href="#L1232">1232</a></span>
+<span id="L1233" class="line"><a href="#L1233">1233</a>	local playId = self:getInGamePlayId()</span>
+<span id="L1234" class="line"><a href="#L1234">1234</a>	if playId == &#x27;&#x27; then return end </span>
+<span id="L1235" class="line"><a href="#L1235">1235</a></span>
+<span id="L1236" class="line"><a href="#L1236">1236</a>	if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 记录的礼包数据校验，是否已购买判断&quot;,playId, tts(saveParam) ) end</span>
+<span id="L1237" class="line"><a href="#L1237">1237</a>    if saveParam  then </span>
+<span id="L1238" class="line"><a href="#L1238">1238</a>    	if saveParam.playId == playId then</span>
+<span id="L1239" class="line"><a href="#L1239">1239</a>    		if saveParam.bHadBuyGift then</span>
+<span id="L1240" class="line"><a href="#L1240">1240</a>    			if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 已经买过了 不弹了&quot;  ) end</span>
+<span id="L1241" class="line"><a href="#L1241">1241</a>    			if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 礼包弹出检测结束&quot;) end</span>
+<span id="L1242" class="line"><a href="#L1242">1242</a>    			return</span>
+<span id="L1243" class="line"><a href="#L1243">1243</a>    		else</span>
+<span id="L1244" class="line"><a href="#L1244">1244</a>    			if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 使用已保存的上次拿到的数据 继续展示&quot;  ) end</span>
+<span id="L1245" class="line"><a href="#L1245">1245</a>    			if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 礼包弹出检测结束&quot;) end</span>
+<span id="L1246" class="line"><a href="#L1246">1246</a>    			return { goodsId = saveParam.goodsId, endTime = actData.actEndTs, playId = playId }</span>
+<span id="L1247" class="line"><a href="#L1247">1247</a>    		end</span>
+<span id="L1248" class="line"><a href="#L1248">1248</a>    	end</span>
+<span id="L1249" class="line"><a href="#L1249">1249</a>    end </span>
+<span id="L1250" class="line"><a href="#L1250">1250</a></span>
+<span id="L1251" class="line"><a href="#L1251">1251</a>	local failNum = actData.failTimes</span>
+<span id="L1252" class="line"><a href="#L1252">1252</a>	-- todo:check</span>
+<span id="L1253" class="line"><a href="#L1253">1253</a>	local curPayTag = UserTagManager:getUserPaymentTag2ServerVersion()</span>
+<span id="L1254" class="line"><a href="#L1254">1254</a>	local last60DayPayAmount = UserTagManager:getLast60DayPayAmount()</span>
+<span id="L1255" class="line"><a href="#L1255">1255</a>	</span>
+<span id="L1256" class="line"><a href="#L1256">1256</a></span>
+<span id="L1257" class="line"><a href="#L1257">1257</a>	-- local curTime = TimeKit:timeInSec()</span>
+<span id="L1258" class="line"><a href="#L1258">1258</a>	local curTime = TimeKit:timeInSec()</span>
+<span id="L1259" class="line"><a href="#L1259">1259</a>	local lastBuyBreakIceTime = math.floor( tonumber(actData.lastBuyBreakIceTime)/1000 )</span>
+<span id="L1260" class="line"><a href="#L1260">1260</a>	local breakIceCdHours = actData.breakIceCdHours</span>
+<span id="L1261" class="line"><a href="#L1261">1261</a>	local oneHourSec = 60*60</span>
+<span id="L1262" class="line"><a href="#L1262">1262</a></span>
+<span id="L1263" class="line"><a href="#L1263">1263</a>	--判断是否在cd期</span>
+<span id="L1264" class="line"><a href="#L1264">1264</a>	local cdEndTime = lastBuyBreakIceTime + breakIceCdHours*oneHourSec</span>
+<span id="L1265" class="line"><a href="#L1265">1265</a>	if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 开始校验是否在cd期&quot;, curTime, cdEndTime  ) end</span>
+<span id="L1266" class="line"><a href="#L1266">1266</a>	if curTime &lt; cdEndTime then return end</span>
+<span id="L1267" class="line"><a href="#L1267">1267</a></span>
+<span id="L1268" class="line"><a href="#L1268">1268</a>	if selfLogOpened then printx(printChannel,&quot;getPromotionInfo cd期判断通过，开始找出要展示的goods&quot;, last60DayPayAmount, tts(actData.breakIceGiftMetaList) ) end</span>
+<span id="L1269" class="line"><a href="#L1269">1269</a>	--根据配置找出要买的goods</span>
+<span id="L1270" class="line"><a href="#L1270">1270</a>	for i,v in ipairs(actData.breakIceGiftMetaList) do</span>
+<span id="L1271" class="line"><a href="#L1271">1271</a>		local pay60Range = v.pay60Range</span>
+<span id="L1272" class="line"><a href="#L1272">1272</a>		local rangeList = string.split(pay60Range,&#x27;~&#x27;)</span>
+<span id="L1273" class="line"><a href="#L1273">1273</a>		local startPayTag = tonumber(rangeList[1])</span>
+<span id="L1274" class="line"><a href="#L1274">1274</a>		local endPayTag = tonumber(rangeList[2])</span>
+<span id="L1275" class="line"><a href="#L1275">1275</a></span>
+<span id="L1276" class="line"><a href="#L1276">1276</a>		if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 需要的付费 start end&quot;,startPayTag, endPayTag) end</span>
+<span id="L1277" class="line"><a href="#L1277">1277</a></span>
+<span id="L1278" class="line"><a href="#L1278">1278</a>		if last60DayPayAmount &gt;= startPayTag and last60DayPayAmount &lt; endPayTag then  </span>
+<span id="L1279" class="line"><a href="#L1279">1279</a>			local goodsId = v.goodsId</span>
+<span id="L1280" class="line"><a href="#L1280">1280</a>			local needLoseNum = v.needFailTimes</span>
+<span id="L1281" class="line"><a href="#L1281">1281</a>			-- local num = UserManager:getInstance():getDailyBoughtGoodsNumById(goodsId)</span>
+<span id="L1282" class="line"><a href="#L1282">1282</a>			local num = _G.amfBean(&quot;DailyDataManager&quot;):getDailyBoughtGoodsNumById(goodsId)</span>
+<span id="L1283" class="line"><a href="#L1283">1283</a></span>
+<span id="L1284" class="line"><a href="#L1284">1284</a>			if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 失败次数 每日购买是否满足&quot;,failNum, needLoseNum, num) end</span>
+<span id="L1285" class="line"><a href="#L1285">1285</a></span>
+<span id="L1286" class="line"><a href="#L1286">1286</a>			if num == 0 and failNum &gt;= needLoseNum then </span>
+<span id="L1287" class="line"><a href="#L1287">1287</a>	    		if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 根据参数找出结果goodsId&quot;,goodsId,num,failNum,needLoseNum, i ) end</span>
+<span id="L1288" class="line"><a href="#L1288">1288</a>	    		if selfLogOpened then printx(printChannel,&quot;getPromotionInfo 礼包弹出检测结束&quot;) end</span>
+<span id="L1289" class="line"><a href="#L1289">1289</a></span>
+<span id="L1290" class="line"><a href="#L1290">1290</a>				local params = { bHadBuyGift = false, playId = playId, goodsId = goodsId }</span>
+<span id="L1291" class="line"><a href="#L1291">1291</a>				self:saveGiftParam( params )</span>
+<span id="L1292" class="line"><a href="#L1292">1292</a></span>
+<span id="L1293" class="line"><a href="#L1293">1293</a>				return { goodsId = goodsId, endTime = actData.actEndTs, playId = playId }</span>
+<span id="L1294" class="line"><a href="#L1294">1294</a>			end</span>
+<span id="L1295" class="line"><a href="#L1295">1295</a>		end</span>
+<span id="L1296" class="line"><a href="#L1296">1296</a>	end</span>
+<span id="L1297" class="line"><a href="#L1297">1297</a>end</span>
+<span id="L1298" class="line"><a href="#L1298">1298</a>--]]</span>
+<span id="L1299" class="line"><a href="#L1299">1299</a></span>
+<span id="L1300" class="line"><a href="#L1300">1300</a>-- 加五步礼包</span>
+<span id="L1301" class="line"><a href="#L1301">1301</a>-- todo:change</span>
+<span id="L1302" class="line"><a href="#L1302">1302</a>-- function Manager:onActAdd5StepPeripheryNeed(data)</span>
+<span id="L1303" class="line"><a href="#L1303">1303</a>--     local function isValid(  )</span>
+<span id="L1304" class="line"><a href="#L1304">1304</a>--         return data.type and data.type == &quot;package&quot; and data.packageModuleList and #data.packageModuleList &gt; 0</span>
+<span id="L1305" class="line"><a href="#L1305">1305</a>--     end</span>
+<span id="L1306" class="line"><a href="#L1306">1306</a></span>
+<span id="L1307" class="line"><a href="#L1307">1307</a>--     if isValid() and self:isEnabled() then</span>
+<span id="L1308" class="line"><a href="#L1308">1308</a>--         local AddFiveUpgradePackage = require &#x27;amf.feature.localactivity.addfivestepupgrade.gift.AddFiveUpgradePackage&#x27;</span>
+<span id="L1309" class="line"><a href="#L1309">1309</a>--         table.insert(data.packageModuleList, 1, AddFiveUpgradePackage.new())</span>
+<span id="L1310" class="line"><a href="#L1310">1310</a>--     end</span>
+<span id="L1311" class="line"><a href="#L1311">1311</a>-- end</span>
+<span id="L1312" class="line"><a href="#L1312">1312</a></span>
+<span id="L1313" class="line"><a href="#L1313">1313</a>--打点</span>
+<span id="L1314" class="line"><a href="#L1314">1314</a>--[[</span>
+<span id="L1315" class="line"><a href="#L1315">1315</a>-- todo:change</span>
+<span id="L1316" class="line"><a href="#L1316">1316</a>function Manager.sendDC(category, subCategory, ...)</span>
+<span id="L1317" class="line"><a href="#L1317">1317</a>    Manager.sendDCWithGameName(Manager.DCGameName, category, subCategory, ...)</span>
+<span id="L1318" class="line"><a href="#L1318">1318</a>end</span>
+<span id="L1319" class="line"><a href="#L1319">1319</a></span>
+<span id="L1320" class="line"><a href="#L1320">1320</a>function Manager.sendDCWithGameName(gameName, category, subCategory, ...)</span>
+<span id="L1321" class="line"><a href="#L1321">1321</a>    local params = {</span>
+<span id="L1322" class="line"><a href="#L1322">1322</a>        game_type = &quot;stage&quot;,</span>
+<span id="L1323" class="line"><a href="#L1323">1323</a>        game_name = gameName,</span>
+<span id="L1324" class="line"><a href="#L1324">1324</a>        category = category,</span>
+<span id="L1325" class="line"><a href="#L1325">1325</a>        sub_category = subCategory,</span>
+<span id="L1326" class="line"><a href="#L1326">1326</a>    }</span>
+<span id="L1327" class="line"><a href="#L1327">1327</a></span>
+<span id="L1328" class="line"><a href="#L1328">1328</a>    for i, v in pairs{...} do</span>
+<span id="L1329" class="line"><a href="#L1329">1329</a>        if v then</span>
+<span id="L1330" class="line"><a href="#L1330">1330</a>            if i == 1 and type(v) == &#x27;table&#x27; then</span>
+<span id="L1331" class="line"><a href="#L1331">1331</a>                for k, v2 in pairs(v) do</span>
+<span id="L1332" class="line"><a href="#L1332">1332</a>                    params[k] = v2</span>
+<span id="L1333" class="line"><a href="#L1333">1333</a>                end</span>
+<span id="L1334" class="line"><a href="#L1334">1334</a>                break</span>
+<span id="L1335" class="line"><a href="#L1335">1335</a>            else</span>
+<span id="L1336" class="line"><a href="#L1336">1336</a>                params[&#x27;t&#x27;..tostring(i)] = v</span>
+<span id="L1337" class="line"><a href="#L1337">1337</a>            end</span>
+<span id="L1338" class="line"><a href="#L1338">1338</a>        end</span>
+<span id="L1339" class="line"><a href="#L1339">1339</a>    end</span>
+<span id="L1340" class="line"><a href="#L1340">1340</a></span>
+<span id="L1341" class="line"><a href="#L1341">1341</a>    if EnvUtil:isDevelopMode() then </span>
+<span id="L1342" class="line"><a href="#L1342">1342</a>	    if selfLogOpened then printx(printChannel,&quot;sendDCWithGameName params&quot;,table.tostring(params)) end</span>
+<span id="L1343" class="line"><a href="#L1343">1343</a>	end</span>
+<span id="L1344" class="line"><a href="#L1344">1344</a>    DcUtil:UserTrack(params)</span>
+<span id="L1345" class="line"><a href="#L1345">1345</a>end</span>
+<span id="L1346" class="line"><a href="#L1346">1346</a>--]]</span>
+<span id="L1347" class="line"><a href="#L1347">1347</a></span>
+<span id="L1348" class="line"><a href="#L1348">1348</a>-- -- 本地缓存</span>
+<span id="L1349" class="line"><a href="#L1349">1349</a>-- function Manager:saveFlagToLocalByKeyStr(key, needTime, str)</span>
+<span id="L1350" class="line"><a href="#L1350">1350</a>--     if not key then return end</span>
+<span id="L1351" class="line"><a href="#L1351">1351</a>--     if str == nil then str = &quot;&quot; end</span>
+<span id="L1352" class="line"><a href="#L1352">1352</a>--     local keyStr = &#x27;CommonMgrBaseV2_Int_&#x27;..Manager.ACT_ID..&#x27;_&#x27;.. key</span>
+<span id="L1353" class="line"><a href="#L1353">1353</a></span>
+<span id="L1354" class="line"><a href="#L1354">1354</a>--     if needTime then</span>
+<span id="L1355" class="line"><a href="#L1355">1355</a>-- 		local curTime = TimeKit:timeInSec()</span>
+<span id="L1356" class="line"><a href="#L1356">1356</a>-- 		local dayStartTime = TimeKit:getDayStartTimeByTS(curTime)</span>
+<span id="L1357" class="line"><a href="#L1357">1357</a>--         keyStr = keyStr .. &#x27;:&#x27; .. dayStartTime</span>
+<span id="L1358" class="line"><a href="#L1358">1358</a>--     end</span>
+<span id="L1359" class="line"><a href="#L1359">1359</a>--     CCUserDefault:sharedUserDefault():setStringForKey(keyStr, str)</span>
+<span id="L1360" class="line"><a href="#L1360">1360</a>-- 	if selfLogOpened then printx(printChannel, &quot;AddFiveUpgradeManager: CCUserDefault, setStringForKey&quot;, keyStr, str) end</span>
+<span id="L1361" class="line"><a href="#L1361">1361</a>-- end</span>
+<span id="L1362" class="line"><a href="#L1362">1362</a></span>
+<span id="L1363" class="line"><a href="#L1363">1363</a>-- function Manager:getFlagFromLocalByKeyStr(key, needTime)</span>
+<span id="L1364" class="line"><a href="#L1364">1364</a>--     local keyStr = &#x27;CommonMgrBaseV2_Int_&#x27;..Manager.ACT_ID..&#x27;_&#x27;.. key</span>
+<span id="L1365" class="line"><a href="#L1365">1365</a></span>
+<span id="L1366" class="line"><a href="#L1366">1366</a>--     if needTime then</span>
+<span id="L1367" class="line"><a href="#L1367">1367</a>-- 		local curTime = TimeKit:timeInSec()</span>
+<span id="L1368" class="line"><a href="#L1368">1368</a>-- 		local dayStartTime = TimeKit:getDayStartTimeByTS(curTime)</span>
+<span id="L1369" class="line"><a href="#L1369">1369</a>--         keyStr = keyStr .. &#x27;:&#x27; .. dayStartTime</span>
+<span id="L1370" class="line"><a href="#L1370">1370</a>--     end</span>
+<span id="L1371" class="line"><a href="#L1371">1371</a>-- 	local flagResult = CCUserDefault:sharedUserDefault():getStringForKey(keyStr, &#x27;&#x27;)</span>
+<span id="L1372" class="line"><a href="#L1372">1372</a>-- 	if selfLogOpened then printx(printChannel, &quot;AddFiveUpgradeManager: CCUserDefault, getStringForKey&quot;, keyStr, flagResult) end</span>
+<span id="L1373" class="line"><a href="#L1373">1373</a>--     return flagResult</span>
+<span id="L1374" class="line"><a href="#L1374">1374</a>-- end</span>
+<span id="L1375" class="line"><a href="#L1375">1375</a></span>
+<span id="L1376" class="line"><a href="#L1376">1376</a>--------------------</span>
+<span id="L1377" class="line"><a href="#L1377">1377</a>function Manager:getData()</span>
+<span id="L1378" class="line"><a href="#L1378">1378</a>    return self.serverData</span>
+<span id="L1379" class="line"><a href="#L1379">1379</a>end</span>
+<span id="L1380" class="line"><a href="#L1380">1380</a></span>
+<span id="L1381" class="line"><a href="#L1381">1381</a>--[[</span>
+<span id="L1382" class="line"><a href="#L1382">1382</a>-- 本地缓存</span>
+<span id="L1383" class="line"><a href="#L1383">1383</a>function Manager:setLocalValueByKey(key, needTime, value)</span>
+<span id="L1384" class="line"><a href="#L1384">1384</a>    if not key then return end</span>
+<span id="L1385" class="line"><a href="#L1385">1385</a>    if bSkip == nil then bSkip = true end</span>
+<span id="L1386" class="line"><a href="#L1386">1386</a></span>
+<span id="L1387" class="line"><a href="#L1387">1387</a>    local nowTime = getDayStartTimeByTS(TimeKit:timeInSec())</span>
+<span id="L1388" class="line"><a href="#L1388">1388</a></span>
+<span id="L1389" class="line"><a href="#L1389">1389</a>    local saveValue = {</span>
+<span id="L1390" class="line"><a href="#L1390">1390</a>    	time = nowTime,</span>
+<span id="L1391" class="line"><a href="#L1391">1391</a>    	value = value,</span>
+<span id="L1392" class="line"><a href="#L1392">1392</a>    	actBeginTime = actBeginTime,</span>
+<span id="L1393" class="line"><a href="#L1393">1393</a>    }</span>
+<span id="L1394" class="line"><a href="#L1394">1394</a>    local saveStr = table.serialize(saveValue)</span>
+<span id="L1395" class="line"><a href="#L1395">1395</a></span>
+<span id="L1396" class="line"><a href="#L1396">1396</a>    self:getData():setValue(key, saveStr, true)</span>
+<span id="L1397" class="line"><a href="#L1397">1397</a>end</span>
+<span id="L1398" class="line"><a href="#L1398">1398</a></span>
+<span id="L1399" class="line"><a href="#L1399">1399</a>-- tocheck: --[[]]</span>
+<span id="L1400" class="line"><a href="#L1400">1400</a>function Manager:getLocalValueByKey(key, needTime)</span>
+<span id="L1401" class="line"><a href="#L1401">1401</a>    if not key then return end</span>
+<span id="L1402" class="line"><a href="#L1402">1402</a>    local saveJsonStr = self:getData():getValue(key)</span>
+<span id="L1403" class="line"><a href="#L1403">1403</a>    if saveJsonStr == nil then return end</span>
+<span id="L1404" class="line"><a href="#L1404">1404</a>    if type(saveJsonStr) ~= &quot;string&quot; then return end</span>
+<span id="L1405" class="line"><a href="#L1405">1405</a></span>
+<span id="L1406" class="line"><a href="#L1406">1406</a>    local saveTable = table.deserialize(saveJsonStr)</span>
+<span id="L1407" class="line"><a href="#L1407">1407</a></span>
+<span id="L1408" class="line"><a href="#L1408">1408</a>    local nowTime = getDayStartTimeByTS(TimeKit:timeInSec())</span>
+<span id="L1409" class="line"><a href="#L1409">1409</a></span>
+<span id="L1410" class="line"><a href="#L1410">1410</a>    local bTimeIsOk = true</span>
+<span id="L1411" class="line"><a href="#L1411">1411</a>    if needTime then</span>
+<span id="L1412" class="line"><a href="#L1412">1412</a>    	if saveTable.time ~= nowTime then</span>
+<span id="L1413" class="line"><a href="#L1413">1413</a>    		bTimeIsOk = false</span>
+<span id="L1414" class="line"><a href="#L1414">1414</a>    	end</span>
+<span id="L1415" class="line"><a href="#L1415">1415</a>    end</span>
+<span id="L1416" class="line"><a href="#L1416">1416</a></span>
+<span id="L1417" class="line"><a href="#L1417">1417</a>    local versionIsOk = true</span>
+<span id="L1418" class="line"><a href="#L1418">1418</a></span>
+<span id="L1419" class="line"><a href="#L1419">1419</a>    if bTimeIsOk and versionIsOk then</span>
+<span id="L1420" class="line"><a href="#L1420">1420</a>    	return saveTable.value</span>
+<span id="L1421" class="line"><a href="#L1421">1421</a>    end</span>
+<span id="L1422" class="line"><a href="#L1422">1422</a>end</span>
+<span id="L1423" class="line"><a href="#L1423">1423</a></span>
+<span id="L1424" class="line"><a href="#L1424">1424</a>-- 本地缓存str</span>
+<span id="L1425" class="line"><a href="#L1425">1425</a>function Manager:saveFlagToLocalByKeyStr(key, needTime, value)</span>
+<span id="L1426" class="line"><a href="#L1426">1426</a>    if value == nil then value = &quot;&quot; end</span>
+<span id="L1427" class="line"><a href="#L1427">1427</a>    self:setLocalValueByKey( key, needTime, value )</span>
+<span id="L1428" class="line"><a href="#L1428">1428</a>end</span>
+<span id="L1429" class="line"><a href="#L1429">1429</a></span>
+<span id="L1430" class="line"><a href="#L1430">1430</a>function Manager:getFlagFromLocalByKeyStr(key, needTime)</span>
+<span id="L1431" class="line"><a href="#L1431">1431</a>    local defaultValue = &quot;&quot;</span>
+<span id="L1432" class="line"><a href="#L1432">1432</a></span>
+<span id="L1433" class="line"><a href="#L1433">1433</a>    local result = self:getLocalValueByKey(key, needTime)</span>
+<span id="L1434" class="line"><a href="#L1434">1434</a>    if result == nil then </span>
+<span id="L1435" class="line"><a href="#L1435">1435</a>        return defaultValue</span>
+<span id="L1436" class="line"><a href="#L1436">1436</a>    else</span>
+<span id="L1437" class="line"><a href="#L1437">1437</a>        return result</span>
+<span id="L1438" class="line"><a href="#L1438">1438</a>    end</span>
+<span id="L1439" class="line"><a href="#L1439">1439</a>end</span>
+<span id="L1440" class="line"><a href="#L1440">1440</a>--]]</span>
+<span id="L1441" class="line"><a href="#L1441">1441</a>--------------------------------</span>
+<span id="L1442" class="line"><a href="#L1442">1442</a></span>
+<span id="L1443" class="line"><a href="#L1443">1443</a>-- todo:change, call:function EnterFromLevel1stHandler:checkAddFiveStepPopup()</span>
+<span id="L1444" class="line"><a href="#L1444">1444</a>---场景3强弹</span>
+<span id="L1445" class="line"><a href="#L1445">1445</a>function Manager:checkAddFiveStepPopup(params)</span>
+<span id="L1446" class="line"><a href="#L1446">1446</a>	if UBFAddFiveUpgradeBuffUtil:canPopBuffRewardPanelOnScene3(params) then</span>
+<span id="L1447" class="line"><a href="#L1447">1447</a>		local LocalBuffDataKey = UBFAddFiveUpgradeBuffUtil:getLocalBuffDataKey()</span>
+<span id="L1448" class="line"><a href="#L1448">1448</a>		local currBuffData = UBFAddFiveUpgradeBuffUtil:getCustomLocalData(LocalBuffDataKey.kCurrTriggeredBuffData)</span>
+<span id="L1449" class="line"><a href="#L1449">1449</a>		if currBuffData and currBuffData.panelParams then</span>
+<span id="L1450" class="line"><a href="#L1450">1450</a>			self:doAddFiveStepPopup(currBuffData.panelParams)</span>
+<span id="L1451" class="line"><a href="#L1451">1451</a>		end</span>
+<span id="L1452" class="line"><a href="#L1452">1452</a>	end</span>
+<span id="L1453" class="line"><a href="#L1453">1453</a>end</span>
+<span id="L1454" class="line"><a href="#L1454">1454</a>--[[</span>
+<span id="L1455" class="line"><a href="#L1455">1455</a>function Manager:checkAddFiveStepPopup()</span>
+<span id="L1456" class="line"><a href="#L1456">1456</a>	if selfLogOpened then printx(printChannel,&quot;checkAddFiveStepPopup 1111111111&quot;) end</span>
+<span id="L1457" class="line"><a href="#L1457">1457</a>	if not self:isEnabled() then return end </span>
+<span id="L1458" class="line"><a href="#L1458">1458</a></span>
+<span id="L1459" class="line"><a href="#L1459">1459</a>	local bOffline = _G.amfBean(&quot;SyncPassLevelMgr&quot;):isOfflinePassLevel()</span>
+<span id="L1460" class="line"><a href="#L1460">1460</a>	if selfLogOpened then printx(printChannel,&quot;checkAddFiveStepPopup bOffline&quot;, bOffline ) end</span>
+<span id="L1461" class="line"><a href="#L1461">1461</a>	if bOffline then</span>
+<span id="L1462" class="line"><a href="#L1462">1462</a>        return</span>
+<span id="L1463" class="line"><a href="#L1463">1463</a>    end</span>
+<span id="L1464" class="line"><a href="#L1464">1464</a></span>
+<span id="L1465" class="line"><a href="#L1465">1465</a>    if not self:checkCurTimeCanPop() then return end</span>
+<span id="L1466" class="line"><a href="#L1466">1466</a></span>
+<span id="L1467" class="line"><a href="#L1467">1467</a>	local saveParam = self:getSaveActiveInfoForPopRewardPanel()</span>
+<span id="L1468" class="line"><a href="#L1468">1468</a></span>
+<span id="L1469" class="line"><a href="#L1469">1469</a>	if selfLogOpened then printx(printChannel,&quot;checkAddFiveStepPopup 33333333&quot;, tts(saveParam)) end</span>
+<span id="L1470" class="line"><a href="#L1470">1470</a>	if table.isEmpty(saveParam) then </span>
+<span id="L1471" class="line"><a href="#L1471">1471</a>		--如果没有记录，尝试弹出开始面板</span>
+<span id="L1472" class="line"><a href="#L1472">1472</a>		return</span>
+<span id="L1473" class="line"><a href="#L1473">1473</a>	else</span>
+<span id="L1474" class="line"><a href="#L1474">1474</a>		if saveParam.missionIsComplete and saveParam.passLevelType == AddFiveStepConfig.passLevelType.kPassLevel and not saveParam.missionIsGetReward then</span>
+<span id="L1475" class="line"><a href="#L1475">1475</a>			self:doAddFiveStepPopup(saveParam)</span>
+<span id="L1476" class="line"><a href="#L1476">1476</a>		end</span>
+<span id="L1477" class="line"><a href="#L1477">1477</a>	end</span>
+<span id="L1478" class="line"><a href="#L1478">1478</a>end</span>
+<span id="L1479" class="line"><a href="#L1479">1479</a>--]]</span>
+<span id="L1480" class="line"><a href="#L1480">1480</a></span>
+<span id="L1481" class="line"><a href="#L1481">1481</a>function Manager:doAddFiveStepPopup(saveParam)</span>
+<span id="L1482" class="line"><a href="#L1482">1482</a>	local function onHandleOver()</span>
+<span id="L1483" class="line"><a href="#L1483">1483</a>		if selfLogOpened then UWarning(12,&quot;doAddFiveStepPopup  onHandleOver&quot;) end</span>
+<span id="L1484" class="line"><a href="#L1484">1484</a>		AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.ADD_FIVE_STEP)</span>
+<span id="L1485" class="line"><a href="#L1485">1485</a>	end</span>
+<span id="L1486" class="line"><a href="#L1486">1486</a></span>
+<span id="L1487" class="line"><a href="#L1487">1487</a>	local function creator()</span>
+<span id="L1488" class="line"><a href="#L1488">1488</a>		local delegate = {</span>
+<span id="L1489" class="line"><a href="#L1489">1489</a>			showPanelType = AddFiveStepConfig.ShowPanelType.kWin,</span>
+<span id="L1490" class="line"><a href="#L1490">1490</a>			saveParam = saveParam,</span>
+<span id="L1491" class="line"><a href="#L1491">1491</a>		}</span>
+<span id="L1492" class="line"><a href="#L1492">1492</a>		self:popoutMainPanel( delegate, onHandleOver )</span>
+<span id="L1493" class="line"><a href="#L1493">1493</a>	end</span>
+<span id="L1494" class="line"><a href="#L1494">1494</a></span>
+<span id="L1495" class="line"><a href="#L1495">1495</a>	_G.amfBean(&quot;AutoPopupMgr&quot;):addPopupConfig(PopupCheckPoint.ADD_FIVE_STEP, creator)</span>
+<span id="L1496" class="line"><a href="#L1496">1496</a>end</span>
+<span id="L1497" class="line"><a href="#L1497">1497</a></span>
+<span id="L1498" class="line"><a href="#L1498">1498</a>------------------------------------------------ AddFiveUpgradeManager_http</span>
+<span id="L1499" class="line"><a href="#L1499">1499</a>----------领奖</span>
+<span id="L1500" class="line"><a href="#L1500">1500</a>function Manager:addRewards( rewards, feature, source )</span>
+<span id="L1501" class="line"><a href="#L1501">1501</a>    local buffList = {}</span>
+<span id="L1502" class="line"><a href="#L1502">1502</a>    local normalList = {}</span>
+<span id="L1503" class="line"><a href="#L1503">1503</a>    for _, v in pairs(rewards) do</span>
+<span id="L1504" class="line"><a href="#L1504">1504</a>        if v.itemId == AddFiveStepConfig.add150SoreBuffID then</span>
+<span id="L1505" class="line"><a href="#L1505">1505</a>            table.insert(buffList, table.clone(v))</span>
+<span id="L1506" class="line"><a href="#L1506">1506</a>        else</span>
+<span id="L1507" class="line"><a href="#L1507">1507</a>            table.insert(normalList, table.clone(v))</span>
+<span id="L1508" class="line"><a href="#L1508">1508</a>        end</span>
+<span id="L1509" class="line"><a href="#L1509">1509</a>    end</span>
+<span id="L1510" class="line"><a href="#L1510">1510</a></span>
+<span id="L1511" class="line"><a href="#L1511">1511</a>	_G.GainPropData:create()</span>
+<span id="L1512" class="line"><a href="#L1512">1512</a>		:setFeature(feature)</span>
+<span id="L1513" class="line"><a href="#L1513">1513</a>		:setSource(source)</span>
+<span id="L1514" class="line"><a href="#L1514">1514</a>		:setProps(normalList)</span>
+<span id="L1515" class="line"><a href="#L1515">1515</a>		:execute()</span>
+<span id="L1516" class="line"><a href="#L1516">1516</a>end</span>
+<span id="L1517" class="line"><a href="#L1517">1517</a></span>
+<span id="L1518" class="line"><a href="#L1518">1518</a>--领取奖励</span>
+<span id="L1519" class="line"><a href="#L1519">1519</a>function Manager:getReward( failNum, payTag, rewardList, successCallback, failCallback, cancelCallback, noLoading)</span>
+<span id="L1520" class="line"><a href="#L1520">1520</a>	local function onSuccess(evt)</span>
+<span id="L1521" class="line"><a href="#L1521">1521</a>        local data = evt.data or {}</span>
+<span id="L1522" class="line"><a href="#L1522">1522</a>        local bSucess = data.success</span>
+<span id="L1523" class="line"><a href="#L1523">1523</a></span>
+<span id="L1524" class="line"><a href="#L1524">1524</a>        if bSucess then</span>
+<span id="L1525" class="line"><a href="#L1525">1525</a>            local rewards = table.clone(rewardList)</span>
+<span id="L1526" class="line"><a href="#L1526">1526</a>            self:addRewards( rewards, &#x27;long_tail&#x27;, &quot;treasure_reward&quot; )</span>
+<span id="L1527" class="line"><a href="#L1527">1527</a></span>
+<span id="L1528" class="line"><a href="#L1528">1528</a>            local scoreBuff150EndTime = tonumber( data.scoreBuff150EndTime or &#x27;0&#x27; )</span>
+<span id="L1529" class="line"><a href="#L1529">1529</a>            UBFAddFiveUpgradeDataUtil:setScoreBuff150EndTime( scoreBuff150EndTime )</span>
+<span id="L1530" class="line"><a href="#L1530">1530</a>            </span>
+<span id="L1531" class="line"><a href="#L1531">1531</a>            --刷新获取时间数据</span>
+<span id="L1532" class="line"><a href="#L1532">1532</a>            UBFAddFiveUpgradeDataUtil:setGetMainPanelRewardSucess()</span>
+<span id="L1533" class="line"><a href="#L1533">1533</a></span>
+<span id="L1534" class="line"><a href="#L1534">1534</a>            -- self:setSaveActiveInfoForPopRewardPanelGetReward()</span>
+<span id="L1535" class="line"><a href="#L1535">1535</a>			-- UBFAddFiveUpgradeBuffUtil:_updateCurrTriggerData(nil, &quot;rewardGotten&quot;, true)</span>
+<span id="L1536" class="line"><a href="#L1536">1536</a>			UBFAddFiveUpgradeBuffUtil:_clearCurrTriggerData()</span>
+<span id="L1537" class="line"><a href="#L1537">1537</a>            </span>
+<span id="L1538" class="line"><a href="#L1538">1538</a>            safeRunCall(successCallback,data)</span>
+<span id="L1539" class="line"><a href="#L1539">1539</a>        else</span>
+<span id="L1540" class="line"><a href="#L1540">1540</a>            local failCode = data.failCode or 0</span>
+<span id="L1541" class="line"><a href="#L1541">1541</a>            if failCode == 1 then </span>
+<span id="L1542" class="line"><a href="#L1542">1542</a>                CommonTip:showTip(&quot;活动已结束~&quot;)</span>
+<span id="L1543" class="line"><a href="#L1543">1543</a>            elseif failCode == 2 then</span>
+<span id="L1544" class="line"><a href="#L1544">1544</a>                CommonTip:showTip(&quot;数据异常，请稍后再次尝试~&quot;)</span>
+<span id="L1545" class="line"><a href="#L1545">1545</a>            elseif failCode == 3 then</span>
+<span id="L1546" class="line"><a href="#L1546">1546</a>                CommonTip:showTip(&quot;数据异常，请稍后再次尝试~&quot;)</span>
+<span id="L1547" class="line"><a href="#L1547">1547</a>            elseif failCode == 4 then</span>
+<span id="L1548" class="line"><a href="#L1548">1548</a>                CommonTip:showTip(&quot;数据异常，奖励无法领取，请稍后再次尝试~&quot;)</span>
+<span id="L1549" class="line"><a href="#L1549">1549</a>            elseif failCode == 5 then</span>
+<span id="L1550" class="line"><a href="#L1550">1550</a>                CommonTip:showTip(&quot;数据异常，请稍后再次尝试~&quot;)</span>
+<span id="L1551" class="line"><a href="#L1551">1551</a>            end</span>
+<span id="L1552" class="line"><a href="#L1552">1552</a>            -- self:setSaveActiveInfoForPopRewardPanelGetReward()</span>
+<span id="L1553" class="line"><a href="#L1553">1553</a>            </span>
+<span id="L1554" class="line"><a href="#L1554">1554</a>            safeRunCall(failCallback, failCode)</span>
+<span id="L1555" class="line"><a href="#L1555">1555</a>        end</span>
+<span id="L1556" class="line"><a href="#L1556">1556</a>    end</span>
+<span id="L1557" class="line"><a href="#L1557">1557</a></span>
+<span id="L1558" class="line"><a href="#L1558">1558</a>    local function onFail(evt)</span>
+<span id="L1559" class="line"><a href="#L1559">1559</a>    	local errorCode = evt.errorCode</span>
+<span id="L1560" class="line"><a href="#L1560">1560</a>        CommonTip:showErrorTip(evt)</span>
+<span id="L1561" class="line"><a href="#L1561">1561</a>        safeRunCall(failCallback, errorCode)</span>
+<span id="L1562" class="line"><a href="#L1562">1562</a>    end</span>
+<span id="L1563" class="line"><a href="#L1563">1563</a></span>
+<span id="L1564" class="line"><a href="#L1564">1564</a>	local paramData = {</span>
+<span id="L1565" class="line"><a href="#L1565">1565</a>		lastFailTimes = failNum, </span>
+<span id="L1566" class="line"><a href="#L1566">1566</a>		payTag = payTag, </span>
+<span id="L1567" class="line"><a href="#L1567">1567</a>		rewardList = rewardList</span>
+<span id="L1568" class="line"><a href="#L1568">1568</a>	}</span>
+<span id="L1569" class="line"><a href="#L1569">1569</a>	local Request = require &quot;amf.feature.localactivity.addfivestepupgrade.http.RequestAddFiveStepUpgrade2023PromoteReward&quot;</span>
+<span id="L1570" class="line"><a href="#L1570">1570</a>    Request:post(paramData):next(onSuccess, onFail)</span>
+<span id="L1571" class="line"><a href="#L1571">1571</a>end</span>
+<span id="L1572" class="line"><a href="#L1572">1572</a></span>
+<span id="L1573" class="line"><a href="#L1573">1573</a>--[[</span>
+<span id="L1574" class="line"><a href="#L1574">1574</a>function Manager:checkPassLevelCanPopMainPanel( levelId, levelScene, playId, bCheck )</span>
+<span id="L1575" class="line"><a href="#L1575">1575</a>	--检测过关是否可以弹成功面板</span>
+<span id="L1576" class="line"><a href="#L1576">1576</a>	if not levelId then return end</span>
+<span id="L1577" class="line"><a href="#L1577">1577</a>	if not playId then return end</span>
+<span id="L1578" class="line"><a href="#L1578">1578</a>    if not self:isEnabled2() then return end </span>
+<span id="L1579" class="line"><a href="#L1579">1579</a></span>
+<span id="L1580" class="line"><a href="#L1580">1580</a>    local saveParam = self:getSaveActiveInfoForPopRewardPanel()</span>
+<span id="L1581" class="line"><a href="#L1581">1581</a></span>
+<span id="L1582" class="line"><a href="#L1582">1582</a>	printx(printChannel,&quot;onActPassLevelPopoutRewards 检测过关面板弹出 记录的数据校验&quot;, levelId, playId, tts(saveParam))</span>
+<span id="L1583" class="line"><a href="#L1583">1583</a></span>
+<span id="L1584" class="line"><a href="#L1584">1584</a>    if table.isEmpty(saveParam) then </span>
+<span id="L1585" class="line"><a href="#L1585">1585</a>		return </span>
+<span id="L1586" class="line"><a href="#L1586">1586</a>	end</span>
+<span id="L1587" class="line"><a href="#L1587">1587</a></span>
+<span id="L1588" class="line"><a href="#L1588">1588</a>	if bCheck then</span>
+<span id="L1589" class="line"><a href="#L1589">1589</a>		if saveParam.levelId then</span>
+<span id="L1590" class="line"><a href="#L1590">1590</a>			local t5 = false</span>
+<span id="L1591" class="line"><a href="#L1591">1591</a>			local t6 = false</span>
+<span id="L1592" class="line"><a href="#L1592">1592</a>			if saveParam.missionIsGetReward then</span>
+<span id="L1593" class="line"><a href="#L1593">1593</a>				t5 = true</span>
+<span id="L1594" class="line"><a href="#L1594">1594</a>			end</span>
+<span id="L1595" class="line"><a href="#L1595">1595</a>			if saveParam.missionIsComplete then</span>
+<span id="L1596" class="line"><a href="#L1596">1596</a>				t6 = true</span>
+<span id="L1597" class="line"><a href="#L1597">1597</a>			end</span>
+<span id="L1598" class="line"><a href="#L1598">1598</a></span>
+<span id="L1599" class="line"><a href="#L1599">1599</a>			if UBFAddFiveStepUpgradeUtil then</span>
+<span id="L1600" class="line"><a href="#L1600">1600</a>				UBFAddFiveStepUpgradeUtil:sendDC(&#x27;long_tail&#x27;,&#x27;passPanelShowCheck&#x27;, {</span>
+<span id="L1601" class="line"><a href="#L1601">1601</a>					t1 = saveParam.levelId, </span>
+<span id="L1602" class="line"><a href="#L1602">1602</a>					t2 = saveParam.playId, </span>
+<span id="L1603" class="line"><a href="#L1603">1603</a>					t3 = levelId,</span>
+<span id="L1604" class="line"><a href="#L1604">1604</a>					t4 = playId,</span>
+<span id="L1605" class="line"><a href="#L1605">1605</a>					t5 = t5,</span>
+<span id="L1606" class="line"><a href="#L1606">1606</a>					t6 = t6,</span>
+<span id="L1607" class="line"><a href="#L1607">1607</a>				})</span>
+<span id="L1608" class="line"><a href="#L1608">1608</a>			end</span>
+<span id="L1609" class="line"><a href="#L1609">1609</a>		end</span>
+<span id="L1610" class="line"><a href="#L1610">1610</a>	end</span>
+<span id="L1611" class="line"><a href="#L1611">1611</a></span>
+<span id="L1612" class="line"><a href="#L1612">1612</a></span>
+<span id="L1613" class="line"><a href="#L1613">1613</a>	if levelId == saveParam.levelId and playId == saveParam.playId and </span>
+<span id="L1614" class="line"><a href="#L1614">1614</a>		saveParam.missionIsComplete and saveParam.passLevelType == AddFiveStepConfig.passLevelType.kPassLevel and</span>
+<span id="L1615" class="line"><a href="#L1615">1615</a>		not saveParam.missionIsGetReward then </span>
+<span id="L1616" class="line"><a href="#L1616">1616</a>		printx(printChannel,&quot;onActPassLevelPopoutRewards 检测过关面板弹出结束 可弹&quot;)</span>
+<span id="L1617" class="line"><a href="#L1617">1617</a>		return true, saveParam</span>
+<span id="L1618" class="line"><a href="#L1618">1618</a>	else</span>
+<span id="L1619" class="line"><a href="#L1619">1619</a>		printx(printChannel,&quot;onActPassLevelPopoutRewards 检测过关面板弹出结束 不可弹&quot;)</span>
+<span id="L1620" class="line"><a href="#L1620">1620</a>	end</span>
+<span id="L1621" class="line"><a href="#L1621">1621</a>end</span>
+<span id="L1622" class="line"><a href="#L1622">1622</a></span>
+<span id="L1623" class="line"><a href="#L1623">1623</a>---------新的过关强弹</span>
+<span id="L1624" class="line"><a href="#L1624">1624</a>function Manager:onActEndlevelProgressPrepare( evt )</span>
+<span id="L1625" class="line"><a href="#L1625">1625</a>	</span>
+<span id="L1626" class="line"><a href="#L1626">1626</a>	local data = evt:getData()</span>
+<span id="L1627" class="line"><a href="#L1627">1627</a></span>
+<span id="L1628" class="line"><a href="#L1628">1628</a></span>
+<span id="L1629" class="line"><a href="#L1629">1629</a>	local runtime = data.runtime</span>
+<span id="L1630" class="line"><a href="#L1630">1630</a>    local levelId = runtime:getLevelId()</span>
+<span id="L1631" class="line"><a href="#L1631">1631</a>    local levelScene = runtime:getLevelScene()</span>
+<span id="L1632" class="line"><a href="#L1632">1632</a>    local playId = runtime:getPlayId()</span>
+<span id="L1633" class="line"><a href="#L1633">1633</a>    local isPassedLevel = runtime:isWin()</span>
+<span id="L1634" class="line"><a href="#L1634">1634</a></span>
+<span id="L1635" class="line"><a href="#L1635">1635</a>    -- UError(12,&quot;onActEndlevelProgressPrepare levelId&quot;,levelId)</span>
+<span id="L1636" class="line"><a href="#L1636">1636</a>    -- UError(12,&quot;onActEndlevelProgressPrepare levelScene&quot;,levelScene)</span>
+<span id="L1637" class="line"><a href="#L1637">1637</a>    -- UError(12,&quot;onActEndlevelProgressPrepare playId&quot;,playId)</span>
+<span id="L1638" class="line"><a href="#L1638">1638</a>    -- UError(12,&quot;onActEndlevelProgressPrepare isPassedLevel&quot;,isPassedLevel)</span>
+<span id="L1639" class="line"><a href="#L1639">1639</a></span>
+<span id="L1640" class="line"><a href="#L1640">1640</a>    if not isPassedLevel then return end</span>
+<span id="L1641" class="line"><a href="#L1641">1641</a></span>
+<span id="L1642" class="line"><a href="#L1642">1642</a>    self:passLevelSetData( { levelId=levelId, playId = playId })</span>
+<span id="L1643" class="line"><a href="#L1643">1643</a></span>
+<span id="L1644" class="line"><a href="#L1644">1644</a>    local bCanPop, saveParam = self:checkPassLevelCanPopMainPanel(levelId, levelScene, playId, true )</span>
+<span id="L1645" class="line"><a href="#L1645">1645</a></span>
+<span id="L1646" class="line"><a href="#L1646">1646</a>    -- UError(12,&quot;onActEndlevelProgressPrepare bCanPop 1111&quot;,bCanPop, tts(saveParam))</span>
+<span id="L1647" class="line"><a href="#L1647">1647</a>	if bCanPop then </span>
+<span id="L1648" class="line"><a href="#L1648">1648</a>		-- UError(12,&quot;onActEndlevelProgressPrepare bCanPop 2222&quot;,bCanPop, tts(saveParam))</span>
+<span id="L1649" class="line"><a href="#L1649">1649</a>		runtime:setEnabledProcessNodes(UBFActivityIdConst.kAddFiveStepUpgrade, {</span>
+<span id="L1650" class="line"><a href="#L1650">1650</a>	        [UBFProcessNodeEnum.ADDFIVE_UPGRADE_HAMSTER] = {</span>
+<span id="L1651" class="line"><a href="#L1651">1651</a>	            -- 流程节点是否可以启动</span>
+<span id="L1652" class="line"><a href="#L1652">1652</a>	            isProcessEnabled = true</span>
+<span id="L1653" class="line"><a href="#L1653">1653</a>	        },</span>
+<span id="L1654" class="line"><a href="#L1654">1654</a>	    })</span>
+<span id="L1655" class="line"><a href="#L1655">1655</a>	end</span>
+<span id="L1656" class="line"><a href="#L1656">1656</a>end</span>
+<span id="L1657" class="line"><a href="#L1657">1657</a></span>
+<span id="L1658" class="line"><a href="#L1658">1658</a>function Manager:onActEndlevelProgressThirdPartStart( evt )</span>
+<span id="L1659" class="line"><a href="#L1659">1659</a></span>
+<span id="L1660" class="line"><a href="#L1660">1660</a>	local data = evt:getData()</span>
+<span id="L1661" class="line"><a href="#L1661">1661</a>	local runtime = data.runtime</span>
+<span id="L1662" class="line"><a href="#L1662">1662</a>    local levelId = runtime:getLevelId()</span>
+<span id="L1663" class="line"><a href="#L1663">1663</a>    local levelScene = runtime:getLevelScene()</span>
+<span id="L1664" class="line"><a href="#L1664">1664</a>    local playId = runtime:getPlayId()</span>
+<span id="L1665" class="line"><a href="#L1665">1665</a></span>
+<span id="L1666" class="line"><a href="#L1666">1666</a>    local processNodeKey = data.processNodeKey</span>
+<span id="L1667" class="line"><a href="#L1667">1667</a></span>
+<span id="L1668" class="line"><a href="#L1668">1668</a>    -- UError(12,&quot;onActEndlevelProgressThirdPartStart levelId&quot;,levelId)</span>
+<span id="L1669" class="line"><a href="#L1669">1669</a>    -- UError(12,&quot;onActEndlevelProgressThirdPartStart levelScene&quot;,levelScene)</span>
+<span id="L1670" class="line"><a href="#L1670">1670</a>    -- UError(12,&quot;onActEndlevelProgressThirdPartStart playId&quot;,playId)</span>
+<span id="L1671" class="line"><a href="#L1671">1671</a>    -- UError(12,&quot;onActEndlevelProgressThirdPartStart processNodeKey&quot;,processNodeKey)</span>
+<span id="L1672" class="line"><a href="#L1672">1672</a></span>
+<span id="L1673" class="line"><a href="#L1673">1673</a>    if processNodeKey == UBFProcessNodeEnum.ADDFIVE_UPGRADE_HAMSTER then</span>
+<span id="L1674" class="line"><a href="#L1674">1674</a>    	local bCanPop, saveParam = self:checkPassLevelCanPopMainPanel(levelId, levelScene, playId, false )</span>
+<span id="L1675" class="line"><a href="#L1675">1675</a>    	if bCanPop then</span>
+<span id="L1676" class="line"><a href="#L1676">1676</a></span>
+<span id="L1677" class="line"><a href="#L1677">1677</a>    		local function closeCallback()</span>
+<span id="L1678" class="line"><a href="#L1678">1678</a>    			data:finishProcessCallBack()</span>
+<span id="L1679" class="line"><a href="#L1679">1679</a>    		end</span>
+<span id="L1680" class="line"><a href="#L1680">1680</a></span>
+<span id="L1681" class="line"><a href="#L1681">1681</a>    		local function popoutFunc( panel )</span>
+<span id="L1682" class="line"><a href="#L1682">1682</a>		        data:popoutView(panel, UBFProcessNodePopLayerType.POPOUT)</span>
+<span id="L1683" class="line"><a href="#L1683">1683</a>		    end</span>
+<span id="L1684" class="line"><a href="#L1684">1684</a></span>
+<span id="L1685" class="line"><a href="#L1685">1685</a>		    local function removeFunc(panel)</span>
+<span id="L1686" class="line"><a href="#L1686">1686</a>		        data:removeView(panel)</span>
+<span id="L1687" class="line"><a href="#L1687">1687</a>		    end</span>
+<span id="L1688" class="line"><a href="#L1688">1688</a></span>
+<span id="L1689" class="line"><a href="#L1689">1689</a>		    -- UError(12,&quot;onActEndlevelProgressThirdPartStart 111&quot;)</span>
+<span id="L1690" class="line"><a href="#L1690">1690</a></span>
+<span id="L1691" class="line"><a href="#L1691">1691</a>    		local delegate = {</span>
+<span id="L1692" class="line"><a href="#L1692">1692</a>				showPanelType = AddFiveStepConfig.ShowPanelType.kWin,</span>
+<span id="L1693" class="line"><a href="#L1693">1693</a>				saveParam = saveParam,</span>
+<span id="L1694" class="line"><a href="#L1694">1694</a>				popoutFunc = popoutFunc,</span>
+<span id="L1695" class="line"><a href="#L1695">1695</a>				removeFunc = removeFunc,</span>
+<span id="L1696" class="line"><a href="#L1696">1696</a>			}</span>
+<span id="L1697" class="line"><a href="#L1697">1697</a>			self:popoutMainPanelUBF( delegate, closeCallback )</span>
+<span id="L1698" class="line"><a href="#L1698">1698</a>	    else</span>
+<span id="L1699" class="line"><a href="#L1699">1699</a>	    	data:finishProcessCallBack()</span>
+<span id="L1700" class="line"><a href="#L1700">1700</a>	    end</span>
+<span id="L1701" class="line"><a href="#L1701">1701</a>    end</span>
+<span id="L1702" class="line"><a href="#L1702">1702</a>end</span>
+<span id="L1703" class="line"><a href="#L1703">1703</a></span>
+<span id="L1704" class="line"><a href="#L1704">1704</a>function Manager:onActEndlevelProgressForceComplete( evt )</span>
+<span id="L1705" class="line"><a href="#L1705">1705</a>	local data = evt:getData()</span>
+<span id="L1706" class="line"><a href="#L1706">1706</a>	local processNodeKey = data.processNodeKey</span>
+<span id="L1707" class="line"><a href="#L1707">1707</a></span>
+<span id="L1708" class="line"><a href="#L1708">1708</a>	if processNodeKey == UBFProcessNodeEnum.ADDFIVE_UPGRADE_HAMSTER then</span>
+<span id="L1709" class="line"><a href="#L1709">1709</a>		--do nothing</span>
+<span id="L1710" class="line"><a href="#L1710">1710</a>		--地鼠没有要处理的数据，等待补弹。</span>
+<span id="L1711" class="line"><a href="#L1711">1711</a>	end</span>
+<span id="L1712" class="line"><a href="#L1712">1712</a>end</span>
+<span id="L1713" class="line"><a href="#L1713">1713</a>--]]</span>
+<span id="L1714" class="line"><a href="#L1714">1714</a></span>
+<span id="L1715" class="line"><a href="#L1715">1715</a>return Manager</span></pre></main></html>

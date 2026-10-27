@@ -1,0 +1,91 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/autopop/config/AutoPopupConst.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="62686c956386.lua" download>下载Lua原文</a></p><h1>amf/middleware/autopop/config/AutoPopupConst.lua</h1><p>SHA256 1f04fa63563013f32e7dd0ae0d61ab3a816a1aa448361fc351ec5355f9ff6da2</p><pre><span id="L1" class="line"><a href="#L1">1</a></span>
+<span id="L2" class="line"><a href="#L2">2</a>AutoPopupConst = {}</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>--强弹场景</span>
+<span id="L5" class="line"><a href="#L5">5</a>AutoPopupConst.PopStage = {</span>
+<span id="L6" class="line"><a href="#L6">6</a>	STAGE_ONE = &quot;ps_login_scene&quot;,</span>
+<span id="L7" class="line"><a href="#L7">7</a>	STAGE_TWO = &quot;ps_enter_from_outside&quot;,</span>
+<span id="L8" class="line"><a href="#L8">8</a>	STAGE_THREE = &quot;ps_enter_from_level_first&quot;,</span>
+<span id="L9" class="line"><a href="#L9">9</a>	STAGE_FOUR = &quot;ps_enter_from_level_second&quot;,</span>
+<span id="L10" class="line"><a href="#L10">10</a>}</span>
+<span id="L11" class="line"><a href="#L11">11</a></span>
+<span id="L12" class="line"><a href="#L12">12</a>AutoPopupConst.PopStageId = {</span>
+<span id="L13" class="line"><a href="#L13">13</a>	STAGE_ONE = 1,</span>
+<span id="L14" class="line"><a href="#L14">14</a>	STAGE_TWO = 2,</span>
+<span id="L15" class="line"><a href="#L15">15</a>	STAGE_THREE = 3,</span>
+<span id="L16" class="line"><a href="#L16">16</a>	STAGE_FOUR = 4,</span>
+<span id="L17" class="line"><a href="#L17">17</a>}</span>
+<span id="L18" class="line"><a href="#L18">18</a></span>
+<span id="L19" class="line"><a href="#L19">19</a>AutoPopupConst.PopStageKeyMapping = {</span>
+<span id="L20" class="line"><a href="#L20">20</a>	[&quot;1&quot;] = AutoPopupConst.PopStage.STAGE_ONE,</span>
+<span id="L21" class="line"><a href="#L21">21</a>	[&quot;2&quot;] = AutoPopupConst.PopStage.STAGE_TWO,</span>
+<span id="L22" class="line"><a href="#L22">22</a>	[&quot;3&quot;] = AutoPopupConst.PopStage.STAGE_THREE,</span>
+<span id="L23" class="line"><a href="#L23">23</a>	[&quot;4&quot;] = AutoPopupConst.PopStage.STAGE_FOUR,</span>
+<span id="L24" class="line"><a href="#L24">24</a>}</span>
+<span id="L25" class="line"><a href="#L25">25</a></span>
+<span id="L26" class="line"><a href="#L26">26</a>--强弹类型</span>
+<span id="L27" class="line"><a href="#L27">27</a>AutoPopupConst.PopType = {</span>
+<span id="L28" class="line"><a href="#L28">28</a>	POLICY = &quot;pt_policy&quot;,</span>
+<span id="L29" class="line"><a href="#L29">29</a>	OUTSIDE = &quot;pt_outside&quot;,</span>
+<span id="L30" class="line"><a href="#L30">30</a>	SYSTEM = &quot;pt_system&quot;,</span>
+<span id="L31" class="line"><a href="#L31">31</a>	ACTIVITY = &quot;pt_activity&quot;,</span>
+<span id="L32" class="line"><a href="#L32">32</a>	RECALL = &quot;pt_recall&quot;,</span>
+<span id="L33" class="line"><a href="#L33">33</a>	CONDITION = &quot;pt_condition&quot;,</span>
+<span id="L34" class="line"><a href="#L34">34</a>	FUNCTION = &quot;pt_function&quot;,</span>
+<span id="L35" class="line"><a href="#L35">35</a>	CRASH_RESUME = &quot;pt_crash_resume&quot;,</span>
+<span id="L36" class="line"><a href="#L36">36</a>	GUIDE = &quot;pt_guide&quot;,</span>
+<span id="L37" class="line"><a href="#L37">37</a>	GIFT_PACK = &quot;pt_gift_pack&quot;,</span>
+<span id="L38" class="line"><a href="#L38">38</a>	TMP_ACT_PANEL = &quot;pt_temp_act_panel&quot;,</span>
+<span id="L39" class="line"><a href="#L39">39</a>}</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>AutoPopupConst.PopTypeKeyMapping = {</span>
+<span id="L42" class="line"><a href="#L42">42</a>	A = AutoPopupConst.PopType.POLICY,</span>
+<span id="L43" class="line"><a href="#L43">43</a>	B = AutoPopupConst.PopType.OUTSIDE,</span>
+<span id="L44" class="line"><a href="#L44">44</a>	C = AutoPopupConst.PopType.SYSTEM,</span>
+<span id="L45" class="line"><a href="#L45">45</a>	D = AutoPopupConst.PopType.ACTIVITY,</span>
+<span id="L46" class="line"><a href="#L46">46</a>	E = AutoPopupConst.PopType.RECALL,</span>
+<span id="L47" class="line"><a href="#L47">47</a>	F = AutoPopupConst.PopType.CONDITION,</span>
+<span id="L48" class="line"><a href="#L48">48</a>	G = AutoPopupConst.PopType.FUNCTION,</span>
+<span id="L49" class="line"><a href="#L49">49</a>	H = AutoPopupConst.PopType.CRASH_RESUME,</span>
+<span id="L50" class="line"><a href="#L50">50</a>	I = AutoPopupConst.PopType.GUIDE,</span>
+<span id="L51" class="line"><a href="#L51">51</a>	J = AutoPopupConst.PopType.GIFT_PACK,</span>
+<span id="L52" class="line"><a href="#L52">52</a>	K = AutoPopupConst.PopType.TMP_ACT_PANEL,</span>
+<span id="L53" class="line"><a href="#L53">53</a>}</span>
+<span id="L54" class="line"><a href="#L54">54</a></span>
+<span id="L55" class="line"><a href="#L55">55</a>-- 本地数据版本</span>
+<span id="L56" class="line"><a href="#L56">56</a>AutoPopupConst.CacheVersion = 1</span>
+<span id="L57" class="line"><a href="#L57">57</a></span>
+<span id="L58" class="line"><a href="#L58">58</a>AutoPopupConst.Stage3PopupState = {</span>
+<span id="L59" class="line"><a href="#L59">59</a>	NONE = &quot;s3_none&quot;,</span>
+<span id="L60" class="line"><a href="#L60">60</a>	START_LEVEL_POP = &quot;s3_start_level_pop&quot;,</span>
+<span id="L61" class="line"><a href="#L61">61</a>	START_LEVEL_NO_POP = &quot;s3_start_level_no_pop&quot;,</span>
+<span id="L62" class="line"><a href="#L62">62</a>}</span>
+<span id="L63" class="line"><a href="#L63">63</a></span>
+<span id="L64" class="line"><a href="#L64">64</a>AutoPopupConst.MetaPopupRules = {</span>
+<span id="L65" class="line"><a href="#L65">65</a>	EVERY_DAY = &quot;R1&quot;,</span>
+<span id="L66" class="line"><a href="#L66">66</a>	A_LIFE_TIME = &quot;R2&quot;,</span>
+<span id="L67" class="line"><a href="#L67">67</a>	EVERY_TIME = &quot;R3&quot;,</span>
+<span id="L68" class="line"><a href="#L68">68</a>}</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>-- 自动进关原因</span>
+<span id="L71" class="line"><a href="#L71">71</a>AutoPopupConst.StartLevelSource = {</span>
+<span id="L72" class="line"><a href="#L72">72</a>	-- 低等级</span>
+<span id="L73" class="line"><a href="#L73">73</a>	LOW_LEVEL = 1,</span>
+<span id="L74" class="line"><a href="#L74">74</a>	BACK_USER = 2,</span>
+<span id="L75" class="line"><a href="#L75">75</a>	DOUYIN_FEED = 3,</span>
+<span id="L76" class="line"><a href="#L76">76</a>	WX_FEED_TRIAL = 4,</span>
+<span id="L77" class="line"><a href="#L77">77</a>}</span>
+<span id="L78" class="line"><a href="#L78">78</a></span>
+<span id="L79" class="line"><a href="#L79">79</a>-- -- 包内功能，在强弹中有特殊引用时，赋予其唯一ID</span>
+<span id="L80" class="line"><a href="#L80">80</a>-- -- 所谓引用包括不限于：icon发现新活动，ai控制强弹等</span>
+<span id="L81" class="line"><a href="#L81">81</a>AutoPopupConst.FunctionID = {</span>
+<span id="L82" class="line"><a href="#L82">82</a>-- 	kStoreAI = 100001,					--AI促销礼包</span>
+<span id="L83" class="line"><a href="#L83">83</a>-- 	kStorePromotion = 100002, 			--商店促销礼包</span>
+<span id="L84" class="line"><a href="#L84">84</a>-- 	kVipPass = 100003, 					--通行证</span>
+<span id="L85" class="line"><a href="#L85">85</a>-- 	kIslandWater = 100004,				--种植岛屿水滴翻倍</span>
+<span id="L86" class="line"><a href="#L86">86</a>-- 	kCloverRaceGroup = 100005,			--晋级赛进组</span>
+<span id="L87" class="line"><a href="#L87">87</a>-- 	-- kGarden = 100006,                --新岛屿</span>
+<span id="L88" class="line"><a href="#L88">88</a>-- 	kRapWinningStreak2022 = 100007, 	--rap连胜功能版</span>
+<span id="L89" class="line"><a href="#L89">89</a>	kPromoteDailyClimb = 100008,        --促每日闯关</span>
+<span id="L90" class="line"><a href="#L90">90</a>-- 	kExchangeShop = 100009,				--常驻兑换商城</span>
+<span id="L91" class="line"><a href="#L91">91</a>}</span></pre></main></html>

@@ -1,0 +1,62 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/gemmining/meta/Meta.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="8af0cf4d284c.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/gemmining/meta/Meta.lua</h1><p>SHA256 3447ae286a495f1875acf1d610360a4d4444a7deaccbea265373a5756bc0b7cf</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Meta = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a>Meta.collectItemId = 57260</span>
+<span id="L3" class="line"><a href="#L3">3</a>Meta.score20BuffId = 57262</span>
+<span id="L4" class="line"><a href="#L4">4</a>Meta.score50BuffId = 57263</span>
+<span id="L5" class="line"><a href="#L5">5</a>Meta.doubleBuffId = 57261</span>
+<span id="L6" class="line"><a href="#L6">6</a>local GEM_SPRITE_PREFIX = &quot;GemMining_Activity/GemSprites/&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>local function createTapList(width, height)</span>
+<span id="L9" class="line"><a href="#L9">9</a>    local result = {}</span>
+<span id="L10" class="line"><a href="#L10">10</a>    for row = 0, height - 1 do</span>
+<span id="L11" class="line"><a href="#L11">11</a>        for column = 0, width - 1 do</span>
+<span id="L12" class="line"><a href="#L12">12</a>            result[#result + 1] = {</span>
+<span id="L13" class="line"><a href="#L13">13</a>                row = row,</span>
+<span id="L14" class="line"><a href="#L14">14</a>                column = column,</span>
+<span id="L15" class="line"><a href="#L15">15</a>            }</span>
+<span id="L16" class="line"><a href="#L16">16</a>        end</span>
+<span id="L17" class="line"><a href="#L17">17</a>    end</span>
+<span id="L18" class="line"><a href="#L18">18</a>    return result</span>
+<span id="L19" class="line"><a href="#L19">19</a>end</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>local function createGemConfig(id, width, height)</span>
+<span id="L22" class="line"><a href="#L22">22</a>    local typeName = tostring(id)</span>
+<span id="L23" class="line"><a href="#L23">23</a>    return {</span>
+<span id="L24" class="line"><a href="#L24">24</a>        id = id,</span>
+<span id="L25" class="line"><a href="#L25">25</a>        frameName = GEM_SPRITE_PREFIX .. &quot;gem/&quot; .. typeName,</span>
+<span id="L26" class="line"><a href="#L26">26</a>        boardName = GEM_SPRITE_PREFIX .. &quot;bg/&quot; .. typeName,</span>
+<span id="L27" class="line"><a href="#L27">27</a>        packSize = {</span>
+<span id="L28" class="line"><a href="#L28">28</a>            width = width,</span>
+<span id="L29" class="line"><a href="#L29">29</a>            height = height,</span>
+<span id="L30" class="line"><a href="#L30">30</a>        },</span>
+<span id="L31" class="line"><a href="#L31">31</a>        tapListBase = createTapList(width, height),</span>
+<span id="L32" class="line"><a href="#L32">32</a>    }</span>
+<span id="L33" class="line"><a href="#L33">33</a>end</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>Meta.gemeConfig = {</span>
+<span id="L36" class="line"><a href="#L36">36</a>    createGemConfig(1, 1, 1),</span>
+<span id="L37" class="line"><a href="#L37">37</a>    createGemConfig(2, 1, 2),</span>
+<span id="L38" class="line"><a href="#L38">38</a>    createGemConfig(3, 2, 1),</span>
+<span id="L39" class="line"><a href="#L39">39</a>    createGemConfig(4, 1, 3),</span>
+<span id="L40" class="line"><a href="#L40">40</a>    createGemConfig(5, 3, 1),</span>
+<span id="L41" class="line"><a href="#L41">41</a>    createGemConfig(6, 2, 2),</span>
+<span id="L42" class="line"><a href="#L42">42</a>    createGemConfig(7, 3, 2),</span>
+<span id="L43" class="line"><a href="#L43">43</a>    createGemConfig(8, 3, 3),</span>
+<span id="L44" class="line"><a href="#L44">44</a>    createGemConfig(9, 4, 4),</span>
+<span id="L45" class="line"><a href="#L45">45</a>    createGemConfig(10, 4, 3),</span>
+<span id="L46" class="line"><a href="#L46">46</a>    createGemConfig(11, 3, 4),</span>
+<span id="L47" class="line"><a href="#L47">47</a>    createGemConfig(12, 4, 1),</span>
+<span id="L48" class="line"><a href="#L48">48</a>    createGemConfig(13, 1, 4),</span>
+<span id="L49" class="line"><a href="#L49">49</a>    createGemConfig(14, 3, 2),</span>
+<span id="L50" class="line"><a href="#L50">50</a>    createGemConfig(15, 2, 3),</span>
+<span id="L51" class="line"><a href="#L51">51</a>    createGemConfig(16, 4, 1),</span>
+<span id="L52" class="line"><a href="#L52">52</a>}</span>
+<span id="L53" class="line"><a href="#L53">53</a></span>
+<span id="L54" class="line"><a href="#L54">54</a>local gemConfigById = {}</span>
+<span id="L55" class="line"><a href="#L55">55</a>for _, config in ipairs(Meta.gemeConfig) do</span>
+<span id="L56" class="line"><a href="#L56">56</a>    gemConfigById[config.id] = config</span>
+<span id="L57" class="line"><a href="#L57">57</a>end</span>
+<span id="L58" class="line"><a href="#L58">58</a></span>
+<span id="L59" class="line"><a href="#L59">59</a>function Meta:getGemConfig(id)</span>
+<span id="L60" class="line"><a href="#L60">60</a>    return gemConfigById[tonumber(id)]</span>
+<span id="L61" class="line"><a href="#L61">61</a>end</span>
+<span id="L62" class="line"><a href="#L62">62</a>return Meta</span></pre></main></html>

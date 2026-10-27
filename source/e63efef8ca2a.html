@@ -1,0 +1,395 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/notification/localpush/LocalPushManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="e63efef8ca2a.lua" download>下载Lua原文</a></p><h1>amf/middleware/notification/localpush/LocalPushManager.lua</h1><p>SHA256 e33fbd22820df6a71416e38f8c340bf36a6c5b5f4fbef756b1e1d27699a75e87</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Manager = class(&quot;LocalPushManager&quot;)</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local TimeUtil = require &quot;amf.middleware.ui.util.TimeUtil&quot; </span>
+<span id="L4" class="line"><a href="#L4">4</a>local StructAddAlarm = require &quot;amf.middleware.notification.localpush.model.StructAddAlarm&quot; </span>
+<span id="L5" class="line"><a href="#L5">5</a>local LocalPushUtil = require &quot;amf.middleware.notification.localpush.util.LocalPushUtil&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>require &quot;amf.middleware.notification.localpush.config.LocalPushConst&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local ExitGameEventCenter = require &quot;amf.middleware.exit.event.ExitGameEventCenter&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>function Manager:ctor()</span>
+<span id="L10" class="line"><a href="#L10">10</a>    self._metaManager = nil</span>
+<span id="L11" class="line"><a href="#L11">11</a>end</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>function Manager:setMetaManager(metaManager)</span>
+<span id="L14" class="line"><a href="#L14">14</a>    self._metaManager = metaManager</span>
+<span id="L15" class="line"><a href="#L15">15</a>end</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a>function Manager:initialize()</span>
+<span id="L18" class="line"><a href="#L18">18</a>    if not FeatureSwitch:isOpen(FeatureSwitch.Type.LOCAL_PUSH) then return end</span>
+<span id="L19" class="line"><a href="#L19">19</a>    -- 鸿蒙不生效，直接关了吧</span>
+<span id="L20" class="line"><a href="#L20">20</a>    if EnvUtil:isOhos() then return end</span>
+<span id="L21" class="line"><a href="#L21">21</a>    -- 推送SDK</span>
+<span id="L22" class="line"><a href="#L22">22</a>    self._localPushSDK = require (&quot;amf.middleware.notification.localpush.LocalPushSDK&quot;).new()</span>
+<span id="L23" class="line"><a href="#L23">23</a>    -- 本地推送数据</span>
+<span id="L24" class="line"><a href="#L24">24</a>    self._model = require (&quot;amf.middleware.notification.localpush.model.LocalPushModel&quot;):create()</span>
+<span id="L25" class="line"><a href="#L25">25</a>    self._noLimitPushList = {}</span>
+<span id="L26" class="line"><a href="#L26">26</a>    self._limitPushList = {}</span>
+<span id="L27" class="line"><a href="#L27">27</a>    -- 监听事件</span>
+<span id="L28" class="line"><a href="#L28">28</a>    _G.amfEC:registerTransaction(self)</span>
+<span id="L29" class="line"><a href="#L29">29</a>    _G.amfEC:registerSystem(self, SystemEventPriority.LOCAL_PUSH)</span>
+<span id="L30" class="line"><a href="#L30">30</a>    _G.amfEC:registerFeature(self)</span>
+<span id="L31" class="line"><a href="#L31">31</a>    ExitGameEventCenter:register(ExitGameEvent.CONFIRM_EXIT_GAME, function()</span>
+<span id="L32" class="line"><a href="#L32">32</a>        -- 加推送</span>
+<span id="L33" class="line"><a href="#L33">33</a>        self:onSystemEnterBackground()</span>
+<span id="L34" class="line"><a href="#L34">34</a>    end)</span>
+<span id="L35" class="line"><a href="#L35">35</a>    </span>
+<span id="L36" class="line"><a href="#L36">36</a>    -- 删除记录的已经加过的闹钟</span>
+<span id="L37" class="line"><a href="#L37">37</a>    self:onSystemEnterForeground()</span>
+<span id="L38" class="line"><a href="#L38">38</a>    self._isInit = true</span>
+<span id="L39" class="line"><a href="#L39">39</a>end</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>function Manager:onActTestButtonReady()</span>
+<span id="L42" class="line"><a href="#L42">42</a>    addGlobalTestButton(&quot;本地推送测试&quot;, function()</span>
+<span id="L43" class="line"><a href="#L43">43</a>        local TestPanelVM = require &quot;amf.middleware.notification.localpush.test.TestPanelVM&quot;</span>
+<span id="L44" class="line"><a href="#L44">44</a>        TestPanelVM.Builder.new()</span>
+<span id="L45" class="line"><a href="#L45">45</a>                   :setTitle(&quot;测试本地推送&quot;)</span>
+<span id="L46" class="line"><a href="#L46">46</a>                   :build()</span>
+<span id="L47" class="line"><a href="#L47">47</a>                   :popout()</span>
+<span id="L48" class="line"><a href="#L48">48</a>    end, {</span>
+<span id="L49" class="line"><a href="#L49">49</a>        TestButtonConst.Tags.ACTIVITY,</span>
+<span id="L50" class="line"><a href="#L50">50</a>    })</span>
+<span id="L51" class="line"><a href="#L51">51</a>end</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>function Manager:isEnabled()</span>
+<span id="L54" class="line"><a href="#L54">54</a>    return self._isInit</span>
+<span id="L55" class="line"><a href="#L55">55</a>end</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>-- 收到事件</span>
+<span id="L58" class="line"><a href="#L58">58</a>-- 添加闹钟</span>
+<span id="L59" class="line"><a href="#L59">59</a>-- data = {</span>
+<span id="L60" class="line"><a href="#L60">60</a>--     type = type,                 -- 闹钟type</span>
+<span id="L61" class="line"><a href="#L61">61</a>--     timeStamp = timeStamp,   -- 推送时间</span>
+<span id="L62" class="line"><a href="#L62">62</a>--     groupKey = groupKey      -- 选传，定义组，方便删除所有</span>
+<span id="L63" class="line"><a href="#L63">63</a>--     title = title,           -- 选传，自定义文案, 不传就用配置的</span>
+<span id="L64" class="line"><a href="#L64">64</a>--     message = message,       -- 选传，自定义文案, 不传就用配置的</span>
+<span id="L65" class="line"><a href="#L65">65</a>--     params = {},             -- 选传，自定义参数，不传就没有</span>
+<span id="L66" class="line"><a href="#L66">66</a>-- }</span>
+<span id="L67" class="line"><a href="#L67">67</a>-- 删除闹钟</span>
+<span id="L68" class="line"><a href="#L68">68</a>-- data = {</span>
+<span id="L69" class="line"><a href="#L69">69</a>--     type = type,              -- 删除对应type，无法做到删除同一个type，不同时间的推送；需要全部删除，重新添加</span>
+<span id="L70" class="line"><a href="#L70">70</a>--     groupKey = groupKey,      -- 可以单独传，删除自定义组的所有</span>
+<span id="L71" class="line"><a href="#L71">71</a>-- }</span>
+<span id="L72" class="line"><a href="#L72">72</a>function Manager:onReceiveTransaction(evt)</span>
+<span id="L73" class="line"><a href="#L73">73</a>    if not self:isEnabled() then return end</span>
+<span id="L74" class="line"><a href="#L74">74</a>    if evt:getName() ~= TransactionEvent.LOCALPUSH then return end</span>
+<span id="L75" class="line"><a href="#L75">75</a>    local data = evt:getData()</span>
+<span id="L76" class="line"><a href="#L76">76</a>    if data.action == &quot;add&quot; then</span>
+<span id="L77" class="line"><a href="#L77">77</a>        -- 闹钟时间不对</span>
+<span id="L78" class="line"><a href="#L78">78</a>        if not LocalPushUtil:checkAddAlarmTimeValid(data.timeStamp) then return end</span>
+<span id="L79" class="line"><a href="#L79">79</a>        -- 没有配置</span>
+<span id="L80" class="line"><a href="#L80">80</a>        if not self:getNotificationMeta(data.type) then return end</span>
+<span id="L81" class="line"><a href="#L81">81</a>        -- 加闹钟</span>
+<span id="L82" class="line"><a href="#L82">82</a>        self:addNotification(data)</span>
+<span id="L83" class="line"><a href="#L83">83</a>    elseif data.action == &quot;remove&quot; then</span>
+<span id="L84" class="line"><a href="#L84">84</a>        if EnvUtil:isDevelopMode() then</span>
+<span id="L85" class="line"><a href="#L85">85</a>            -- 公用的活动push 类型</span>
+<span id="L86" class="line"><a href="#L86">86</a>            if tonumber(data.type) and table.exist(LocalPushConst.ACT_TYPES, tonumber(data.type)) then</span>
+<span id="L87" class="line"><a href="#L87">87</a>                CommonTip:showTip(&quot;删除闹钟有问题，活动用公用类型，删除不要传type，需要传入groupKey&quot;)</span>
+<span id="L88" class="line"><a href="#L88">88</a>                ALog.error(&quot;删除闹钟有问题，活动用公用类型，删除不要传type，需要传入groupKey&quot;)</span>
+<span id="L89" class="line"><a href="#L89">89</a>                return</span>
+<span id="L90" class="line"><a href="#L90">90</a>            end</span>
+<span id="L91" class="line"><a href="#L91">91</a>        end</span>
+<span id="L92" class="line"><a href="#L92">92</a>        -- 删除闹钟</span>
+<span id="L93" class="line"><a href="#L93">93</a>        self:removeNotification(data)</span>
+<span id="L94" class="line"><a href="#L94">94</a>    elseif data.action == &quot;removeAll&quot; then</span>
+<span id="L95" class="line"><a href="#L95">95</a>        -- 删除所有闹钟</span>
+<span id="L96" class="line"><a href="#L96">96</a>        self:removePushedAlarms()</span>
+<span id="L97" class="line"><a href="#L97">97</a>    else</span>
+<span id="L98" class="line"><a href="#L98">98</a>        assert(false, &quot;LocalPushManager:onReceiveTransaction: action is not add or remove&quot;)</span>
+<span id="L99" class="line"><a href="#L99">99</a>    end</span>
+<span id="L100" class="line"><a href="#L100">100</a>end</span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a>-- 获取推送配置</span>
+<span id="L103" class="line"><a href="#L103">103</a>function Manager:getNotificationMeta(type)</span>
+<span id="L104" class="line"><a href="#L104">104</a>    local allNotificationMeta = self:getAllNotificationMeta()</span>
+<span id="L105" class="line"><a href="#L105">105</a>    for k, v in pairs(allNotificationMeta) do</span>
+<span id="L106" class="line"><a href="#L106">106</a>        if v.type == type then</span>
+<span id="L107" class="line"><a href="#L107">107</a>            return _G.READ_ONLY(v)</span>
+<span id="L108" class="line"><a href="#L108">108</a>        end</span>
+<span id="L109" class="line"><a href="#L109">109</a>    end</span>
+<span id="L110" class="line"><a href="#L110">110</a>    return nil</span>
+<span id="L111" class="line"><a href="#L111">111</a>end</span>
+<span id="L112" class="line"><a href="#L112">112</a></span>
+<span id="L113" class="line"><a href="#L113">113</a>-- 获取所有推送配置</span>
+<span id="L114" class="line"><a href="#L114">114</a>function Manager:getAllNotificationMeta()</span>
+<span id="L115" class="line"><a href="#L115">115</a>    if table.isEmpty(self._localPushMetas) then</span>
+<span id="L116" class="line"><a href="#L116">116</a>        local LocalPushMetaRef = require &quot;amf.middleware.notification.localpush.model.LocalPushMetaRef&quot;</span>
+<span id="L117" class="line"><a href="#L117">117</a>        self._localPushMetas = self._metaManager:parseOrderedList(&quot;notification_v2&quot;, LocalPushMetaRef)</span>
+<span id="L118" class="line"><a href="#L118">118</a>        -- 删除不可用的和not active的</span>
+<span id="L119" class="line"><a href="#L119">119</a>        for id, v in pairs(self._localPushMetas) do</span>
+<span id="L120" class="line"><a href="#L120">120</a>            if not v.activate or v.pusher ~= LocalPushConst.PushType.CLIENT then</span>
+<span id="L121" class="line"><a href="#L121">121</a>                self._localPushMetas[id] = nil</span>
+<span id="L122" class="line"><a href="#L122">122</a>            end</span>
+<span id="L123" class="line"><a href="#L123">123</a>        end</span>
+<span id="L124" class="line"><a href="#L124">124</a>    end</span>
+<span id="L125" class="line"><a href="#L125">125</a>    return self._localPushMetas</span>
+<span id="L126" class="line"><a href="#L126">126</a>end</span>
+<span id="L127" class="line"><a href="#L127">127</a></span>
+<span id="L128" class="line"><a href="#L128">128</a>-- 添加闹钟</span>
+<span id="L129" class="line"><a href="#L129">129</a>function Manager:addNotification(data, fromRevert)</span>
+<span id="L130" class="line"><a href="#L130">130</a>    local metaCfg = self:getNotificationMeta(data.type)</span>
+<span id="L131" class="line"><a href="#L131">131</a>    local structAddAlarm = StructAddAlarm.new()</span>
+<span id="L132" class="line"><a href="#L132">132</a>        :setType(data.type)</span>
+<span id="L133" class="line"><a href="#L133">133</a>        :setTimeStamp(data.timeStamp)</span>
+<span id="L134" class="line"><a href="#L134">134</a>        :setVoiceId(metaCfg.channel)</span>
+<span id="L135" class="line"><a href="#L135">135</a>        :setLabelType(metaCfg.textId)</span>
+<span id="L136" class="line"><a href="#L136">136</a>        :setGroupKey(data.groupKey)</span>
+<span id="L137" class="line"><a href="#L137">137</a>    -- 修改文案，title，message ...</span>
+<span id="L138" class="line"><a href="#L138">138</a>    structAddAlarm = LocalPushUtil:makeStructRandomMessage(structAddAlarm, metaCfg, data)</span>
+<span id="L139" class="line"><a href="#L139">139</a>    --每天22:00~次日7:00，不会给玩家发送任何推送；如果此时触发时效类推送，改为次日7:00后发</span>
+<span id="L140" class="line"><a href="#L140">140</a>    structAddAlarm = LocalPushUtil:makeStructChangePushTime(structAddAlarm, metaCfg)</span>
+<span id="L141" class="line"><a href="#L141">141</a>    -- 修改推送时间 这里不能修改时间，因为不能确定是要推上午还是下午，有优先级问题</span>
+<span id="L142" class="line"><a href="#L142">142</a>    local function ifHas(list, data)</span>
+<span id="L143" class="line"><a href="#L143">143</a>        local tmpList = list or {}</span>
+<span id="L144" class="line"><a href="#L144">144</a>        for i, v in ipairs(tmpList) do</span>
+<span id="L145" class="line"><a href="#L145">145</a>            if v.type == data.type and v.timeStamp == data.timeStamp then</span>
+<span id="L146" class="line"><a href="#L146">146</a>                return true, i</span>
+<span id="L147" class="line"><a href="#L147">147</a>            end</span>
+<span id="L148" class="line"><a href="#L148">148</a>        end</span>
+<span id="L149" class="line"><a href="#L149">149</a>        return false</span>
+<span id="L150" class="line"><a href="#L150">150</a>    end</span>
+<span id="L151" class="line"><a href="#L151">151</a>    local function ifHasByLimit(list, data)</span>
+<span id="L152" class="line"><a href="#L152">152</a>        local tmpList = list or {}</span>
+<span id="L153" class="line"><a href="#L153">153</a>        for i, v in ipairs(tmpList) do</span>
+<span id="L154" class="line"><a href="#L154">154</a>            local dayIdx = TimeKit:getDayStartTimeByTS(TimeUtil:convertSec(data.timeStamp))</span>
+<span id="L155" class="line"><a href="#L155">155</a>            local vDayIdx = TimeKit:getDayStartTimeByTS(TimeUtil:convertSec(v.timeStamp))</span>
+<span id="L156" class="line"><a href="#L156">156</a>            if v.type == data.type and dayIdx == vDayIdx then</span>
+<span id="L157" class="line"><a href="#L157">157</a>                return true, i</span>
+<span id="L158" class="line"><a href="#L158">158</a>            end</span>
+<span id="L159" class="line"><a href="#L159">159</a>        end</span>
+<span id="L160" class="line"><a href="#L160">160</a>        return false</span>
+<span id="L161" class="line"><a href="#L161">161</a>    end</span>
+<span id="L162" class="line"><a href="#L162">162</a>    -- 加到对应列表中</span>
+<span id="L163" class="line"><a href="#L163">163</a>    if metaCfg.groupId == LocalPushConst.AlarmType.NO_LIMIT then</span>
+<span id="L164" class="line"><a href="#L164">164</a>        local has, index = ifHas(self._noLimitPushList, data)</span>
+<span id="L165" class="line"><a href="#L165">165</a>        if has then</span>
+<span id="L166" class="line"><a href="#L166">166</a>            if not fromRevert then -- 如果是还原操作就不替换原本的，新添进来的和原本的相同就替换</span>
+<span id="L167" class="line"><a href="#L167">167</a>                self._noLimitPushList[index] = structAddAlarm</span>
+<span id="L168" class="line"><a href="#L168">168</a>            -- else</span>
+<span id="L169" class="line"><a href="#L169">169</a>            --     self:log(&quot;fromRevert nolimit -- &quot;, tts(data))</span>
+<span id="L170" class="line"><a href="#L170">170</a>            end</span>
+<span id="L171" class="line"><a href="#L171">171</a>        else</span>
+<span id="L172" class="line"><a href="#L172">172</a>            table.insert(self._noLimitPushList, structAddAlarm)</span>
+<span id="L173" class="line"><a href="#L173">173</a>        end</span>
+<span id="L174" class="line"><a href="#L174">174</a>    else</span>
+<span id="L175" class="line"><a href="#L175">175</a>        local has, index = ifHasByLimit(self._limitPushList, data)</span>
+<span id="L176" class="line"><a href="#L176">176</a>        if has then</span>
+<span id="L177" class="line"><a href="#L177">177</a>            if not fromRevert then -- 如果是还原操作就不替换原本的，新添进来的和原本的相同就替换</span>
+<span id="L178" class="line"><a href="#L178">178</a>                self._limitPushList[index] = structAddAlarm</span>
+<span id="L179" class="line"><a href="#L179">179</a>            -- else</span>
+<span id="L180" class="line"><a href="#L180">180</a>            --     self:log(&quot;fromRevert limit -- &quot;, tts(data))</span>
+<span id="L181" class="line"><a href="#L181">181</a>            end</span>
+<span id="L182" class="line"><a href="#L182">182</a>        else</span>
+<span id="L183" class="line"><a href="#L183">183</a>            table.insert(self._limitPushList, structAddAlarm)</span>
+<span id="L184" class="line"><a href="#L184">184</a>        end</span>
+<span id="L185" class="line"><a href="#L185">185</a>    end</span>
+<span id="L186" class="line"><a href="#L186">186</a>    -- print(&quot;addNotification  ----&quot;, tts(self._limitPushList), tts(self._noLimitPushList))</span>
+<span id="L187" class="line"><a href="#L187">187</a>end</span>
+<span id="L188" class="line"><a href="#L188">188</a></span>
+<span id="L189" class="line"><a href="#L189">189</a>-- 删除闹钟</span>
+<span id="L190" class="line"><a href="#L190">190</a>function Manager:removeNotification(data)</span>
+<span id="L191" class="line"><a href="#L191">191</a>    local type = data.type</span>
+<span id="L192" class="line"><a href="#L192">192</a>    local groupKey = data.groupKey</span>
+<span id="L193" class="line"><a href="#L193">193</a>    local timeStamp = data.timeStamp</span>
+<span id="L194" class="line"><a href="#L194">194</a>    -- 删除即时闹钟</span>
+<span id="L195" class="line"><a href="#L195">195</a>    for i = #self._noLimitPushList, 1, -1 do</span>
+<span id="L196" class="line"><a href="#L196">196</a>        if ((type and self._noLimitPushList[i].type == type) </span>
+<span id="L197" class="line"><a href="#L197">197</a>            and (not timeStamp or (timeStamp and self._noLimitPushList[i].timeStamp == timeStamp)))</span>
+<span id="L198" class="line"><a href="#L198">198</a>            or (groupKey and self._noLimitPushList[i].groupKey == groupKey) then</span>
+<span id="L199" class="line"><a href="#L199">199</a>            table.remove(self._noLimitPushList, i)</span>
+<span id="L200" class="line"><a href="#L200">200</a>        end</span>
+<span id="L201" class="line"><a href="#L201">201</a>    end</span>
+<span id="L202" class="line"><a href="#L202">202</a>    -- 删除限制闹钟</span>
+<span id="L203" class="line"><a href="#L203">203</a>    for i = #self._limitPushList, 1, -1 do</span>
+<span id="L204" class="line"><a href="#L204">204</a>        if (type and self._limitPushList[i].type == type) or (groupKey and self._limitPushList[i].groupKey == groupKey) then</span>
+<span id="L205" class="line"><a href="#L205">205</a>            table.remove(self._limitPushList, i)</span>
+<span id="L206" class="line"><a href="#L206">206</a>        end</span>
+<span id="L207" class="line"><a href="#L207">207</a>    end</span>
+<span id="L208" class="line"><a href="#L208">208</a>    -- print(&quot;removeNotification ----&quot;, tts(self._limitPushList), tts(self._noLimitPushList))</span>
+<span id="L209" class="line"><a href="#L209">209</a>end</span>
+<span id="L210" class="line"><a href="#L210">210</a></span>
+<span id="L211" class="line"><a href="#L211">211</a>function Manager:removePushedAlarms()</span>
+<span id="L212" class="line"><a href="#L212">212</a>    local pushedList = self._model:getValue(&quot;localPushList&quot;) or {}</span>
+<span id="L213" class="line"><a href="#L213">213</a>    self._localPushSDK:removeAllAlarm(pushedList or {})</span>
+<span id="L214" class="line"><a href="#L214">214</a>    -- if EnvUtil:isDevelopMode() then</span>
+<span id="L215" class="line"><a href="#L215">215</a>    --     self:log(&quot;removeAlarms ---&quot;, tts(pushedList))</span>
+<span id="L216" class="line"><a href="#L216">216</a>    -- end</span>
+<span id="L217" class="line"><a href="#L217">217</a>    self._model:setValue(&quot;localPushList&quot;, {}, true)</span>
+<span id="L218" class="line"><a href="#L218">218</a>end</span>
+<span id="L219" class="line"><a href="#L219">219</a></span>
+<span id="L220" class="line"><a href="#L220">220</a>-- 还原已经添加的闹钟,加到临时列表中</span>
+<span id="L221" class="line"><a href="#L221">221</a>function Manager:revertPushedAlarms()</span>
+<span id="L222" class="line"><a href="#L222">222</a>    -- 先把所有闹钟</span>
+<span id="L223" class="line"><a href="#L223">223</a>    local pushedList = self._model:getValue(&quot;localPushList&quot;) or {}</span>
+<span id="L224" class="line"><a href="#L224">224</a>    for i, v in ipairs(pushedList) do</span>
+<span id="L225" class="line"><a href="#L225">225</a>        self:addNotification(v, true)</span>
+<span id="L226" class="line"><a href="#L226">226</a>    end</span>
+<span id="L227" class="line"><a href="#L227">227</a>    -- if EnvUtil:isDevelopMode() then</span>
+<span id="L228" class="line"><a href="#L228">228</a>    --     self:log(&quot;revertPushedAlarms _limitPushList---&quot;, tts(self._limitPushList))</span>
+<span id="L229" class="line"><a href="#L229">229</a>    --     self:log(&quot;revertPushedAlarms _NolimitPushList---&quot;, tts(self._noLimitPushList))</span>
+<span id="L230" class="line"><a href="#L230">230</a>    -- end</span>
+<span id="L231" class="line"><a href="#L231">231</a>end</span>
+<span id="L232" class="line"><a href="#L232">232</a></span>
+<span id="L233" class="line"><a href="#L233">233</a>-- 到前台事件</span>
+<span id="L234" class="line"><a href="#L234">234</a>function Manager:onSystemEnterForeground()</span>
+<span id="L235" class="line"><a href="#L235">235</a>    if not self:isEnabled() then return end</span>
+<span id="L236" class="line"><a href="#L236">236</a>    -- 先把所有闹钟还原了再删除</span>
+<span id="L237" class="line"><a href="#L237">237</a>    self:revertPushedAlarms()</span>
+<span id="L238" class="line"><a href="#L238">238</a>    -- 删除所有闹钟</span>
+<span id="L239" class="line"><a href="#L239">239</a>    self:removePushedAlarms()</span>
+<span id="L240" class="line"><a href="#L240">240</a>end</span>
+<span id="L241" class="line"><a href="#L241">241</a></span>
+<span id="L242" class="line"><a href="#L242">242</a>-- 到后台事件之后</span>
+<span id="L243" class="line"><a href="#L243">243</a>function Manager:onSystemEnterBackground()</span>
+<span id="L244" class="line"><a href="#L244">244</a>    if not self:isEnabled() then return end</span>
+<span id="L245" class="line"><a href="#L245">245</a>    local list = self:getPushList()</span>
+<span id="L246" class="line"><a href="#L246">246</a></span>
+<span id="L247" class="line"><a href="#L247">247</a>    -- 先删除所有闹钟，再去添加，因为有不知名问题会导致alarm数量到500上限</span>
+<span id="L248" class="line"><a href="#L248">248</a>    self._localPushSDK:removeAllAlarm(list)</span>
+<span id="L249" class="line"><a href="#L249">249</a></span>
+<span id="L250" class="line"><a href="#L250">250</a>    -- 先存</span>
+<span id="L251" class="line"><a href="#L251">251</a>    self._model:setValue(&quot;localPushList&quot;, list, true)</span>
+<span id="L252" class="line"><a href="#L252">252</a>    -- 添加闹钟</span>
+<span id="L253" class="line"><a href="#L253">253</a>    for _, v in ipairs(list) do</span>
+<span id="L254" class="line"><a href="#L254">254</a>        self._localPushSDK:addAlarm(v)</span>
+<span id="L255" class="line"><a href="#L255">255</a>    end</span>
+<span id="L256" class="line"><a href="#L256">256</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L257" class="line"><a href="#L257">257</a>        self:log(&quot;LocalPush: 添加闹钟列表:结果:&quot;, tts(list))</span>
+<span id="L258" class="line"><a href="#L258">258</a>    end</span>
+<span id="L259" class="line"><a href="#L259">259</a>end</span>
+<span id="L260" class="line"><a href="#L260">260</a></span>
+<span id="L261" class="line"><a href="#L261">261</a>function Manager:getLimitPushList()</span>
+<span id="L262" class="line"><a href="#L262">262</a>    local dayMap = {}</span>
+<span id="L263" class="line"><a href="#L263">263</a>    -- 限制推送的</span>
+<span id="L264" class="line"><a href="#L264">264</a>    for i, v in ipairs(self._limitPushList) do</span>
+<span id="L265" class="line"><a href="#L265">265</a>        local day = tostring(TimeKit:getDayStartTimeByTS(TimeUtil:convertSec(v.timeStamp)))</span>
+<span id="L266" class="line"><a href="#L266">266</a>        if dayMap[day] == nil then</span>
+<span id="L267" class="line"><a href="#L267">267</a>            dayMap[day] = {}</span>
+<span id="L268" class="line"><a href="#L268">268</a>        end</span>
+<span id="L269" class="line"><a href="#L269">269</a>        table.insert(dayMap[day], v)</span>
+<span id="L270" class="line"><a href="#L270">270</a>    end</span>
+<span id="L271" class="line"><a href="#L271">271</a>    for k, vList in pairs(dayMap) do</span>
+<span id="L272" class="line"><a href="#L272">272</a>        table.sort(vList, function (a, b)</span>
+<span id="L273" class="line"><a href="#L273">273</a>            local metaCfgA = self:getNotificationMeta(a.type)</span>
+<span id="L274" class="line"><a href="#L274">274</a>            local metaCfgB = self:getNotificationMeta(b.type)</span>
+<span id="L275" class="line"><a href="#L275">275</a>            return metaCfgA.priority &lt; metaCfgB.priority</span>
+<span id="L276" class="line"><a href="#L276">276</a>        end)</span>
+<span id="L277" class="line"><a href="#L277">277</a>    end</span>
+<span id="L278" class="line"><a href="#L278">278</a>    -- 限制推送列表</span>
+<span id="L279" class="line"><a href="#L279">279</a>    local limitList = {}</span>
+<span id="L280" class="line"><a href="#L280">280</a>    for dayStr, vList in pairs(dayMap) do</span>
+<span id="L281" class="line"><a href="#L281">281</a>        local day = tonumber(dayStr)</span>
+<span id="L282" class="line"><a href="#L282">282</a>        for index, v in ipairs(vList) do</span>
+<span id="L283" class="line"><a href="#L283">283</a>            local metaCfg = self:getNotificationMeta(v.type)</span>
+<span id="L284" class="line"><a href="#L284">284</a>            -- 找出上午优先级最高的要推送的</span>
+<span id="L285" class="line"><a href="#L285">285</a>            if metaCfg.groupLimit == LocalPushConst.GroupLimitTime.LIMIT1 or metaCfg.groupLimit == LocalPushConst.GroupLimitTime.LIMIT2 then</span>
+<span id="L286" class="line"><a href="#L286">286</a>                local timeStamp = day + 3600 * 8</span>
+<span id="L287" class="line"><a href="#L287">287</a>                if LocalPushUtil:checkAddAlarmTimeValid(timeStamp) and not LocalPushUtil:isNearOneHour(timeStamp) then</span>
+<span id="L288" class="line"><a href="#L288">288</a>                    v:setTimeStamp(timeStamp)</span>
+<span id="L289" class="line"><a href="#L289">289</a>                    local context = table.remove(vList, index)</span>
+<span id="L290" class="line"><a href="#L290">290</a>                    table.insert(limitList, context)</span>
+<span id="L291" class="line"><a href="#L291">291</a>                    break</span>
+<span id="L292" class="line"><a href="#L292">292</a>                end</span>
+<span id="L293" class="line"><a href="#L293">293</a>            end</span>
+<span id="L294" class="line"><a href="#L294">294</a>        end</span>
+<span id="L295" class="line"><a href="#L295">295</a>        for index, v in ipairs(vList) do</span>
+<span id="L296" class="line"><a href="#L296">296</a>            local metaCfg = self:getNotificationMeta(v.type)</span>
+<span id="L297" class="line"><a href="#L297">297</a>            -- 找出下午优先级最高的要推送的</span>
+<span id="L298" class="line"><a href="#L298">298</a>            if metaCfg.groupLimit == LocalPushConst.GroupLimitTime.LIMIT1 or metaCfg.groupLimit == LocalPushConst.GroupLimitTime.LIMIT3 then</span>
+<span id="L299" class="line"><a href="#L299">299</a>                --换算到指定时间</span>
+<span id="L300" class="line"><a href="#L300">300</a>                local timeStamp = day + 3600*20.5</span>
+<span id="L301" class="line"><a href="#L301">301</a></span>
+<span id="L302" class="line"><a href="#L302">302</a>                if LocalPushUtil:checkAddAlarmTimeValid(timeStamp) and not LocalPushUtil:isNearOneHour(timeStamp) then</span>
+<span id="L303" class="line"><a href="#L303">303</a>                    v:setTimeStamp(timeStamp)</span>
+<span id="L304" class="line"><a href="#L304">304</a>                    local context = table.remove( vList, index )</span>
+<span id="L305" class="line"><a href="#L305">305</a>                    table.insert( limitList, context )</span>
+<span id="L306" class="line"><a href="#L306">306</a>                end</span>
+<span id="L307" class="line"><a href="#L307">307</a>                break</span>
+<span id="L308" class="line"><a href="#L308">308</a>            end</span>
+<span id="L309" class="line"><a href="#L309">309</a>        end</span>
+<span id="L310" class="line"><a href="#L310">310</a>    end</span>
+<span id="L311" class="line"><a href="#L311">311</a>    return limitList</span>
+<span id="L312" class="line"><a href="#L312">312</a>end</span>
+<span id="L313" class="line"><a href="#L313">313</a></span>
+<span id="L314" class="line"><a href="#L314">314</a>function Manager:getNolimitPushList()</span>
+<span id="L315" class="line"><a href="#L315">315</a>    -- 时效性推送的 规则</span>
+<span id="L316" class="line"><a href="#L316">316</a>    local dayMap = {}</span>
+<span id="L317" class="line"><a href="#L317">317</a>    for i, v in ipairs(self._noLimitPushList) do</span>
+<span id="L318" class="line"><a href="#L318">318</a>        local day = tostring(TimeKit:getDayStartTimeByTS(TimeUtil:convertSec(v.timeStamp)))</span>
+<span id="L319" class="line"><a href="#L319">319</a>        if dayMap[day] == nil then</span>
+<span id="L320" class="line"><a href="#L320">320</a>            dayMap[day] = {}</span>
+<span id="L321" class="line"><a href="#L321">321</a>        end</span>
+<span id="L322" class="line"><a href="#L322">322</a>        if LocalPushUtil:checkAddAlarmTimeValid(v.timeStamp) then</span>
+<span id="L323" class="line"><a href="#L323">323</a>            table.insert(dayMap[day], v)</span>
+<span id="L324" class="line"><a href="#L324">324</a>        end</span>
+<span id="L325" class="line"><a href="#L325">325</a>    end</span>
+<span id="L326" class="line"><a href="#L326">326</a>    for k, vList in pairs(dayMap) do</span>
+<span id="L327" class="line"><a href="#L327">327</a>        table.sort(vList, function (a, b)</span>
+<span id="L328" class="line"><a href="#L328">328</a>            local metaCfgA = self:getNotificationMeta(a.type)</span>
+<span id="L329" class="line"><a href="#L329">329</a>            local metaCfgB = self:getNotificationMeta(b.type)</span>
+<span id="L330" class="line"><a href="#L330">330</a>            if metaCfgA.priority ~= metaCfgB.priority then</span>
+<span id="L331" class="line"><a href="#L331">331</a>                return metaCfgA.priority &lt; metaCfgB.priority</span>
+<span id="L332" class="line"><a href="#L332">332</a>            else</span>
+<span id="L333" class="line"><a href="#L333">333</a>                return a.timeStamp &lt; b.timeStamp</span>
+<span id="L334" class="line"><a href="#L334">334</a>            end</span>
+<span id="L335" class="line"><a href="#L335">335</a>        end)</span>
+<span id="L336" class="line"><a href="#L336">336</a>    end</span>
+<span id="L337" class="line"><a href="#L337">337</a>    local noLimitList = {}</span>
+<span id="L338" class="line"><a href="#L338">338</a>    local cacheAddMap = {}</span>
+<span id="L339" class="line"><a href="#L339">339</a>    local notAddMap = {}</span>
+<span id="L340" class="line"><a href="#L340">340</a>    for dayStr, vList in pairs(dayMap) do</span>
+<span id="L341" class="line"><a href="#L341">341</a>        for i, v in ipairs(vList) do</span>
+<span id="L342" class="line"><a href="#L342">342</a>            if not cacheAddMap[dayStr] then</span>
+<span id="L343" class="line"><a href="#L343">343</a>                cacheAddMap[dayStr] = {}</span>
+<span id="L344" class="line"><a href="#L344">344</a>            end</span>
+<span id="L345" class="line"><a href="#L345">345</a>            if not notAddMap[dayStr] then</span>
+<span id="L346" class="line"><a href="#L346">346</a>                notAddMap[dayStr] = {}</span>
+<span id="L347" class="line"><a href="#L347">347</a>            end</span>
+<span id="L348" class="line"><a href="#L348">348</a>            if v.groupKey then</span>
+<span id="L349" class="line"><a href="#L349">349</a>                if LocalPushConst.NO_LIMIT_RULE.GROUPKEY[tostring(v.groupKey)] then</span>
+<span id="L350" class="line"><a href="#L350">350</a>                    table.insert(noLimitList, v)</span>
+<span id="L351" class="line"><a href="#L351">351</a>                else</span>
+<span id="L352" class="line"><a href="#L352">352</a>                    if not cacheAddMap[dayStr][v.groupKey] then</span>
+<span id="L353" class="line"><a href="#L353">353</a>                        table.insert(noLimitList, v)</span>
+<span id="L354" class="line"><a href="#L354">354</a>                        cacheAddMap[dayStr][v.groupKey] = true</span>
+<span id="L355" class="line"><a href="#L355">355</a>                    else</span>
+<span id="L356" class="line"><a href="#L356">356</a>                        table.insert(notAddMap[dayStr], v)</span>
+<span id="L357" class="line"><a href="#L357">357</a>                    end</span>
+<span id="L358" class="line"><a href="#L358">358</a>                end</span>
+<span id="L359" class="line"><a href="#L359">359</a>            else</span>
+<span id="L360" class="line"><a href="#L360">360</a>                if LocalPushConst.NO_LIMIT_RULE.TYPE[tostring(v.type)] then</span>
+<span id="L361" class="line"><a href="#L361">361</a>                    table.insert(noLimitList, v)</span>
+<span id="L362" class="line"><a href="#L362">362</a>                else</span>
+<span id="L363" class="line"><a href="#L363">363</a>                    if not cacheAddMap[dayStr][tostring(v.type)] then</span>
+<span id="L364" class="line"><a href="#L364">364</a>                        table.insert(noLimitList, v)</span>
+<span id="L365" class="line"><a href="#L365">365</a>                        cacheAddMap[dayStr][tostring(v.type)] = true</span>
+<span id="L366" class="line"><a href="#L366">366</a>                    else</span>
+<span id="L367" class="line"><a href="#L367">367</a>                        table.insert(notAddMap[dayStr], v)</span>
+<span id="L368" class="line"><a href="#L368">368</a>                    end</span>
+<span id="L369" class="line"><a href="#L369">369</a>                end</span>
+<span id="L370" class="line"><a href="#L370">370</a>            end</span>
+<span id="L371" class="line"><a href="#L371">371</a>        end</span>
+<span id="L372" class="line"><a href="#L372">372</a>    end</span>
+<span id="L373" class="line"><a href="#L373">373</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L374" class="line"><a href="#L374">374</a>        self:log(&quot;闹钟notAddMap =-====&quot;, tts(notAddMap))</span>
+<span id="L375" class="line"><a href="#L375">375</a>    end</span>
+<span id="L376" class="line"><a href="#L376">376</a>    return noLimitList</span>
+<span id="L377" class="line"><a href="#L377">377</a>end</span>
+<span id="L378" class="line"><a href="#L378">378</a></span>
+<span id="L379" class="line"><a href="#L379">379</a>-- 获得要推送的列表</span>
+<span id="L380" class="line"><a href="#L380">380</a>function Manager:getPushList()</span>
+<span id="L381" class="line"><a href="#L381">381</a>    local limitList = self:getLimitPushList()</span>
+<span id="L382" class="line"><a href="#L382">382</a>    local noLimitList = self:getNolimitPushList()</span>
+<span id="L383" class="line"><a href="#L383">383</a>    -- self:log(&quot;getPushList : noLimitList ----&quot;, tts(noLimitList), &quot; limitList = &quot;, tts(limitList))</span>
+<span id="L384" class="line"><a href="#L384">384</a>    -- 合并要推送的列表</span>
+<span id="L385" class="line"><a href="#L385">385</a>    local list = table.union(noLimitList, limitList)</span>
+<span id="L386" class="line"><a href="#L386">386</a>    return list</span>
+<span id="L387" class="line"><a href="#L387">387</a>end</span>
+<span id="L388" class="line"><a href="#L388">388</a></span>
+<span id="L389" class="line"><a href="#L389">389</a>function Manager:log(...)</span>
+<span id="L390" class="line"><a href="#L390">390</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L391" class="line"><a href="#L391">391</a>        printx(27, &quot;LocalPushLog: &quot;, ...)</span>
+<span id="L392" class="line"><a href="#L392">392</a>    end</span>
+<span id="L393" class="line"><a href="#L393">393</a>end</span>
+<span id="L394" class="line"><a href="#L394">394</a></span>
+<span id="L395" class="line"><a href="#L395">395</a>return Manager</span></pre></main></html>

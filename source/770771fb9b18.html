@@ -1,0 +1,581 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/activity/config/APMetaConfigRef.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="770771fb9b18.lua" download>下载Lua原文</a></p><h1>amf/middleware/activity/config/APMetaConfigRef.lua</h1><p>SHA256 96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79</p><pre><span id="L1" class="line"><a href="#L1">1</a>-- @Author: zhijian.li</span>
+<span id="L2" class="line"><a href="#L2">2</a>-- @Date:   2021-05-26 16:49:28</span>
+<span id="L3" class="line"><a href="#L3">3</a>-- @Last Modified by:   zhijian.li</span>
+<span id="L4" class="line"><a href="#L4">4</a>-- @Last Modified time: 2021-12-30 18:09:27</span>
+<span id="L5" class="line"><a href="#L5">5</a>local AutoPopupDebugLog = require &quot;amf.middleware.autopop.AutoPopupDebugLog&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local APMetaConfigRef = class(&quot;APMetaConfigRef&quot;, AMFDataRef)</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>-- 成员变量声明</span>
+<span id="L9" class="line"><a href="#L9">9</a>function APMetaConfigRef:__declare()</span>
+<span id="L10" class="line"><a href="#L10">10</a>    self.metaId = 0</span>
+<span id="L11" class="line"><a href="#L11">11</a>    self.actId = 0</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>    self.beginTime = 0</span>
+<span id="L14" class="line"><a href="#L14">14</a>    self.endTime = 0</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>    self.actSource = nil</span>
+<span id="L17" class="line"><a href="#L17">17</a>    self.actVersion = nil</span>
+<span id="L18" class="line"><a href="#L18">18</a></span>
+<span id="L19" class="line"><a href="#L19">19</a>    self.autoPopScene = nil</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>    self.autoPopPayType = nil</span>
+<span id="L22" class="line"><a href="#L22">22</a>    self.autoPopActiveType = nil</span>
+<span id="L23" class="line"><a href="#L23">23</a>    self.autoPopMinLevel = nil</span>
+<span id="L24" class="line"><a href="#L24">24</a>    self.autoPopMaxLevel = nil</span>
+<span id="L25" class="line"><a href="#L25">25</a>    self.autoPopMinStar = nil</span>
+<span id="L26" class="line"><a href="#L26">26</a>    self.autoPopMaxStar = nil</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>    self.autoPopMinEnergy = nil</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self.autoPopUnlimitedEnergy = nil</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self.autoPopRelativePriority = nil</span>
+<span id="L31" class="line"><a href="#L31">31</a>    self.groupSwitch = nil</span>
+<span id="L32" class="line"><a href="#L32">32</a>    self.autoPopRule = nil</span>
+<span id="L33" class="line"><a href="#L33">33</a>    -- R1和R2规则时，用于控制强弹次数</span>
+<span id="L34" class="line"><a href="#L34">34</a>    self.autoPopRuleParam1 = nil</span>
+<span id="L35" class="line"><a href="#L35">35</a>    -- 规则预留参数，暂时无用</span>
+<span id="L36" class="line"><a href="#L36">36</a>    self.autoPopRuleParam2 = nil</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>    -- 字符串为活动config.lua里对应的函数名，用于自定义的强弹检测规则和弹出处理，需对应配置在act_auto_popup_config.xml里</span>
+<span id="L39" class="line"><a href="#L39">39</a>    self.autoPopCustomizedCheck = nil</span>
+<span id="L40" class="line"><a href="#L40">40</a>    self.autoPopCustomizedCreator = nil</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>    self.uniqueKey = nil</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>    self._isResLoaded = false</span>
+<span id="L45" class="line"><a href="#L45">45</a></span>
+<span id="L46" class="line"><a href="#L46">46</a>    self._popScene = nil</span>
+<span id="L47" class="line"><a href="#L47">47</a>end</span>
+<span id="L48" class="line"><a href="#L48">48</a></span>
+<span id="L49" class="line"><a href="#L49">49</a>function APMetaConfigRef:updateConfigData(configData)</span>
+<span id="L50" class="line"><a href="#L50">50</a>    self:setValue(&quot;metaId&quot;,configData.metaId)</span>
+<span id="L51" class="line"><a href="#L51">51</a>    self:setValue(&quot;actId&quot;,configData.actId)</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>    self:setValue(&quot;beginTime&quot;,configData.beginTime)</span>
+<span id="L54" class="line"><a href="#L54">54</a>    self:setValue(&quot;endTime&quot;,configData.endTime)</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>    self:setValue(&quot;autoPopScene&quot;,configData.autoPopScene)</span>
+<span id="L57" class="line"><a href="#L57">57</a></span>
+<span id="L58" class="line"><a href="#L58">58</a>    self:setValue(&quot;autoPopPayType&quot;,configData.autoPopPayType)</span>
+<span id="L59" class="line"><a href="#L59">59</a>    self:setValue(&quot;autoPopActiveType&quot;,configData.autoPopActiveType)</span>
+<span id="L60" class="line"><a href="#L60">60</a>    self:setValue(&quot;autoPopMinLevel&quot;,configData.autoPopMinLevel)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    self:setValue(&quot;autoPopMaxLevel&quot;,configData.autoPopMaxLevel)</span>
+<span id="L62" class="line"><a href="#L62">62</a>    self:setValue(&quot;autoPopMinStar&quot;,configData.autoPopMinStar)</span>
+<span id="L63" class="line"><a href="#L63">63</a>    self:setValue(&quot;autoPopMaxStar&quot;,configData.autoPopMaxStar)</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>    self:setValue(&quot;autoPopMinEnergy&quot;,configData.autoPopMinEnergy)</span>
+<span id="L66" class="line"><a href="#L66">66</a>    self:setValue(&quot;autoPopUnlimitedEnergy&quot;,configData.autoPopUnlimitedEnergy)</span>
+<span id="L67" class="line"><a href="#L67">67</a>    self:setValue(&quot;autoPopRelativePriority&quot;,configData.autoPopRelativePriority)</span>
+<span id="L68" class="line"><a href="#L68">68</a>    self:setValue(&quot;groupSwitch&quot;,configData.groupSwitch)</span>
+<span id="L69" class="line"><a href="#L69">69</a>    self:setValue(&quot;autoPopRule&quot;,configData.autoPopRule)</span>
+<span id="L70" class="line"><a href="#L70">70</a>    -- R1和R2规则时，用于控制强弹次数</span>
+<span id="L71" class="line"><a href="#L71">71</a>    self:setValue(&quot;autoPopRuleParam1&quot;,configData.autoPopRuleParam1)</span>
+<span id="L72" class="line"><a href="#L72">72</a>    -- 规则预留参数，暂时无用</span>
+<span id="L73" class="line"><a href="#L73">73</a>    self:setValue(&quot;autoPopRuleParam2&quot;,configData.autoPopRuleParam2)</span>
+<span id="L74" class="line"><a href="#L74">74</a></span>
+<span id="L75" class="line"><a href="#L75">75</a>    -- 字符串为活动config.lua里对应的函数名，用于自定义的强弹检测规则和弹出处理，需对应配置在act_auto_popup_config.xml里</span>
+<span id="L76" class="line"><a href="#L76">76</a>    self:setValue(&quot;autoPopCustomizedCheck&quot;,configData.autoPopCustomizedCheck)</span>
+<span id="L77" class="line"><a href="#L77">77</a>    self:setValue(&quot;autoPopCustomizedCreator&quot;,configData.autoPopCustomizedCreator)</span>
+<span id="L78" class="line"><a href="#L78">78</a>end</span>
+<span id="L79" class="line"><a href="#L79">79</a></span>
+<span id="L80" class="line"><a href="#L80">80</a>function APMetaConfigRef:setIsResLoaded(flag)</span>
+<span id="L81" class="line"><a href="#L81">81</a>    self:setValue(&quot;_isResLoaded&quot;,flag)</span>
+<span id="L82" class="line"><a href="#L82">82</a>end</span>
+<span id="L83" class="line"><a href="#L83">83</a></span>
+<span id="L84" class="line"><a href="#L84">84</a>function APMetaConfigRef:getIsResLoaded()</span>
+<span id="L85" class="line"><a href="#L85">85</a>    return EnvUtil:isWindows() or EnvUtil:isUnityEditor() or EnvUtil:isMiniGameDev() or self:getValue(&quot;_isResLoaded&quot;)</span>
+<span id="L86" class="line"><a href="#L86">86</a>end</span>
+<span id="L87" class="line"><a href="#L87">87</a></span>
+<span id="L88" class="line"><a href="#L88">88</a>function APMetaConfigRef:setActSource(source)</span>
+<span id="L89" class="line"><a href="#L89">89</a>    self:setValue(&quot;actSource&quot;, source)</span>
+<span id="L90" class="line"><a href="#L90">90</a>end</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>function APMetaConfigRef:getActSource()</span>
+<span id="L93" class="line"><a href="#L93">93</a>    return self:getValue(&quot;actSource&quot;)</span>
+<span id="L94" class="line"><a href="#L94">94</a>end</span>
+<span id="L95" class="line"><a href="#L95">95</a></span>
+<span id="L96" class="line"><a href="#L96">96</a>function APMetaConfigRef:getMetaId()</span>
+<span id="L97" class="line"><a href="#L97">97</a>    return self:getValue(&quot;metaId&quot;)</span>
+<span id="L98" class="line"><a href="#L98">98</a>end</span>
+<span id="L99" class="line"><a href="#L99">99</a></span>
+<span id="L100" class="line"><a href="#L100">100</a>function APMetaConfigRef:getActId()</span>
+<span id="L101" class="line"><a href="#L101">101</a>    return self:getValue(&quot;actId&quot;)</span>
+<span id="L102" class="line"><a href="#L102">102</a>end</span>
+<span id="L103" class="line"><a href="#L103">103</a></span>
+<span id="L104" class="line"><a href="#L104">104</a>function APMetaConfigRef:getPopScene()</span>
+<span id="L105" class="line"><a href="#L105">105</a>    local _popScene = self:getValue(&quot;_popScene&quot;)</span>
+<span id="L106" class="line"><a href="#L106">106</a>    if not _popScene then</span>
+<span id="L107" class="line"><a href="#L107">107</a>        local tmp = {}</span>
+<span id="L108" class="line"><a href="#L108">108</a>        local autoPopScene = self:getValue(&quot;autoPopScene&quot;)</span>
+<span id="L109" class="line"><a href="#L109">109</a>        if autoPopScene and type(autoPopScene) == &quot;table&quot; then</span>
+<span id="L110" class="line"><a href="#L110">110</a>            for i, v in ipairs(self.autoPopScene) do</span>
+<span id="L111" class="line"><a href="#L111">111</a>                local stageIndex = tostring(v)</span>
+<span id="L112" class="line"><a href="#L112">112</a>                if AutoPopupConst.PopStageKeyMapping[stageIndex] then</span>
+<span id="L113" class="line"><a href="#L113">113</a>                    table.insert(tmp, v)</span>
+<span id="L114" class="line"><a href="#L114">114</a>                end</span>
+<span id="L115" class="line"><a href="#L115">115</a>            end</span>
+<span id="L116" class="line"><a href="#L116">116</a>        end</span>
+<span id="L117" class="line"><a href="#L117">117</a>        if table.isEmpty(tmp) then</span>
+<span id="L118" class="line"><a href="#L118">118</a>            tmp = {AutoPopupConst.PopStageId.kEnterFromOutside}</span>
+<span id="L119" class="line"><a href="#L119">119</a>        end</span>
+<span id="L120" class="line"><a href="#L120">120</a>        _popScene = tmp</span>
+<span id="L121" class="line"><a href="#L121">121</a>        self:setValue(&quot;_popScene&quot;, tmp)</span>
+<span id="L122" class="line"><a href="#L122">122</a>    end</span>
+<span id="L123" class="line"><a href="#L123">123</a>    return _popScene</span>
+<span id="L124" class="line"><a href="#L124">124</a>end</span>
+<span id="L125" class="line"><a href="#L125">125</a></span>
+<span id="L126" class="line"><a href="#L126">126</a>-- 配置了场景3的强弹，会忽略同时配置的其它场景</span>
+<span id="L127" class="line"><a href="#L127">127</a>-- 场景3的强弹，必须配置为自定义强弹</span>
+<span id="L128" class="line"><a href="#L128">128</a>function APMetaConfigRef:isStage3CustomizedPopup()</span>
+<span id="L129" class="line"><a href="#L129">129</a>    if not self:getCustomizedCreator() then</span>
+<span id="L130" class="line"><a href="#L130">130</a>        return</span>
+<span id="L131" class="line"><a href="#L131">131</a>    end</span>
+<span id="L132" class="line"><a href="#L132">132</a>    for i, v in ipairs(self:getPopScene()) do</span>
+<span id="L133" class="line"><a href="#L133">133</a>        if v == AutoPopupConst.PopStageId.STAGE_THREE then</span>
+<span id="L134" class="line"><a href="#L134">134</a>            return true</span>
+<span id="L135" class="line"><a href="#L135">135</a>        end</span>
+<span id="L136" class="line"><a href="#L136">136</a>    end</span>
+<span id="L137" class="line"><a href="#L137">137</a>    return false</span>
+<span id="L138" class="line"><a href="#L138">138</a>end</span>
+<span id="L139" class="line"><a href="#L139">139</a></span>
+<span id="L140" class="line"><a href="#L140">140</a>-- 配置场景4自定义强弹时，场景字段只能填4，如果多配了2，会忽略自定义强弹，变成弹活动主面板</span>
+<span id="L141" class="line"><a href="#L141">141</a>function APMetaConfigRef:isStage4CustomizedPopup()</span>
+<span id="L142" class="line"><a href="#L142">142</a>    if not self:getCustomizedCreator() then</span>
+<span id="L143" class="line"><a href="#L143">143</a>        return</span>
+<span id="L144" class="line"><a href="#L144">144</a>    end</span>
+<span id="L145" class="line"><a href="#L145">145</a>    local popScene = self:getPopScene()</span>
+<span id="L146" class="line"><a href="#L146">146</a>    if #popScene ~= 1 then</span>
+<span id="L147" class="line"><a href="#L147">147</a>        AutoPopupDebugLog:log(&quot;Wrong config, popScene field should only contain 4. &quot; .. self:getMetaId())</span>
+<span id="L148" class="line"><a href="#L148">148</a>        return</span>
+<span id="L149" class="line"><a href="#L149">149</a>    end</span>
+<span id="L150" class="line"><a href="#L150">150</a>    if popScene[1] ~= AutoPopupConst.PopStageId.STAGE_FOUR then</span>
+<span id="L151" class="line"><a href="#L151">151</a>        AutoPopupDebugLog:log(&quot;Wrong config, popScene field should only contain 4. &quot; .. self:getMetaId() .. popScene[1])</span>
+<span id="L152" class="line"><a href="#L152">152</a>        return</span>
+<span id="L153" class="line"><a href="#L153">153</a>    end</span>
+<span id="L154" class="line"><a href="#L154">154</a></span>
+<span id="L155" class="line"><a href="#L155">155</a>    return true</span>
+<span id="L156" class="line"><a href="#L156">156</a>end</span>
+<span id="L157" class="line"><a href="#L157">157</a></span>
+<span id="L158" class="line"><a href="#L158">158</a>function APMetaConfigRef:getPopRelativePriority()</span>
+<span id="L159" class="line"><a href="#L159">159</a>    local autoPopRelativePriority = self:getValue(&quot;autoPopRelativePriority&quot;)</span>
+<span id="L160" class="line"><a href="#L160">160</a>    local priority = 10100 - (autoPopRelativePriority or 0)</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>    return priority</span>
+<span id="L163" class="line"><a href="#L163">163</a>end</span>
+<span id="L164" class="line"><a href="#L164">164</a></span>
+<span id="L165" class="line"><a href="#L165">165</a>function APMetaConfigRef:getPopRule()</span>
+<span id="L166" class="line"><a href="#L166">166</a>    return self:getValue(&quot;autoPopRule&quot;)</span>
+<span id="L167" class="line"><a href="#L167">167</a>end</span>
+<span id="L168" class="line"><a href="#L168">168</a></span>
+<span id="L169" class="line"><a href="#L169">169</a>function APMetaConfigRef:getPopRuleParam1()</span>
+<span id="L170" class="line"><a href="#L170">170</a>    return self:getValue(&quot;autoPopRuleParam1&quot;)</span>
+<span id="L171" class="line"><a href="#L171">171</a>end</span>
+<span id="L172" class="line"><a href="#L172">172</a></span>
+<span id="L173" class="line"><a href="#L173">173</a>function APMetaConfigRef:getPopRuleParam2()</span>
+<span id="L174" class="line"><a href="#L174">174</a>    return self:getValue(&quot;autoPopRuleParam2&quot;)</span>
+<span id="L175" class="line"><a href="#L175">175</a>end</span>
+<span id="L176" class="line"><a href="#L176">176</a></span>
+<span id="L177" class="line"><a href="#L177">177</a>function APMetaConfigRef:getCacheUniqueKey()</span>
+<span id="L178" class="line"><a href="#L178">178</a>    local uniqueKey = self:getValue(&quot;uniqueKey&quot;)</span>
+<span id="L179" class="line"><a href="#L179">179</a>    if not uniqueKey then</span>
+<span id="L180" class="line"><a href="#L180">180</a>        uniqueKey = self:createUniqueKey()</span>
+<span id="L181" class="line"><a href="#L181">181</a>        self:setValue(&quot;uniqueKey&quot;, uniqueKey)</span>
+<span id="L182" class="line"><a href="#L182">182</a>    end</span>
+<span id="L183" class="line"><a href="#L183">183</a>    return uniqueKey</span>
+<span id="L184" class="line"><a href="#L184">184</a>end</span>
+<span id="L185" class="line"><a href="#L185">185</a></span>
+<span id="L186" class="line"><a href="#L186">186</a>function APMetaConfigRef:createUniqueKey()</span>
+<span id="L187" class="line"><a href="#L187">187</a>    local actId = self:getActId()</span>
+<span id="L188" class="line"><a href="#L188">188</a>    local metaId = self:getMetaId()</span>
+<span id="L189" class="line"><a href="#L189">189</a>    local autoPopRule = self:getPopRule()</span>
+<span id="L190" class="line"><a href="#L190">190</a>    local uniqueKey</span>
+<span id="L191" class="line"><a href="#L191">191</a>    if autoPopRule == AutoPopupConst.MetaPopupRules.EVERY_DAY then</span>
+<span id="L192" class="line"><a href="#L192">192</a>        local todayStartTime = TimeKit:getTodayStart()</span>
+<span id="L193" class="line"><a href="#L193">193</a>        uniqueKey = string.format(&quot;%s_%s_%s_%s&quot;, autoPopRule, actId, metaId, todayStartTime)</span>
+<span id="L194" class="line"><a href="#L194">194</a>    elseif autoPopRule == AutoPopupConst.MetaPopupRules.A_LIFE_TIME then</span>
+<span id="L195" class="line"><a href="#L195">195</a>        local endTime = self:getValue(&quot;endTime&quot;)</span>
+<span id="L196" class="line"><a href="#L196">196</a>        uniqueKey = string.format(&quot;%s_%s_%s_%s&quot;, autoPopRule, actId, metaId, endTime)</span>
+<span id="L197" class="line"><a href="#L197">197</a>    elseif autoPopRule == AutoPopupConst.MetaPopupRules.EVERY_TIME then</span>
+<span id="L198" class="line"><a href="#L198">198</a>        uniqueKey = string.format(&quot;%s_%s_%s&quot;, autoPopRule, actId, metaId)</span>
+<span id="L199" class="line"><a href="#L199">199</a>    else</span>
+<span id="L200" class="line"><a href="#L200">200</a>        assert(false, &quot;invalid auto popup rule&quot; .. autoPopRule)</span>
+<span id="L201" class="line"><a href="#L201">201</a>    end</span>
+<span id="L202" class="line"><a href="#L202">202</a>    return uniqueKey</span>
+<span id="L203" class="line"><a href="#L203">203</a>end</span>
+<span id="L204" class="line"><a href="#L204">204</a></span>
+<span id="L205" class="line"><a href="#L205">205</a>function APMetaConfigRef:isRuleEffective()</span>
+<span id="L206" class="line"><a href="#L206">206</a>    local uniqueKey = self:getCacheUniqueKey()</span>
+<span id="L207" class="line"><a href="#L207">207</a>    if not uniqueKey then</span>
+<span id="L208" class="line"><a href="#L208">208</a>        return false</span>
+<span id="L209" class="line"><a href="#L209">209</a>    end</span>
+<span id="L210" class="line"><a href="#L210">210</a>    local autoPopRule = self:getPopRule()</span>
+<span id="L211" class="line"><a href="#L211">211</a>    if autoPopRule == AutoPopupConst.MetaPopupRules.EVERY_DAY then</span>
+<span id="L212" class="line"><a href="#L212">212</a>        local curPopNum = _G.amfBean(&quot;AutoPopupMgr&quot;):getCheckPointPopNum(uniqueKey)</span>
+<span id="L213" class="line"><a href="#L213">213</a>        local limitNum = self:getPopRuleParam1() and tonumber(self:getPopRuleParam1()) or 1</span>
+<span id="L214" class="line"><a href="#L214">214</a>        if curPopNum &lt; limitNum then</span>
+<span id="L215" class="line"><a href="#L215">215</a>            return true</span>
+<span id="L216" class="line"><a href="#L216">216</a>        else</span>
+<span id="L217" class="line"><a href="#L217">217</a>            return false</span>
+<span id="L218" class="line"><a href="#L218">218</a>        end</span>
+<span id="L219" class="line"><a href="#L219">219</a>    elseif autoPopRule == AutoPopupConst.MetaPopupRules.A_LIFE_TIME then</span>
+<span id="L220" class="line"><a href="#L220">220</a>        local curPopNum = _G.amfBean(&quot;AutoPopupMgr&quot;):getPermanentShowNum(uniqueKey)</span>
+<span id="L221" class="line"><a href="#L221">221</a>        local limitNum = self:getPopRuleParam1() and tonumber(self:getPopRuleParam1()) or 1</span>
+<span id="L222" class="line"><a href="#L222">222</a>        if curPopNum &lt; limitNum then</span>
+<span id="L223" class="line"><a href="#L223">223</a>            return true</span>
+<span id="L224" class="line"><a href="#L224">224</a>        else</span>
+<span id="L225" class="line"><a href="#L225">225</a>            return false</span>
+<span id="L226" class="line"><a href="#L226">226</a>        end</span>
+<span id="L227" class="line"><a href="#L227">227</a>    elseif autoPopRule == AutoPopupConst.MetaPopupRules.EVERY_TIME then</span>
+<span id="L228" class="line"><a href="#L228">228</a>        return true</span>
+<span id="L229" class="line"><a href="#L229">229</a>    else</span>
+<span id="L230" class="line"><a href="#L230">230</a>        assert(false, &quot;invalid auto popup rule&quot; .. autoPopRule)</span>
+<span id="L231" class="line"><a href="#L231">231</a>        return false</span>
+<span id="L232" class="line"><a href="#L232">232</a>    end</span>
+<span id="L233" class="line"><a href="#L233">233</a>end</span>
+<span id="L234" class="line"><a href="#L234">234</a></span>
+<span id="L235" class="line"><a href="#L235">235</a>function APMetaConfigRef:needSyncPopupNum()</span>
+<span id="L236" class="line"><a href="#L236">236</a>    local uniqueKey = self:getCacheUniqueKey()</span>
+<span id="L237" class="line"><a href="#L237">237</a>    if not uniqueKey then</span>
+<span id="L238" class="line"><a href="#L238">238</a>        return false</span>
+<span id="L239" class="line"><a href="#L239">239</a>    end</span>
+<span id="L240" class="line"><a href="#L240">240</a>    local autoPopRule = self:getPopRule()</span>
+<span id="L241" class="line"><a href="#L241">241</a>    return autoPopRule == AutoPopupConst.MetaPopupRules.EVERY_DAY or autoPopRule ==</span>
+<span id="L242" class="line"><a href="#L242">242</a>               AutoPopupConst.MetaPopupRules.A_LIFE_TIME</span>
+<span id="L243" class="line"><a href="#L243">243</a>end</span>
+<span id="L244" class="line"><a href="#L244">244</a></span>
+<span id="L245" class="line"><a href="#L245">245</a>-- 调用时机：强弹后，或手动点击活动后</span>
+<span id="L246" class="line"><a href="#L246">246</a>function APMetaConfigRef:syncPopupNum()</span>
+<span id="L247" class="line"><a href="#L247">247</a>    local uniqueKey = self:getCacheUniqueKey()</span>
+<span id="L248" class="line"><a href="#L248">248</a>    if not uniqueKey then</span>
+<span id="L249" class="line"><a href="#L249">249</a>        return false</span>
+<span id="L250" class="line"><a href="#L250">250</a>    end</span>
+<span id="L251" class="line"><a href="#L251">251</a>    local autoPopRule = self:getPopRule()</span>
+<span id="L252" class="line"><a href="#L252">252</a>    if autoPopRule == AutoPopupConst.MetaPopupRules.EVERY_DAY then</span>
+<span id="L253" class="line"><a href="#L253">253</a>        _G.amfBean(&quot;AutoPopupMgr&quot;):sendDailyData(uniqueKey)</span>
+<span id="L254" class="line"><a href="#L254">254</a>    elseif autoPopRule == AutoPopupConst.MetaPopupRules.A_LIFE_TIME then</span>
+<span id="L255" class="line"><a href="#L255">255</a>        _G.amfBean(&quot;AutoPopupMgr&quot;):sendPermanentData(uniqueKey)</span>
+<span id="L256" class="line"><a href="#L256">256</a>    elseif autoPopRule == AutoPopupConst.MetaPopupRules.EVERY_TIME then</span>
+<span id="L257" class="line"><a href="#L257">257</a>        -- do nothing</span>
+<span id="L258" class="line"><a href="#L258">258</a>    else</span>
+<span id="L259" class="line"><a href="#L259">259</a>        assert(false, &quot;invalid auto popup rule&quot; .. autoPopRule)</span>
+<span id="L260" class="line"><a href="#L260">260</a>        return false</span>
+<span id="L261" class="line"><a href="#L261">261</a>    end</span>
+<span id="L262" class="line"><a href="#L262">262</a>end</span>
+<span id="L263" class="line"><a href="#L263">263</a></span>
+<span id="L264" class="line"><a href="#L264">264</a>function APMetaConfigRef:shouldRemoveAfterPop()</span>
+<span id="L265" class="line"><a href="#L265">265</a>    local uniqueKey = self:getCacheUniqueKey()</span>
+<span id="L266" class="line"><a href="#L266">266</a>    if not uniqueKey then</span>
+<span id="L267" class="line"><a href="#L267">267</a>        return true</span>
+<span id="L268" class="line"><a href="#L268">268</a>    end</span>
+<span id="L269" class="line"><a href="#L269">269</a>    local autoPopRule = self:getPopRule()</span>
+<span id="L270" class="line"><a href="#L270">270</a>    if autoPopRule == AutoPopupConst.MetaPopupRules.EVERY_DAY then</span>
+<span id="L271" class="line"><a href="#L271">271</a>        local curPopNum = _G.amfBean(&quot;AutoPopupMgr&quot;):getCheckPointPopNum(uniqueKey)</span>
+<span id="L272" class="line"><a href="#L272">272</a>        local limitNum = self:getPopRuleParam1() and tonumber(self:getPopRuleParam1()) or 1</span>
+<span id="L273" class="line"><a href="#L273">273</a>        if curPopNum &gt;= limitNum then</span>
+<span id="L274" class="line"><a href="#L274">274</a>            return true</span>
+<span id="L275" class="line"><a href="#L275">275</a>        else</span>
+<span id="L276" class="line"><a href="#L276">276</a>            return false</span>
+<span id="L277" class="line"><a href="#L277">277</a>        end</span>
+<span id="L278" class="line"><a href="#L278">278</a>    elseif autoPopRule == AutoPopupConst.MetaPopupRules.A_LIFE_TIME then</span>
+<span id="L279" class="line"><a href="#L279">279</a>        local curPopNum = _G.amfBean(&quot;AutoPopupMgr&quot;):getPermanentShowNum(uniqueKey)</span>
+<span id="L280" class="line"><a href="#L280">280</a>        local limitNum = self:getPopRuleParam1() and tonumber(self:getPopRuleParam1()) or 1</span>
+<span id="L281" class="line"><a href="#L281">281</a>        if curPopNum &gt;= limitNum then</span>
+<span id="L282" class="line"><a href="#L282">282</a>            return true</span>
+<span id="L283" class="line"><a href="#L283">283</a>        else</span>
+<span id="L284" class="line"><a href="#L284">284</a>            return false</span>
+<span id="L285" class="line"><a href="#L285">285</a>        end</span>
+<span id="L286" class="line"><a href="#L286">286</a>    else</span>
+<span id="L287" class="line"><a href="#L287">287</a>        return false</span>
+<span id="L288" class="line"><a href="#L288">288</a>    end</span>
+<span id="L289" class="line"><a href="#L289">289</a>end</span>
+<span id="L290" class="line"><a href="#L290">290</a></span>
+<span id="L291" class="line"><a href="#L291">291</a>function APMetaConfigRef:isTimeEffective()</span>
+<span id="L292" class="line"><a href="#L292">292</a>    local beginTime = self:getValue(&quot;beginTime&quot;)</span>
+<span id="L293" class="line"><a href="#L293">293</a>    local endTime = self:getValue(&quot;endTime&quot;)</span>
+<span id="L294" class="line"><a href="#L294">294</a>    if not beginTime or not endTime then</span>
+<span id="L295" class="line"><a href="#L295">295</a>        return false</span>
+<span id="L296" class="line"><a href="#L296">296</a>    end</span>
+<span id="L297" class="line"><a href="#L297">297</a>    local now = TimeKit:timeInSec()</span>
+<span id="L298" class="line"><a href="#L298">298</a>    if now &lt; beginTime then</span>
+<span id="L299" class="line"><a href="#L299">299</a>        return false</span>
+<span id="L300" class="line"><a href="#L300">300</a>    end</span>
+<span id="L301" class="line"><a href="#L301">301</a>    if now &gt; endTime then</span>
+<span id="L302" class="line"><a href="#L302">302</a>        return false</span>
+<span id="L303" class="line"><a href="#L303">303</a>    end</span>
+<span id="L304" class="line"><a href="#L304">304</a>    return true</span>
+<span id="L305" class="line"><a href="#L305">305</a>end</span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>-- 活动剩余有效期是否足够（暂定60s）</span>
+<span id="L308" class="line"><a href="#L308">308</a>function APMetaConfigRef:isRemainTimeEnough()</span>
+<span id="L309" class="line"><a href="#L309">309</a>    local endTime = self:getValue(&quot;endTime&quot;)</span>
+<span id="L310" class="line"><a href="#L310">310</a>    return (endTime - TimeKit:timeInSec()) &gt; 60</span>
+<span id="L311" class="line"><a href="#L311">311</a>end</span>
+<span id="L312" class="line"><a href="#L312">312</a></span>
+<span id="L313" class="line"><a href="#L313">313</a>function APMetaConfigRef:isPayTypeEffective()</span>
+<span id="L314" class="line"><a href="#L314">314</a>    local autoPopPayType = self:getValue(&quot;autoPopPayType&quot;)</span>
+<span id="L315" class="line"><a href="#L315">315</a>    if autoPopPayType then</span>
+<span id="L316" class="line"><a href="#L316">316</a>        local userPayType = self:getPaymentTagMapping()</span>
+<span id="L317" class="line"><a href="#L317">317</a>        if table.includes(autoPopPayType, userPayType) then</span>
+<span id="L318" class="line"><a href="#L318">318</a>            return true</span>
+<span id="L319" class="line"><a href="#L319">319</a>        else</span>
+<span id="L320" class="line"><a href="#L320">320</a>            AutoPopupDebugLog:log(</span>
+<span id="L321" class="line"><a href="#L321">321</a>                &quot;APMetaConfigRef:isPayTypeEffective false &quot; .. self:getActId() .. &quot;_&quot; .. userPayType .. &quot;_&quot; ..</span>
+<span id="L322" class="line"><a href="#L322">322</a>                    table.tostring(autoPopPayType))</span>
+<span id="L323" class="line"><a href="#L323">323</a>            return false</span>
+<span id="L324" class="line"><a href="#L324">324</a>        end</span>
+<span id="L325" class="line"><a href="#L325">325</a>    end</span>
+<span id="L326" class="line"><a href="#L326">326</a></span>
+<span id="L327" class="line"><a href="#L327">327</a>    return true</span>
+<span id="L328" class="line"><a href="#L328">328</a>end</span>
+<span id="L329" class="line"><a href="#L329">329</a></span>
+<span id="L330" class="line"><a href="#L330">330</a>function APMetaConfigRef:getPaymentTagMapping()</span>
+<span id="L331" class="line"><a href="#L331">331</a>    local paymentTag = UserTagManager:getUserPaymentTag()</span>
+<span id="L332" class="line"><a href="#L332">332</a>    return lua_switch(paymentTag) {</span>
+<span id="L333" class="line"><a href="#L333">333</a>        [UserPaymentTag.kNone] = 0,</span>
+<span id="L334" class="line"><a href="#L334">334</a>        [UserPaymentTag.kLow] = 1,</span>
+<span id="L335" class="line"><a href="#L335">335</a>        [UserPaymentTag.kMidLow] = 2,</span>
+<span id="L336" class="line"><a href="#L336">336</a>        [UserPaymentTag.kMidHigh] = 3,</span>
+<span id="L337" class="line"><a href="#L337">337</a>        [UserPaymentTag.kHigh] = 4,</span>
+<span id="L338" class="line"><a href="#L338">338</a>        default = function()</span>
+<span id="L339" class="line"><a href="#L339">339</a>            return -1</span>
+<span id="L340" class="line"><a href="#L340">340</a>        end</span>
+<span id="L341" class="line"><a href="#L341">341</a>    }</span>
+<span id="L342" class="line"><a href="#L342">342</a>end</span>
+<span id="L343" class="line"><a href="#L343">343</a></span>
+<span id="L344" class="line"><a href="#L344">344</a>function APMetaConfigRef:isActiveTypeEffective()</span>
+<span id="L345" class="line"><a href="#L345">345</a>    local autoPopActiveType = self:getValue(&quot;autoPopActiveType&quot;)</span>
+<span id="L346" class="line"><a href="#L346">346</a>    if autoPopActiveType then</span>
+<span id="L347" class="line"><a href="#L347">347</a>        local userActiveType = self:getActiveTagMapping()</span>
+<span id="L348" class="line"><a href="#L348">348</a>        if table.includes(autoPopActiveType, userActiveType) then</span>
+<span id="L349" class="line"><a href="#L349">349</a>            return true</span>
+<span id="L350" class="line"><a href="#L350">350</a>        else</span>
+<span id="L351" class="line"><a href="#L351">351</a>            AutoPopupDebugLog:log(&quot;APMetaConfigRef:isActiveTypeEffective false &quot; .. self:getActId() .. &quot;_&quot; ..</span>
+<span id="L352" class="line"><a href="#L352">352</a>                                      userActiveType .. &quot;_&quot; .. table.tostring(autoPopActiveType))</span>
+<span id="L353" class="line"><a href="#L353">353</a>            return false</span>
+<span id="L354" class="line"><a href="#L354">354</a>        end</span>
+<span id="L355" class="line"><a href="#L355">355</a>    end</span>
+<span id="L356" class="line"><a href="#L356">356</a></span>
+<span id="L357" class="line"><a href="#L357">357</a>    return true</span>
+<span id="L358" class="line"><a href="#L358">358</a>end</span>
+<span id="L359" class="line"><a href="#L359">359</a></span>
+<span id="L360" class="line"><a href="#L360">360</a>function APMetaConfigRef:getActiveTagMapping()</span>
+<span id="L361" class="line"><a href="#L361">361</a>    local livenessTagValueMap = UserTagValueMap[UserTagNameKeyFullMap.kBiLivenessTag]</span>
+<span id="L362" class="line"><a href="#L362">362</a>    local livenessTag = UserTagManager:getUserTagBySeries(UserTagNameKeyFullMap.kBiLivenessTag)</span>
+<span id="L363" class="line"><a href="#L363">363</a>    return lua_switch(livenessTag) {</span>
+<span id="L364" class="line"><a href="#L364">364</a>        [livenessTagValueMap.kNewUser] = 1,</span>
+<span id="L365" class="line"><a href="#L365">365</a>        [livenessTagValueMap.kReturnUser] = 2,</span>
+<span id="L366" class="line"><a href="#L366">366</a>        [livenessTagValueMap.kLowUser] = 3,</span>
+<span id="L367" class="line"><a href="#L367">367</a>        [livenessTagValueMap.kMiddleLowUser] = 4,</span>
+<span id="L368" class="line"><a href="#L368">368</a>        [livenessTagValueMap.kMiddleUser] = 5,</span>
+<span id="L369" class="line"><a href="#L369">369</a>        [livenessTagValueMap.kMiddleHighUser] = 6,</span>
+<span id="L370" class="line"><a href="#L370">370</a>        [livenessTagValueMap.kHighUser] = 7,</span>
+<span id="L371" class="line"><a href="#L371">371</a>        default = function()</span>
+<span id="L372" class="line"><a href="#L372">372</a>            return 0</span>
+<span id="L373" class="line"><a href="#L373">373</a>        end</span>
+<span id="L374" class="line"><a href="#L374">374</a>    }</span>
+<span id="L375" class="line"><a href="#L375">375</a>end</span>
+<span id="L376" class="line"><a href="#L376">376</a></span>
+<span id="L377" class="line"><a href="#L377">377</a>-- 支持多开关配置&quot;switch1|ON1;switch1|ON2&quot; or &quot;switch1|ON;switch2|ON1;switch2|ON2&quot;</span>
+<span id="L378" class="line"><a href="#L378">378</a>function APMetaConfigRef:isGroupSwitchEffective()</span>
+<span id="L379" class="line"><a href="#L379">379</a>    local groupSwitch = self:getValue(&quot;groupSwitch&quot;)</span>
+<span id="L380" class="line"><a href="#L380">380</a>    if groupSwitch then</span>
+<span id="L381" class="line"><a href="#L381">381</a>        local switches = splite(groupSwitch, &quot;;&quot;)</span>
+<span id="L382" class="line"><a href="#L382">382</a>        if #switches == 0 then</span>
+<span id="L383" class="line"><a href="#L383">383</a>            return true</span>
+<span id="L384" class="line"><a href="#L384">384</a>        end</span>
+<span id="L385" class="line"><a href="#L385">385</a>        for _, singleSwitch in ipairs(switches) do</span>
+<span id="L386" class="line"><a href="#L386">386</a>            local groupSwitchTb = splite(singleSwitch, &quot;|&quot;)</span>
+<span id="L387" class="line"><a href="#L387">387</a>            local switchName = groupSwitchTb[1]</span>
+<span id="L388" class="line"><a href="#L388">388</a>            local switchGroup = groupSwitchTb[2]</span>
+<span id="L389" class="line"><a href="#L389">389</a>            if not switchName or not switchGroup then</span>
+<span id="L390" class="line"><a href="#L390">390</a>                return true</span>
+<span id="L391" class="line"><a href="#L391">391</a>            end</span>
+<span id="L392" class="line"><a href="#L392">392</a>            local isEnabled, _, src = MaintenanceManager.getInstance():isEnabledInGroup(switchName, switchGroup)</span>
+<span id="L393" class="line"><a href="#L393">393</a>            if not isEnabled then</span>
+<span id="L394" class="line"><a href="#L394">394</a>                -- 开关不存在或者配错时，视为开关生效</span>
+<span id="L395" class="line"><a href="#L395">395</a>                isEnabled = src == 5</span>
+<span id="L396" class="line"><a href="#L396">396</a>            end</span>
+<span id="L397" class="line"><a href="#L397">397</a>            if isEnabled then</span>
+<span id="L398" class="line"><a href="#L398">398</a>                return true</span>
+<span id="L399" class="line"><a href="#L399">399</a>            end</span>
+<span id="L400" class="line"><a href="#L400">400</a>        end</span>
+<span id="L401" class="line"><a href="#L401">401</a>    else</span>
+<span id="L402" class="line"><a href="#L402">402</a>        return true</span>
+<span id="L403" class="line"><a href="#L403">403</a>    end</span>
+<span id="L404" class="line"><a href="#L404">404</a>    return false</span>
+<span id="L405" class="line"><a href="#L405">405</a>end</span>
+<span id="L406" class="line"><a href="#L406">406</a></span>
+<span id="L407" class="line"><a href="#L407">407</a>function APMetaConfigRef:isLevelEffective()</span>
+<span id="L408" class="line"><a href="#L408">408</a>    local autoPopMinLevel = self:getValue(&quot;autoPopMinLevel&quot;)</span>
+<span id="L409" class="line"><a href="#L409">409</a>    local autoPopMaxLevel = self:getValue(&quot;autoPopMaxLevel&quot;)</span>
+<span id="L410" class="line"><a href="#L410">410</a>    if autoPopMinLevel and autoPopMaxLevel then</span>
+<span id="L411" class="line"><a href="#L411">411</a>        if autoPopMinLevel == -1 and autoPopMaxLevel == -1 then</span>
+<span id="L412" class="line"><a href="#L412">412</a>            local userState = _G.amfBean(&quot;UserStateManager&quot;):getUserState()</span>
+<span id="L413" class="line"><a href="#L413">413</a>            if userState == _G.UserStateConst.UserLevelState.TOP_LEVEL or userState ==</span>
+<span id="L414" class="line"><a href="#L414">414</a>                _G.UserStateConst.UserLevelState.TOP_STAR then</span>
+<span id="L415" class="line"><a href="#L415">415</a>                return true</span>
+<span id="L416" class="line"><a href="#L416">416</a>            else</span>
+<span id="L417" class="line"><a href="#L417">417</a>                AutoPopupDebugLog:log(&quot;APMetaConfigRef:isLevelEffective 1 false &quot; .. self:getActId() .. &quot;_&quot; .. userState)</span>
+<span id="L418" class="line"><a href="#L418">418</a>                return false</span>
+<span id="L419" class="line"><a href="#L419">419</a>            end</span>
+<span id="L420" class="line"><a href="#L420">420</a>        else</span>
+<span id="L421" class="line"><a href="#L421">421</a>            local topLevel = _G.getTopLevelId()</span>
+<span id="L422" class="line"><a href="#L422">422</a>            if topLevel &gt;= autoPopMinLevel and topLevel &lt;= autoPopMaxLevel then</span>
+<span id="L423" class="line"><a href="#L423">423</a>                return true</span>
+<span id="L424" class="line"><a href="#L424">424</a>            else</span>
+<span id="L425" class="line"><a href="#L425">425</a>                AutoPopupDebugLog:log(&quot;APMetaConfigRef:isLevelEffective 2 false &quot; .. self:getActId() .. &quot;_&quot; .. topLevel)</span>
+<span id="L426" class="line"><a href="#L426">426</a>                return false</span>
+<span id="L427" class="line"><a href="#L427">427</a>            end</span>
+<span id="L428" class="line"><a href="#L428">428</a>        end</span>
+<span id="L429" class="line"><a href="#L429">429</a>    end</span>
+<span id="L430" class="line"><a href="#L430">430</a></span>
+<span id="L431" class="line"><a href="#L431">431</a>    return true</span>
+<span id="L432" class="line"><a href="#L432">432</a>end</span>
+<span id="L433" class="line"><a href="#L433">433</a></span>
+<span id="L434" class="line"><a href="#L434">434</a>function APMetaConfigRef:isStarEffective()</span>
+<span id="L435" class="line"><a href="#L435">435</a>    local autoPopMinStar = self:getValue(&quot;autoPopMinStar&quot;)</span>
+<span id="L436" class="line"><a href="#L436">436</a>    local autoPopMaxStar = self:getValue(&quot;autoPopMaxStar&quot;)</span>
+<span id="L437" class="line"><a href="#L437">437</a>    if autoPopMinStar and autoPopMaxStar then</span>
+<span id="L438" class="line"><a href="#L438">438</a>        if autoPopMinStar == -1 and autoPopMaxStar == -1 then</span>
+<span id="L439" class="line"><a href="#L439">439</a>            local userState = _G.amfBean(&quot;UserStateManager&quot;):getUserLevelState()</span>
+<span id="L440" class="line"><a href="#L440">440</a>            if userState == _G.UserStateConst.UserLevelState.TOP_STAR then</span>
+<span id="L441" class="line"><a href="#L441">441</a>                return true</span>
+<span id="L442" class="line"><a href="#L442">442</a>            else</span>
+<span id="L443" class="line"><a href="#L443">443</a>                AutoPopupDebugLog:log(&quot;APMetaConfigRef:isStarEffective 1 false &quot; .. self:getActId() .. &quot;_&quot; .. userState)</span>
+<span id="L444" class="line"><a href="#L444">444</a>                return false</span>
+<span id="L445" class="line"><a href="#L445">445</a>            end</span>
+<span id="L446" class="line"><a href="#L446">446</a>        else</span>
+<span id="L447" class="line"><a href="#L447">447</a>            local userStarMain = _G.amfBean(&quot;UserManager&quot;):getStar()</span>
+<span id="L448" class="line"><a href="#L448">448</a>            local userStarHide = _G.amfBean(&quot;UserManager&quot;):getHiddenStar()</span>
+<span id="L449" class="line"><a href="#L449">449</a>            local userFullStar = userStarMain + userStarHide</span>
+<span id="L450" class="line"><a href="#L450">450</a>            if userFullStar &gt;= autoPopMinStar and userFullStar &lt;= autoPopMaxStar then</span>
+<span id="L451" class="line"><a href="#L451">451</a>                return true</span>
+<span id="L452" class="line"><a href="#L452">452</a>            else</span>
+<span id="L453" class="line"><a href="#L453">453</a>                AutoPopupDebugLog:log(&quot;APMetaConfigRef:isStarEffective 2 false &quot; .. self:getActId() .. &quot;_&quot; ..</span>
+<span id="L454" class="line"><a href="#L454">454</a>                                          userStarMain .. &quot;_&quot; .. userStarHide)</span>
+<span id="L455" class="line"><a href="#L455">455</a>                return false</span>
+<span id="L456" class="line"><a href="#L456">456</a>            end</span>
+<span id="L457" class="line"><a href="#L457">457</a>        end</span>
+<span id="L458" class="line"><a href="#L458">458</a>    end</span>
+<span id="L459" class="line"><a href="#L459">459</a>    return true</span>
+<span id="L460" class="line"><a href="#L460">460</a>end</span>
+<span id="L461" class="line"><a href="#L461">461</a></span>
+<span id="L462" class="line"><a href="#L462">462</a>function APMetaConfigRef:isMinEnergyEffective()</span>
+<span id="L463" class="line"><a href="#L463">463</a>    local autoPopMinEnergy = self:getValue(&quot;autoPopMinEnergy&quot;)</span>
+<span id="L464" class="line"><a href="#L464">464</a>    if autoPopMinEnergy then</span>
+<span id="L465" class="line"><a href="#L465">465</a>        local curEnergy = _G.amfBean(&quot;UserManager&quot;):getEnergy() or 30</span>
+<span id="L466" class="line"><a href="#L466">466</a>        if curEnergy &lt;= autoPopMinEnergy then</span>
+<span id="L467" class="line"><a href="#L467">467</a>            return true</span>
+<span id="L468" class="line"><a href="#L468">468</a>        else</span>
+<span id="L469" class="line"><a href="#L469">469</a>            AutoPopupDebugLog:log(</span>
+<span id="L470" class="line"><a href="#L470">470</a>                &quot;APMetaConfigRef:isMinEnergyEffective false &quot; .. self:getActId() .. &quot;_&quot; .. curEnergy .. &quot;_&quot; ..</span>
+<span id="L471" class="line"><a href="#L471">471</a>                    autoPopMinEnergy)</span>
+<span id="L472" class="line"><a href="#L472">472</a>            return false</span>
+<span id="L473" class="line"><a href="#L473">473</a>        end</span>
+<span id="L474" class="line"><a href="#L474">474</a>    end</span>
+<span id="L475" class="line"><a href="#L475">475</a>    return true</span>
+<span id="L476" class="line"><a href="#L476">476</a>end</span>
+<span id="L477" class="line"><a href="#L477">477</a></span>
+<span id="L478" class="line"><a href="#L478">478</a>function APMetaConfigRef:isUnlimitedEnergyEffective()</span>
+<span id="L479" class="line"><a href="#L479">479</a>    local autoPopUnlimitedEnergy = self:getValue(&quot;autoPopUnlimitedEnergy&quot;)</span>
+<span id="L480" class="line"><a href="#L480">480</a>    if autoPopUnlimitedEnergy == nil or autoPopUnlimitedEnergy == &quot;&quot; then</span>
+<span id="L481" class="line"><a href="#L481">481</a>        return true</span>
+<span id="L482" class="line"><a href="#L482">482</a>    end</span>
+<span id="L483" class="line"><a href="#L483">483</a></span>
+<span id="L484" class="line"><a href="#L484">484</a>    local energyState = _G.amfBean(&quot;UserEnergyManager&quot;):getEnergyState()</span>
+<span id="L485" class="line"><a href="#L485">485</a>    local isInfinite = energyState == _G.UserEnergyState.INFINITE</span>
+<span id="L486" class="line"><a href="#L486">486</a>    local isEnabled = false</span>
+<span id="L487" class="line"><a href="#L487">487</a>    if autoPopUnlimitedEnergy == &quot;true&quot; then</span>
+<span id="L488" class="line"><a href="#L488">488</a>        isEnabled = isInfinite</span>
+<span id="L489" class="line"><a href="#L489">489</a>    else</span>
+<span id="L490" class="line"><a href="#L490">490</a>        isEnabled = not isInfinite</span>
+<span id="L491" class="line"><a href="#L491">491</a>    end</span>
+<span id="L492" class="line"><a href="#L492">492</a></span>
+<span id="L493" class="line"><a href="#L493">493</a>    if not isEnabled then</span>
+<span id="L494" class="line"><a href="#L494">494</a>        AutoPopupDebugLog:log(&quot;APMetaConfigRef:isUnlimitedEnergyEffective false &quot; .. self:getActId() .. &quot;_&quot; ..</span>
+<span id="L495" class="line"><a href="#L495">495</a>                                  energyState)</span>
+<span id="L496" class="line"><a href="#L496">496</a>    end</span>
+<span id="L497" class="line"><a href="#L497">497</a></span>
+<span id="L498" class="line"><a href="#L498">498</a>    return isEnabled</span>
+<span id="L499" class="line"><a href="#L499">499</a>end</span>
+<span id="L500" class="line"><a href="#L500">500</a></span>
+<span id="L501" class="line"><a href="#L501">501</a>--非自定义强弹</span>
+<span id="L502" class="line"><a href="#L502">502</a>function APMetaConfigRef:isMetaPopConfig()</span>
+<span id="L503" class="line"><a href="#L503">503</a>    local autoPopCustomizedCreator = self:getValue(&quot;autoPopCustomizedCreator&quot;)</span>
+<span id="L504" class="line"><a href="#L504">504</a>    if autoPopCustomizedCreator == nil then</span>
+<span id="L505" class="line"><a href="#L505">505</a>        return true</span>
+<span id="L506" class="line"><a href="#L506">506</a>    end</span>
+<span id="L507" class="line"><a href="#L507">507</a>end</span>
+<span id="L508" class="line"><a href="#L508">508</a></span>
+<span id="L509" class="line"><a href="#L509">509</a>function APMetaConfigRef:isCustomizedCheckFulfill(data)</span>
+<span id="L510" class="line"><a href="#L510">510</a>    local autoPopCustomizedCheck = self:getValue(&quot;autoPopCustomizedCheck&quot;)</span>
+<span id="L511" class="line"><a href="#L511">511</a>    if autoPopCustomizedCheck == nil then</span>
+<span id="L512" class="line"><a href="#L512">512</a>        return true</span>
+<span id="L513" class="line"><a href="#L513">513</a>    end</span>
+<span id="L514" class="line"><a href="#L514">514</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L515" class="line"><a href="#L515">515</a>        local ret = autoPopCustomizedCheck(data or {})</span>
+<span id="L516" class="line"><a href="#L516">516</a>        return ret</span>
+<span id="L517" class="line"><a href="#L517">517</a>    end</span>
+<span id="L518" class="line"><a href="#L518">518</a>    local status, ret = pcall(autoPopCustomizedCheck, data or {})</span>
+<span id="L519" class="line"><a href="#L519">519</a>    return status and ret</span>
+<span id="L520" class="line"><a href="#L520">520</a>end</span>
+<span id="L521" class="line"><a href="#L521">521</a></span>
+<span id="L522" class="line"><a href="#L522">522</a>function APMetaConfigRef:getCustomizedCreator()</span>
+<span id="L523" class="line"><a href="#L523">523</a>    return self:getValue(&quot;autoPopCustomizedCreator&quot;)</span>
+<span id="L524" class="line"><a href="#L524">524</a>end</span>
+<span id="L525" class="line"><a href="#L525">525</a></span>
+<span id="L526" class="line"><a href="#L526">526</a>-- 检测并准备强弹数据</span>
+<span id="L527" class="line"><a href="#L527">527</a>function APMetaConfigRef:checkAndGetPopData(data)</span>
+<span id="L528" class="line"><a href="#L528">528</a>    local levelData = data.levelData</span>
+<span id="L529" class="line"><a href="#L529">529</a>    local popupStage = data.popStage</span>
+<span id="L530" class="line"><a href="#L530">530</a>    local isMetaPop = data.isMetaPop</span>
+<span id="L531" class="line"><a href="#L531">531</a>    local popData</span>
+<span id="L532" class="line"><a href="#L532">532</a></span>
+<span id="L533" class="line"><a href="#L533">533</a>    --配置化强弹自定义不触发</span>
+<span id="L534" class="line"><a href="#L534">534</a>    if isMetaPop and not self:isMetaPopConfig() then</span>
+<span id="L535" class="line"><a href="#L535">535</a>        return</span>
+<span id="L536" class="line"><a href="#L536">536</a>    end</span>
+<span id="L537" class="line"><a href="#L537">537</a></span>
+<span id="L538" class="line"><a href="#L538">538</a>    if not table.exist(self:getPopScene(), popupStage) then</span>
+<span id="L539" class="line"><a href="#L539">539</a>        return</span>
+<span id="L540" class="line"><a href="#L540">540</a>    end</span>
+<span id="L541" class="line"><a href="#L541">541</a></span>
+<span id="L542" class="line"><a href="#L542">542</a>    if isMetaPop and _G.amfBean(&quot;ActivityParticipationMgr&quot;)</span>
+<span id="L543" class="line"><a href="#L543">543</a>        :shouldReduceConfiguredMainPanelAutoPopup(self:getActId()) then</span>
+<span id="L544" class="line"><a href="#L544">544</a>        return</span>
+<span id="L545" class="line"><a href="#L545">545</a>    end</span>
+<span id="L546" class="line"><a href="#L546">546</a></span>
+<span id="L547" class="line"><a href="#L547">547</a>    if self:isLevelEffective() and self:isStarEffective() and self:isMinEnergyEffective() and</span>
+<span id="L548" class="line"><a href="#L548">548</a>        self:isUnlimitedEnergyEffective() and self:isCustomizedCheckFulfill(levelData) then</span>
+<span id="L549" class="line"><a href="#L549">549</a>        local metaId = self:getMetaId()</span>
+<span id="L550" class="line"><a href="#L550">550</a>        local actId = self:getActId()</span>
+<span id="L551" class="line"><a href="#L551">551</a></span>
+<span id="L552" class="line"><a href="#L552">552</a>        -- 主面板强弹</span>
+<span id="L553" class="line"><a href="#L553">553</a>        local function setPopData(type)</span>
+<span id="L554" class="line"><a href="#L554">554</a>            popData = {</span>
+<span id="L555" class="line"><a href="#L555">555</a>                metaId = metaId,</span>
+<span id="L556" class="line"><a href="#L556">556</a>                actId = actId,</span>
+<span id="L557" class="line"><a href="#L557">557</a>                levelData = data,</span>
+<span id="L558" class="line"><a href="#L558">558</a>                priority = self:getPopRelativePriority(),</span>
+<span id="L559" class="line"><a href="#L559">559</a>                autoPopupConfig = self,</span>
+<span id="L560" class="line"><a href="#L560">560</a>                type = type,</span>
+<span id="L561" class="line"><a href="#L561">561</a>            }</span>
+<span id="L562" class="line"><a href="#L562">562</a>        end</span>
+<span id="L563" class="line"><a href="#L563">563</a></span>
+<span id="L564" class="line"><a href="#L564">564</a>        if isMetaPop then</span>
+<span id="L565" class="line"><a href="#L565">565</a>            --剩余时间足够触发</span>
+<span id="L566" class="line"><a href="#L566">566</a>            if self:isRemainTimeEnough() then</span>
+<span id="L567" class="line"><a href="#L567">567</a>                setPopData(ActivityConst.PopType.MAIN_PANEL)</span>
+<span id="L568" class="line"><a href="#L568">568</a>            end</span>
+<span id="L569" class="line"><a href="#L569">569</a>        else</span>
+<span id="L570" class="line"><a href="#L570">570</a>            if popupStage == AutoPopupConst.PopStageId.STAGE_THREE and self:isStage3CustomizedPopup() then</span>
+<span id="L571" class="line"><a href="#L571">571</a>                setPopData(ActivityConst.PopType.CUSTOMIZE)</span>
+<span id="L572" class="line"><a href="#L572">572</a>            elseif popupStage == AutoPopupConst.PopStageId.STAGE_FOUR and self:isStage4CustomizedPopup() then</span>
+<span id="L573" class="line"><a href="#L573">573</a>                setPopData(ActivityConst.PopType.CUSTOMIZE)</span>
+<span id="L574" class="line"><a href="#L574">574</a>            end</span>
+<span id="L575" class="line"><a href="#L575">575</a>        end</span>
+<span id="L576" class="line"><a href="#L576">576</a>    end</span>
+<span id="L577" class="line"><a href="#L577">577</a></span>
+<span id="L578" class="line"><a href="#L578">578</a>    return popData</span>
+<span id="L579" class="line"><a href="#L579">579</a>end</span>
+<span id="L580" class="line"><a href="#L580">580</a></span>
+<span id="L581" class="line"><a href="#L581">581</a>return APMetaConfigRef</span></pre></main></html>

@@ -1,0 +1,24 @@
+policy,value,unit,scope,source,line
+AI invalid score fallback,0.12,score,Value absent from [0..1] or nonnumeric,amf/feature/localactivity/aipopup/model/AIPopupModel.lua,16
+AI prediction cache,3,days,Most recent natural-day entries retained,amf/feature/localactivity/aipopup/model/AIPopupModel.lua,13
+AI prediction fetch,1,successful fetch per natural day,Maintenance-enabled and no inflight request,amf/feature/localactivity/aipopup/AIPopupManager.lua,93
+AI request timeout,10,seconds,ONLINE aiAutoPopInfo,amf/feature/localactivity/aipopup/http/RequestAiAutoPopInfo.lua,10
+AI applicable stages,3 and 4,stage IDs,At least two scored candidates required,amf/feature/localactivity/aipopup/AIPopupManager.lua,195
+Stage 2 combined budget,4,popups,Non-exempt types including previous invocation when <=300s,amf/middleware/autopop/config/AutoPopupLimit.lua,214
+Stage 4 transition budget,1,popup,Non-exempt types from stage 3 to 4,amf/middleware/autopop/config/AutoPopupLimit.lua,215
+Stage 2 carryover interval,300,seconds,Strictly greater resets prior invocation contribution,amf/middleware/autopop/config/AutoPopupLimit.lua,219
+Configured main panel minimum remaining,60,seconds,Strictly greater required,amf/middleware/activity/config/APMetaConfigRef.lua,308
+Default checkpoint daily cap,1,popup/day,Unless explicitly overridden; -1 skips only framework daily cap,amf/middleware/autopop/AutoPopupMgr.lua,661
+New-level protection window,14400,seconds,Default since area opened,amf/middleware/levelarea/unlock/module/UnlockConfigCheck.lua,44
+Legacy pay cutoffs,13;47;240,source amount units,Last 60 days paid amount,ubf/old/gamePlay/userTags/UserTagManager.lua,728
+V2 additional pay cutoffs,1000;3000,source amount units,Split top pay segment into High4/5/6,ubf/old/gamePlay/userTags/UserTagManager.lua,743
+DP cache validity,604800,seconds,Strict age below 7 days,ubf/old/gamePlay/userTags/DpUserTagModel.lua,200
+Autostart novice levels,1..5,level ID,Energy>=5 and App or keepinlevel ON,amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua,130
+Autostart expanded levels,1..100,level ID,Non recall and sufficient/infinite energy and not ON5,amf/middleware/autopop/module/popstage/Stage2EnterSceneHandler.lua,176
+Star farming unlock proximity,15,levels,topLevel-currentLevel strictly below cutoff,amf/feature/recommendlevel/recommendstrategy/strategy/DefaultNextLevelCalc.lua,26
+New-level notification proximity,5,levels,userTop>=localTop-5 with valid future countdown,amf/middleware/data/userdata/levelarea/localpush/LocalPush.lua,17
+Limited push morning,8,hour of local day,At most one priority-selected future alarm over one hour away,amf/middleware/notification/localpush/LocalPushManager.lua,286
+Limited push evening,20.5,hour of local day,At most one priority-selected future alarm over one hour away,amf/middleware/notification/localpush/LocalPushManager.lua,300
+Push minimum lead,3600,seconds,At or below this lead is skipped for fixed windows,amf/middleware/notification/localpush/util/LocalPushUtil.lua,105
+Loss reminders,7;8;9,days since today start,Types30/31/32 replan via userLose group,amf/middleware/data/userdata/user/localpush/LocalPush.lua,16
+Lucky delivery reminder,23.5,hours since login,Random one of four explicit copies before common policy,amf/feature/localactivity/luckydelivery/localpush/LocalPush.lua,30

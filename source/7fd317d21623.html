@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/eliminatefestival2026comic/config/EliminateFestival2026ComicMeta.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="7fd317d21623.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/eliminatefestival2026comic/config/EliminateFestival2026ComicMeta.lua</h1><p>SHA256 b88e47568b042a2ce427031db3e4e89d42645c58a672d2d39bfd695c61165aee</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Meta = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>require &quot;amf.middleware.data.userdata.servercache.config.GuideFlagConst&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>-- 需求基础条件：活动时间、开放等级和一次性展示标记。</span>
+<span id="L6" class="line"><a href="#L6">6</a>Meta.OPEN_LEVEL = 30</span>
+<span id="L7" class="line"><a href="#L7">7</a>Meta.START_TIME = os.time({ year = 2026, month = 7, day = 13, hour = 10, min = 0, sec = 0 })</span>
+<span id="L8" class="line"><a href="#L8">8</a>Meta.END_TIME = os.time({ year = 2026, month = 8, day = 8, hour = 23, min = 59, sec = 59 })</span>
+<span id="L9" class="line"><a href="#L9">9</a>Meta.GUIDE_FLAG = GuideFlagConst.ELIMINATE_FESTIVAL_2026_COMIC</span>
+<span id="L10" class="line"><a href="#L10">10</a>Meta.DEBUG_FORCE_STAGE2_POPUP = true</span>
+<span id="L11" class="line"><a href="#L11">11</a></span>
+<span id="L12" class="line"><a href="#L12">12</a>Meta.CLICK_LOCK_TIME = 2</span>
+<span id="L13" class="line"><a href="#L13">13</a>Meta.PANEL_WIDTH = 720</span>
+<span id="L14" class="line"><a href="#L14">14</a>Meta.PANEL_HEIGHT = 1280</span>
+<span id="L15" class="line"><a href="#L15">15</a>Meta.DARK_OPACITY = 255</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a>Meta.SPINE_PATH = &quot;amf/activity/eliminatefestival2026comic/spine/comics_xiaochujie/comics_xiaochujie.skel&quot;</span>
+<span id="L18" class="line"><a href="#L18">18</a>Meta.SPINE_ANIM = &quot;idle2&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a>Meta.SPINE_SCALE = 1</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>-- UI 导出只保留挂载节点，实际位置统一在这里配置，方便后续跟随美术调参。</span>
+<span id="L22" class="line"><a href="#L22">22</a>Meta.SPINE_POS_X = 360</span>
+<span id="L23" class="line"><a href="#L23">23</a>Meta.SPINE_POS_Y = 640</span>
+<span id="L24" class="line"><a href="#L24">24</a>Meta.CONTINUE_POS_X = 360</span>
+<span id="L25" class="line"><a href="#L25">25</a>Meta.CONTINUE_POS_Y = 50</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>return Meta</span></pre></main></html>

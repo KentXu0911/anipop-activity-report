@@ -1,0 +1,113 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/notification/localpush/util/LocalPushUtil.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="81ad0709f70b.lua" download>下载Lua原文</a></p><h1>amf/middleware/notification/localpush/util/LocalPushUtil.lua</h1><p>SHA256 42d076ad082280b68bdf819e20d62fd7fcffa0d7c9136c932af30da67a9a385f</p><pre><span id="L1" class="line"><a href="#L1">1</a>local LocalPushUtil = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>function LocalPushUtil:getUserUidLastNumber()</span>
+<span id="L4" class="line"><a href="#L4">4</a>    --获取自己的尾号 后一个12345 是防止离线情况注册账号 uid为设备ID 无法转换数字的情况</span>
+<span id="L5" class="line"><a href="#L5">5</a>	local uid = tonumber(_G.getSafeUid())</span>
+<span id="L6" class="line"><a href="#L6">6</a>	local lastNumber = uid%100</span>
+<span id="L7" class="line"><a href="#L7">7</a>	return lastNumber</span>
+<span id="L8" class="line"><a href="#L8">8</a>end</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>local function formatStr(str, params)</span>
+<span id="L11" class="line"><a href="#L11">11</a>    if not str then</span>
+<span id="L12" class="line"><a href="#L12">12</a>        return nil</span>
+<span id="L13" class="line"><a href="#L13">13</a>    end</span>
+<span id="L14" class="line"><a href="#L14">14</a>	if params == nil then return str end</span>
+<span id="L15" class="line"><a href="#L15">15</a>	local newStr = str</span>
+<span id="L16" class="line"><a href="#L16">16</a>	--字符串 参数 替换</span>
+<span id="L17" class="line"><a href="#L17">17</a>	for k, v in pairs(params) do</span>
+<span id="L18" class="line"><a href="#L18">18</a>		local param1 = &#x27;{&#x27;..k..&#x27;}&#x27;</span>
+<span id="L19" class="line"><a href="#L19">19</a>		local param2 = v</span>
+<span id="L20" class="line"><a href="#L20">20</a>		newStr = string.gsub( newStr, param1, param2 )</span>
+<span id="L21" class="line"><a href="#L21">21</a>	end</span>
+<span id="L22" class="line"><a href="#L22">22</a></span>
+<span id="L23" class="line"><a href="#L23">23</a>	return newStr</span>
+<span id="L24" class="line"><a href="#L24">24</a>end</span>
+<span id="L25" class="line"><a href="#L25">25</a></span>
+<span id="L26" class="line"><a href="#L26">26</a>-- 修改文案规则</span>
+<span id="L27" class="line"><a href="#L27">27</a>function LocalPushUtil:makeStructRandomMessage(structAddAlarm, metaCfg, data)</span>
+<span id="L28" class="line"><a href="#L28">28</a>    -- 文本参数</span>
+<span id="L29" class="line"><a href="#L29">29</a>    local params = data.params or {}</span>
+<span id="L30" class="line"><a href="#L30">30</a>    params[&quot;0&quot;] = formatNameForShow(_G.amfBean(&quot;ProfileManager&quot;):getName(), 6)</span>
+<span id="L31" class="line"><a href="#L31">31</a>    if data.title and data.message then</span>
+<span id="L32" class="line"><a href="#L32">32</a>        structAddAlarm:setTitle(formatStr(data.title, params))</span>
+<span id="L33" class="line"><a href="#L33">33</a>        structAddAlarm:setMessage(formatStr(data.message, params))</span>
+<span id="L34" class="line"><a href="#L34">34</a>        return structAddAlarm</span>
+<span id="L35" class="line"><a href="#L35">35</a>    end</span>
+<span id="L36" class="line"><a href="#L36">36</a>    if structAddAlarm.labelType ~= 0 then</span>
+<span id="L37" class="line"><a href="#L37">37</a>        local title = metaCfg[&quot;title&quot;..structAddAlarm.labelType]</span>
+<span id="L38" class="line"><a href="#L38">38</a>        local message = metaCfg[&quot;text&quot;..structAddAlarm.labelType]</span>
+<span id="L39" class="line"><a href="#L39">39</a>        -- TODO pic 貌似没有用</span>
+<span id="L40" class="line"><a href="#L40">40</a>        -- local pic = metaCfg[&quot;pic&quot;..structAddAlarm.labelType]</span>
+<span id="L41" class="line"><a href="#L41">41</a>        structAddAlarm:setTitle(formatStr(data.title, params) or formatStr(title, params))</span>
+<span id="L42" class="line"><a href="#L42">42</a>        structAddAlarm:setMessage(formatStr(data.message, params) or formatStr(message, params))</span>
+<span id="L43" class="line"><a href="#L43">43</a>    else</span>
+<span id="L44" class="line"><a href="#L44">44</a>        local selfUidLastNumber = self:getUserUidLastNumber()</span>
+<span id="L45" class="line"><a href="#L45">45</a>        for i= 1, 4 do</span>
+<span id="L46" class="line"><a href="#L46">46</a>			if not metaCfg[&#x27;uidTail&#x27;..i] then</span>
+<span id="L47" class="line"><a href="#L47">47</a>				break</span>
+<span id="L48" class="line"><a href="#L48">48</a>			end</span>
+<span id="L49" class="line"><a href="#L49">49</a></span>
+<span id="L50" class="line"><a href="#L50">50</a>			local parts = string.split(metaCfg[&#x27;uidTail&#x27;..i], &#x27;~&#x27;)</span>
+<span id="L51" class="line"><a href="#L51">51</a>			if #parts == 2 then</span>
+<span id="L52" class="line"><a href="#L52">52</a>				--说明是区间段</span>
+<span id="L53" class="line"><a href="#L53">53</a>				if selfUidLastNumber &gt;= tonumber(parts[1]) and selfUidLastNumber &lt;= tonumber(parts[2]) then</span>
+<span id="L54" class="line"><a href="#L54">54</a>                    local title = metaCfg[&#x27;title&#x27;..i]</span>
+<span id="L55" class="line"><a href="#L55">55</a>                    local message = metaCfg[&#x27;text&#x27;..i]</span>
+<span id="L56" class="line"><a href="#L56">56</a>                    local pic = metaCfg[&#x27;pic&#x27;..i]</span>
+<span id="L57" class="line"><a href="#L57">57</a>                    structAddAlarm:setTitle(title)</span>
+<span id="L58" class="line"><a href="#L58">58</a>                        :setTitle(formatStr(data.title, params) or formatStr(title, params))</span>
+<span id="L59" class="line"><a href="#L59">59</a>                        :setMessage(formatStr(data.message, params) or formatStr(message, params))</span>
+<span id="L60" class="line"><a href="#L60">60</a>                        -- :setPicId(pic)</span>
+<span id="L61" class="line"><a href="#L61">61</a>                        :setLabelType(i)</span>
+<span id="L62" class="line"><a href="#L62">62</a>					break</span>
+<span id="L63" class="line"><a href="#L63">63</a>				end</span>
+<span id="L64" class="line"><a href="#L64">64</a>			else</span>
+<span id="L65" class="line"><a href="#L65">65</a>				--说明是单个尾号</span>
+<span id="L66" class="line"><a href="#L66">66</a>				if selfUidLastNumber == tonumber(parts[1]) then</span>
+<span id="L67" class="line"><a href="#L67">67</a>                    local title = metaCfg[&#x27;title&#x27;..i]</span>
+<span id="L68" class="line"><a href="#L68">68</a>                    local message = metaCfg[&#x27;text&#x27;..i]</span>
+<span id="L69" class="line"><a href="#L69">69</a>                    local pic = metaCfg[&#x27;pic&#x27;..i]</span>
+<span id="L70" class="line"><a href="#L70">70</a>					structAddAlarm:setTitle(title)</span>
+<span id="L71" class="line"><a href="#L71">71</a>                        :setTitle(formatStr(data.title, params) or formatStr(title, params))</span>
+<span id="L72" class="line"><a href="#L72">72</a>                        :setMessage(formatStr(data.message, params) or formatStr(message, params))</span>
+<span id="L73" class="line"><a href="#L73">73</a>                        -- :setPicId(pic)</span>
+<span id="L74" class="line"><a href="#L74">74</a>                        :setLabelType(i)</span>
+<span id="L75" class="line"><a href="#L75">75</a>					break</span>
+<span id="L76" class="line"><a href="#L76">76</a>				end</span>
+<span id="L77" class="line"><a href="#L77">77</a>			end</span>
+<span id="L78" class="line"><a href="#L78">78</a>		end</span>
+<span id="L79" class="line"><a href="#L79">79</a>    end</span>
+<span id="L80" class="line"><a href="#L80">80</a>    return structAddAlarm</span>
+<span id="L81" class="line"><a href="#L81">81</a>end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>-- 修改即时推送时间</span>
+<span id="L84" class="line"><a href="#L84">84</a>function LocalPushUtil:makeStructChangePushTime(structAddAlarm, metaCfg)</span>
+<span id="L85" class="line"><a href="#L85">85</a>    -- 不是即时推送不处理</span>
+<span id="L86" class="line"><a href="#L86">86</a>    if metaCfg.groupId ~= LocalPushConst.AlarmType.NO_LIMIT then</span>
+<span id="L87" class="line"><a href="#L87">87</a>        return structAddAlarm</span>
+<span id="L88" class="line"><a href="#L88">88</a>    end</span>
+<span id="L89" class="line"><a href="#L89">89</a>    -- 修改推送时间, 即时推送</span>
+<span id="L90" class="line"><a href="#L90">90</a>    local dayStartTime = TimeKit:getDayStartTimeByTS(structAddAlarm.timeStamp)</span>
+<span id="L91" class="line"><a href="#L91">91</a>    if structAddAlarm.timeStamp &lt; dayStartTime + 7 * 3600 then</span>
+<span id="L92" class="line"><a href="#L92">92</a>        structAddAlarm:setTimeStamp(dayStartTime + 7 * 3600) --7点前 改到7点推送</span>
+<span id="L93" class="line"><a href="#L93">93</a>    elseif structAddAlarm.timeStamp &gt; dayStartTime + 22 * 3600 then</span>
+<span id="L94" class="line"><a href="#L94">94</a>        structAddAlarm:setTimeStamp(dayStartTime + 24*3600 + 7 * 3600) --如果22点后 次日7点推送</span>
+<span id="L95" class="line"><a href="#L95">95</a>    end</span>
+<span id="L96" class="line"><a href="#L96">96</a>    return structAddAlarm</span>
+<span id="L97" class="line"><a href="#L97">97</a>end</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>-- 检查添加的闹钟是否已经过期</span>
+<span id="L100" class="line"><a href="#L100">100</a>function LocalPushUtil:checkAddAlarmTimeValid(timeStamp)</span>
+<span id="L101" class="line"><a href="#L101">101</a>    return timeStamp &gt; os.time()</span>
+<span id="L102" class="line"><a href="#L102">102</a>end</span>
+<span id="L103" class="line"><a href="#L103">103</a></span>
+<span id="L104" class="line"><a href="#L104">104</a>--根据天数 找出每天优先级最高的 如果当前时间距离推送时间不足1小时不推送</span>
+<span id="L105" class="line"><a href="#L105">105</a>function LocalPushUtil:isNearOneHour( timeStamp )</span>
+<span id="L106" class="line"><a href="#L106">106</a>    if timeStamp - os.time() &gt;= 0 and timeStamp - os.time() &lt;= 3600 then</span>
+<span id="L107" class="line"><a href="#L107">107</a>        return true</span>
+<span id="L108" class="line"><a href="#L108">108</a>    end</span>
+<span id="L109" class="line"><a href="#L109">109</a>    return false</span>
+<span id="L110" class="line"><a href="#L110">110</a>end</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a></span>
+<span id="L113" class="line"><a href="#L113">113</a>return LocalPushUtil</span></pre></main></html>

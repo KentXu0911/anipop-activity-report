@@ -1,0 +1,284 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/fishingwinner/config/FishingWinnerConst.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="58f8bdf5800f.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/fishingwinner/config/FishingWinnerConst.lua</h1><p>SHA256 16c7c926a95164ac0774372fd4a63837efd9180d06541cc9fb1464311430817c</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Meta = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a>Meta.actId = 6077</span>
+<span id="L3" class="line"><a href="#L3">3</a>-- 板子换色</span>
+<span id="L4" class="line"><a href="#L4">4</a>Meta.CustomColorCfg = {</span>
+<span id="L5" class="line"><a href="#L5">5</a>    bgColor = &quot;519be0ff&quot;,</span>
+<span id="L6" class="line"><a href="#L6">6</a>    titleColor = &quot;206384ff&quot;,</span>
+<span id="L7" class="line"><a href="#L7">7</a>}</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>Meta.haptics = {</span>
+<span id="L10" class="line"><a href="#L10">10</a>    FISHING = &quot;fishing&quot;,</span>
+<span id="L11" class="line"><a href="#L11">11</a>    LONGTAPLIGHT = &quot;longTapLight&quot;,</span>
+<span id="L12" class="line"><a href="#L12">12</a>    LONGTAPMID = &quot;longTapMid&quot;,</span>
+<span id="L13" class="line"><a href="#L13">13</a>    LONGTAPHEAVY = &quot;longTapHeavy&quot;,</span>
+<span id="L14" class="line"><a href="#L14">14</a>}</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>Meta.infoPrefix = &quot;userInfo&quot; -- 数据keyChain前缀，可以没有，说明你直接存在data里，没再加个表</span>
+<span id="L17" class="line"><a href="#L17">17</a>Meta.configPrefix = &quot;localConfig&quot; -- 配置keyChain前缀，同上</span>
+<span id="L18" class="line"><a href="#L18">18</a>Meta.timePrefix = &quot;actTime&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a>Meta.needLoadFiles = {</span>
+<span id="L20" class="line"><a href="#L20">20</a>    &quot;amf/activity/fishingwinner/materials/goldHook.png&quot;,</span>
+<span id="L21" class="line"><a href="#L21">21</a>    &quot;amf/activity/fishingwinner/materials/goldHook_bait.png&quot;,</span>
+<span id="L22" class="line"><a href="#L22">22</a>    &quot;amf/activity/fishingwinner/materials/normalHook_bait.png&quot;,</span>
+<span id="L23" class="line"><a href="#L23">23</a>    &quot;amf/activity/fishingwinner/materials/normalHook.png&quot;,</span>
+<span id="L24" class="line"><a href="#L24">24</a>    &quot;amf/activity/fishingwinner/materials/score.png&quot;,</span>
+<span id="L25" class="line"><a href="#L25">25</a>}</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>-- 引导标记 10以前的为永久标记</span>
+<span id="L28" class="line"><a href="#L28">28</a>Meta.Guide = {</span>
+<span id="L29" class="line"><a href="#L29">29</a>    NewUser1 = 1,</span>
+<span id="L30" class="line"><a href="#L30">30</a>    NewUser2 = 2,</span>
+<span id="L31" class="line"><a href="#L31">31</a>    NewUser3 = 3,</span>
+<span id="L32" class="line"><a href="#L32">32</a>    PopGuidePanel = 4,</span>
+<span id="L33" class="line"><a href="#L33">33</a>    BigFishGuide = 5,    -- 大鱼来袭面板</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>    FreeNewerCollection = 11, -- 新手免费送收集物的动画</span>
+<span id="L36" class="line"><a href="#L36">36</a>    NewFishInt = 12,    -- 保存新鱼列表</span>
+<span id="L37" class="line"><a href="#L37">37</a>    PopHandBook = 14,    -- 图鉴强弹</span>
+<span id="L38" class="line"><a href="#L38">38</a>    PopSkipFishingConfirmPanel = 15, -- 本期已弹出跳过钓鱼流程确认面板</span>
+<span id="L39" class="line"><a href="#L39">39</a>    SkipFishingProcess = 16, -- 本期已选择跳过钓鱼流程</span>
+<span id="L40" class="line"><a href="#L40">40</a>}</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>Meta.scoreItemId = 50000</span>
+<span id="L43" class="line"><a href="#L43">43</a>Meta.normalHookItemId = 57466</span>
+<span id="L44" class="line"><a href="#L44">44</a>Meta.goldHookItemId = 57467</span>
+<span id="L45" class="line"><a href="#L45">45</a>Meta.scoreBuff20ItemId = 57468</span>
+<span id="L46" class="line"><a href="#L46">46</a>Meta.scoreBuff50ItemId = 57469</span>
+<span id="L47" class="line"><a href="#L47">47</a>Meta.doubleBuffItemId = 57470</span>
+<span id="L48" class="line"><a href="#L48">48</a>-- Meta.baitItemId = 50003</span>
+<span id="L49" class="line"><a href="#L49">49</a>-- Meta.kissFishBuffItemId = 50004</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>--关卡内鱼钩CollectionId</span>
+<span id="L52" class="line"><a href="#L52">52</a>Meta.normalHookCollectionId = 178</span>
+<span id="L53" class="line"><a href="#L53">53</a></span>
+<span id="L54" class="line"><a href="#L54">54</a>Meta.fishIdToSpine = {</span>
+<span id="L55" class="line"><a href="#L55">55</a>    [4] = {</span>
+<span id="L56" class="line"><a href="#L56">56</a>        name = &quot;a_1_3&quot;,</span>
+<span id="L57" class="line"><a href="#L57">57</a>        slot = &quot;a_1_1&quot;,</span>
+<span id="L58" class="line"><a href="#L58">58</a>        pic = &quot;a_1_1a&quot;,</span>
+<span id="L59" class="line"><a href="#L59">59</a>    },</span>
+<span id="L60" class="line"><a href="#L60">60</a>    [5] = {</span>
+<span id="L61" class="line"><a href="#L61">61</a>        name = &quot;a_1_3&quot;,</span>
+<span id="L62" class="line"><a href="#L62">62</a>        slot = &quot;a_1_1&quot;,</span>
+<span id="L63" class="line"><a href="#L63">63</a>        pic = &quot;a_1_1b&quot;,</span>
+<span id="L64" class="line"><a href="#L64">64</a>    },</span>
+<span id="L65" class="line"><a href="#L65">65</a>    [6] = {</span>
+<span id="L66" class="line"><a href="#L66">66</a>        name = &quot;a_1_3&quot;,</span>
+<span id="L67" class="line"><a href="#L67">67</a>        slot = &quot;a_1_1&quot;,</span>
+<span id="L68" class="line"><a href="#L68">68</a>        pic = &quot;a_1_1c&quot;,</span>
+<span id="L69" class="line"><a href="#L69">69</a>    },</span>
+<span id="L70" class="line"><a href="#L70">70</a>    [3] = {</span>
+<span id="L71" class="line"><a href="#L71">71</a>        name = &quot;a_2_3&quot;,</span>
+<span id="L72" class="line"><a href="#L72">72</a>        slot = &quot;a_2_1&quot;,</span>
+<span id="L73" class="line"><a href="#L73">73</a>        pic = &quot;a_2_1a&quot;,</span>
+<span id="L74" class="line"><a href="#L74">74</a>    },</span>
+<span id="L75" class="line"><a href="#L75">75</a>    [2] = {</span>
+<span id="L76" class="line"><a href="#L76">76</a>        name = &quot;a_2_3&quot;,</span>
+<span id="L77" class="line"><a href="#L77">77</a>        slot = &quot;a_2_1&quot;,</span>
+<span id="L78" class="line"><a href="#L78">78</a>        pic = &quot;a_2_1b&quot;,</span>
+<span id="L79" class="line"><a href="#L79">79</a>    },</span>
+<span id="L80" class="line"><a href="#L80">80</a>    [1] = {</span>
+<span id="L81" class="line"><a href="#L81">81</a>        name = &quot;a_2_3&quot;,</span>
+<span id="L82" class="line"><a href="#L82">82</a>        slot = &quot;a_2_1&quot;,</span>
+<span id="L83" class="line"><a href="#L83">83</a>        pic = &quot;a_2_1c&quot;,</span>
+<span id="L84" class="line"><a href="#L84">84</a>    },</span>
+<span id="L85" class="line"><a href="#L85">85</a>    [10] = {</span>
+<span id="L86" class="line"><a href="#L86">86</a>        name  = &quot;b_1_3&quot;,</span>
+<span id="L87" class="line"><a href="#L87">87</a>        slot = &quot;b_1_1&quot;,</span>
+<span id="L88" class="line"><a href="#L88">88</a>        pic = &quot;b_1_1a&quot;,</span>
+<span id="L89" class="line"><a href="#L89">89</a>    },</span>
+<span id="L90" class="line"><a href="#L90">90</a>    [11] = {</span>
+<span id="L91" class="line"><a href="#L91">91</a>        name  = &quot;b_1_3&quot;,</span>
+<span id="L92" class="line"><a href="#L92">92</a>        slot = &quot;b_1_1&quot;,</span>
+<span id="L93" class="line"><a href="#L93">93</a>        pic = &quot;b_1_1b&quot;,</span>
+<span id="L94" class="line"><a href="#L94">94</a>    },</span>
+<span id="L95" class="line"><a href="#L95">95</a>    [12] = {</span>
+<span id="L96" class="line"><a href="#L96">96</a>        name  = &quot;b_1_3&quot;,</span>
+<span id="L97" class="line"><a href="#L97">97</a>        slot = &quot;b_1_1&quot;,</span>
+<span id="L98" class="line"><a href="#L98">98</a>        pic = &quot;b_1_1c&quot;,</span>
+<span id="L99" class="line"><a href="#L99">99</a>    },</span>
+<span id="L100" class="line"><a href="#L100">100</a>    [7] = {</span>
+<span id="L101" class="line"><a href="#L101">101</a>        name  = &quot;b_2_3&quot;,</span>
+<span id="L102" class="line"><a href="#L102">102</a>        slot = &quot;b_2_1&quot;,</span>
+<span id="L103" class="line"><a href="#L103">103</a>        pic = &quot;b_2_1a&quot;,</span>
+<span id="L104" class="line"><a href="#L104">104</a>    },</span>
+<span id="L105" class="line"><a href="#L105">105</a>    [8] = {</span>
+<span id="L106" class="line"><a href="#L106">106</a>        name  = &quot;b_2_3&quot;,</span>
+<span id="L107" class="line"><a href="#L107">107</a>        slot = &quot;b_2_1&quot;,</span>
+<span id="L108" class="line"><a href="#L108">108</a>        pic = &quot;b_2_1b&quot;,</span>
+<span id="L109" class="line"><a href="#L109">109</a>    },</span>
+<span id="L110" class="line"><a href="#L110">110</a>    [9] = {</span>
+<span id="L111" class="line"><a href="#L111">111</a>        name  = &quot;b_2_3&quot;,</span>
+<span id="L112" class="line"><a href="#L112">112</a>        slot = &quot;b_2_1&quot;,</span>
+<span id="L113" class="line"><a href="#L113">113</a>        pic = &quot;b_2_1c&quot;,</span>
+<span id="L114" class="line"><a href="#L114">114</a>    },</span>
+<span id="L115" class="line"><a href="#L115">115</a>    [13] = {</span>
+<span id="L116" class="line"><a href="#L116">116</a>        name  = &quot;b_3_3&quot;,</span>
+<span id="L117" class="line"><a href="#L117">117</a>        slot = &quot;b_3_1&quot;,</span>
+<span id="L118" class="line"><a href="#L118">118</a>        pic = &quot;b_3_1a&quot;,</span>
+<span id="L119" class="line"><a href="#L119">119</a>    },</span>
+<span id="L120" class="line"><a href="#L120">120</a>    [14] = {</span>
+<span id="L121" class="line"><a href="#L121">121</a>        name  = &quot;b_3_3&quot;,</span>
+<span id="L122" class="line"><a href="#L122">122</a>        slot = &quot;b_3_1&quot;,</span>
+<span id="L123" class="line"><a href="#L123">123</a>        pic = &quot;b_3_1b&quot;,</span>
+<span id="L124" class="line"><a href="#L124">124</a>    },</span>
+<span id="L125" class="line"><a href="#L125">125</a>    [15] = {</span>
+<span id="L126" class="line"><a href="#L126">126</a>        name  = &quot;b_3_3&quot;,</span>
+<span id="L127" class="line"><a href="#L127">127</a>        slot = &quot;b_3_1&quot;,</span>
+<span id="L128" class="line"><a href="#L128">128</a>        pic = &quot;b_3_1c&quot;,</span>
+<span id="L129" class="line"><a href="#L129">129</a>    },</span>
+<span id="L130" class="line"><a href="#L130">130</a>    [18] = {</span>
+<span id="L131" class="line"><a href="#L131">131</a>        name  = &quot;c_1_2&quot;,</span>
+<span id="L132" class="line"><a href="#L132">132</a>        slot = {</span>
+<span id="L133" class="line"><a href="#L133">133</a>            &quot;c_1_1&quot;,</span>
+<span id="L134" class="line"><a href="#L134">134</a>            &quot;c_1_3&quot;,</span>
+<span id="L135" class="line"><a href="#L135">135</a>            &quot;c_1_2&quot;</span>
+<span id="L136" class="line"><a href="#L136">136</a>        },</span>
+<span id="L137" class="line"><a href="#L137">137</a>        pic = {</span>
+<span id="L138" class="line"><a href="#L138">138</a>            &quot;c_1_1a&quot;,</span>
+<span id="L139" class="line"><a href="#L139">139</a>            &quot;c_1_3a&quot;,</span>
+<span id="L140" class="line"><a href="#L140">140</a>            &quot;c_1_2a&quot;</span>
+<span id="L141" class="line"><a href="#L141">141</a>        }</span>
+<span id="L142" class="line"><a href="#L142">142</a>    },</span>
+<span id="L143" class="line"><a href="#L143">143</a>    [19] = {</span>
+<span id="L144" class="line"><a href="#L144">144</a>        name  = &quot;c_1_2&quot;,</span>
+<span id="L145" class="line"><a href="#L145">145</a>        slot = {</span>
+<span id="L146" class="line"><a href="#L146">146</a>            &quot;c_1_1&quot;,</span>
+<span id="L147" class="line"><a href="#L147">147</a>            &quot;c_1_3&quot;,</span>
+<span id="L148" class="line"><a href="#L148">148</a>            &quot;c_1_2&quot;</span>
+<span id="L149" class="line"><a href="#L149">149</a>        },</span>
+<span id="L150" class="line"><a href="#L150">150</a>        pic = {</span>
+<span id="L151" class="line"><a href="#L151">151</a>            &quot;c_1_1b&quot;,</span>
+<span id="L152" class="line"><a href="#L152">152</a>            &quot;c_1_3b&quot;,</span>
+<span id="L153" class="line"><a href="#L153">153</a>            &quot;c_1_2b&quot;</span>
+<span id="L154" class="line"><a href="#L154">154</a>        }</span>
+<span id="L155" class="line"><a href="#L155">155</a>    },</span>
+<span id="L156" class="line"><a href="#L156">156</a>    [16] = {</span>
+<span id="L157" class="line"><a href="#L157">157</a>        name  = &quot;c_2_2&quot;,</span>
+<span id="L158" class="line"><a href="#L158">158</a>        slot = &quot;c_2_1&quot;,</span>
+<span id="L159" class="line"><a href="#L159">159</a>        pic = &quot;c_2_1a&quot;,</span>
+<span id="L160" class="line"><a href="#L160">160</a>    },</span>
+<span id="L161" class="line"><a href="#L161">161</a>    [17] = {</span>
+<span id="L162" class="line"><a href="#L162">162</a>        name  = &quot;c_2_2&quot;,</span>
+<span id="L163" class="line"><a href="#L163">163</a>        slot = &quot;c_2_1&quot;,</span>
+<span id="L164" class="line"><a href="#L164">164</a>        pic = &quot;c_2_1b&quot;,</span>
+<span id="L165" class="line"><a href="#L165">165</a>    },</span>
+<span id="L166" class="line"><a href="#L166">166</a>    [20] = {</span>
+<span id="L167" class="line"><a href="#L167">167</a>        name = &quot;d_1_2&quot;,</span>
+<span id="L168" class="line"><a href="#L168">168</a>        slot = &quot;d_1_1&quot;,</span>
+<span id="L169" class="line"><a href="#L169">169</a>        pic = &quot;d_1_1a&quot;,</span>
+<span id="L170" class="line"><a href="#L170">170</a>    },</span>
+<span id="L171" class="line"><a href="#L171">171</a>    [21] = {</span>
+<span id="L172" class="line"><a href="#L172">172</a>        name = &quot;d_1_2&quot;,</span>
+<span id="L173" class="line"><a href="#L173">173</a>        slot = &quot;d_1_1&quot;,</span>
+<span id="L174" class="line"><a href="#L174">174</a>        pic = &quot;d_1_1b&quot;,</span>
+<span id="L175" class="line"><a href="#L175">175</a>    },</span>
+<span id="L176" class="line"><a href="#L176">176</a>    [22] = {</span>
+<span id="L177" class="line"><a href="#L177">177</a>        name = &quot;d_2_2&quot;,</span>
+<span id="L178" class="line"><a href="#L178">178</a>        slot = {</span>
+<span id="L179" class="line"><a href="#L179">179</a>            &quot;d_2_1&quot;,</span>
+<span id="L180" class="line"><a href="#L180">180</a>            &quot;d_2_3&quot;,</span>
+<span id="L181" class="line"><a href="#L181">181</a>            &quot;d_2_2&quot;</span>
+<span id="L182" class="line"><a href="#L182">182</a>        },</span>
+<span id="L183" class="line"><a href="#L183">183</a>        pic = {</span>
+<span id="L184" class="line"><a href="#L184">184</a>            &quot;d_2_1a&quot;,</span>
+<span id="L185" class="line"><a href="#L185">185</a>            &quot;d_2_3a&quot;,</span>
+<span id="L186" class="line"><a href="#L186">186</a>            &quot;d_2_2a&quot;</span>
+<span id="L187" class="line"><a href="#L187">187</a>        }</span>
+<span id="L188" class="line"><a href="#L188">188</a>    },</span>
+<span id="L189" class="line"><a href="#L189">189</a>    [23] = {</span>
+<span id="L190" class="line"><a href="#L190">190</a>        name = &quot;d_2_2&quot;,</span>
+<span id="L191" class="line"><a href="#L191">191</a>        slot = {</span>
+<span id="L192" class="line"><a href="#L192">192</a>            &quot;d_2_1&quot;,</span>
+<span id="L193" class="line"><a href="#L193">193</a>            &quot;d_2_3&quot;,</span>
+<span id="L194" class="line"><a href="#L194">194</a>            &quot;d_2_2&quot;</span>
+<span id="L195" class="line"><a href="#L195">195</a>        },</span>
+<span id="L196" class="line"><a href="#L196">196</a>        pic = {</span>
+<span id="L197" class="line"><a href="#L197">197</a>            &quot;d_2_1b&quot;,</span>
+<span id="L198" class="line"><a href="#L198">198</a>            &quot;d_2_3b&quot;,</span>
+<span id="L199" class="line"><a href="#L199">199</a>            &quot;d_2_2b&quot;</span>
+<span id="L200" class="line"><a href="#L200">200</a>        }</span>
+<span id="L201" class="line"><a href="#L201">201</a>    },</span>
+<span id="L202" class="line"><a href="#L202">202</a>    [24] = {</span>
+<span id="L203" class="line"><a href="#L203">203</a>        name = &quot;e_1_0&quot;,</span>
+<span id="L204" class="line"><a href="#L204">204</a>    },</span>
+<span id="L205" class="line"><a href="#L205">205</a>    [26] = {</span>
+<span id="L206" class="line"><a href="#L206">206</a>        name = &quot;e_2_0&quot;,</span>
+<span id="L207" class="line"><a href="#L207">207</a>    },</span>
+<span id="L208" class="line"><a href="#L208">208</a>    [28] = {</span>
+<span id="L209" class="line"><a href="#L209">209</a>        name = &quot;e_3_2&quot;,</span>
+<span id="L210" class="line"><a href="#L210">210</a>        slot = &quot;e_3_1&quot;,</span>
+<span id="L211" class="line"><a href="#L211">211</a>        pic = &quot;e_3_1a&quot;,</span>
+<span id="L212" class="line"><a href="#L212">212</a>    },</span>
+<span id="L213" class="line"><a href="#L213">213</a>    [31] = {</span>
+<span id="L214" class="line"><a href="#L214">214</a>        name = &quot;e_3_2&quot;,</span>
+<span id="L215" class="line"><a href="#L215">215</a>        slot = &quot;e_3_1&quot;,</span>
+<span id="L216" class="line"><a href="#L216">216</a>        pic = &quot;e_3_1b&quot;,</span>
+<span id="L217" class="line"><a href="#L217">217</a>    },</span>
+<span id="L218" class="line"><a href="#L218">218</a>    [27] = {</span>
+<span id="L219" class="line"><a href="#L219">219</a>        name = &quot;e_4_0&quot;,</span>
+<span id="L220" class="line"><a href="#L220">220</a>    },</span>
+<span id="L221" class="line"><a href="#L221">221</a>    [29] = {</span>
+<span id="L222" class="line"><a href="#L222">222</a>        name = &quot;e_5_0&quot;,</span>
+<span id="L223" class="line"><a href="#L223">223</a>    },</span>
+<span id="L224" class="line"><a href="#L224">224</a>    [25] = {</span>
+<span id="L225" class="line"><a href="#L225">225</a>        name = &quot;e_6_0&quot;,</span>
+<span id="L226" class="line"><a href="#L226">226</a>    },</span>
+<span id="L227" class="line"><a href="#L227">227</a>    [30] = {</span>
+<span id="L228" class="line"><a href="#L228">228</a>        name = &quot;fox_all&quot;,</span>
+<span id="L229" class="line"><a href="#L229">229</a>    },</span>
+<span id="L230" class="line"><a href="#L230">230</a>    [32] = {</span>
+<span id="L231" class="line"><a href="#L231">231</a>        name = &quot;animal_shark&quot;,</span>
+<span id="L232" class="line"><a href="#L232">232</a>    }</span>
+<span id="L233" class="line"><a href="#L233">233</a>}</span>
+<span id="L234" class="line"><a href="#L234">234</a>Meta.BigFishId = 32</span>
+<span id="L235" class="line"><a href="#L235">235</a>Meta.MeMeFoxFishId = 30</span>
+<span id="L236" class="line"><a href="#L236">236</a>Meta.KissFishId = 24</span>
+<span id="L237" class="line"><a href="#L237">237</a>-- 普通鱼出水贝塞尔曲线</span>
+<span id="L238" class="line"><a href="#L238">238</a>Meta.FishOutWaterCurveConfig = {</span>
+<span id="L239" class="line"><a href="#L239">239</a>    {</span>
+<span id="L240" class="line"><a href="#L240">240</a>        targetOffset = ccp(-267.38256835938, 281.87921142578),</span>
+<span id="L241" class="line"><a href="#L241">241</a>        cp1 = ccp(-0.04, 0.5),</span>
+<span id="L242" class="line"><a href="#L242">242</a>        cp2 = ccp(0.2, 1.1),</span>
+<span id="L243" class="line"><a href="#L243">243</a>    },</span>
+<span id="L244" class="line"><a href="#L244">244</a>    {</span>
+<span id="L245" class="line"><a href="#L245">245</a>        targetOffset = ccp(-254.49664306641, 362.41613769531),</span>
+<span id="L246" class="line"><a href="#L246">246</a>        cp1 = ccp(-0.04, 0.4),</span>
+<span id="L247" class="line"><a href="#L247">247</a>        cp2 = ccp(0.1, 1),</span>
+<span id="L248" class="line"><a href="#L248">248</a>    },</span>
+<span id="L249" class="line"><a href="#L249">249</a>    {</span>
+<span id="L250" class="line"><a href="#L250">250</a>        targetOffset = ccp(-243.22148132324, 196.51007080078),</span>
+<span id="L251" class="line"><a href="#L251">251</a>        cp1 = ccp(-0.05, 0.5),</span>
+<span id="L252" class="line"><a href="#L252">252</a>        cp2 = ccp(0.2, 1),</span>
+<span id="L253" class="line"><a href="#L253">253</a>    }</span>
+<span id="L254" class="line"><a href="#L254">254</a>}</span>
+<span id="L255" class="line"><a href="#L255">255</a>-- 么么狐出水贝塞尔曲线</span>
+<span id="L256" class="line"><a href="#L256">256</a>Meta.MeMeFoxOutWaterCurveConfig = {</span>
+<span id="L257" class="line"><a href="#L257">257</a>    targetOffset = ccp(-81.147552490234, 210.98364257813),</span>
+<span id="L258" class="line"><a href="#L258">258</a>    cp1 = ccp(-1.05, 0.3),</span>
+<span id="L259" class="line"><a href="#L259">259</a>    cp2 = ccp(-0.4, 1),</span>
+<span id="L260" class="line"><a href="#L260">260</a>}</span>
+<span id="L261" class="line"><a href="#L261">261</a></span>
+<span id="L262" class="line"><a href="#L262">262</a>Meta.ChickenDialogue = {</span>
+<span id="L263" class="line"><a href="#L263">263</a>    &quot;别戳我啦，让我再睡一会~&quot;,</span>
+<span id="L264" class="line"><a href="#L264">264</a>    &quot;zzzZZZZ&quot;,</span>
+<span id="L265" class="line"><a href="#L265">265</a>    &quot;等鱼上钩了再叫我吧~&quot;</span>
+<span id="L266" class="line"><a href="#L266">266</a>}</span>
+<span id="L267" class="line"><a href="#L267">267</a></span>
+<span id="L268" class="line"><a href="#L268">268</a>Meta.BearDialogue = {</span>
+<span id="L269" class="line"><a href="#L269">269</a>    &quot;准备准备，要钓鱼喽~&quot;,</span>
+<span id="L270" class="line"><a href="#L270">270</a>    &quot;天气晴朗，今天宜钓鱼~&quot;,</span>
+<span id="L271" class="line"><a href="#L271">271</a>    &quot;这次会钓上来什么鱼呢？&quot;,</span>
+<span id="L272" class="line"><a href="#L272">272</a>    &quot;大鱼会来吗？&quot;</span>
+<span id="L273" class="line"><a href="#L273">273</a>}</span>
+<span id="L274" class="line"><a href="#L274">274</a></span>
+<span id="L275" class="line"><a href="#L275">275</a>Meta.FishType = {</span>
+<span id="L276" class="line"><a href="#L276">276</a>    LOW = &quot;LOW&quot;,</span>
+<span id="L277" class="line"><a href="#L277">277</a>    MID = &quot;MID&quot;,</span>
+<span id="L278" class="line"><a href="#L278">278</a>    HIGH = &quot;HIGH&quot;,</span>
+<span id="L279" class="line"><a href="#L279">279</a>    HIGH_KISS = &quot;HIGH_KISS&quot;,</span>
+<span id="L280" class="line"><a href="#L280">280</a>    HIGH_FOX = &quot;HIGH_FOX&quot;,</span>
+<span id="L281" class="line"><a href="#L281">281</a>    HIGH_BIG = &quot;HIGH_BIG&quot;</span>
+<span id="L282" class="line"><a href="#L282">282</a>}</span>
+<span id="L283" class="line"><a href="#L283">283</a></span>
+<span id="L284" class="line"><a href="#L284">284</a>return Meta</span></pre></main></html>

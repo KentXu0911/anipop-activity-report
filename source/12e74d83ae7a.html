@@ -1,0 +1,192 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/merge/gift/GiftPanelVM.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="12e74d83ae7a.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/merge/gift/GiftPanelVM.lua</h1><p>SHA256 c3d147d1a73ad804df88c09b9e11151c74da8a320e3cf7fc0551f7fce6cc0ec6</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Meta = require &quot;amf.feature.localactivity.merge.config.MergeConfig&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local MBuyLogic = require &#x27;amf.feature.localactivity.merge.gift.MBuyLogic&#x27;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local RewardFlyHelper = require &#x27;amf.feature.localactivity.processgiftautopopup.RewardFlyHelper.lua&#x27;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local GiftPanelVM = class(&quot;GiftPanelVM&quot;, AMFBasePanelVM)</span>
+<span id="L5" class="line"><a href="#L5">5</a></span>
+<span id="L6" class="line"><a href="#L6">6</a>local Builder = newBuilder(GiftPanelVM)</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>function Builder:setData(v)</span>
+<span id="L9" class="line"><a href="#L9">9</a>    self.data = v</span>
+<span id="L10" class="line"><a href="#L10">10</a>    return self</span>
+<span id="L11" class="line"><a href="#L11">11</a>end</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>local PanelType = {</span>
+<span id="L14" class="line"><a href="#L14">14</a>    STAGE_4_POP = 1,</span>
+<span id="L15" class="line"><a href="#L15">15</a>    MAIN_POP = 2,</span>
+<span id="L16" class="line"><a href="#L16">16</a>    TUJIAN_HALF = 3,</span>
+<span id="L17" class="line"><a href="#L17">17</a>    MAIN_POP2 = 4,</span>
+<span id="L18" class="line"><a href="#L18">18</a>}</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>local TextConfig = {</span>
+<span id="L21" class="line"><a href="#L21">21</a>    [PanelType.STAGE_4_POP] = {</span>
+<span id="L22" class="line"><a href="#L22">22</a>        TITLE = &quot;超值购买&quot;,</span>
+<span id="L23" class="line"><a href="#L23">23</a>        DESC = &quot;美味合合超值优惠，限时购买！&quot;,</span>
+<span id="L24" class="line"><a href="#L24">24</a>    },</span>
+<span id="L25" class="line"><a href="#L25">25</a>    [PanelType.MAIN_POP] = {</span>
+<span id="L26" class="line"><a href="#L26">26</a>        TITLE = &quot;体力多多&quot;,</span>
+<span id="L27" class="line"><a href="#L27">27</a>        DESC = &quot;特惠狂欢，体力大促销！&quot;,</span>
+<span id="L28" class="line"><a href="#L28">28</a>    },</span>
+<span id="L29" class="line"><a href="#L29">29</a>    [PanelType.TUJIAN_HALF] = {</span>
+<span id="L30" class="line"><a href="#L30">30</a>        TITLE = &quot;图鉴专属礼包&quot;,</span>
+<span id="L31" class="line"><a href="#L31">31</a>        DESC = &quot;超值高级食材，助力获得绝版头像框！&quot;,</span>
+<span id="L32" class="line"><a href="#L32">32</a>    },</span>
+<span id="L33" class="line"><a href="#L33">33</a>    [PanelType.MAIN_POP2] = {</span>
+<span id="L34" class="line"><a href="#L34">34</a>        TITLE = &quot;超值双倍补给&quot;,</span>
+<span id="L35" class="line"><a href="#L35">35</a>        DESC = &quot;特惠狂欢，体力大促销！&quot;,</span>
+<span id="L36" class="line"><a href="#L36">36</a>    },</span>
+<span id="L37" class="line"><a href="#L37">37</a>}</span>
+<span id="L38" class="line"><a href="#L38">38</a></span>
+<span id="L39" class="line"><a href="#L39">39</a>function GiftPanelVM:_createPanel(...)</span>
+<span id="L40" class="line"><a href="#L40">40</a>    local GiftPanel = require(&#x27;amf.feature.localactivity.merge.gift.GiftPanel&#x27;)</span>
+<span id="L41" class="line"><a href="#L41">41</a>    return GiftPanel:create(GiftPanelVM, ...)</span>
+<span id="L42" class="line"><a href="#L42">42</a>end</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>function GiftPanelVM:secondLoadCompleted()</span>
+<span id="L45" class="line"><a href="#L45">45</a>    -- printx(42, &quot;initUI----------&quot;)</span>
+<span id="L46" class="line"><a href="#L46">46</a>    local title = TextConfig[self.panelType].TITLE</span>
+<span id="L47" class="line"><a href="#L47">47</a>    local desc = TextConfig[self.panelType].DESC</span>
+<span id="L48" class="line"><a href="#L48">48</a>    self:callViewFunc(&quot;initUI&quot;, self.panelType, self.goodsId, title, desc, self.goodsObj:getItems(), self.buyPreFunc, self.noCheckBox, self.goodsObj)</span>
+<span id="L49" class="line"><a href="#L49">49</a>end</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>function GiftPanelVM:init(delegate)</span>
+<span id="L52" class="line"><a href="#L52">52</a>    -- printx(42, &quot;initData----------&quot;)</span>
+<span id="L53" class="line"><a href="#L53">53</a>    self.delegate = delegate</span>
+<span id="L54" class="line"><a href="#L54">54</a>    self.from = delegate.data.from</span>
+<span id="L55" class="line"><a href="#L55">55</a>    self.goodsId = delegate.data.goodsId</span>
+<span id="L56" class="line"><a href="#L56">56</a>    self.goodsObj = GoodsManager:getGoods(self.goodsId)</span>
+<span id="L57" class="line"><a href="#L57">57</a>    self.mgr = delegate.data.mgr</span>
+<span id="L58" class="line"><a href="#L58">58</a>    self.panelType = delegate.data.panelType or PanelType.STAGE_4_POP</span>
+<span id="L59" class="line"><a href="#L59">59</a>    local source = self.panelType == PanelType.STAGE_4_POP and 1 or 2</span>
+<span id="L60" class="line"><a href="#L60">60</a>    self.buyPreFunc = delegate.data.buyPreFunc</span>
+<span id="L61" class="line"><a href="#L61">61</a>    self.buySucFunc = delegate.data.buySucFunc</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>    self.buyLogic = MBuyLogic:create({</span>
+<span id="L64" class="line"><a href="#L64">64</a>        actId = self.mgr.ACT_ID,</span>
+<span id="L65" class="line"><a href="#L65">65</a>        sourceExt = self.panelType == PanelType.MAIN_POP and &quot;main_gift&quot; or &quot;flow_gift&quot;,</span>
+<span id="L66" class="line"><a href="#L66">66</a>    })</span>
+<span id="L67" class="line"><a href="#L67">67</a></span>
+<span id="L68" class="line"><a href="#L68">68</a>    self.tracer = self.buyLogic:createPayTracer(self.goodsId, self.from, nil, nil, source)</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>    self.customFlyFunc = delegate.data.customFlyFunc</span>
+<span id="L71" class="line"><a href="#L71">71</a></span>
+<span id="L72" class="line"><a href="#L72">72</a>    local bCanShowCheckBox = false</span>
+<span id="L73" class="line"><a href="#L73">73</a>    if self.panelType == PanelType.MAIN_POP or self.panelType == PanelType.MAIN_POP2 then</span>
+<span id="L74" class="line"><a href="#L74">74</a>        bCanShowCheckBox = true</span>
+<span id="L75" class="line"><a href="#L75">75</a>    end</span>
+<span id="L76" class="line"><a href="#L76">76</a>    -- 礼包extra里有multiple，表示有多个，可以有checkBox</span>
+<span id="L77" class="line"><a href="#L77">77</a>    if delegate.data and delegate.data.checkBox then</span>
+<span id="L78" class="line"><a href="#L78">78</a>        bCanShowCheckBox = true</span>
+<span id="L79" class="line"><a href="#L79">79</a>    end</span>
+<span id="L80" class="line"><a href="#L80">80</a>    self.noCheckBox = not bCanShowCheckBox</span>
+<span id="L81" class="line"><a href="#L81">81</a>end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>function GiftPanelVM:onButton()</span>
+<span id="L84" class="line"><a href="#L84">84</a>    if self.isDisposed then return end</span>
+<span id="L85" class="line"><a href="#L85">85</a>    if self:isLocked() then return end</span>
+<span id="L86" class="line"><a href="#L86">86</a></span>
+<span id="L87" class="line"><a href="#L87">87</a>    self.tracer:click()</span>
+<span id="L88" class="line"><a href="#L88">88</a></span>
+<span id="L89" class="line"><a href="#L89">89</a>    local buyPowerNum = 0</span>
+<span id="L90" class="line"><a href="#L90">90</a>    local rewards = {}</span>
+<span id="L91" class="line"><a href="#L91">91</a>    for _, v in pairs(self.goodsObj:getItems()) do</span>
+<span id="L92" class="line"><a href="#L92">92</a>        if v.itemId == Meta.CollectionId then</span>
+<span id="L93" class="line"><a href="#L93">93</a>            buyPowerNum = v.num</span>
+<span id="L94" class="line"><a href="#L94">94</a>        end</span>
+<span id="L95" class="line"><a href="#L95">95</a>        local r = {itemId = v.itemId, num = v.num}</span>
+<span id="L96" class="line"><a href="#L96">96</a>        rewards[#rewards + 1] = r</span>
+<span id="L97" class="line"><a href="#L97">97</a>    end</span>
+<span id="L98" class="line"><a href="#L98">98</a>    local function successCallback(bBuy)</span>
+<span id="L99" class="line"><a href="#L99">99</a>        if bBuy then</span>
+<span id="L100" class="line"><a href="#L100">100</a>            self:lock()</span>
+<span id="L101" class="line"><a href="#L101">101</a>            local sucCall = function(...)</span>
+<span id="L102" class="line"><a href="#L102">102</a>                local source = self.panelType == PanelType.MAIN_POP and &quot;main_gift&quot; or &quot;flow_gift&quot;</span>
+<span id="L103" class="line"><a href="#L103">103</a>                self.mgr:getData():addBuyGoodsCount(self.goodsId, 1)</span>
+<span id="L104" class="line"><a href="#L104">104</a>                -- self.mgr:addRewards(rewards, {</span>
+<span id="L105" class="line"><a href="#L105">105</a>                --     dcFeature = &quot;happy_merge&quot;,</span>
+<span id="L106" class="line"><a href="#L106">106</a>                --     dcSource = source,</span>
+<span id="L107" class="line"><a href="#L107">107</a>                --     dontNeedAddNormal = true,</span>
+<span id="L108" class="line"><a href="#L108">108</a>                -- })</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>                self:callViewFunc(&quot;flyRewards&quot;, function()</span>
+<span id="L111" class="line"><a href="#L111">111</a>                    if self.isDisposed then return end</span>
+<span id="L112" class="line"><a href="#L112">112</a>                    self:unlock()</span>
+<span id="L113" class="line"><a href="#L113">113</a>                    self:onCloseBtnTapped()</span>
+<span id="L114" class="line"><a href="#L114">114</a>                end, self.customFlyFunc)</span>
+<span id="L115" class="line"><a href="#L115">115</a></span>
+<span id="L116" class="line"><a href="#L116">116</a>                safeRunCall( self.buySucFunc ) </span>
+<span id="L117" class="line"><a href="#L117">117</a>            end</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>            local failCall = function(...)</span>
+<span id="L120" class="line"><a href="#L120">120</a>                self:unlock()</span>
+<span id="L121" class="line"><a href="#L121">121</a>            end</span>
+<span id="L122" class="line"><a href="#L122">122</a></span>
+<span id="L123" class="line"><a href="#L123">123</a>            local cancelCall = function(...)</span>
+<span id="L124" class="line"><a href="#L124">124</a>                self:unlock()</span>
+<span id="L125" class="line"><a href="#L125">125</a>            end</span>
+<span id="L126" class="line"><a href="#L126">126</a></span>
+<span id="L127" class="line"><a href="#L127">127</a>            self.buyLogic:requestBuyWithTracer(sucCall, failCall, cancelCall, self.tracer)</span>
+<span id="L128" class="line"><a href="#L128">128</a>        end</span>
+<span id="L129" class="line"><a href="#L129">129</a>    end</span>
+<span id="L130" class="line"><a href="#L130">130</a></span>
+<span id="L131" class="line"><a href="#L131">131</a>    local totalPower = self.mgr:getData():getPowerTotal()</span>
+<span id="L132" class="line"><a href="#L132">132</a>    if buyPowerNum &gt; 0 and totalPower + buyPowerNum &gt; Meta.MaxPowerConfig then</span>
+<span id="L133" class="line"><a href="#L133">133</a>        self.mgr:openSecondConfirmPanel(successCallback, totalPower, buyPowerNum)</span>
+<span id="L134" class="line"><a href="#L134">134</a>    else</span>
+<span id="L135" class="line"><a href="#L135">135</a>        successCallback(true)</span>
+<span id="L136" class="line"><a href="#L136">136</a>    end</span>
+<span id="L137" class="line"><a href="#L137">137</a>end</span>
+<span id="L138" class="line"><a href="#L138">138</a></span>
+<span id="L139" class="line"><a href="#L139">139</a>function GiftPanelVM:isLocked()</span>
+<span id="L140" class="line"><a href="#L140">140</a>    return self.bLock</span>
+<span id="L141" class="line"><a href="#L141">141</a>end</span>
+<span id="L142" class="line"><a href="#L142">142</a></span>
+<span id="L143" class="line"><a href="#L143">143</a>function GiftPanelVM:lock()</span>
+<span id="L144" class="line"><a href="#L144">144</a>    self.bLock = true</span>
+<span id="L145" class="line"><a href="#L145">145</a>end</span>
+<span id="L146" class="line"><a href="#L146">146</a></span>
+<span id="L147" class="line"><a href="#L147">147</a>function GiftPanelVM:unlock()</span>
+<span id="L148" class="line"><a href="#L148">148</a>    self.bLock = false</span>
+<span id="L149" class="line"><a href="#L149">149</a>end</span>
+<span id="L150" class="line"><a href="#L150">150</a></span>
+<span id="L151" class="line"><a href="#L151">151</a>function GiftPanelVM:close()</span>
+<span id="L152" class="line"><a href="#L152">152</a>    self.tracer:close()</span>
+<span id="L153" class="line"><a href="#L153">153</a>    if self.flowCheck then</span>
+<span id="L154" class="line"><a href="#L154">154</a>        self.mgr:getData():requestNotShowToday(true)</span>
+<span id="L155" class="line"><a href="#L155">155</a>    end</span>
+<span id="L156" class="line"><a href="#L156">156</a>    if self.energyCheck then</span>
+<span id="L157" class="line"><a href="#L157">157</a>        self.mgr:getData():requestNotShowToday()</span>
+<span id="L158" class="line"><a href="#L158">158</a>    end</span>
+<span id="L159" class="line"><a href="#L159">159</a>    AMFBasePanelVM.close(self)</span>
+<span id="L160" class="line"><a href="#L160">160</a>end</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>function GiftPanelVM:createIcon(reward, callback)</span>
+<span id="L163" class="line"><a href="#L163">163</a>    local icon = self.mgr:commonCreateIcon(reward)</span>
+<span id="L164" class="line"><a href="#L164">164</a>    safeRunCall(callback, icon)</span>
+<span id="L165" class="line"><a href="#L165">165</a>end</span>
+<span id="L166" class="line"><a href="#L166">166</a></span>
+<span id="L167" class="line"><a href="#L167">167</a>function GiftPanelVM:getActIcon(callback)</span>
+<span id="L168" class="line"><a href="#L168">168</a>    local icon = _G.amfBean(&quot;IconManager&quot;):getIconByIconKey(tostring(self.mgr.ACT_ID))</span>
+<span id="L169" class="line"><a href="#L169">169</a>    safeRunCall(callback, icon)</span>
+<span id="L170" class="line"><a href="#L170">170</a>end</span>
+<span id="L171" class="line"><a href="#L171">171</a></span>
+<span id="L172" class="line"><a href="#L172">172</a>function GiftPanelVM:getFlyActIcon(callback)</span>
+<span id="L173" class="line"><a href="#L173">173</a>    local icon = self.mgr:createFlyActIcon()</span>
+<span id="L174" class="line"><a href="#L174">174</a>    safeRunCall(callback, icon)</span>
+<span id="L175" class="line"><a href="#L175">175</a>end</span>
+<span id="L176" class="line"><a href="#L176">176</a></span>
+<span id="L177" class="line"><a href="#L177">177</a>function GiftPanelVM:setIgnoredEnergyNotEnoughGiftToday(checked)</span>
+<span id="L178" class="line"><a href="#L178">178</a>    self.energyCheck = checked</span>
+<span id="L179" class="line"><a href="#L179">179</a>    self.mgr:setIgnoredEnergyNotEnoughGiftToday(checked)</span>
+<span id="L180" class="line"><a href="#L180">180</a>end</span>
+<span id="L181" class="line"><a href="#L181">181</a></span>
+<span id="L182" class="line"><a href="#L182">182</a>function GiftPanelVM:setIgnoredGiftToday(checked)</span>
+<span id="L183" class="line"><a href="#L183">183</a>    self.flowCheck = checked</span>
+<span id="L184" class="line"><a href="#L184">184</a>    self.mgr:setIgnoredGiftToday(checked)</span>
+<span id="L185" class="line"><a href="#L185">185</a>end</span>
+<span id="L186" class="line"><a href="#L186">186</a></span>
+<span id="L187" class="line"><a href="#L187">187</a>function GiftPanelVM:createBuyButton(buttonData, callback)</span>
+<span id="L188" class="line"><a href="#L188">188</a>    local icon = self.mgr:createBuyButton(buttonData)</span>
+<span id="L189" class="line"><a href="#L189">189</a>    safeRunCall(callback, icon)</span>
+<span id="L190" class="line"><a href="#L190">190</a>end</span>
+<span id="L191" class="line"><a href="#L191">191</a></span>
+<span id="L192" class="line"><a href="#L192">192</a>return GiftPanelVM</span></pre></main></html>

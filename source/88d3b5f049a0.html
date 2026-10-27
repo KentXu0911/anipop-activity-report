@@ -1,0 +1,170 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/musicmaster/config/MusicMasterConfig.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="88d3b5f049a0.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/musicmaster/config/MusicMasterConfig.lua</h1><p>SHA256 6cf02e6ddd859003961ccf9e149ce488da1d526bfa9226acbd0761df0a7fccfd</p><pre><span id="L1" class="line"><a href="#L1">1</a></span>
+<span id="L2" class="line"><a href="#L2">2</a>local MusicMasterConfig = {}</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>MusicMasterConfig.autoDownload = false</span>
+<span id="L5" class="line"><a href="#L5">5</a>MusicMasterConfig.downloadLabels = {&quot;musicmaster_downpart&quot;}</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>MusicMasterConfig.cliendVersion = 1 --客户端版本</span>
+<span id="L9" class="line"><a href="#L9">9</a>MusicMasterConfig.openLevel = 210</span>
+<span id="L10" class="line"><a href="#L10">10</a>MusicMasterConfig.openPassLevel = 210</span>
+<span id="L11" class="line"><a href="#L11">11</a>-- 主线</span>
+<span id="L12" class="line"><a href="#L12">12</a>MusicMasterConfig.ACT_ID = 4062</span>
+<span id="L13" class="line"><a href="#L13">13</a>MusicMasterConfig.DCFeature = &quot;happy_merge&quot;</span>
+<span id="L14" class="line"><a href="#L14">14</a>MusicMasterConfig.DCSource = &quot;act_&quot;..MusicMasterConfig.ACT_ID</span>
+<span id="L15" class="line"><a href="#L15">15</a>MusicMasterConfig.ACT_CH_NAME = &quot;完美演奏家&quot;</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a>MusicMasterConfig.ACT_NAME = &quot;musicmaster&quot;</span>
+<span id="L18" class="line"><a href="#L18">18</a>MusicMasterConfig.LOCAL_PATH = &#x27;amf.feature.localactivity.&#x27;..string.lower( MusicMasterConfig.ACT_NAME )</span>
+<span id="L19" class="line"><a href="#L19">19</a>MusicMasterConfig.MUSIC_PATH = &#x27;amf/activity/musicmaster/music/&#x27;</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>MusicMasterConfig.ActivitySoundEffectFileName = {</span>
+<span id="L22" class="line"><a href="#L22">22</a>    kVictory = &#x27;MusicMaster_Victory&#x27;,</span>
+<span id="L23" class="line"><a href="#L23">23</a>    kLose = &#x27;MusicMaster_Lose&#x27;,</span>
+<span id="L24" class="line"><a href="#L24">24</a>    kShowAward = &#x27;Common_ShowAward01&#x27;,</span>
+<span id="L25" class="line"><a href="#L25">25</a>    kFlySouLong = &#x27;Common_FlysouLong&#x27;,</span>
+<span id="L26" class="line"><a href="#L26">26</a>    kYellowBanner = &#x27;Common_YellowBanner&#x27;,</span>
+<span id="L27" class="line"><a href="#L27">27</a>}</span>
+<span id="L28" class="line"><a href="#L28">28</a></span>
+<span id="L29" class="line"><a href="#L29">29</a>function MusicMasterConfig:getMusicFilePath(fileName, extension)</span>
+<span id="L30" class="line"><a href="#L30">30</a>    return self.MUSIC_PATH..fileName..(extension or &#x27;.mp3&#x27;)</span>
+<span id="L31" class="line"><a href="#L31">31</a>end</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a></span>
+<span id="L34" class="line"><a href="#L34">34</a>MusicMasterConfig.CollectId = 56022</span>
+<span id="L35" class="line"><a href="#L35">35</a>MusicMasterConfig.TicketId = 56023</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>MusicMasterConfig.dailyDcJoinKey = &quot;musicMasterJoinKey&quot;</span>
+<span id="L39" class="line"><a href="#L39">39</a></span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>MusicMasterConfig.GuideIds =</span>
+<span id="L42" class="line"><a href="#L42">42</a>{</span>
+<span id="L43" class="line"><a href="#L43">43</a>	kPreGuide = 1,</span>
+<span id="L44" class="line"><a href="#L44">44</a>	kHandGuide= 2,</span>
+<span id="L45" class="line"><a href="#L45">45</a>	-- kGroupWinNumGuide = 3,</span>
+<span id="L46" class="line"><a href="#L46">46</a>	kPopPrePanel = 4,</span>
+<span id="L47" class="line"><a href="#L47">47</a>	kPopGuidePanel = 5,		-- 选拔赛弹窗引导</span>
+<span id="L48" class="line"><a href="#L48">48</a>	kPopGuidePanel2 = 6,	-- 小组赛弹窗引导</span>
+<span id="L49" class="line"><a href="#L49">49</a></span>
+<span id="L50" class="line"><a href="#L50">50</a>	kGroupWinNumGuide = 30, --占用30-35</span>
+<span id="L51" class="line"><a href="#L51">51</a>	kGroupRewardGuide = 40, --占用40-45</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>}</span>
+<span id="L54" class="line"><a href="#L54">54</a></span>
+<span id="L55" class="line"><a href="#L55">55</a>--开始面板状态，选拔赛，小组赛</span>
+<span id="L56" class="line"><a href="#L56">56</a>MusicMasterConfig.MainPanelShowType = {</span>
+<span id="L57" class="line"><a href="#L57">57</a>	kNone = 0,</span>
+<span id="L58" class="line"><a href="#L58">58</a>	kPre = 1,</span>
+<span id="L59" class="line"><a href="#L59">59</a>	kGroup = 2,</span>
+<span id="L60" class="line"><a href="#L60">60</a>}</span>
+<span id="L61" class="line"><a href="#L61">61</a></span>
+<span id="L62" class="line"><a href="#L62">62</a>MusicMasterConfig.GroupPanelShowType = {</span>
+<span id="L63" class="line"><a href="#L63">63</a>	kNone = 0,</span>
+<span id="L64" class="line"><a href="#L64">64</a>	kWaitJoin= 1,</span>
+<span id="L65" class="line"><a href="#L65">65</a>	kInGroup = 2,</span>
+<span id="L66" class="line"><a href="#L66">66</a>}</span>
+<span id="L67" class="line"><a href="#L67">67</a></span>
+<span id="L68" class="line"><a href="#L68">68</a>local startPosX = 250</span>
+<span id="L69" class="line"><a href="#L69">69</a>local offsetLength = 85</span>
+<span id="L70" class="line"><a href="#L70">70</a>local startPosY = 187</span>
+<span id="L71" class="line"><a href="#L71">71</a>MusicMasterConfig.PreRewardPosList = {</span>
+<span id="L72" class="line"><a href="#L72">72</a>	{x=startPosX-offsetLength*2, y=startPosY}, {x=startPosX-offsetLength, y=startPosY}, {x=startPosX, y=startPosY}, {x=startPosX+offsetLength, y=startPosY}, {x=startPosX+offsetLength*2, y=startPosY},</span>
+<span id="L73" class="line"><a href="#L73">73</a>	{x=startPosX-offsetLength*2, y=97}, {x=startPosX-offsetLength, y=97}, {x=startPosX, y=97}, {x=startPosX+offsetLength*1, y=97}, {x=startPosX+offsetLength*2, y=97}</span>
+<span id="L74" class="line"><a href="#L74">74</a>}</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>MusicMasterConfig.ProgressPreview = {</span>
+<span id="L77" class="line"><a href="#L77">77</a>	-- 节点位置</span>
+<span id="L78" class="line"><a href="#L78">78</a>    ItemPos = {</span>
+<span id="L79" class="line"><a href="#L79">79</a>        { x = 10, y = -56 },</span>
+<span id="L80" class="line"><a href="#L80">80</a>        { x = 6,  y = 128 },</span>
+<span id="L81" class="line"><a href="#L81">81</a>        { x = 16, y = 312 },</span>
+<span id="L82" class="line"><a href="#L82">82</a>        { x = 11, y = 496 },</span>
+<span id="L83" class="line"><a href="#L83">83</a>    },</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>	RewardOffset = {</span>
+<span id="L86" class="line"><a href="#L86">86</a>		{ x = 110, y = 0},</span>
+<span id="L87" class="line"><a href="#L87">87</a>		{ x = 115, y = 0},</span>
+<span id="L88" class="line"><a href="#L88">88</a>		{ x = 105, y = 0},</span>
+<span id="L89" class="line"><a href="#L89">89</a>		{ x = 110, y = 0},</span>
+<span id="L90" class="line"><a href="#L90">90</a>	}</span>
+<span id="L91" class="line"><a href="#L91">91</a>}</span>
+<span id="L92" class="line"><a href="#L92">92</a></span>
+<span id="L93" class="line"><a href="#L93">93</a>MusicMasterConfig.GroupNameList = { &quot;初级海选赛&quot;, &quot;中级晋级赛&quot;, &quot;高级资格赛&quot;, &quot;大师对决赛&quot;, &quot;王者加冕赛&quot; }</span>
+<span id="L94" class="line"><a href="#L94">94</a>function MusicMasterConfig:getGroupName( duan )</span>
+<span id="L95" class="line"><a href="#L95">95</a>	local safeDuan = self:getSafeDuan(duan)</span>
+<span id="L96" class="line"><a href="#L96">96</a>	local arrayIndex = safeDuan + 1</span>
+<span id="L97" class="line"><a href="#L97">97</a>	return MusicMasterConfig.GroupNameList[arrayIndex]</span>
+<span id="L98" class="line"><a href="#L98">98</a>end</span>
+<span id="L99" class="line"><a href="#L99">99</a></span>
+<span id="L100" class="line"><a href="#L100">100</a>function MusicMasterConfig:getSafeDuan( duan )</span>
+<span id="L101" class="line"><a href="#L101">101</a>	if duan == nil then duan = 0 end</span>
+<span id="L102" class="line"><a href="#L102">102</a>	if duan &gt; #MusicMasterConfig.GroupNameList -1 then duan = #MusicMasterConfig.GroupNameList -1 end</span>
+<span id="L103" class="line"><a href="#L103">103</a>	return duan</span>
+<span id="L104" class="line"><a href="#L104">104</a>end</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>function MusicMasterConfig:getSafeAnimLevel( score, maxScore )</span>
+<span id="L107" class="line"><a href="#L107">107</a>	--根据分数 最大连胜数， 获取帘子打开的等级</span>
+<span id="L108" class="line"><a href="#L108">108</a>	local level = 0</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>	local level1Num = math.ceil( maxScore * 1/3 )</span>
+<span id="L111" class="line"><a href="#L111">111</a>	local level2Num = math.ceil( maxScore * 2/3 )</span>
+<span id="L112" class="line"><a href="#L112">112</a>	local level3Num = maxScore</span>
+<span id="L113" class="line"><a href="#L113">113</a></span>
+<span id="L114" class="line"><a href="#L114">114</a>	if score &gt;= level3Num then</span>
+<span id="L115" class="line"><a href="#L115">115</a>		level = 3</span>
+<span id="L116" class="line"><a href="#L116">116</a>	elseif score &gt;= level2Num then</span>
+<span id="L117" class="line"><a href="#L117">117</a>		level = 2</span>
+<span id="L118" class="line"><a href="#L118">118</a>	elseif score &gt;= level1Num then</span>
+<span id="L119" class="line"><a href="#L119">119</a>		level = 1</span>
+<span id="L120" class="line"><a href="#L120">120</a>	else</span>
+<span id="L121" class="line"><a href="#L121">121</a>		level = 0</span>
+<span id="L122" class="line"><a href="#L122">122</a>	end</span>
+<span id="L123" class="line"><a href="#L123">123</a></span>
+<span id="L124" class="line"><a href="#L124">124</a>	return level</span>
+<span id="L125" class="line"><a href="#L125">125</a>end</span>
+<span id="L126" class="line"><a href="#L126">126</a></span>
+<span id="L127" class="line"><a href="#L127">127</a>MusicMasterConfig.needLoadFiles = {</span>
+<span id="L128" class="line"><a href="#L128">128</a>	&quot;amf/activity/musicmaster/texture/RankDownPart.plist&quot;,</span>
+<span id="L129" class="line"><a href="#L129">129</a>	&quot;amf/activity/musicmaster/texture/ProgressDownPart.plist&quot;,</span>
+<span id="L130" class="line"><a href="#L130">130</a>	&quot;amf/activity/musicmaster/spine/up_down_fx.skel&quot;,</span>
+<span id="L131" class="line"><a href="#L131">131</a>	&quot;amf/activity/musicmaster/spine/up_fx2.skel&quot;,</span>
+<span id="L132" class="line"><a href="#L132">132</a>	&quot;amf/activity/musicmaster/spine/txt_45.skel&quot;,</span>
+<span id="L133" class="line"><a href="#L133">133</a>	&quot;amf/activity/musicmaster/spine/txt_123.skel&quot;,</span>
+<span id="L134" class="line"><a href="#L134">134</a>}</span>
+<span id="L135" class="line"><a href="#L135">135</a></span>
+<span id="L136" class="line"><a href="#L136">136</a>--声效</span>
+<span id="L137" class="line"><a href="#L137">137</a>MusicMasterConfig.BGMSoundEffectTypes = {</span>
+<span id="L138" class="line"><a href="#L138">138</a>    kDuan1 = 1, --背景</span>
+<span id="L139" class="line"><a href="#L139">139</a>    kDuan2 = 2, --背景</span>
+<span id="L140" class="line"><a href="#L140">140</a>    kDuan3 = 3, --背景</span>
+<span id="L141" class="line"><a href="#L141">141</a>    kDuan4 = 4, --背景</span>
+<span id="L142" class="line"><a href="#L142">142</a>    kDuan5 = 5, --背景</span>
+<span id="L143" class="line"><a href="#L143">143</a>}</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>MusicMasterConfig.BMGSoundEffectInfo = {</span>
+<span id="L146" class="line"><a href="#L146">146</a>    { SoundEffectType = MusicMasterConfig.BGMSoundEffectTypes.kDuan1, filePath = &#x27;backgroundMusicNewBGM&#x27;, areaDuan = 0 },</span>
+<span id="L147" class="line"><a href="#L147">147</a>    { SoundEffectType = MusicMasterConfig.BGMSoundEffectTypes.kDuan2, filePath = &#x27;backgroundMusicNewBGM&#x27;, areaDuan = 1 },</span>
+<span id="L148" class="line"><a href="#L148">148</a>    { SoundEffectType = MusicMasterConfig.BGMSoundEffectTypes.kDuan3, filePath = &#x27;backgroundMusicNewBGM&#x27;, areaDuan = 2 },</span>
+<span id="L149" class="line"><a href="#L149">149</a>    { SoundEffectType = MusicMasterConfig.BGMSoundEffectTypes.kDuan4, filePath = &#x27;backgroundMusicNewBGM&#x27;, areaDuan = 3 },</span>
+<span id="L150" class="line"><a href="#L150">150</a>    { SoundEffectType = MusicMasterConfig.BGMSoundEffectTypes.kDuan5, filePath = &#x27;backgroundMusicNewBGM&#x27;, areaDuan = 4 },</span>
+<span id="L151" class="line"><a href="#L151">151</a>}</span>
+<span id="L152" class="line"><a href="#L152">152</a></span>
+<span id="L153" class="line"><a href="#L153">153</a>function MusicMasterConfig:getBMGSoundFileNameByAreaDuan( areaDuan )</span>
+<span id="L154" class="line"><a href="#L154">154</a>    --获取生效</span>
+<span id="L155" class="line"><a href="#L155">155</a>    for i,v in ipairs(MusicMasterConfig.BMGSoundEffectInfo) do</span>
+<span id="L156" class="line"><a href="#L156">156</a>        if v.areaDuan == areaDuan then</span>
+<span id="L157" class="line"><a href="#L157">157</a>            return true, v.filePath</span>
+<span id="L158" class="line"><a href="#L158">158</a>        end</span>
+<span id="L159" class="line"><a href="#L159">159</a>    end</span>
+<span id="L160" class="line"><a href="#L160">160</a>    return false, &#x27;&#x27;</span>
+<span id="L161" class="line"><a href="#L161">161</a>end</span>
+<span id="L162" class="line"><a href="#L162">162</a></span>
+<span id="L163" class="line"><a href="#L163">163</a>MusicMasterConfig.bShowLog = true</span>
+<span id="L164" class="line"><a href="#L164">164</a>function MusicMasterConfig:showLog( ... )</span>
+<span id="L165" class="line"><a href="#L165">165</a>	if _G.isLocalDevelopMode and MusicMasterConfig.bShowLog then</span>
+<span id="L166" class="line"><a href="#L166">166</a>		printx(12,&quot;***完美演奏家***&quot;, ...)</span>
+<span id="L167" class="line"><a href="#L167">167</a>	end</span>
+<span id="L168" class="line"><a href="#L168">168</a>end</span>
+<span id="L169" class="line"><a href="#L169">169</a></span>
+<span id="L170" class="line"><a href="#L170">170</a>return MusicMasterConfig</span></pre></main></html>

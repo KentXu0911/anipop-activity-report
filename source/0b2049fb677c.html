@@ -1,0 +1,1246 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/minihub/alipaydesktopshortcut/AliPayDesktopShortcutManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="0b2049fb677c.lua" download>下载Lua原文</a></p><h1>amf/feature/minihub/alipaydesktopshortcut/AliPayDesktopShortcutManager.lua</h1><p>SHA256 a70fd4aad2e08bfaa188923208601c295891d490c479087f36648736891905a2</p><pre><span id="L1" class="line"><a href="#L1">1</a>local IconEventCenter = require &quot;amf.feature.mainscene.module.icon.event.IconEventCenter&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local PackageIconV2Host = require &quot;amf.feature.mainscene.module.icon.v2.runtime.PackageIconV2Host&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local AliPayDesktopShortcutModel = require &quot;amf.feature.minihub.alipaydesktopshortcut.model.AliPayDesktopShortcutModel&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local AliPayDesktopShortcutDC = require &quot;amf.feature.minihub.alipaydesktopshortcut.dc.AliPayDesktopShortcutDC&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a></span>
+<span id="L6" class="line"><a href="#L6">6</a>local AliPayDesktopShortcutManager = class(&quot;AliPayDesktopShortcutManager&quot;)</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>AliPayDesktopShortcutManager.FEATURE_NAME = &quot;alipay_desktop_shortcut&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>AliPayDesktopShortcutManager.ICON_KEY = &quot;alipay_desktop_shortcut&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a>AliPayDesktopShortcutManager.ICON_LABEL = &quot;桌面有礼&quot;</span>
+<span id="L11" class="line"><a href="#L11">11</a>AliPayDesktopShortcutManager.ICON_RES_PATH = &quot;amf/alipaydesktopshortcut/icon/icon.png&quot;</span>
+<span id="L12" class="line"><a href="#L12">12</a>AliPayDesktopShortcutManager.ICON_V2_RES_PATH = &quot;amf/alipaydesktopshortcut/icon/icon_v2.png&quot;</span>
+<span id="L13" class="line"><a href="#L13">13</a>AliPayDesktopShortcutManager.MAINTENANCE_KEY = &quot;alipay_add_desk&quot;</span>
+<span id="L14" class="line"><a href="#L14">14</a>-- 支付宝小游戏桌面有礼：首次登录强弹标记</span>
+<span id="L15" class="line"><a href="#L15">15</a>AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY = &quot;firstLoginAutoPopupDone&quot;</span>
+<span id="L16" class="line"><a href="#L16">16</a>-- 支付宝小游戏桌面有礼：断连胜强弹标记</span>
+<span id="L17" class="line"><a href="#L17">17</a>AliPayDesktopShortcutManager.STREAK_BREAK_AUTO_POP_CACHE_KEY = &quot;streakBreakAutoPopupDone&quot;</span>
+<span id="L18" class="line"><a href="#L18">18</a>AliPayDesktopShortcutManager.ICON_EXPOSE_DAY_CACHE_KEY = &quot;iconExposeDay&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a>AliPayDesktopShortcutManager.ADD_SHORTCUT_TIMEOUT_SECONDS = 8</span>
+<span id="L20" class="line"><a href="#L20">20</a>AliPayDesktopShortcutManager.OPEN_PANEL_TIMEOUT_SECONDS = 10</span>
+<span id="L21" class="line"><a href="#L21">21</a>AliPayDesktopShortcutManager.CLIENT_VERSION = 1</span>
+<span id="L22" class="line"><a href="#L22">22</a>AliPayDesktopShortcutManager.TEST_FORCE_SHOW_ON_NON_ALIPAY = false</span>
+<span id="L23" class="line"><a href="#L23">23</a>-- 临时关闭 SDK 接口能力与版本拦截，确保支付宝端均可展示入口。</span>
+<span id="L24" class="line"><a href="#L24">24</a>AliPayDesktopShortcutManager.DISABLE_SDK_INTERFACE_GUARD = true</span>
+<span id="L25" class="line"><a href="#L25">25</a>local REPORT_CUSTOM_EVENT_METHOD = &quot;globalThis.animalPlugin.sdkManager.reportCustomEvent&quot;</span>
+<span id="L26" class="line"><a href="#L26">26</a>local ICON_V2_EXPERIMENT_MODULE = &quot;amf.feature.mainscene.module.icon.v2.experiment.IconV2Experiment&quot;</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>AliPayDesktopShortcutManager.MAIN_INFO_SHUTDOWN_ERROR_CODES = {</span>
+<span id="L29" class="line"><a href="#L29">29</a>    [739462] = true,</span>
+<span id="L30" class="line"><a href="#L30">30</a>    [739466] = true,</span>
+<span id="L31" class="line"><a href="#L31">31</a>}</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>local DisableReason = {</span>
+<span id="L34" class="line"><a href="#L34">34</a>    NOT_MINI_GAME = &quot;not_mini_game&quot;,</span>
+<span id="L35" class="line"><a href="#L35">35</a>    NOT_ALIPAY = &quot;not_alipay&quot;,</span>
+<span id="L36" class="line"><a href="#L36">36</a>    SWITCH_OFF = &quot;switch_off&quot;,</span>
+<span id="L37" class="line"><a href="#L37">37</a>    LOW_VERSION = &quot;low_version&quot;,</span>
+<span id="L38" class="line"><a href="#L38">38</a>    SHUTDOWN = &quot;shutdown&quot;,</span>
+<span id="L39" class="line"><a href="#L39">39</a>}</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>local ErrorCode = {</span>
+<span id="L42" class="line"><a href="#L42">42</a>    NOT_READY = &quot;not_ready&quot;,</span>
+<span id="L43" class="line"><a href="#L43">43</a>    NOT_CAN_REWARD = &quot;not_can_reward&quot;,</span>
+<span id="L44" class="line"><a href="#L44">44</a>    ADD_SHORTCUT_BUSY = &quot;add_shortcut_busy&quot;,</span>
+<span id="L45" class="line"><a href="#L45">45</a>    UNSUPPORTED = &quot;unsupported&quot;,</span>
+<span id="L46" class="line"><a href="#L46">46</a>    REQUEST_UNAVAILABLE = &quot;request_unavailable&quot;,</span>
+<span id="L47" class="line"><a href="#L47">47</a>    MAIN_INFO_ERROR = &quot;main_info_error&quot;,</span>
+<span id="L48" class="line"><a href="#L48">48</a>    OPEN_PANEL_TIMEOUT = &quot;panel_open_timeout&quot;,</span>
+<span id="L49" class="line"><a href="#L49">49</a>}</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>local MainInfoReason = {</span>
+<span id="L52" class="line"><a href="#L52">52</a>    ICON_OPEN = &quot;icon_open&quot;,</span>
+<span id="L53" class="line"><a href="#L53">53</a>    ASYNC_SYNC = &quot;async_sync&quot;,</span>
+<span id="L54" class="line"><a href="#L54">54</a>}</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>local OpenPanelFailTip = {</span>
+<span id="L57" class="line"><a href="#L57">57</a>    [DisableReason.NOT_MINI_GAME] = &quot;当前环境暂不支持该活动&quot;,</span>
+<span id="L58" class="line"><a href="#L58">58</a>    [DisableReason.NOT_ALIPAY] = &quot;请在支付宝小游戏内参与活动&quot;,</span>
+<span id="L59" class="line"><a href="#L59">59</a>    [DisableReason.SWITCH_OFF] = &quot;活动暂未开启，请稍后再试&quot;,</span>
+<span id="L60" class="line"><a href="#L60">60</a>    [DisableReason.LOW_VERSION] = &quot;支付宝版本过低，请先升级支付宝哦&quot;,</span>
+<span id="L61" class="line"><a href="#L61">61</a>    [DisableReason.SHUTDOWN] = &quot;活动暂未开启，请稍后再试&quot;,</span>
+<span id="L62" class="line"><a href="#L62">62</a>    [ErrorCode.NOT_READY] = &quot;活动数据加载中，请稍后再试&quot;,</span>
+<span id="L63" class="line"><a href="#L63">63</a>    [ErrorCode.REQUEST_UNAVAILABLE] = &quot;网络连接失败，请稍后重试&quot;,</span>
+<span id="L64" class="line"><a href="#L64">64</a>    panel_create_failed = &quot;活动面板加载失败，请稍后再试&quot;,</span>
+<span id="L65" class="line"><a href="#L65">65</a>    panel_popout_failed = &quot;活动面板打开失败，请稍后再试&quot;,</span>
+<span id="L66" class="line"><a href="#L66">66</a>    panel_res_load_failed = &quot;资源加载失败，请稍后重试&quot;,</span>
+<span id="L67" class="line"><a href="#L67">67</a>    [ErrorCode.OPEN_PANEL_TIMEOUT] = &quot;活动面板打开超时，请稍后重试&quot;,</span>
+<span id="L68" class="line"><a href="#L68">68</a>    panel_factory_empty = &quot;活动面板加载失败，请稍后再试&quot;,</span>
+<span id="L69" class="line"><a href="#L69">69</a>    default = &quot;活动暂时无法打开，请稍后再试&quot;,</span>
+<span id="L70" class="line"><a href="#L70">70</a>}</span>
+<span id="L71" class="line"><a href="#L71">71</a></span>
+<span id="L72" class="line"><a href="#L72">72</a>local function callIfExists(target, funcName, ...)</span>
+<span id="L73" class="line"><a href="#L73">73</a>    if target and target[funcName] then</span>
+<span id="L74" class="line"><a href="#L74">74</a>        return target[funcName](target, ...)</span>
+<span id="L75" class="line"><a href="#L75">75</a>    end</span>
+<span id="L76" class="line"><a href="#L76">76</a>end</span>
+<span id="L77" class="line"><a href="#L77">77</a></span>
+<span id="L78" class="line"><a href="#L78">78</a>local function asTimeInSec(value, defaultValue)</span>
+<span id="L79" class="line"><a href="#L79">79</a>    local time = tonumber(value)</span>
+<span id="L80" class="line"><a href="#L80">80</a>    if not time then</span>
+<span id="L81" class="line"><a href="#L81">81</a>        return defaultValue</span>
+<span id="L82" class="line"><a href="#L82">82</a>    end</span>
+<span id="L83" class="line"><a href="#L83">83</a>    if TimeKit and TimeKit.tryConvertMsToSec then</span>
+<span id="L84" class="line"><a href="#L84">84</a>        return TimeKit:tryConvertMsToSec(time) or defaultValue</span>
+<span id="L85" class="line"><a href="#L85">85</a>    end</span>
+<span id="L86" class="line"><a href="#L86">86</a>    if time &gt; 1e11 then</span>
+<span id="L87" class="line"><a href="#L87">87</a>        return math.floor(time / 1000)</span>
+<span id="L88" class="line"><a href="#L88">88</a>    end</span>
+<span id="L89" class="line"><a href="#L89">89</a>    return time</span>
+<span id="L90" class="line"><a href="#L90">90</a>end</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>local function getCurrentTime()</span>
+<span id="L93" class="line"><a href="#L93">93</a>    if TimeKit and TimeKit.timeInSec then</span>
+<span id="L94" class="line"><a href="#L94">94</a>        return TimeKit:timeInSec()</span>
+<span id="L95" class="line"><a href="#L95">95</a>    end</span>
+<span id="L96" class="line"><a href="#L96">96</a>    return os.time()</span>
+<span id="L97" class="line"><a href="#L97">97</a>end</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>local function getCurrentDayStartTime()</span>
+<span id="L100" class="line"><a href="#L100">100</a>    local currentTime = getCurrentTime()</span>
+<span id="L101" class="line"><a href="#L101">101</a>    if TimeKit and TimeKit.getDayStartTimeByTS then</span>
+<span id="L102" class="line"><a href="#L102">102</a>        return TimeKit:getDayStartTimeByTS(currentTime)</span>
+<span id="L103" class="line"><a href="#L103">103</a>    end</span>
+<span id="L104" class="line"><a href="#L104">104</a></span>
+<span id="L105" class="line"><a href="#L105">105</a>    local date = os.date(&quot;*t&quot;, currentTime)</span>
+<span id="L106" class="line"><a href="#L106">106</a>    if not date then</span>
+<span id="L107" class="line"><a href="#L107">107</a>        return 0</span>
+<span id="L108" class="line"><a href="#L108">108</a>    end</span>
+<span id="L109" class="line"><a href="#L109">109</a>    date.hour = 0</span>
+<span id="L110" class="line"><a href="#L110">110</a>    date.min = 0</span>
+<span id="L111" class="line"><a href="#L111">111</a>    date.sec = 0</span>
+<span id="L112" class="line"><a href="#L112">112</a>    return os.time(date)</span>
+<span id="L113" class="line"><a href="#L113">113</a>end</span>
+<span id="L114" class="line"><a href="#L114">114</a></span>
+<span id="L115" class="line"><a href="#L115">115</a>local function getLaunchSourceTime(source)</span>
+<span id="L116" class="line"><a href="#L116">116</a>    if type(source) == &quot;table&quot; then</span>
+<span id="L117" class="line"><a href="#L117">117</a>        return asTimeInSec(source.launchTime or source.time or source.timestamp or source.ts or source.serverTime, getCurrentTime())</span>
+<span id="L118" class="line"><a href="#L118">118</a>    end</span>
+<span id="L119" class="line"><a href="#L119">119</a>    return asTimeInSec(source, getCurrentTime())</span>
+<span id="L120" class="line"><a href="#L120">120</a>end</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>function AliPayDesktopShortcutManager:ctor()</span>
+<span id="L123" class="line"><a href="#L123">123</a>    self.iconHost = PackageIconV2Host:create({</span>
+<span id="L124" class="line"><a href="#L124">124</a>        owner = self,</span>
+<span id="L125" class="line"><a href="#L125">125</a>        ownerIconKey = self.ICON_KEY,</span>
+<span id="L126" class="line"><a href="#L126">126</a>        iconEventCenter = IconEventCenter,</span>
+<span id="L127" class="line"><a href="#L127">127</a>        isEligible = function()</span>
+<span id="L128" class="line"><a href="#L128">128</a>            return self:getIconState().visible == true</span>
+<span id="L129" class="line"><a href="#L129">129</a>        end,</span>
+<span id="L130" class="line"><a href="#L130">130</a>        isV2Enabled = function()</span>
+<span id="L131" class="line"><a href="#L131">131</a>            return self:isV2IconExperimentEnabled()</span>
+<span id="L132" class="line"><a href="#L132">132</a>        end,</span>
+<span id="L133" class="line"><a href="#L133">133</a>        prepareLegacyAssets = function()</span>
+<span id="L134" class="line"><a href="#L134">134</a>            return _G.amfBean(&quot;AssetsUtil&quot;):loadMiniFiles({self.ICON_RES_PATH})</span>
+<span id="L135" class="line"><a href="#L135">135</a>        end,</span>
+<span id="L136" class="line"><a href="#L136">136</a>        prepareV2Assets = function()</span>
+<span id="L137" class="line"><a href="#L137">137</a>            return _G.amfBean(&quot;AssetsUtil&quot;):loadMiniFiles({self.ICON_V2_RES_PATH})</span>
+<span id="L138" class="line"><a href="#L138">138</a>        end,</span>
+<span id="L139" class="line"><a href="#L139">139</a>        createV2Options = function()</span>
+<span id="L140" class="line"><a href="#L140">140</a>            local IconV2Config = require &quot;amf.feature.minihub.alipaydesktopshortcut.icon.IconV2Config&quot;</span>
+<span id="L141" class="line"><a href="#L141">141</a>            return IconV2Config:create(self, IconEventCenter)</span>
+<span id="L142" class="line"><a href="#L142">142</a>        end,</span>
+<span id="L143" class="line"><a href="#L143">143</a>        createLegacyIcon = function()</span>
+<span id="L144" class="line"><a href="#L144">144</a>            return self:createLegacyIcon()</span>
+<span id="L145" class="line"><a href="#L145">145</a>        end,</span>
+<span id="L146" class="line"><a href="#L146">146</a>        refreshLegacy = function(icon, reason)</span>
+<span id="L147" class="line"><a href="#L147">147</a>            icon:updateState(reason)</span>
+<span id="L148" class="line"><a href="#L148">148</a>            return true</span>
+<span id="L149" class="line"><a href="#L149">149</a>        end,</span>
+<span id="L150" class="line"><a href="#L150">150</a>        onActivated = function()</span>
+<span id="L151" class="line"><a href="#L151">151</a>            self:sendIconExposeOncePerDay()</span>
+<span id="L152" class="line"><a href="#L152">152</a>        end,</span>
+<span id="L153" class="line"><a href="#L153">153</a>        preflightErrorPrefix = &quot;ALIPAY_DESKTOP_SHORTCUT_V2_ASSET_LOAD_FAILED:&quot;,</span>
+<span id="L154" class="line"><a href="#L154">154</a>        logError = function(stage, detail)</span>
+<span id="L155" class="line"><a href="#L155">155</a>            if ALog and type(ALog.strict_log_error) == &quot;function&quot; then</span>
+<span id="L156" class="line"><a href="#L156">156</a>                ALog.strict_log_error(</span>
+<span id="L157" class="line"><a href="#L157">157</a>                    &quot;[AliPayDesktopShortcutIconV2] &quot; .. tostring(stage) .. &quot;:&quot; .. tostring(detail)</span>
+<span id="L158" class="line"><a href="#L158">158</a>                )</span>
+<span id="L159" class="line"><a href="#L159">159</a>            end</span>
+<span id="L160" class="line"><a href="#L160">160</a>        end,</span>
+<span id="L161" class="line"><a href="#L161">161</a>    })</span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>function AliPayDesktopShortcutManager:initialize()</span>
+<span id="L165" class="line"><a href="#L165">165</a>    if not self._platformProxy then</span>
+<span id="L166" class="line"><a href="#L166">166</a>        self._platformProxy = self:_createPlatformProxy()</span>
+<span id="L167" class="line"><a href="#L167">167</a>    end</span>
+<span id="L168" class="line"><a href="#L168">168</a></span>
+<span id="L169" class="line"><a href="#L169">169</a>    local supportState = self:checkPlatformSupport()</span>
+<span id="L170" class="line"><a href="#L170">170</a>    self._platformUnsupported = supportState.supported ~= true</span>
+<span id="L171" class="line"><a href="#L171">171</a>        and not (self:isSdkInterfaceGuardDisabled() and supportState.isAlipayMiniGame == true)</span>
+<span id="L172" class="line"><a href="#L172">172</a>        and not self:isTestForceShowOnNonAlipay()</span>
+<span id="L173" class="line"><a href="#L173">173</a>    if self._platformUnsupported then</span>
+<span id="L174" class="line"><a href="#L174">174</a>        return false</span>
+<span id="L175" class="line"><a href="#L175">175</a>    end</span>
+<span id="L176" class="line"><a href="#L176">176</a></span>
+<span id="L177" class="line"><a href="#L177">177</a>    if not self._model then</span>
+<span id="L178" class="line"><a href="#L178">178</a>        self._model = AliPayDesktopShortcutModel:create(AliPayDesktopShortcutManager.FEATURE_NAME)</span>
+<span id="L179" class="line"><a href="#L179">179</a>    end</span>
+<span id="L180" class="line"><a href="#L180">180</a>    if not self._dc then</span>
+<span id="L181" class="line"><a href="#L181">181</a>        self._dc = AliPayDesktopShortcutDC:create(self)</span>
+<span id="L182" class="line"><a href="#L182">182</a>    end</span>
+<span id="L183" class="line"><a href="#L183">183</a>    callIfExists(self._platformProxy, &quot;initialize&quot;)</span>
+<span id="L184" class="line"><a href="#L184">184</a>    self._isDesktopShortcutEntry = false</span>
+<span id="L185" class="line"><a href="#L185">185</a>    _G.amfEC:registerFeature(self)</span>
+<span id="L186" class="line"><a href="#L186">186</a>    _G.amfEC:registerSystem(self)</span>
+<span id="L187" class="line"><a href="#L187">187</a>    self._initialized = true</span>
+<span id="L188" class="line"><a href="#L188">188</a>    self:_registerAutoPopup()</span>
+<span id="L189" class="line"><a href="#L189">189</a>    return true</span>
+<span id="L190" class="line"><a href="#L190">190</a>end</span>
+<span id="L191" class="line"><a href="#L191">191</a></span>
+<span id="L192" class="line"><a href="#L192">192</a>function AliPayDesktopShortcutManager:setAutoPopupMgr(autoPopupMgr)</span>
+<span id="L193" class="line"><a href="#L193">193</a>    self._autoPopupMgr = autoPopupMgr</span>
+<span id="L194" class="line"><a href="#L194">194</a>    if self._initialized then</span>
+<span id="L195" class="line"><a href="#L195">195</a>        self:_registerAutoPopup()</span>
+<span id="L196" class="line"><a href="#L196">196</a>    end</span>
+<span id="L197" class="line"><a href="#L197">197</a>end</span>
+<span id="L198" class="line"><a href="#L198">198</a></span>
+<span id="L199" class="line"><a href="#L199">199</a>function AliPayDesktopShortcutManager:setModel(model)</span>
+<span id="L200" class="line"><a href="#L200">200</a>    self._model = model</span>
+<span id="L201" class="line"><a href="#L201">201</a>end</span>
+<span id="L202" class="line"><a href="#L202">202</a></span>
+<span id="L203" class="line"><a href="#L203">203</a>function AliPayDesktopShortcutManager:setPlatformProxy(platformProxy)</span>
+<span id="L204" class="line"><a href="#L204">204</a>    self._platformProxy = platformProxy</span>
+<span id="L205" class="line"><a href="#L205">205</a>end</span>
+<span id="L206" class="line"><a href="#L206">206</a></span>
+<span id="L207" class="line"><a href="#L207">207</a>function AliPayDesktopShortcutManager:setPanelFactory(panelFactory)</span>
+<span id="L208" class="line"><a href="#L208">208</a>    self._panelFactory = panelFactory</span>
+<span id="L209" class="line"><a href="#L209">209</a>end</span>
+<span id="L210" class="line"><a href="#L210">210</a></span>
+<span id="L211" class="line"><a href="#L211">211</a>function AliPayDesktopShortcutManager:getFeatureName()</span>
+<span id="L212" class="line"><a href="#L212">212</a>    return AliPayDesktopShortcutManager.FEATURE_NAME</span>
+<span id="L213" class="line"><a href="#L213">213</a>end</span>
+<span id="L214" class="line"><a href="#L214">214</a></span>
+<span id="L215" class="line"><a href="#L215">215</a>function AliPayDesktopShortcutManager:getModel()</span>
+<span id="L216" class="line"><a href="#L216">216</a>    return self._model</span>
+<span id="L217" class="line"><a href="#L217">217</a>end</span>
+<span id="L218" class="line"><a href="#L218">218</a></span>
+<span id="L219" class="line"><a href="#L219">219</a>function AliPayDesktopShortcutManager:getPlatformProxy()</span>
+<span id="L220" class="line"><a href="#L220">220</a>    return self._platformProxy</span>
+<span id="L221" class="line"><a href="#L221">221</a>end</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>function AliPayDesktopShortcutManager:getDC()</span>
+<span id="L224" class="line"><a href="#L224">224</a>    if not self._dc then</span>
+<span id="L225" class="line"><a href="#L225">225</a>        self._dc = AliPayDesktopShortcutDC:create(self)</span>
+<span id="L226" class="line"><a href="#L226">226</a>    end</span>
+<span id="L227" class="line"><a href="#L227">227</a>    return self._dc</span>
+<span id="L228" class="line"><a href="#L228">228</a>end</span>
+<span id="L229" class="line"><a href="#L229">229</a></span>
+<span id="L230" class="line"><a href="#L230">230</a>function AliPayDesktopShortcutManager:sendDC(methodName, payload)</span>
+<span id="L231" class="line"><a href="#L231">231</a>    local dc = self:getDC()</span>
+<span id="L232" class="line"><a href="#L232">232</a>    if dc and methodName and dc[methodName] then</span>
+<span id="L233" class="line"><a href="#L233">233</a>        return dc[methodName](dc, payload)</span>
+<span id="L234" class="line"><a href="#L234">234</a>    end</span>
+<span id="L235" class="line"><a href="#L235">235</a>    return false</span>
+<span id="L236" class="line"><a href="#L236">236</a>end</span>
+<span id="L237" class="line"><a href="#L237">237</a></span>
+<span id="L238" class="line"><a href="#L238">238</a>function AliPayDesktopShortcutManager:reportAlipayCustomEvent(eventName)</span>
+<span id="L239" class="line"><a href="#L239">239</a>    if not _G.isBundleVersionGreaterOrEqual(&quot;1.161.2&quot;) then return end</span>
+<span id="L240" class="line"><a href="#L240">240</a>    if not eventName</span>
+<span id="L241" class="line"><a href="#L241">241</a>        or not self:isAlipayMiniGame()</span>
+<span id="L242" class="line"><a href="#L242">242</a>        or type(CALL_EASY_JS) ~= &quot;function&quot;</span>
+<span id="L243" class="line"><a href="#L243">243</a>    then</span>
+<span id="L244" class="line"><a href="#L244">244</a>        return false</span>
+<span id="L245" class="line"><a href="#L245">245</a>    end</span>
+<span id="L246" class="line"><a href="#L246">246</a></span>
+<span id="L247" class="line"><a href="#L247">247</a>    local ok = pcall(CALL_EASY_JS, REPORT_CUSTOM_EVENT_METHOD, eventName)</span>
+<span id="L248" class="line"><a href="#L248">248</a>    -- if ok and CommonTip and CommonTip.showTip then</span>
+<span id="L249" class="line"><a href="#L249">249</a>    --     CommonTip:showTip(&quot;CustomEvent: &quot; .. tostring(eventName))</span>
+<span id="L250" class="line"><a href="#L250">250</a>    -- end</span>
+<span id="L251" class="line"><a href="#L251">251</a>    return ok == true</span>
+<span id="L252" class="line"><a href="#L252">252</a>end</span>
+<span id="L253" class="line"><a href="#L253">253</a></span>
+<span id="L254" class="line"><a href="#L254">254</a>function AliPayDesktopShortcutManager:getIconResPath()</span>
+<span id="L255" class="line"><a href="#L255">255</a>    return AliPayDesktopShortcutManager.ICON_RES_PATH</span>
+<span id="L256" class="line"><a href="#L256">256</a>end</span>
+<span id="L257" class="line"><a href="#L257">257</a></span>
+<span id="L258" class="line"><a href="#L258">258</a>function AliPayDesktopShortcutManager:isV2IconExperimentEnabled()</span>
+<span id="L259" class="line"><a href="#L259">259</a>    if EnvUtil:isUnityEditor() then</span>
+<span id="L260" class="line"><a href="#L260">260</a>        return true</span>
+<span id="L261" class="line"><a href="#L261">261</a>    end</span>
+<span id="L262" class="line"><a href="#L262">262</a>    local experiment = require(ICON_V2_EXPERIMENT_MODULE)</span>
+<span id="L263" class="line"><a href="#L263">263</a>    return experiment:isEnabled()</span>
+<span id="L264" class="line"><a href="#L264">264</a>end</span>
+<span id="L265" class="line"><a href="#L265">265</a></span>
+<span id="L266" class="line"><a href="#L266">266</a>function AliPayDesktopShortcutManager:checkPlatformSupport()</span>
+<span id="L267" class="line"><a href="#L267">267</a>    local supportState = callIfExists(self._platformProxy, &quot;getSupportState&quot;)</span>
+<span id="L268" class="line"><a href="#L268">268</a>    if supportState then</span>
+<span id="L269" class="line"><a href="#L269">269</a>        return supportState</span>
+<span id="L270" class="line"><a href="#L270">270</a>    end</span>
+<span id="L271" class="line"><a href="#L271">271</a>    return {</span>
+<span id="L272" class="line"><a href="#L272">272</a>        supported = false,</span>
+<span id="L273" class="line"><a href="#L273">273</a>        lowVersion = false,</span>
+<span id="L274" class="line"><a href="#L274">274</a>        apiAvailable = false,</span>
+<span id="L275" class="line"><a href="#L275">275</a>        isAlipayMiniGame = false,</span>
+<span id="L276" class="line"><a href="#L276">276</a>        reason = ErrorCode.UNSUPPORTED,</span>
+<span id="L277" class="line"><a href="#L277">277</a>    }</span>
+<span id="L278" class="line"><a href="#L278">278</a>end</span>
+<span id="L279" class="line"><a href="#L279">279</a></span>
+<span id="L280" class="line"><a href="#L280">280</a>function AliPayDesktopShortcutManager:getSupportState()</span>
+<span id="L281" class="line"><a href="#L281">281</a>    return self:checkPlatformSupport()</span>
+<span id="L282" class="line"><a href="#L282">282</a>end</span>
+<span id="L283" class="line"><a href="#L283">283</a></span>
+<span id="L284" class="line"><a href="#L284">284</a>function AliPayDesktopShortcutManager:addShortcut(callback)</span>
+<span id="L285" class="line"><a href="#L285">285</a>    if self._addingShortcut then</span>
+<span id="L286" class="line"><a href="#L286">286</a>        safeRunCall(callback, {</span>
+<span id="L287" class="line"><a href="#L287">287</a>            ok = false,</span>
+<span id="L288" class="line"><a href="#L288">288</a>            reason = ErrorCode.ADD_SHORTCUT_BUSY,</span>
+<span id="L289" class="line"><a href="#L289">289</a>            code = ErrorCode.ADD_SHORTCUT_BUSY,</span>
+<span id="L290" class="line"><a href="#L290">290</a>            supportState = self:checkPlatformSupport(),</span>
+<span id="L291" class="line"><a href="#L291">291</a>        })</span>
+<span id="L292" class="line"><a href="#L292">292</a>        return</span>
+<span id="L293" class="line"><a href="#L293">293</a>    end</span>
+<span id="L294" class="line"><a href="#L294">294</a></span>
+<span id="L295" class="line"><a href="#L295">295</a>    self._addingShortcut = true</span>
+<span id="L296" class="line"><a href="#L296">296</a>    local callbackDone = false</span>
+<span id="L297" class="line"><a href="#L297">297</a>    local function finish(result)</span>
+<span id="L298" class="line"><a href="#L298">298</a>        if callbackDone then</span>
+<span id="L299" class="line"><a href="#L299">299</a>            return</span>
+<span id="L300" class="line"><a href="#L300">300</a>        end</span>
+<span id="L301" class="line"><a href="#L301">301</a>        callbackDone = true</span>
+<span id="L302" class="line"><a href="#L302">302</a>        self._addingShortcut = false</span>
+<span id="L303" class="line"><a href="#L303">303</a>        result = self:_normalizeAddShortcutResult(result)</span>
+<span id="L304" class="line"><a href="#L304">304</a>        if result.action == &quot;auth_guide&quot; then</span>
+<span id="L305" class="line"><a href="#L305">305</a>            self:notifyPanelRefresh(result.ok and &quot;shortcut_auth_guide_ok&quot; or &quot;shortcut_auth_guide_fail&quot;)</span>
+<span id="L306" class="line"><a href="#L306">306</a>        else</span>
+<span id="L307" class="line"><a href="#L307">307</a>            self:notifyPanelRefresh(result.ok and &quot;add_shortcut_ok&quot; or &quot;add_shortcut_fail&quot;)</span>
+<span id="L308" class="line"><a href="#L308">308</a>        end</span>
+<span id="L309" class="line"><a href="#L309">309</a>        safeRunCall(callback, result)</span>
+<span id="L310" class="line"><a href="#L310">310</a>    end</span>
+<span id="L311" class="line"><a href="#L311">311</a></span>
+<span id="L312" class="line"><a href="#L312">312</a>    if setTimeOut then</span>
+<span id="L313" class="line"><a href="#L313">313</a>        setTimeOut(function()</span>
+<span id="L314" class="line"><a href="#L314">314</a>            finish({</span>
+<span id="L315" class="line"><a href="#L315">315</a>                ok = false,</span>
+<span id="L316" class="line"><a href="#L316">316</a>                reason = &quot;timeout&quot;,</span>
+<span id="L317" class="line"><a href="#L317">317</a>                code = &quot;timeout&quot;,</span>
+<span id="L318" class="line"><a href="#L318">318</a>                supportState = self:checkPlatformSupport(),</span>
+<span id="L319" class="line"><a href="#L319">319</a>            })</span>
+<span id="L320" class="line"><a href="#L320">320</a>        end, AliPayDesktopShortcutManager.ADD_SHORTCUT_TIMEOUT_SECONDS)</span>
+<span id="L321" class="line"><a href="#L321">321</a>    end</span>
+<span id="L322" class="line"><a href="#L322">322</a></span>
+<span id="L323" class="line"><a href="#L323">323</a>    local proxy = self:getPlatformProxy()</span>
+<span id="L324" class="line"><a href="#L324">324</a>    if proxy and proxy.addShortcut then</span>
+<span id="L325" class="line"><a href="#L325">325</a>        proxy:addShortcut(finish)</span>
+<span id="L326" class="line"><a href="#L326">326</a>    else</span>
+<span id="L327" class="line"><a href="#L327">327</a>        finish({</span>
+<span id="L328" class="line"><a href="#L328">328</a>            ok = false,</span>
+<span id="L329" class="line"><a href="#L329">329</a>            reason = ErrorCode.UNSUPPORTED,</span>
+<span id="L330" class="line"><a href="#L330">330</a>            code = ErrorCode.UNSUPPORTED,</span>
+<span id="L331" class="line"><a href="#L331">331</a>            supportState = self:checkPlatformSupport(),</span>
+<span id="L332" class="line"><a href="#L332">332</a>        })</span>
+<span id="L333" class="line"><a href="#L333">333</a>    end</span>
+<span id="L334" class="line"><a href="#L334">334</a>end</span>
+<span id="L335" class="line"><a href="#L335">335</a></span>
+<span id="L336" class="line"><a href="#L336">336</a>function AliPayDesktopShortcutManager:isAlipayMiniGame()</span>
+<span id="L337" class="line"><a href="#L337">337</a>    return EnvUtil:isMiniGame()</span>
+<span id="L338" class="line"><a href="#L338">338</a>        and EnvUtil:isALIPAYMiniGame()</span>
+<span id="L339" class="line"><a href="#L339">339</a>end</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>function AliPayDesktopShortcutManager:setTestForceShowOnNonAlipay(enabled)</span>
+<span id="L342" class="line"><a href="#L342">342</a>    AliPayDesktopShortcutManager.TEST_FORCE_SHOW_ON_NON_ALIPAY = enabled == true</span>
+<span id="L343" class="line"><a href="#L343">343</a>    if self._initialized then</span>
+<span id="L344" class="line"><a href="#L344">344</a>        if self:isTestForceShowOnNonAlipay() then</span>
+<span id="L345" class="line"><a href="#L345">345</a>            self:requestAsyncMainInfo(&quot;test_force_show_switch&quot;)</span>
+<span id="L346" class="line"><a href="#L346">346</a>        else</span>
+<span id="L347" class="line"><a href="#L347">347</a>            self:shutdownFeature(DisableReason.NOT_ALIPAY)</span>
+<span id="L348" class="line"><a href="#L348">348</a>        end</span>
+<span id="L349" class="line"><a href="#L349">349</a>    end</span>
+<span id="L350" class="line"><a href="#L350">350</a>end</span>
+<span id="L351" class="line"><a href="#L351">351</a></span>
+<span id="L352" class="line"><a href="#L352">352</a>function AliPayDesktopShortcutManager:isTestForceShowOnNonAlipay()</span>
+<span id="L353" class="line"><a href="#L353">353</a>    return AliPayDesktopShortcutManager.TEST_FORCE_SHOW_ON_NON_ALIPAY == true</span>
+<span id="L354" class="line"><a href="#L354">354</a>end</span>
+<span id="L355" class="line"><a href="#L355">355</a></span>
+<span id="L356" class="line"><a href="#L356">356</a>function AliPayDesktopShortcutManager:isSdkInterfaceGuardDisabled()</span>
+<span id="L357" class="line"><a href="#L357">357</a>    return AliPayDesktopShortcutManager.DISABLE_SDK_INTERFACE_GUARD == true</span>
+<span id="L358" class="line"><a href="#L358">358</a>end</span>
+<span id="L359" class="line"><a href="#L359">359</a></span>
+<span id="L360" class="line"><a href="#L360">360</a>function AliPayDesktopShortcutManager:isLowVersion()</span>
+<span id="L361" class="line"><a href="#L361">361</a></span>
+<span id="L362" class="line"><a href="#L362">362</a>    if not _G.isBundleVersionGreaterOrEqual(&quot;1.159.4&quot;) then</span>
+<span id="L363" class="line"><a href="#L363">363</a>        return true</span>
+<span id="L364" class="line"><a href="#L364">364</a>    end</span>
+<span id="L365" class="line"><a href="#L365">365</a>    if self:isSdkInterfaceGuardDisabled() then</span>
+<span id="L366" class="line"><a href="#L366">366</a>        return false</span>
+<span id="L367" class="line"><a href="#L367">367</a>    end</span>
+<span id="L368" class="line"><a href="#L368">368</a>    local lowVersion = callIfExists(self._platformProxy, &quot;isLowVersion&quot;)</span>
+<span id="L369" class="line"><a href="#L369">369</a>    if lowVersion ~= nil then</span>
+<span id="L370" class="line"><a href="#L370">370</a>        return lowVersion == true</span>
+<span id="L371" class="line"><a href="#L371">371</a>    end</span>
+<span id="L372" class="line"><a href="#L372">372</a>    return false</span>
+<span id="L373" class="line"><a href="#L373">373</a>end</span>
+<span id="L374" class="line"><a href="#L374">374</a></span>
+<span id="L375" class="line"><a href="#L375">375</a>function AliPayDesktopShortcutManager:isDataReady()</span>
+<span id="L376" class="line"><a href="#L376">376</a>    local dataReady = callIfExists(self._model, &quot;isDataReady&quot;)</span>
+<span id="L377" class="line"><a href="#L377">377</a>    if dataReady ~= nil then</span>
+<span id="L378" class="line"><a href="#L378">378</a>        return dataReady == true</span>
+<span id="L379" class="line"><a href="#L379">379</a>    end</span>
+<span id="L380" class="line"><a href="#L380">380</a>    return self._model ~= nil</span>
+<span id="L381" class="line"><a href="#L381">381</a>end</span>
+<span id="L382" class="line"><a href="#L382">382</a></span>
+<span id="L383" class="line"><a href="#L383">383</a>function AliPayDesktopShortcutManager:isShutdown()</span>
+<span id="L384" class="line"><a href="#L384">384</a>    if self._mainInfoShutdownErrorCode ~= nil then</span>
+<span id="L385" class="line"><a href="#L385">385</a>        return true</span>
+<span id="L386" class="line"><a href="#L386">386</a>    end</span>
+<span id="L387" class="line"><a href="#L387">387</a>    local shutdown = callIfExists(self._platformProxy, &quot;isShutdown&quot;)</span>
+<span id="L388" class="line"><a href="#L388">388</a>    return shutdown == true</span>
+<span id="L389" class="line"><a href="#L389">389</a>end</span>
+<span id="L390" class="line"><a href="#L390">390</a></span>
+<span id="L391" class="line"><a href="#L391">391</a>function AliPayDesktopShortcutManager:isEnabled()</span>
+<span id="L392" class="line"><a href="#L392">392</a>    local result = self:canShowEntry()</span>
+<span id="L393" class="line"><a href="#L393">393</a>    return result.enabled == true</span>
+<span id="L394" class="line"><a href="#L394">394</a>end</span>
+<span id="L395" class="line"><a href="#L395">395</a></span>
+<span id="L396" class="line"><a href="#L396">396</a>function AliPayDesktopShortcutManager:isMaintenanceEnabled()</span>
+<span id="L397" class="line"><a href="#L397">397</a>    return MaintenanceManager:getInstance():isEnabledInGroup(</span>
+<span id="L398" class="line"><a href="#L398">398</a>        AliPayDesktopShortcutManager.MAINTENANCE_KEY,</span>
+<span id="L399" class="line"><a href="#L399">399</a>        &quot;ON&quot;</span>
+<span id="L400" class="line"><a href="#L400">400</a>    )</span>
+<span id="L401" class="line"><a href="#L401">401</a>end</span>
+<span id="L402" class="line"><a href="#L402">402</a></span>
+<span id="L403" class="line"><a href="#L403">403</a>function AliPayDesktopShortcutManager:canShowEntry()</span>
+<span id="L404" class="line"><a href="#L404">404</a>    if self._platformUnsupported then</span>
+<span id="L405" class="line"><a href="#L405">405</a>        return { enabled = false, reason = ErrorCode.UNSUPPORTED }</span>
+<span id="L406" class="line"><a href="#L406">406</a>    end</span>
+<span id="L407" class="line"><a href="#L407">407</a>    if not self:isMaintenanceEnabled() then</span>
+<span id="L408" class="line"><a href="#L408">408</a>        return { enabled = false, reason = DisableReason.SWITCH_OFF }</span>
+<span id="L409" class="line"><a href="#L409">409</a>    end</span>
+<span id="L410" class="line"><a href="#L410">410</a>    if self:isShutdown() then</span>
+<span id="L411" class="line"><a href="#L411">411</a>        return { enabled = false, reason = DisableReason.SHUTDOWN }</span>
+<span id="L412" class="line"><a href="#L412">412</a>    end</span>
+<span id="L413" class="line"><a href="#L413">413</a>    if not EnvUtil:isMiniGame() then</span>
+<span id="L414" class="line"><a href="#L414">414</a>        return { enabled = false, reason = DisableReason.NOT_MINI_GAME }</span>
+<span id="L415" class="line"><a href="#L415">415</a>    end</span>
+<span id="L416" class="line"><a href="#L416">416</a>    if not self:_canShowInCurrentPlatform() then</span>
+<span id="L417" class="line"><a href="#L417">417</a>        return { enabled = false, reason = DisableReason.NOT_ALIPAY }</span>
+<span id="L418" class="line"><a href="#L418">418</a>    end</span>
+<span id="L419" class="line"><a href="#L419">419</a>    if self:isLowVersion() then</span>
+<span id="L420" class="line"><a href="#L420">420</a>        return { enabled = false, reason = DisableReason.LOW_VERSION }</span>
+<span id="L421" class="line"><a href="#L421">421</a>    end</span>
+<span id="L422" class="line"><a href="#L422">422</a>    return { enabled = true }</span>
+<span id="L423" class="line"><a href="#L423">423</a>end</span>
+<span id="L424" class="line"><a href="#L424">424</a></span>
+<span id="L425" class="line"><a href="#L425">425</a>function AliPayDesktopShortcutManager:onActEnterMainScene()</span>
+<span id="L426" class="line"><a href="#L426">426</a>    if not self:_canShowInCurrentPlatform() then</span>
+<span id="L427" class="line"><a href="#L427">427</a>        self:shutdownFeature(DisableReason.NOT_ALIPAY)</span>
+<span id="L428" class="line"><a href="#L428">428</a>        return</span>
+<span id="L429" class="line"><a href="#L429">429</a>    end</span>
+<span id="L430" class="line"><a href="#L430">430</a>    self:requestAsyncMainInfo(&quot;enter_main_scene&quot;, function()</span>
+<span id="L431" class="line"><a href="#L431">431</a>        self:refreshIcon(&quot;enter_main_scene&quot;)</span>
+<span id="L432" class="line"><a href="#L432">432</a>        self:notifyPanelRefresh(&quot;enter_main_scene&quot;)</span>
+<span id="L433" class="line"><a href="#L433">433</a>    end, function()</span>
+<span id="L434" class="line"><a href="#L434">434</a>        self:refreshIcon(&quot;enter_main_scene_fail&quot;)</span>
+<span id="L435" class="line"><a href="#L435">435</a>    end, {</span>
+<span id="L436" class="line"><a href="#L436">436</a>        failOnUnavailable = true,</span>
+<span id="L437" class="line"><a href="#L437">437</a>        hideOnMainInfoError = true,</span>
+<span id="L438" class="line"><a href="#L438">438</a>    })</span>
+<span id="L439" class="line"><a href="#L439">439</a>end</span>
+<span id="L440" class="line"><a href="#L440">440</a></span>
+<span id="L441" class="line"><a href="#L441">441</a>function AliPayDesktopShortcutManager:onSystemEnterForeground()</span>
+<span id="L442" class="line"><a href="#L442">442</a>    if not self:_canShowInCurrentPlatform() then</span>
+<span id="L443" class="line"><a href="#L443">443</a>        return</span>
+<span id="L444" class="line"><a href="#L444">444</a>    end</span>
+<span id="L445" class="line"><a href="#L445">445</a>    self:requestAsyncMainInfo()</span>
+<span id="L446" class="line"><a href="#L446">446</a>end</span>
+<span id="L447" class="line"><a href="#L447">447</a></span>
+<span id="L448" class="line"><a href="#L448">448</a>function AliPayDesktopShortcutManager:_createAutoPopupCreator(onPopOver, cacheKey, checkPoint, requireStreakBreak)</span>
+<span id="L449" class="line"><a href="#L449">449</a>    return function()</span>
+<span id="L450" class="line"><a href="#L450">450</a>        local canPopup = self:_getAutoPopupState(cacheKey, requireStreakBreak)</span>
+<span id="L451" class="line"><a href="#L451">451</a>        if not canPopup then</span>
+<span id="L452" class="line"><a href="#L452">452</a>            onPopOver()</span>
+<span id="L453" class="line"><a href="#L453">453</a>            return</span>
+<span id="L454" class="line"><a href="#L454">454</a>        end</span>
+<span id="L455" class="line"><a href="#L455">455</a>        self:markAutoPopupDone(cacheKey)</span>
+<span id="L456" class="line"><a href="#L456">456</a>        self:openPanel(&quot;autopop&quot;, function()</span>
+<span id="L457" class="line"><a href="#L457">457</a>            onPopOver()</span>
+<span id="L458" class="line"><a href="#L458">458</a>        end)</span>
+<span id="L459" class="line"><a href="#L459">459</a>    end</span>
+<span id="L460" class="line"><a href="#L460">460</a>end</span>
+<span id="L461" class="line"><a href="#L461">461</a></span>
+<span id="L462" class="line"><a href="#L462">462</a>function AliPayDesktopShortcutManager:_registerFirstLoginAutoPopup(popStage)</span>
+<span id="L463" class="line"><a href="#L463">463</a>    local firstLoginCheckPoint = PopupCheckPoint.ALIPAY_DESKTOP_SHORTCUT_FIRST_LOGIN</span>
+<span id="L464" class="line"><a href="#L464">464</a>    self._autoPopupMgr:registerPopup({</span>
+<span id="L465" class="line"><a href="#L465">465</a>        checkPoint = firstLoginCheckPoint,</span>
+<span id="L466" class="line"><a href="#L466">466</a>        stages = { popStage.STAGE_TWO, popStage.STAGE_FOUR },</span>
+<span id="L467" class="line"><a href="#L467">467</a>        check = function()</span>
+<span id="L468" class="line"><a href="#L468">468</a>            local canPopup = self:_getAutoPopupState(</span>
+<span id="L469" class="line"><a href="#L469">469</a>                AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY,</span>
+<span id="L470" class="line"><a href="#L470">470</a>                false</span>
+<span id="L471" class="line"><a href="#L471">471</a>            )</span>
+<span id="L472" class="line"><a href="#L472">472</a>            return canPopup</span>
+<span id="L473" class="line"><a href="#L473">473</a>        end,</span>
+<span id="L474" class="line"><a href="#L474">474</a>        creator = function(_, onPopOver)</span>
+<span id="L475" class="line"><a href="#L475">475</a>            return self:_createAutoPopupCreator(</span>
+<span id="L476" class="line"><a href="#L476">476</a>                onPopOver,</span>
+<span id="L477" class="line"><a href="#L477">477</a>                AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY,</span>
+<span id="L478" class="line"><a href="#L478">478</a>                firstLoginCheckPoint,</span>
+<span id="L479" class="line"><a href="#L479">479</a>                false</span>
+<span id="L480" class="line"><a href="#L480">480</a>            )</span>
+<span id="L481" class="line"><a href="#L481">481</a>        end,</span>
+<span id="L482" class="line"><a href="#L482">482</a>    })</span>
+<span id="L483" class="line"><a href="#L483">483</a>    return firstLoginCheckPoint</span>
+<span id="L484" class="line"><a href="#L484">484</a>end</span>
+<span id="L485" class="line"><a href="#L485">485</a></span>
+<span id="L486" class="line"><a href="#L486">486</a>function AliPayDesktopShortcutManager:_registerStreakBreakAutoPopup(popStage)</span>
+<span id="L487" class="line"><a href="#L487">487</a>    local streakBreakCheckPoint = PopupCheckPoint.ALIPAY_DESKTOP_SHORTCUT_STREAK_BREAK</span>
+<span id="L488" class="line"><a href="#L488">488</a>    self._autoPopupMgr:registerPopup({</span>
+<span id="L489" class="line"><a href="#L489">489</a>        checkPoint = streakBreakCheckPoint,</span>
+<span id="L490" class="line"><a href="#L490">490</a>        stages = { popStage.STAGE_TWO, popStage.STAGE_FOUR },</span>
+<span id="L491" class="line"><a href="#L491">491</a>        check = function()</span>
+<span id="L492" class="line"><a href="#L492">492</a>            local canPopup = self:_getAutoPopupState(</span>
+<span id="L493" class="line"><a href="#L493">493</a>                AliPayDesktopShortcutManager.STREAK_BREAK_AUTO_POP_CACHE_KEY,</span>
+<span id="L494" class="line"><a href="#L494">494</a>                true</span>
+<span id="L495" class="line"><a href="#L495">495</a>            )</span>
+<span id="L496" class="line"><a href="#L496">496</a>            local firstLoginCanPopup = self:_getAutoPopupState(</span>
+<span id="L497" class="line"><a href="#L497">497</a>                AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY,</span>
+<span id="L498" class="line"><a href="#L498">498</a>                false</span>
+<span id="L499" class="line"><a href="#L499">499</a>            )</span>
+<span id="L500" class="line"><a href="#L500">500</a>            local inCountdown = callIfExists(self._model, &quot;isDeskTopVisitStreakBreak&quot;) == true</span>
+<span id="L501" class="line"><a href="#L501">501</a>            canPopup = canPopup and not firstLoginCanPopup and inCountdown</span>
+<span id="L502" class="line"><a href="#L502">502</a>            return canPopup</span>
+<span id="L503" class="line"><a href="#L503">503</a>        end,</span>
+<span id="L504" class="line"><a href="#L504">504</a>        creator = function(_, onPopOver)</span>
+<span id="L505" class="line"><a href="#L505">505</a>            return self:_createAutoPopupCreator(</span>
+<span id="L506" class="line"><a href="#L506">506</a>                onPopOver,</span>
+<span id="L507" class="line"><a href="#L507">507</a>                AliPayDesktopShortcutManager.STREAK_BREAK_AUTO_POP_CACHE_KEY,</span>
+<span id="L508" class="line"><a href="#L508">508</a>                streakBreakCheckPoint,</span>
+<span id="L509" class="line"><a href="#L509">509</a>                true</span>
+<span id="L510" class="line"><a href="#L510">510</a>            )</span>
+<span id="L511" class="line"><a href="#L511">511</a>        end,</span>
+<span id="L512" class="line"><a href="#L512">512</a>    })</span>
+<span id="L513" class="line"><a href="#L513">513</a>    return streakBreakCheckPoint</span>
+<span id="L514" class="line"><a href="#L514">514</a>end</span>
+<span id="L515" class="line"><a href="#L515">515</a></span>
+<span id="L516" class="line"><a href="#L516">516</a>function AliPayDesktopShortcutManager:_registerAutoPopup()</span>
+<span id="L517" class="line"><a href="#L517">517</a>    if not self._autoPopupMgr then</span>
+<span id="L518" class="line"><a href="#L518">518</a>        return</span>
+<span id="L519" class="line"><a href="#L519">519</a>    end</span>
+<span id="L520" class="line"><a href="#L520">520</a>    if not self._autoPopupMgr.registerPopup then</span>
+<span id="L521" class="line"><a href="#L521">521</a>        return</span>
+<span id="L522" class="line"><a href="#L522">522</a>    end</span>
+<span id="L523" class="line"><a href="#L523">523</a>    if not PopupCheckPoint</span>
+<span id="L524" class="line"><a href="#L524">524</a>        or not PopupCheckPoint.ALIPAY_DESKTOP_SHORTCUT_FIRST_LOGIN</span>
+<span id="L525" class="line"><a href="#L525">525</a>        or not PopupCheckPoint.ALIPAY_DESKTOP_SHORTCUT_STREAK_BREAK</span>
+<span id="L526" class="line"><a href="#L526">526</a>    then</span>
+<span id="L527" class="line"><a href="#L527">527</a>        return</span>
+<span id="L528" class="line"><a href="#L528">528</a>    end</span>
+<span id="L529" class="line"><a href="#L529">529</a></span>
+<span id="L530" class="line"><a href="#L530">530</a>    local popStage = AutoPopupConst.PopStage</span>
+<span id="L531" class="line"><a href="#L531">531</a>    self:_registerFirstLoginAutoPopup(popStage)</span>
+<span id="L532" class="line"><a href="#L532">532</a>    self:_registerStreakBreakAutoPopup(popStage)</span>
+<span id="L533" class="line"><a href="#L533">533</a>end</span>
+<span id="L534" class="line"><a href="#L534">534</a></span>
+<span id="L535" class="line"><a href="#L535">535</a>function AliPayDesktopShortcutManager:onLaunchFromShortcut(source, successCallback, failCallback)</span>
+<span id="L536" class="line"><a href="#L536">536</a>    if not source then</span>
+<span id="L537" class="line"><a href="#L537">537</a>        safeRunCall(failCallback, {</span>
+<span id="L538" class="line"><a href="#L538">538</a>            errorCode = ErrorCode.NOT_READY,</span>
+<span id="L539" class="line"><a href="#L539">539</a>            errorMsg = ErrorCode.NOT_READY,</span>
+<span id="L540" class="line"><a href="#L540">540</a>            needRefresh = false,</span>
+<span id="L541" class="line"><a href="#L541">541</a>        })</span>
+<span id="L542" class="line"><a href="#L542">542</a>        return</span>
+<span id="L543" class="line"><a href="#L543">543</a>    end</span>
+<span id="L544" class="line"><a href="#L544">544</a>    return self:_requestMainInfoFromDesktopSource(source, &quot;launch_source&quot;, successCallback, failCallback)</span>
+<span id="L545" class="line"><a href="#L545">545</a>end</span>
+<span id="L546" class="line"><a href="#L546">546</a></span>
+<span id="L547" class="line"><a href="#L547">547</a>function AliPayDesktopShortcutManager:requestAsyncMainInfo(reason, successCallback, failCallback, options)</span>
+<span id="L548" class="line"><a href="#L548">548</a>    reason = reason or MainInfoReason.ASYNC_SYNC</span>
+<span id="L549" class="line"><a href="#L549">549</a>    options = type(options) == &quot;table&quot; and options or {}</span>
+<span id="L550" class="line"><a href="#L550">550</a>    local source = self:consumeLaunchSource()</span>
+<span id="L551" class="line"><a href="#L551">551</a>    local requestOptions = table.clone(options)</span>
+<span id="L552" class="line"><a href="#L552">552</a>    requestOptions.loading = false</span>
+<span id="L553" class="line"><a href="#L553">553</a>    requestOptions.syncFrom = reason</span>
+<span id="L554" class="line"><a href="#L554">554</a>    if source then</span>
+<span id="L555" class="line"><a href="#L555">555</a>        return self:_requestMainInfoFromDesktopSource(source, reason, successCallback, failCallback, requestOptions)</span>
+<span id="L556" class="line"><a href="#L556">556</a>    end</span>
+<span id="L557" class="line"><a href="#L557">557</a></span>
+<span id="L558" class="line"><a href="#L558">558</a>    local proxy = self:getPlatformProxy()</span>
+<span id="L559" class="line"><a href="#L559">559</a>    if proxy and proxy.refreshLaunchSource then</span>
+<span id="L560" class="line"><a href="#L560">560</a>        proxy:refreshLaunchSource(function(refreshSource)</span>
+<span id="L561" class="line"><a href="#L561">561</a>            if refreshSource then</span>
+<span id="L562" class="line"><a href="#L562">562</a>                self:_requestMainInfoFromDesktopSource(refreshSource, reason, successCallback, failCallback, requestOptions)</span>
+<span id="L563" class="line"><a href="#L563">563</a>                return</span>
+<span id="L564" class="line"><a href="#L564">564</a>            end</span>
+<span id="L565" class="line"><a href="#L565">565</a>            self:_setDesktopShortcutEntry(nil)</span>
+<span id="L566" class="line"><a href="#L566">566</a>            self:notifyPanelRefresh(&quot;desktop_entry_changed&quot;)</span>
+<span id="L567" class="line"><a href="#L567">567</a>            self:requestMainInfo(reason, successCallback, failCallback, requestOptions)</span>
+<span id="L568" class="line"><a href="#L568">568</a>        end, reason == &quot;enter_main_scene&quot;)</span>
+<span id="L569" class="line"><a href="#L569">569</a>        return nil</span>
+<span id="L570" class="line"><a href="#L570">570</a>    end</span>
+<span id="L571" class="line"><a href="#L571">571</a>    self:_setDesktopShortcutEntry(nil)</span>
+<span id="L572" class="line"><a href="#L572">572</a>    self:notifyPanelRefresh(&quot;desktop_entry_changed&quot;)</span>
+<span id="L573" class="line"><a href="#L573">573</a>    return self:requestMainInfo(reason, successCallback, failCallback, requestOptions)</span>
+<span id="L574" class="line"><a href="#L574">574</a>end</span>
+<span id="L575" class="line"><a href="#L575">575</a></span>
+<span id="L576" class="line"><a href="#L576">576</a>function AliPayDesktopShortcutManager:_requestMainInfoFromDesktopSource(source, reason, successCallback, failCallback, options)</span>
+<span id="L577" class="line"><a href="#L577">577</a>    options = type(options) == &quot;table&quot; and options or {}</span>
+<span id="L578" class="line"><a href="#L578">578</a>    reason = reason or MainInfoReason.ASYNC_SYNC</span>
+<span id="L579" class="line"><a href="#L579">579</a>    self:_markEnteredFromDesktopShortcut(source)</span>
+<span id="L580" class="line"><a href="#L580">580</a>    self:notifyPanelRefresh(&quot;desktop_entry_changed&quot;)</span>
+<span id="L581" class="line"><a href="#L581">581</a>    return self:requestMainInfo(reason, successCallback, failCallback, {</span>
+<span id="L582" class="line"><a href="#L582">582</a>        loading = false,</span>
+<span id="L583" class="line"><a href="#L583">583</a>        fromDesktop = true,</span>
+<span id="L584" class="line"><a href="#L584">584</a>        launchSource = source,</span>
+<span id="L585" class="line"><a href="#L585">585</a>        syncFrom = options.syncFrom or reason,</span>
+<span id="L586" class="line"><a href="#L586">586</a>        failOnUnavailable = options.failOnUnavailable == true,</span>
+<span id="L587" class="line"><a href="#L587">587</a>        hideOnMainInfoError = options.hideOnMainInfoError == true,</span>
+<span id="L588" class="line"><a href="#L588">588</a>    })</span>
+<span id="L589" class="line"><a href="#L589">589</a>end</span>
+<span id="L590" class="line"><a href="#L590">590</a></span>
+<span id="L591" class="line"><a href="#L591">591</a>function AliPayDesktopShortcutManager:onActPassDay()</span>
+<span id="L592" class="line"><a href="#L592">592</a>    self:resetDailyState()</span>
+<span id="L593" class="line"><a href="#L593">593</a>    self:closePanel(&quot;pass_day&quot;)</span>
+<span id="L594" class="line"><a href="#L594">594</a>    CommonTip:showTip(&#x27;新的一天开始了，数据已更新，\n请尝试重进活动~&#x27;)</span>
+<span id="L595" class="line"><a href="#L595">595</a>end</span>
+<span id="L596" class="line"><a href="#L596">596</a></span>
+<span id="L597" class="line"><a href="#L597">597</a>function AliPayDesktopShortcutManager:requestMainInfo(reason, successCallback, failCallback, options)</span>
+<span id="L598" class="line"><a href="#L598">598</a>    options = type(options) == &quot;table&quot; and options or {}</span>
+<span id="L599" class="line"><a href="#L599">599</a>    options.clientVersion = AliPayDesktopShortcutManager.CLIENT_VERSION</span>
+<span id="L600" class="line"><a href="#L600">600</a>    if self._model and self._model.requestMainInfo then</span>
+<span id="L601" class="line"><a href="#L601">601</a>        local request = self._model:requestMainInfo(reason, options)</span>
+<span id="L602" class="line"><a href="#L602">602</a>        if request and request.next then</span>
+<span id="L603" class="line"><a href="#L603">603</a>            request:next(function(response)</span>
+<span id="L604" class="line"><a href="#L604">604</a>                self._mainInfoError = nil</span>
+<span id="L605" class="line"><a href="#L605">605</a>                self:clearUnavailableState(reason)</span>
+<span id="L606" class="line"><a href="#L606">606</a>                self:refreshIcon(reason)</span>
+<span id="L607" class="line"><a href="#L607">607</a>                self:notifyPanelRefresh(reason)</span>
+<span id="L608" class="line"><a href="#L608">608</a>                safeRunCall(successCallback, response)</span>
+<span id="L609" class="line"><a href="#L609">609</a>            end, function(response)</span>
+<span id="L610" class="line"><a href="#L610">610</a>                self:handleMainInfoError(response, reason)</span>
+<span id="L611" class="line"><a href="#L611">611</a>                safeRunCall(failCallback, response)</span>
+<span id="L612" class="line"><a href="#L612">612</a>            end)</span>
+<span id="L613" class="line"><a href="#L613">613</a>            return request</span>
+<span id="L614" class="line"><a href="#L614">614</a>        end</span>
+<span id="L615" class="line"><a href="#L615">615</a>    end</span>
+<span id="L616" class="line"><a href="#L616">616</a></span>
+<span id="L617" class="line"><a href="#L617">617</a>    if options.failOnUnavailable then</span>
+<span id="L618" class="line"><a href="#L618">618</a>        local errorResult = {</span>
+<span id="L619" class="line"><a href="#L619">619</a>            errorCode = ErrorCode.REQUEST_UNAVAILABLE,</span>
+<span id="L620" class="line"><a href="#L620">620</a>            errorMsg = ErrorCode.REQUEST_UNAVAILABLE,</span>
+<span id="L621" class="line"><a href="#L621">621</a>            needRefresh = true,</span>
+<span id="L622" class="line"><a href="#L622">622</a>        }</span>
+<span id="L623" class="line"><a href="#L623">623</a>        if options.hideOnMainInfoError then</span>
+<span id="L624" class="line"><a href="#L624">624</a>            self:handleMainInfoError(errorResult, reason)</span>
+<span id="L625" class="line"><a href="#L625">625</a>        else</span>
+<span id="L626" class="line"><a href="#L626">626</a>            self:refreshIcon(reason)</span>
+<span id="L627" class="line"><a href="#L627">627</a>            self:notifyPanelRefresh(reason)</span>
+<span id="L628" class="line"><a href="#L628">628</a>        end</span>
+<span id="L629" class="line"><a href="#L629">629</a>        safeRunCall(failCallback, errorResult)</span>
+<span id="L630" class="line"><a href="#L630">630</a>        return nil</span>
+<span id="L631" class="line"><a href="#L631">631</a>    end</span>
+<span id="L632" class="line"><a href="#L632">632</a>    self:refreshIcon(reason)</span>
+<span id="L633" class="line"><a href="#L633">633</a>    self:notifyPanelRefresh(reason)</span>
+<span id="L634" class="line"><a href="#L634">634</a>    safeRunCall(successCallback)</span>
+<span id="L635" class="line"><a href="#L635">635</a>    return nil</span>
+<span id="L636" class="line"><a href="#L636">636</a>end</span>
+<span id="L637" class="line"><a href="#L637">637</a></span>
+<span id="L638" class="line"><a href="#L638">638</a>function AliPayDesktopShortcutManager:markVisitFromShortcut(launchSource, successCallback, failCallback, syncFrom)</span>
+<span id="L639" class="line"><a href="#L639">639</a>    if not launchSource then</span>
+<span id="L640" class="line"><a href="#L640">640</a>        safeRunCall(failCallback, {</span>
+<span id="L641" class="line"><a href="#L641">641</a>            errorCode = ErrorCode.NOT_READY,</span>
+<span id="L642" class="line"><a href="#L642">642</a>            errorMsg = ErrorCode.NOT_READY,</span>
+<span id="L643" class="line"><a href="#L643">643</a>            needRefresh = false,</span>
+<span id="L644" class="line"><a href="#L644">644</a>        })</span>
+<span id="L645" class="line"><a href="#L645">645</a>        return nil</span>
+<span id="L646" class="line"><a href="#L646">646</a>    end</span>
+<span id="L647" class="line"><a href="#L647">647</a></span>
+<span id="L648" class="line"><a href="#L648">648</a>    return self:_requestMainInfoFromDesktopSource(launchSource, syncFrom or &quot;icon_open&quot;, successCallback, failCallback, {</span>
+<span id="L649" class="line"><a href="#L649">649</a>        failOnUnavailable = true,</span>
+<span id="L650" class="line"><a href="#L650">650</a>    })</span>
+<span id="L651" class="line"><a href="#L651">651</a>end</span>
+<span id="L652" class="line"><a href="#L652">652</a></span>
+<span id="L653" class="line"><a href="#L653">653</a>function AliPayDesktopShortcutManager:requestReward(params, successCallback, failCallback)</span>
+<span id="L654" class="line"><a href="#L654">654</a>    if not self._model or not self._model.requestReward then</span>
+<span id="L655" class="line"><a href="#L655">655</a>        local response = {</span>
+<span id="L656" class="line"><a href="#L656">656</a>            errorCode = ErrorCode.NOT_READY,</span>
+<span id="L657" class="line"><a href="#L657">657</a>            errorMsg = ErrorCode.NOT_READY,</span>
+<span id="L658" class="line"><a href="#L658">658</a>            needRefresh = false,</span>
+<span id="L659" class="line"><a href="#L659">659</a>        }</span>
+<span id="L660" class="line"><a href="#L660">660</a>        safeRunCall(failCallback, response)</span>
+<span id="L661" class="line"><a href="#L661">661</a>        return nil</span>
+<span id="L662" class="line"><a href="#L662">662</a>    end</span>
+<span id="L663" class="line"><a href="#L663">663</a></span>
+<span id="L664" class="line"><a href="#L664">664</a>    local rewardItem = callIfExists(self._model, &quot;getClaimableRewardItem&quot;, params)</span>
+<span id="L665" class="line"><a href="#L665">665</a>    if not rewardItem then</span>
+<span id="L666" class="line"><a href="#L666">666</a>        local response = {</span>
+<span id="L667" class="line"><a href="#L667">667</a>            errorCode = ErrorCode.NOT_CAN_REWARD,</span>
+<span id="L668" class="line"><a href="#L668">668</a>            errorMsg = ErrorCode.NOT_CAN_REWARD,</span>
+<span id="L669" class="line"><a href="#L669">669</a>            needRefresh = false,</span>
+<span id="L670" class="line"><a href="#L670">670</a>        }</span>
+<span id="L671" class="line"><a href="#L671">671</a>        safeRunCall(failCallback, response)</span>
+<span id="L672" class="line"><a href="#L672">672</a>        return nil</span>
+<span id="L673" class="line"><a href="#L673">673</a>    end</span>
+<span id="L674" class="line"><a href="#L674">674</a></span>
+<span id="L675" class="line"><a href="#L675">675</a>    local request = self._model:requestReward(rewardItem)</span>
+<span id="L676" class="line"><a href="#L676">676</a>    if request and request.next then</span>
+<span id="L677" class="line"><a href="#L677">677</a>        request:next(function(response)</span>
+<span id="L678" class="line"><a href="#L678">678</a>            local result = self:_buildRewardResult(response, rewardItem)</span>
+<span id="L679" class="line"><a href="#L679">679</a>            callIfExists(self._model, &quot;setRewardClaimed&quot;, rewardItem)</span>
+<span id="L680" class="line"><a href="#L680">680</a>            self:_showReward(result.rewards)</span>
+<span id="L681" class="line"><a href="#L681">681</a>            self:refreshIcon(&quot;request_reward&quot;)</span>
+<span id="L682" class="line"><a href="#L682">682</a>            self:notifyPanelRefresh(&quot;request_reward&quot;)</span>
+<span id="L683" class="line"><a href="#L683">683</a>            safeRunCall(successCallback, result)</span>
+<span id="L684" class="line"><a href="#L684">684</a>        end, function(response)</span>
+<span id="L685" class="line"><a href="#L685">685</a>            safeRunCall(failCallback, self:_buildErrorResult(response, true))</span>
+<span id="L686" class="line"><a href="#L686">686</a>        end)</span>
+<span id="L687" class="line"><a href="#L687">687</a>    else</span>
+<span id="L688" class="line"><a href="#L688">688</a>        safeRunCall(failCallback, {</span>
+<span id="L689" class="line"><a href="#L689">689</a>            errorCode = ErrorCode.REQUEST_UNAVAILABLE,</span>
+<span id="L690" class="line"><a href="#L690">690</a>            errorMsg = ErrorCode.REQUEST_UNAVAILABLE,</span>
+<span id="L691" class="line"><a href="#L691">691</a>            needRefresh = false,</span>
+<span id="L692" class="line"><a href="#L692">692</a>        })</span>
+<span id="L693" class="line"><a href="#L693">693</a>    end</span>
+<span id="L694" class="line"><a href="#L694">694</a>    return request</span>
+<span id="L695" class="line"><a href="#L695">695</a>end</span>
+<span id="L696" class="line"><a href="#L696">696</a></span>
+<span id="L697" class="line"><a href="#L697">697</a>function AliPayDesktopShortcutManager:consumeLaunchSource()</span>
+<span id="L698" class="line"><a href="#L698">698</a>    return callIfExists(self._platformProxy, &quot;consumeLaunchSource&quot;)</span>
+<span id="L699" class="line"><a href="#L699">699</a>end</span>
+<span id="L700" class="line"><a href="#L700">700</a></span>
+<span id="L701" class="line"><a href="#L701">701</a>function AliPayDesktopShortcutManager:resetDailyState()</span>
+<span id="L702" class="line"><a href="#L702">702</a>    callIfExists(self._model, &quot;resetDailyState&quot;)</span>
+<span id="L703" class="line"><a href="#L703">703</a>    callIfExists(self._platformProxy, &quot;resetDailyState&quot;)</span>
+<span id="L704" class="line"><a href="#L704">704</a>end</span>
+<span id="L705" class="line"><a href="#L705">705</a></span>
+<span id="L706" class="line"><a href="#L706">706</a>function AliPayDesktopShortcutManager:markAutoPopupDone(cacheKey)</span>
+<span id="L707" class="line"><a href="#L707">707</a>    callIfExists(self._model, &quot;setLocalCache&quot;, cacheKey, true, true)</span>
+<span id="L708" class="line"><a href="#L708">708</a>end</span>
+<span id="L709" class="line"><a href="#L709">709</a></span>
+<span id="L710" class="line"><a href="#L710">710</a>function AliPayDesktopShortcutManager:shouldBlockStage2ForNewLevels()</span>
+<span id="L711" class="line"><a href="#L711">711</a>    local userStateMgr = _G.amfBean(&quot;UserStateManager&quot;)</span>
+<span id="L712" class="line"><a href="#L712">712</a>    local unlockMgr = _G.amfBean(&quot;LevelUnLockManager&quot;)</span>
+<span id="L713" class="line"><a href="#L713">713</a></span>
+<span id="L714" class="line"><a href="#L714">714</a>    -- 满级满星玩家不屏蔽</span>
+<span id="L715" class="line"><a href="#L715">715</a>    if userStateMgr:getUserLevelState()</span>
+<span id="L716" class="line"><a href="#L716">716</a>        == _G.UserStateConst.UserLevelState.TOP_STAR then</span>
+<span id="L717" class="line"><a href="#L717">717</a>        return false</span>
+<span id="L718" class="line"><a href="#L718">718</a>    end</span>
+<span id="L719" class="line"><a href="#L719">719</a></span>
+<span id="L720" class="line"><a href="#L720">720</a>    -- 当前最高可打关必须属于本次新发的30/45关</span>
+<span id="L721" class="line"><a href="#L721">721</a>    local levelId = _G.getTopLevelId()</span>
+<span id="L722" class="line"><a href="#L722">722</a>    if not unlockMgr:isTopNewMainLevel(levelId) then</span>
+<span id="L723" class="line"><a href="#L723">723</a>        return false</span>
+<span id="L724" class="line"><a href="#L724">724</a>    end</span>
+<span id="L725" class="line"><a href="#L725">725</a></span>
+<span id="L726" class="line"><a href="#L726">726</a>    -- 默认新关开放后的4小时</span>
+<span id="L727" class="line"><a href="#L727">727</a>    return unlockMgr:isInNewLevelTime()</span>
+<span id="L728" class="line"><a href="#L728">728</a>end</span>
+<span id="L729" class="line"><a href="#L729">729</a></span>
+<span id="L730" class="line"><a href="#L730">730</a>function AliPayDesktopShortcutManager:hasAutoPopupDone(cacheKey)</span>
+<span id="L731" class="line"><a href="#L731">731</a>    return callIfExists(self._model, &quot;getLocalCache&quot;, cacheKey) == true</span>
+<span id="L732" class="line"><a href="#L732">732</a>end</span>
+<span id="L733" class="line"><a href="#L733">733</a></span>
+<span id="L734" class="line"><a href="#L734">734</a>function AliPayDesktopShortcutManager:sendIconExposeOncePerDay()</span>
+<span id="L735" class="line"><a href="#L735">735</a>    local dayStartTime = getCurrentDayStartTime()</span>
+<span id="L736" class="line"><a href="#L736">736</a>    if dayStartTime &lt;= 0 then</span>
+<span id="L737" class="line"><a href="#L737">737</a>        return false</span>
+<span id="L738" class="line"><a href="#L738">738</a>    end</span>
+<span id="L739" class="line"><a href="#L739">739</a></span>
+<span id="L740" class="line"><a href="#L740">740</a>    local cacheKey = AliPayDesktopShortcutManager.ICON_EXPOSE_DAY_CACHE_KEY</span>
+<span id="L741" class="line"><a href="#L741">741</a>    if tonumber(callIfExists(self._model, &quot;getLocalCache&quot;, cacheKey)) == dayStartTime then</span>
+<span id="L742" class="line"><a href="#L742">742</a>        return false</span>
+<span id="L743" class="line"><a href="#L743">743</a>    end</span>
+<span id="L744" class="line"><a href="#L744">744</a>    if self:sendDC(&quot;sendIconExpose&quot;) ~= true then</span>
+<span id="L745" class="line"><a href="#L745">745</a>        return false</span>
+<span id="L746" class="line"><a href="#L746">746</a>    end</span>
+<span id="L747" class="line"><a href="#L747">747</a></span>
+<span id="L748" class="line"><a href="#L748">748</a>    callIfExists(self._model, &quot;setLocalCache&quot;, cacheKey, dayStartTime, true)</span>
+<span id="L749" class="line"><a href="#L749">749</a>    return true</span>
+<span id="L750" class="line"><a href="#L750">750</a>end</span>
+<span id="L751" class="line"><a href="#L751">751</a></span>
+<span id="L752" class="line"><a href="#L752">752</a>function AliPayDesktopShortcutManager:_getAutoPopupState(cacheKey, requireStreakBreak)</span>
+<span id="L753" class="line"><a href="#L753">753</a>    requireStreakBreak = requireStreakBreak == true</span>
+<span id="L754" class="line"><a href="#L754">754</a>    local gate = self:canShowEntry()</span>
+<span id="L755" class="line"><a href="#L755">755</a>    local model = self:getModel()</span>
+<span id="L756" class="line"><a href="#L756">756</a>    local newLevelBlock = self:shouldBlockStage2ForNewLevels()</span>
+<span id="L757" class="line"><a href="#L757">757</a>    local state = {</span>
+<span id="L758" class="line"><a href="#L758">758</a>        cacheKey = cacheKey,</span>
+<span id="L759" class="line"><a href="#L759">759</a>        entryEnabled = gate.enabled == true,</span>
+<span id="L760" class="line"><a href="#L760">760</a>        entryDisabledReason = gate.reason,</span>
+<span id="L761" class="line"><a href="#L761">761</a>        mainInfoError = self._mainInfoError ~= nil and self._mainInfoError or false,</span>
+<span id="L762" class="line"><a href="#L762">762</a>        popupDone = self:hasAutoPopupDone(cacheKey),</span>
+<span id="L763" class="line"><a href="#L763">763</a>        hasModel = model ~= nil,</span>
+<span id="L764" class="line"><a href="#L764">764</a>        streakBreak = model and model.isDeskTopVisitStreakBreak</span>
+<span id="L765" class="line"><a href="#L765">765</a>            and model:isDeskTopVisitStreakBreak() == true or false,</span>
+<span id="L766" class="line"><a href="#L766">766</a>        panelOpened = self._mainPanelVM ~= nil and not self._mainPanelVM.isDisposed,</span>
+<span id="L767" class="line"><a href="#L767">767</a>        requireStreakBreak = requireStreakBreak,</span>
+<span id="L768" class="line"><a href="#L768">768</a>    }</span>
+<span id="L769" class="line"><a href="#L769">769</a>    state.canPopup = state.entryEnabled</span>
+<span id="L770" class="line"><a href="#L770">770</a>        and not state.popupDone</span>
+<span id="L771" class="line"><a href="#L771">771</a>        and state.hasModel</span>
+<span id="L772" class="line"><a href="#L772">772</a>        and (not requireStreakBreak or state.streakBreak)</span>
+<span id="L773" class="line"><a href="#L773">773</a>        and not state.panelOpened</span>
+<span id="L774" class="line"><a href="#L774">774</a>        and not newLevelBlock</span>
+<span id="L775" class="line"><a href="#L775">775</a>    return state.canPopup, state</span>
+<span id="L776" class="line"><a href="#L776">776</a>end</span>
+<span id="L777" class="line"><a href="#L777">777</a></span>
+<span id="L778" class="line"><a href="#L778">778</a>function AliPayDesktopShortcutManager:getMissionState()</span>
+<span id="L779" class="line"><a href="#L779">779</a>    local state = callIfExists(self._model, &quot;getMissionState&quot;)</span>
+<span id="L780" class="line"><a href="#L780">780</a>    if state then</span>
+<span id="L781" class="line"><a href="#L781">781</a>        state = table.clone(state)</span>
+<span id="L782" class="line"><a href="#L782">782</a>        state.fromDesktopEntry = self:isDesktopShortcutEntry()</span>
+<span id="L783" class="line"><a href="#L783">783</a>        return state</span>
+<span id="L784" class="line"><a href="#L784">784</a>    end</span>
+<span id="L785" class="line"><a href="#L785">785</a>    return {</span>
+<span id="L786" class="line"><a href="#L786">786</a>        todayRewardIndex = 0,</span>
+<span id="L787" class="line"><a href="#L787">787</a>        displayState = &quot;unavailable&quot;,</span>
+<span id="L788" class="line"><a href="#L788">788</a>        fromDesktopEntry = false,</span>
+<span id="L789" class="line"><a href="#L789">789</a>        canReward = false,</span>
+<span id="L790" class="line"><a href="#L790">790</a>        periodEndTime = 0,</span>
+<span id="L791" class="line"><a href="#L791">791</a>        errorCode = ErrorCode.NOT_READY,</span>
+<span id="L792" class="line"><a href="#L792">792</a>    }</span>
+<span id="L793" class="line"><a href="#L793">793</a>end</span>
+<span id="L794" class="line"><a href="#L794">794</a></span>
+<span id="L795" class="line"><a href="#L795">795</a>function AliPayDesktopShortcutManager:_setDesktopShortcutEntry(source)</span>
+<span id="L796" class="line"><a href="#L796">796</a>    self._isDesktopShortcutEntry = source ~= nil</span>
+<span id="L797" class="line"><a href="#L797">797</a>    self._desktopLaunchSource = type(source) == &quot;table&quot; and table.clone(source) or source</span>
+<span id="L798" class="line"><a href="#L798">798</a>end</span>
+<span id="L799" class="line"><a href="#L799">799</a></span>
+<span id="L800" class="line"><a href="#L800">800</a>function AliPayDesktopShortcutManager:_markEnteredFromDesktopShortcut(source)</span>
+<span id="L801" class="line"><a href="#L801">801</a>    self:_setDesktopShortcutEntry(source)</span>
+<span id="L802" class="line"><a href="#L802">802</a>    if source then</span>
+<span id="L803" class="line"><a href="#L803">803</a>        callIfExists(self._model, &quot;markDeskTopVisit&quot;, getLaunchSourceTime(source))</span>
+<span id="L804" class="line"><a href="#L804">804</a>    end</span>
+<span id="L805" class="line"><a href="#L805">805</a>end</span>
+<span id="L806" class="line"><a href="#L806">806</a></span>
+<span id="L807" class="line"><a href="#L807">807</a>function AliPayDesktopShortcutManager:isDesktopShortcutEntry()</span>
+<span id="L808" class="line"><a href="#L808">808</a>    return self._isDesktopShortcutEntry == true</span>
+<span id="L809" class="line"><a href="#L809">809</a>end</span>
+<span id="L810" class="line"><a href="#L810">810</a></span>
+<span id="L811" class="line"><a href="#L811">811</a>function AliPayDesktopShortcutManager:getRewardList()</span>
+<span id="L812" class="line"><a href="#L812">812</a>    return callIfExists(self._model, &quot;getRewardList&quot;) or {}</span>
+<span id="L813" class="line"><a href="#L813">813</a>end</span>
+<span id="L814" class="line"><a href="#L814">814</a></span>
+<span id="L815" class="line"><a href="#L815">815</a>function AliPayDesktopShortcutManager:getDesktopEntryDayIndex(time)</span>
+<span id="L816" class="line"><a href="#L816">816</a>    return callIfExists(self._model, &quot;getDesktopEntryDayIndex&quot;, time) or 0</span>
+<span id="L817" class="line"><a href="#L817">817</a>end</span>
+<span id="L818" class="line"><a href="#L818">818</a></span>
+<span id="L819" class="line"><a href="#L819">819</a>function AliPayDesktopShortcutManager:hasHint()</span>
+<span id="L820" class="line"><a href="#L820">820</a>    local hint = callIfExists(self._model, &quot;hasHint&quot;)</span>
+<span id="L821" class="line"><a href="#L821">821</a>    return hint == true</span>
+<span id="L822" class="line"><a href="#L822">822</a>end</span>
+<span id="L823" class="line"><a href="#L823">823</a></span>
+<span id="L824" class="line"><a href="#L824">824</a>function AliPayDesktopShortcutManager:hasReward()</span>
+<span id="L825" class="line"><a href="#L825">825</a>    local reward = callIfExists(self._model, &quot;hasReward&quot;)</span>
+<span id="L826" class="line"><a href="#L826">826</a>    return reward == true</span>
+<span id="L827" class="line"><a href="#L827">827</a>end</span>
+<span id="L828" class="line"><a href="#L828">828</a></span>
+<span id="L829" class="line"><a href="#L829">829</a>function AliPayDesktopShortcutManager:markMainPanelEntered()</span>
+<span id="L830" class="line"><a href="#L830">830</a>    local changed = callIfExists(self._model, &quot;markMainPanelEntered&quot;)</span>
+<span id="L831" class="line"><a href="#L831">831</a>    if changed == true then</span>
+<span id="L832" class="line"><a href="#L832">832</a>        self:refreshIcon(&quot;main_panel_enter&quot;)</span>
+<span id="L833" class="line"><a href="#L833">833</a>    end</span>
+<span id="L834" class="line"><a href="#L834">834</a>    return changed == true</span>
+<span id="L835" class="line"><a href="#L835">835</a>end</span>
+<span id="L836" class="line"><a href="#L836">836</a></span>
+<span id="L837" class="line"><a href="#L837">837</a>function AliPayDesktopShortcutManager:getIconState()</span>
+<span id="L838" class="line"><a href="#L838">838</a>    local gate = self:canShowEntry()</span>
+<span id="L839" class="line"><a href="#L839">839</a>    return {</span>
+<span id="L840" class="line"><a href="#L840">840</a>        visible = gate.enabled == true,</span>
+<span id="L841" class="line"><a href="#L841">841</a>        removeReason = gate.reason,</span>
+<span id="L842" class="line"><a href="#L842">842</a>        hasHint = gate.enabled == true and self:hasHint(),</span>
+<span id="L843" class="line"><a href="#L843">843</a>        hasReward = gate.enabled == true and self:hasReward(),</span>
+<span id="L844" class="line"><a href="#L844">844</a>        label = AliPayDesktopShortcutManager.ICON_LABEL,</span>
+<span id="L845" class="line"><a href="#L845">845</a>        missionState = self:getMissionState(),</span>
+<span id="L846" class="line"><a href="#L846">846</a>    }</span>
+<span id="L847" class="line"><a href="#L847">847</a>end</span>
+<span id="L848" class="line"><a href="#L848">848</a></span>
+<span id="L849" class="line"><a href="#L849">849</a>function AliPayDesktopShortcutManager:openPanel(source, closeCallback)</span>
+<span id="L850" class="line"><a href="#L850">850</a>    if self._mainPanelVM and not self._mainPanelVM.isDisposed then</span>
+<span id="L851" class="line"><a href="#L851">851</a>        if self._mainPanelReady then</span>
+<span id="L852" class="line"><a href="#L852">852</a>            return self._mainPanelVM</span>
+<span id="L853" class="line"><a href="#L853">853</a>        end</span>
+<span id="L854" class="line"><a href="#L854">854</a>        local pendingVM = self._mainPanelVM</span>
+<span id="L855" class="line"><a href="#L855">855</a>        self:unbindPanelVM(pendingVM)</span>
+<span id="L856" class="line"><a href="#L856">856</a>        self:_releasePanelVM(pendingVM, &quot;reopen_pending&quot;)</span>
+<span id="L857" class="line"><a href="#L857">857</a>    end</span>
+<span id="L858" class="line"><a href="#L858">858</a></span>
+<span id="L859" class="line"><a href="#L859">859</a>    return self:requestMainInfo(MainInfoReason.ICON_OPEN, function()</span>
+<span id="L860" class="line"><a href="#L860">860</a>        self:_openPanelWithoutResourceCheck(source, closeCallback)</span>
+<span id="L861" class="line"><a href="#L861">861</a>    end, function(response)</span>
+<span id="L862" class="line"><a href="#L862">862</a>        if response and response.isCancel and response:isCancel() then</span>
+<span id="L863" class="line"><a href="#L863">863</a>            safeRunCall(closeCallback, response)</span>
+<span id="L864" class="line"><a href="#L864">864</a>            return</span>
+<span id="L865" class="line"><a href="#L865">865</a>        end</span>
+<span id="L866" class="line"><a href="#L866">866</a>        self:_showOpenPanelFailTip(response)</span>
+<span id="L867" class="line"><a href="#L867">867</a>        safeRunCall(closeCallback, response)</span>
+<span id="L868" class="line"><a href="#L868">868</a>    end, {</span>
+<span id="L869" class="line"><a href="#L869">869</a>        loading = true,</span>
+<span id="L870" class="line"><a href="#L870">870</a>        fromDesktop = self:isDesktopShortcutEntry(),</span>
+<span id="L871" class="line"><a href="#L871">871</a>        syncFrom = source or MainInfoReason.ICON_OPEN,</span>
+<span id="L872" class="line"><a href="#L872">872</a>        failOnUnavailable = true,</span>
+<span id="L873" class="line"><a href="#L873">873</a>    })</span>
+<span id="L874" class="line"><a href="#L874">874</a>end</span>
+<span id="L875" class="line"><a href="#L875">875</a></span>
+<span id="L876" class="line"><a href="#L876">876</a>function AliPayDesktopShortcutManager:_openPanelWithoutResourceCheck(source, closeCallback)</span>
+<span id="L877" class="line"><a href="#L877">877</a>    local gate = self:canShowEntry()</span>
+<span id="L878" class="line"><a href="#L878">878</a>    if not gate.enabled then</span>
+<span id="L879" class="line"><a href="#L879">879</a>        self:_showOpenPanelFailTip(gate.reason)</span>
+<span id="L880" class="line"><a href="#L880">880</a>        safeRunCall(closeCallback, gate.reason)</span>
+<span id="L881" class="line"><a href="#L881">881</a>        return nil, gate.reason</span>
+<span id="L882" class="line"><a href="#L882">882</a>    end</span>
+<span id="L883" class="line"><a href="#L883">883</a>    if self._mainPanelVM and not self._mainPanelVM.isDisposed then</span>
+<span id="L884" class="line"><a href="#L884">884</a>        return self._mainPanelVM</span>
+<span id="L885" class="line"><a href="#L885">885</a>    end</span>
+<span id="L886" class="line"><a href="#L886">886</a></span>
+<span id="L887" class="line"><a href="#L887">887</a>    local delegate = { manager = self, source = source, closeCallback = closeCallback }</span>
+<span id="L888" class="line"><a href="#L888">888</a>    local ok, vm = pcall(function()</span>
+<span id="L889" class="line"><a href="#L889">889</a>        if self._panelFactory then</span>
+<span id="L890" class="line"><a href="#L890">890</a>            local injectedVM = self._panelFactory:create(delegate)</span>
+<span id="L891" class="line"><a href="#L891">891</a>            if injectedVM then</span>
+<span id="L892" class="line"><a href="#L892">892</a>                return injectedVM</span>
+<span id="L893" class="line"><a href="#L893">893</a>            end</span>
+<span id="L894" class="line"><a href="#L894">894</a>        end</span>
+<span id="L895" class="line"><a href="#L895">895</a></span>
+<span id="L896" class="line"><a href="#L896">896</a>        local GiftOnTheDeskPanelVM = require &quot;amf.feature.minihub.alipaydesktopshortcut.view.GiftOnTheDeskPanelVM&quot;</span>
+<span id="L897" class="line"><a href="#L897">897</a>        return GiftOnTheDeskPanelVM:create(delegate)</span>
+<span id="L898" class="line"><a href="#L898">898</a>    end)</span>
+<span id="L899" class="line"><a href="#L899">899</a>    if not ok then</span>
+<span id="L900" class="line"><a href="#L900">900</a>        self:_showOpenPanelFailTip(&quot;panel_create_failed&quot;, vm)</span>
+<span id="L901" class="line"><a href="#L901">901</a>        safeRunCall(closeCallback, vm or &quot;panel_create_failed&quot;)</span>
+<span id="L902" class="line"><a href="#L902">902</a>        return nil, &quot;panel_create_failed&quot;</span>
+<span id="L903" class="line"><a href="#L903">903</a>    end</span>
+<span id="L904" class="line"><a href="#L904">904</a>    if not vm then</span>
+<span id="L905" class="line"><a href="#L905">905</a>        self:_showOpenPanelFailTip(&quot;panel_factory_empty&quot;)</span>
+<span id="L906" class="line"><a href="#L906">906</a>        safeRunCall(closeCallback, &quot;panel_factory_empty&quot;)</span>
+<span id="L907" class="line"><a href="#L907">907</a>        return nil, &quot;panel_factory_empty&quot;</span>
+<span id="L908" class="line"><a href="#L908">908</a>    end</span>
+<span id="L909" class="line"><a href="#L909">909</a></span>
+<span id="L910" class="line"><a href="#L910">910</a>    self._mainPanelVM = vm</span>
+<span id="L911" class="line"><a href="#L911">911</a>    self._mainPanelReady = false</span>
+<span id="L912" class="line"><a href="#L912">912</a>    local openFinished = false</span>
+<span id="L913" class="line"><a href="#L913">913</a>    local openTimerId</span>
+<span id="L914" class="line"><a href="#L914">914</a>    local function cancelOpenTimer()</span>
+<span id="L915" class="line"><a href="#L915">915</a>        if openTimerId and cancelTimeOut then</span>
+<span id="L916" class="line"><a href="#L916">916</a>            cancelTimeOut(openTimerId)</span>
+<span id="L917" class="line"><a href="#L917">917</a>        end</span>
+<span id="L918" class="line"><a href="#L918">918</a>        openTimerId = nil</span>
+<span id="L919" class="line"><a href="#L919">919</a>        vm._alipayDesktopShortcutAbortOpen = nil</span>
+<span id="L920" class="line"><a href="#L920">920</a>    end</span>
+<span id="L921" class="line"><a href="#L921">921</a>    local function abortOpen()</span>
+<span id="L922" class="line"><a href="#L922">922</a>        if openFinished then</span>
+<span id="L923" class="line"><a href="#L923">923</a>            return</span>
+<span id="L924" class="line"><a href="#L924">924</a>        end</span>
+<span id="L925" class="line"><a href="#L925">925</a>        openFinished = true</span>
+<span id="L926" class="line"><a href="#L926">926</a>        cancelOpenTimer()</span>
+<span id="L927" class="line"><a href="#L927">927</a>    end</span>
+<span id="L928" class="line"><a href="#L928">928</a>    local function finishOpen(ok, reason, detail)</span>
+<span id="L929" class="line"><a href="#L929">929</a>        if openFinished then</span>
+<span id="L930" class="line"><a href="#L930">930</a>            return</span>
+<span id="L931" class="line"><a href="#L931">931</a>        end</span>
+<span id="L932" class="line"><a href="#L932">932</a>        openFinished = true</span>
+<span id="L933" class="line"><a href="#L933">933</a>        cancelOpenTimer()</span>
+<span id="L934" class="line"><a href="#L934">934</a>        if ok then</span>
+<span id="L935" class="line"><a href="#L935">935</a>            self._mainPanelReady = true</span>
+<span id="L936" class="line"><a href="#L936">936</a>            return</span>
+<span id="L937" class="line"><a href="#L937">937</a>        end</span>
+<span id="L938" class="line"><a href="#L938">938</a>        self:unbindPanelVM(vm)</span>
+<span id="L939" class="line"><a href="#L939">939</a>        self:_releasePanelVM(vm, reason)</span>
+<span id="L940" class="line"><a href="#L940">940</a>        self:_showOpenPanelFailTip(reason, detail)</span>
+<span id="L941" class="line"><a href="#L941">941</a>        safeRunCall(closeCallback, detail or reason)</span>
+<span id="L942" class="line"><a href="#L942">942</a>    end</span>
+<span id="L943" class="line"><a href="#L943">943</a></span>
+<span id="L944" class="line"><a href="#L944">944</a>    self:bindPanelVM(vm, source)</span>
+<span id="L945" class="line"><a href="#L945">945</a>    if vm.setPanelReadyCallback then</span>
+<span id="L946" class="line"><a href="#L946">946</a>        vm:setPanelReadyCallback(function()</span>
+<span id="L947" class="line"><a href="#L947">947</a>            finishOpen(true)</span>
+<span id="L948" class="line"><a href="#L948">948</a>        end)</span>
+<span id="L949" class="line"><a href="#L949">949</a>    end</span>
+<span id="L950" class="line"><a href="#L950">950</a>    if vm.setLoadResFailCallback then</span>
+<span id="L951" class="line"><a href="#L951">951</a>        vm:setLoadResFailCallback(function(error)</span>
+<span id="L952" class="line"><a href="#L952">952</a>            finishOpen(false, &quot;panel_res_load_failed&quot;, error)</span>
+<span id="L953" class="line"><a href="#L953">953</a>        end)</span>
+<span id="L954" class="line"><a href="#L954">954</a>    end</span>
+<span id="L955" class="line"><a href="#L955">955</a>    if setTimeOut then</span>
+<span id="L956" class="line"><a href="#L956">956</a>        openTimerId = setTimeOut(function()</span>
+<span id="L957" class="line"><a href="#L957">957</a>            finishOpen(false, ErrorCode.OPEN_PANEL_TIMEOUT)</span>
+<span id="L958" class="line"><a href="#L958">958</a>        end, AliPayDesktopShortcutManager.OPEN_PANEL_TIMEOUT_SECONDS)</span>
+<span id="L959" class="line"><a href="#L959">959</a>        vm._alipayDesktopShortcutAbortOpen = abortOpen</span>
+<span id="L960" class="line"><a href="#L960">960</a>    end</span>
+<span id="L961" class="line"><a href="#L961">961</a></span>
+<span id="L962" class="line"><a href="#L962">962</a>    if vm.popout then</span>
+<span id="L963" class="line"><a href="#L963">963</a>        local popoutOk, popoutError = pcall(function()</span>
+<span id="L964" class="line"><a href="#L964">964</a>            vm:popout()</span>
+<span id="L965" class="line"><a href="#L965">965</a>        end)</span>
+<span id="L966" class="line"><a href="#L966">966</a>        if not popoutOk then</span>
+<span id="L967" class="line"><a href="#L967">967</a>            finishOpen(false, &quot;panel_popout_failed&quot;, popoutError)</span>
+<span id="L968" class="line"><a href="#L968">968</a>            return nil, &quot;panel_popout_failed&quot;</span>
+<span id="L969" class="line"><a href="#L969">969</a>        end</span>
+<span id="L970" class="line"><a href="#L970">970</a>    else</span>
+<span id="L971" class="line"><a href="#L971">971</a>        finishOpen(false, &quot;panel_popout_failed&quot;)</span>
+<span id="L972" class="line"><a href="#L972">972</a>        return nil, &quot;panel_popout_failed&quot;</span>
+<span id="L973" class="line"><a href="#L973">973</a>    end</span>
+<span id="L974" class="line"><a href="#L974">974</a>    return vm</span>
+<span id="L975" class="line"><a href="#L975">975</a>end</span>
+<span id="L976" class="line"><a href="#L976">976</a></span>
+<span id="L977" class="line"><a href="#L977">977</a>function AliPayDesktopShortcutManager:closePanel(reason)</span>
+<span id="L978" class="line"><a href="#L978">978</a>    if self._mainPanelVM and not self._mainPanelVM.isDisposed then</span>
+<span id="L979" class="line"><a href="#L979">979</a>        self:_closePanelVM(self._mainPanelVM, reason)</span>
+<span id="L980" class="line"><a href="#L980">980</a>    end</span>
+<span id="L981" class="line"><a href="#L981">981</a>    self._mainPanelVM = nil</span>
+<span id="L982" class="line"><a href="#L982">982</a>    self:refreshIcon(reason or &quot;close_panel&quot;)</span>
+<span id="L983" class="line"><a href="#L983">983</a>end</span>
+<span id="L984" class="line"><a href="#L984">984</a></span>
+<span id="L985" class="line"><a href="#L985">985</a>function AliPayDesktopShortcutManager:bindPanelVM(panelVM, source)</span>
+<span id="L986" class="line"><a href="#L986">986</a>    if not panelVM or panelVM.isDisposed then</span>
+<span id="L987" class="line"><a href="#L987">987</a>        return</span>
+<span id="L988" class="line"><a href="#L988">988</a>    end</span>
+<span id="L989" class="line"><a href="#L989">989</a>    if panelVM._alipayDesktopShortcutManagerBound then</span>
+<span id="L990" class="line"><a href="#L990">990</a>        return</span>
+<span id="L991" class="line"><a href="#L991">991</a>    end</span>
+<span id="L992" class="line"><a href="#L992">992</a>    panelVM._alipayDesktopShortcutManagerBound = true</span>
+<span id="L993" class="line"><a href="#L993">993</a>    panelVM.alipayDesktopShortcutSource = source</span>
+<span id="L994" class="line"><a href="#L994">994</a></span>
+<span id="L995" class="line"><a href="#L995">995</a>    local this = self</span>
+<span id="L996" class="line"><a href="#L996">996</a>    local originRecycle = panelVM.recycle</span>
+<span id="L997" class="line"><a href="#L997">997</a>    panelVM.recycle = function(obj)</span>
+<span id="L998" class="line"><a href="#L998">998</a>        safeRunCall(obj._alipayDesktopShortcutAbortOpen)</span>
+<span id="L999" class="line"><a href="#L999">999</a>        obj._alipayDesktopShortcutAbortOpen = nil</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>        this:unbindPanelVM(obj)</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>        safeRunCall(originRecycle, obj)</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>    end</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a></span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>    local originCloseAll = panelVM.onCloseAllPanel</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>    panelVM.onCloseAllPanel = function(obj, reason)</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>        safeRunCall(originCloseAll, obj, reason)</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>        if obj.isDisposed then</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>            return</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>        end</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>        this:_closePanelVM(obj, reason)</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>    end</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>end</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a></span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>function AliPayDesktopShortcutManager:unbindPanelVM(panelVM)</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>    if not panelVM then</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a>        return</span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>    end</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>    if self._mainPanelVM == panelVM then</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a>        self._mainPanelVM = nil</span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>        self._mainPanelReady = false</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>    end</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>end</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a></span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>function AliPayDesktopShortcutManager:notifyPanelRefresh(reason)</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>    local panelVM = self._mainPanelVM</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>    if panelVM and not panelVM.isDisposed and panelVM.onManagerRefresh then</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>        panelVM:onManagerRefresh(reason)</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>    end</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>end</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a></span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>function AliPayDesktopShortcutManager:refreshIcon(reason)</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>    return self.iconHost:reconcile(reason or &quot;refresh&quot;)</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>end</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a></span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>function AliPayDesktopShortcutManager:registerIcon(reason)</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>    return self.iconHost:reconcile(reason or &quot;register&quot;)</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>end</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a></span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>function AliPayDesktopShortcutManager:createLegacyIcon()</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>    local AliPayDesktopShortcutIcon = require &quot;amf.feature.minihub.alipaydesktopshortcut.AliPayDesktopShortcutIcon&quot;</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>    return AliPayDesktopShortcutIcon:create(self)</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>end</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a></span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>function AliPayDesktopShortcutManager:getIcon()</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>    return self.iconHost:getIcon()</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>end</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a></span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>function AliPayDesktopShortcutManager:removeIcon()</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a>    return self.iconHost:dispose(&quot;manager_remove&quot;)</span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>end</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a></span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>function AliPayDesktopShortcutManager:onIconTapped()</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a>    self:sendDC(&quot;sendIconClick&quot;)</span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>    self:markAutoPopupDone(AliPayDesktopShortcutManager.FIRST_LOGIN_AUTO_POP_CACHE_KEY)</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>    self:markAutoPopupDone(AliPayDesktopShortcutManager.STREAK_BREAK_AUTO_POP_CACHE_KEY)</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>    self:openPanel(&quot;icon&quot;)</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>end</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a></span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>function AliPayDesktopShortcutManager:shutdownFeature(reason)</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>    self:clearVisibleState(reason or DisableReason.SHUTDOWN)</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>end</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a></span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>function AliPayDesktopShortcutManager:clearUnavailableState(reason)</span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>    if self:isShutdown() or self:isLowVersion() then</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>        self:clearVisibleState(reason or DisableReason.SHUTDOWN)</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>    end</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a>end</span>
+<span id="L1068" class="line"><a href="#L1068">1068</a></span>
+<span id="L1069" class="line"><a href="#L1069">1069</a>function AliPayDesktopShortcutManager:handleMainInfoError(response, reason)</span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>    self._mainInfoError = response or {</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>        errorCode = ErrorCode.REQUEST_UNAVAILABLE,</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>        errorMsg = ErrorCode.REQUEST_UNAVAILABLE,</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a>    }</span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>    local errorCode = self:_resolveOpenPanelFailCode(self._mainInfoError)</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>    errorCode = tonumber(errorCode)</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>    if errorCode and AliPayDesktopShortcutManager.MAIN_INFO_SHUTDOWN_ERROR_CODES[errorCode] then</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>        self._mainInfoShutdownErrorCode = errorCode</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>        self:shutdownFeature(reason or ErrorCode.MAIN_INFO_ERROR)</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a>        return</span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>    end</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>    self:closePanel(reason or ErrorCode.MAIN_INFO_ERROR)</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>    self:refreshIcon(reason or ErrorCode.MAIN_INFO_ERROR)</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>end</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a></span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>function AliPayDesktopShortcutManager:clearVisibleState(reason)</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>    self:removeIcon()</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>    self:closePanel(reason or DisableReason.SHUTDOWN)</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>end</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a></span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>function AliPayDesktopShortcutManager:_closePanelVM(panelVM, reason)</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a>    if not panelVM or panelVM.isDisposed then</span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>        return</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>    end</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>    safeRunCall(panelVM._alipayDesktopShortcutAbortOpen)</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>    panelVM._alipayDesktopShortcutAbortOpen = nil</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a>    if panelVM.close then</span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>        panelVM:close(reason)</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>    elseif panelVM._close then</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>        panelVM:_close()</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>    end</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>end</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a></span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>function AliPayDesktopShortcutManager:_releasePanelVM(panelVM, reason)</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a>    if not panelVM then</span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>        return</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>    end</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>    safeRunCall(panelVM._alipayDesktopShortcutAbortOpen)</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a>    panelVM._alipayDesktopShortcutAbortOpen = nil</span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>    if panelVM.isDisposed then</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>        return</span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>    end</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>    if panelVM.view and panelVM.view.isRunning and not panelVM.view:isRunning() and panelVM.view.realRelease then</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a>        panelVM.view:realRelease()</span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>    elseif panelVM.close then</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a>        panelVM:close(reason)</span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>    elseif panelVM.view and panelVM.view.realRelease then</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a>        panelVM.view:realRelease()</span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>    elseif panelVM.recycle then</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>        panelVM:recycle()</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a>    end</span>
+<span id="L1121" class="line"><a href="#L1121">1121</a>end</span>
+<span id="L1122" class="line"><a href="#L1122">1122</a></span>
+<span id="L1123" class="line"><a href="#L1123">1123</a>function AliPayDesktopShortcutManager:_buildRewardResult(response, rewardItem)</span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>    rewardItem = type(rewardItem) == &quot;table&quot; and rewardItem or {}</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>    return {</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a>        rewards = rewardItem.rewards or {},</span>
+<span id="L1127" class="line"><a href="#L1127">1127</a>        rewardItem = rewardItem,</span>
+<span id="L1128" class="line"><a href="#L1128">1128</a>        missionState = self:getMissionState(),</span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>        response = response,</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>    }</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>end</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a></span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>function AliPayDesktopShortcutManager:_buildErrorResult(response, needRefresh)</span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>    return {</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a>        errorCode = response and response.getErrorCode and response:getErrorCode() or ErrorCode.NOT_READY,</span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>        errorMsg = response and response.errorMsg or nil,</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>        needRefresh = needRefresh == true,</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>        response = response,</span>
+<span id="L1139" class="line"><a href="#L1139">1139</a>    }</span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>end</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a></span>
+<span id="L1142" class="line"><a href="#L1142">1142</a>function AliPayDesktopShortcutManager:_resolveOpenPanelFailCode(reason)</span>
+<span id="L1143" class="line"><a href="#L1143">1143</a>    if type(reason) ~= &quot;table&quot; then</span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>        return reason</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a>    end</span>
+<span id="L1146" class="line"><a href="#L1146">1146</a></span>
+<span id="L1147" class="line"><a href="#L1147">1147</a>    if reason.getErrorCode then</span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>        local ok, errorCode = pcall(function()</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>            return reason:getErrorCode()</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>        end)</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>        if ok and errorCode ~= nil then</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>            return errorCode</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a>        end</span>
+<span id="L1154" class="line"><a href="#L1154">1154</a>    end</span>
+<span id="L1155" class="line"><a href="#L1155">1155</a></span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>    return reason.errorCode</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a>        or reason.reason</span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>        or reason.code</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a>        or reason.errorMsg</span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>end</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a></span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>function AliPayDesktopShortcutManager:_showOpenPanelFailTip(reason, detail)</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a>    if not CommonTip then</span>
+<span id="L1164" class="line"><a href="#L1164">1164</a>        return</span>
+<span id="L1165" class="line"><a href="#L1165">1165</a>    end</span>
+<span id="L1166" class="line"><a href="#L1166">1166</a></span>
+<span id="L1167" class="line"><a href="#L1167">1167</a>    local failCode = self:_resolveOpenPanelFailCode(reason)</span>
+<span id="L1168" class="line"><a href="#L1168">1168</a>    local tip = OpenPanelFailTip[failCode]</span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>    if tip and CommonTip.showTip then</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a>        CommonTip:showTip(tip)</span>
+<span id="L1171" class="line"><a href="#L1171">1171</a>        return</span>
+<span id="L1172" class="line"><a href="#L1172">1172</a>    end</span>
+<span id="L1173" class="line"><a href="#L1173">1173</a></span>
+<span id="L1174" class="line"><a href="#L1174">1174</a>    if type(reason) == &quot;table&quot; and CommonTip.showErrorTip then</span>
+<span id="L1175" class="line"><a href="#L1175">1175</a>        CommonTip:showErrorTip(reason)</span>
+<span id="L1176" class="line"><a href="#L1176">1176</a>        return</span>
+<span id="L1177" class="line"><a href="#L1177">1177</a>    end</span>
+<span id="L1178" class="line"><a href="#L1178">1178</a></span>
+<span id="L1179" class="line"><a href="#L1179">1179</a>    if CommonTip.showTip then</span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>        CommonTip:showTip(OpenPanelFailTip.default)</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a>    end</span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>end</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a></span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>function AliPayDesktopShortcutManager:_createPlatformProxy()</span>
+<span id="L1185" class="line"><a href="#L1185">1185</a>    if self:isAlipayMiniGame() then</span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>        local MiniPlatformProxy = require &quot;amf.feature.minihub.alipaydesktopshortcut.system.mini.AliPayDesktopShortcutProxy&quot;</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a>        return MiniPlatformProxy.new()</span>
+<span id="L1188" class="line"><a href="#L1188">1188</a>    end</span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>    local CommonPlatformProxy = require &quot;amf.feature.minihub.alipaydesktopshortcut.system.common.AliPayDesktopShortcutProxy&quot;</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a>    return CommonPlatformProxy.new()</span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>end</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a></span>
+<span id="L1193" class="line"><a href="#L1193">1193</a>function AliPayDesktopShortcutManager:_canShowInCurrentPlatform()</span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>    if not _G.isBundleVersionGreaterOrEqual(&quot;1.159.4&quot;) then</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>        return false</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a>    end</span>
+<span id="L1197" class="line"><a href="#L1197">1197</a>    return EnvUtil:isALIPAYMiniGame()</span>
+<span id="L1198" class="line"><a href="#L1198">1198</a>        or self:isTestForceShowOnNonAlipay()</span>
+<span id="L1199" class="line"><a href="#L1199">1199</a>end</span>
+<span id="L1200" class="line"><a href="#L1200">1200</a></span>
+<span id="L1201" class="line"><a href="#L1201">1201</a>function AliPayDesktopShortcutManager:_normalizeAddShortcutResult(result)</span>
+<span id="L1202" class="line"><a href="#L1202">1202</a>    result = type(result) == &quot;table&quot; and table.clone(result) or {</span>
+<span id="L1203" class="line"><a href="#L1203">1203</a>        ok = false,</span>
+<span id="L1204" class="line"><a href="#L1204">1204</a>        reason = ErrorCode.UNSUPPORTED,</span>
+<span id="L1205" class="line"><a href="#L1205">1205</a>        code = ErrorCode.UNSUPPORTED,</span>
+<span id="L1206" class="line"><a href="#L1206">1206</a>        rawData = result,</span>
+<span id="L1207" class="line"><a href="#L1207">1207</a>    }</span>
+<span id="L1208" class="line"><a href="#L1208">1208</a>    result.ok = result.ok == true</span>
+<span id="L1209" class="line"><a href="#L1209">1209</a>    result.supportState = result.supportState or self:checkPlatformSupport()</span>
+<span id="L1210" class="line"><a href="#L1210">1210</a>    return result</span>
+<span id="L1211" class="line"><a href="#L1211">1211</a>end</span>
+<span id="L1212" class="line"><a href="#L1212">1212</a></span>
+<span id="L1213" class="line"><a href="#L1213">1213</a>function AliPayDesktopShortcutManager:_showReward(rewards)</span>
+<span id="L1214" class="line"><a href="#L1214">1214</a>    if type(rewards) ~= &quot;table&quot; or next(rewards) == nil then</span>
+<span id="L1215" class="line"><a href="#L1215">1215</a>        return</span>
+<span id="L1216" class="line"><a href="#L1216">1216</a>    end</span>
+<span id="L1217" class="line"><a href="#L1217">1217</a></span>
+<span id="L1218" class="line"><a href="#L1218">1218</a>    local dc = self:getDC()</span>
+<span id="L1219" class="line"><a href="#L1219">1219</a>    local feature = dc and dc:getRewardFeature() or AliPayDesktopShortcutManager.FEATURE_NAME</span>
+<span id="L1220" class="line"><a href="#L1220">1220</a>    local source = dc and dc:getRewardSource() or &quot;desktop_reward&quot;</span>
+<span id="L1221" class="line"><a href="#L1221">1221</a></span>
+<span id="L1222" class="line"><a href="#L1222">1222</a>    GainPropData:create()</span>
+<span id="L1223" class="line"><a href="#L1223">1223</a>        :setFeature(feature)</span>
+<span id="L1224" class="line"><a href="#L1224">1224</a>        :setSource(source)</span>
+<span id="L1225" class="line"><a href="#L1225">1225</a>        :setProps(rewards)</span>
+<span id="L1226" class="line"><a href="#L1226">1226</a>        :execute()</span>
+<span id="L1227" class="line"><a href="#L1227">1227</a></span>
+<span id="L1228" class="line"><a href="#L1228">1228</a>    self:_showRewardPanel(rewards)</span>
+<span id="L1229" class="line"><a href="#L1229">1229</a>end</span>
+<span id="L1230" class="line"><a href="#L1230">1230</a></span>
+<span id="L1231" class="line"><a href="#L1231">1231</a>function AliPayDesktopShortcutManager:_showRewardPanel(rewards)</span>
+<span id="L1232" class="line"><a href="#L1232">1232</a>    if type(rewards) ~= &quot;table&quot; or next(rewards) == nil then</span>
+<span id="L1233" class="line"><a href="#L1233">1233</a>        return</span>
+<span id="L1234" class="line"><a href="#L1234">1234</a>    end</span>
+<span id="L1235" class="line"><a href="#L1235">1235</a></span>
+<span id="L1236" class="line"><a href="#L1236">1236</a>    local CommonShowRewrdPanelVM = require &quot;amf.middleware.ui.kit.templates.showrewardpanels.commonshowrewardpanel.vm.CommonShowRewrdPanelVM&quot;</span>
+<span id="L1237" class="line"><a href="#L1237">1237</a>    CommonShowRewrdPanelVM.Builder.new()</span>
+<span id="L1238" class="line"><a href="#L1238">1238</a>        :setNotNeedBox(true)</span>
+<span id="L1239" class="line"><a href="#L1239">1239</a>        :setRewards(table.clone(rewards))</span>
+<span id="L1240" class="line"><a href="#L1240">1240</a>        :setTitle(&quot;恭喜获得&quot;)</span>
+<span id="L1241" class="line"><a href="#L1241">1241</a>        :setSubTitle(&quot;桌面奖励&quot;)</span>
+<span id="L1242" class="line"><a href="#L1242">1242</a>        :build()</span>
+<span id="L1243" class="line"><a href="#L1243">1243</a>        :popout()</span>
+<span id="L1244" class="line"><a href="#L1244">1244</a>end</span>
+<span id="L1245" class="line"><a href="#L1245">1245</a></span>
+<span id="L1246" class="line"><a href="#L1246">1246</a>return AliPayDesktopShortcutManager</span></pre></main></html>

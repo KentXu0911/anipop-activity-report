@@ -1,0 +1,716 @@
+[
+  {
+    "id": "E01",
+    "title": "活动开放与加载",
+    "rule": "reloadAll 最高关<20返回；iOS审核关闭此活动框架。正式远程配置按name、uid、bundleVersion请求；一般同次登录成功后缓存，不等于每次回前台重新下载活动名单。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 73,
+        "anchor": "function ActivityMgr:reloadAll",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 25,
+        "anchor": "function ActivityMgr:isEnabled",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/loader/ActivityConfigLoader.lua",
+        "line": 15,
+        "anchor": "local params =",
+        "sha256": "644a58b147000704471045f4c09377aba476b4aa5df664d1dd54b76b13180d44"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/model/ActivityModel.lua",
+        "line": 30,
+        "anchor": "function ActivityModel:updateConfig",
+        "sha256": "c471680b87c39dc3f4289884dc09b1e52d58c8916d355039961b383e1f82c2c2"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E02",
+    "title": "运行信息更新",
+    "rule": "在线登录、非首次进入主界面、已登录后回前台会请求活动信息并reload。getActInfos2024返回actInfos和activityParticipationTags。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 165,
+        "anchor": "function ActivityMgr:onUserLogin",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 180,
+        "anchor": "function ActivityMgr:onActEnterMainScene",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 202,
+        "anchor": "function ActivityMgr:onSystemEnterForeground",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/model/ActInfosModel.lua",
+        "line": 54,
+        "anchor": "function ActInfosModel:onResponseGetActInfos2024",
+        "sha256": "fa12f0ee8e2250d459044da538ba232675b3b757483fb7f846dd5c42ed90ed1e"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E03",
+    "title": "活动时间边界",
+    "rule": "活动节点：now<begin为未开始；begin≤now<mainBegin预热；mainBegin≤now<mainEnd正式；mainEnd≤now<end领奖；now≥end结束。与强弹配置独立有效期不要混淆。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/node/ActivityNode.lua",
+        "line": 176,
+        "anchor": "function ActivityNode:updateState",
+        "sha256": "8b7e1d4a444785a1eb574b8417e458cc0c7a3cb86955935ad6f2b1e054b4d845"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E04",
+    "title": "活动资格",
+    "rule": "图标系统/启动器/config就绪，config.isSupport()严格true；只有存在actInfo时才检查see，缺actInfo并非此函数直接拒绝。完整资源就绪才向调度返回配置候选。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/node/ActivityNode.lua",
+        "line": 75,
+        "anchor": "function ActivityNode:isEnabled",
+        "sha256": "8b7e1d4a444785a1eb574b8417e458cc0c7a3cb86955935ad6f2b1e054b4d845"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/node/ActivityNode.lua",
+        "line": 100,
+        "anchor": "function ActivityNode:isConfigAndActInfoSupport",
+        "sha256": "8b7e1d4a444785a1eb574b8417e458cc0c7a3cb86955935ad6f2b1e054b4d845"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/node/ActivityNode.lua",
+        "line": 235,
+        "anchor": "function ActivityNode:getAutoPopupData",
+        "sha256": "8b7e1d4a444785a1eb574b8417e458cc0c7a3cb86955935ad6f2b1e054b4d845"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E05",
+    "title": "初次配置筛选",
+    "rule": "genActAutoPopupConfig检查时间、规则次数、付费、活跃、实验；时间是闭区间begin≤now≤end。场景检测未再次调用这五项。不能称所有条件在弹前重新校验。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/processor/AutoPopupProcessor.lua",
+        "line": 108,
+        "anchor": "function AutoPopupProcessor:genActAutoPopupConfig",
+        "sha256": "45ab3ea31b7311104840ab96151f444997fadf12985d7d1ea8b9df70f0ca3b21"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 291,
+        "anchor": "function APMetaConfigRef:isTimeEffective",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 527,
+        "anchor": "function APMetaConfigRef:checkAndGetPopData",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E06",
+    "title": "场景候选筛选",
+    "rule": "场景匹配，关卡/星/低精力/无限精力/自定义规则重查；普通主面板还要end-now>60秒；自定义3/4没有这条统一60秒门槛。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 527,
+        "anchor": "function APMetaConfigRef:checkAndGetPopData",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 308,
+        "anchor": "function APMetaConfigRef:isRemainTimeEnough",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E07",
+    "title": "活跃付费过滤",
+    "rule": "autoPopPayType映射无/低/中低/中高/高为0..4；autoPopActiveType新/回流/低/中低/中/中高/高为1..7。配置数组包含匹配；不是越付费越多的固定方向。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 330,
+        "anchor": "function APMetaConfigRef:getPaymentTagMapping",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 360,
+        "anchor": "function APMetaConfigRef:getActiveTagMapping",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E08",
+    "title": "精力与区间",
+    "rule": "autoPopMinEnergy实际energy<=值，缺精力按30；关卡和主线+隐藏星按闭区间；无限精力字符串true要求无限，其余非空要求非无限。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 462,
+        "anchor": "function APMetaConfigRef:isMinEnergyEffective",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 407,
+        "anchor": "function APMetaConfigRef:isLevelEffective",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 434,
+        "anchor": "function APMetaConfigRef:isStarEffective",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 478,
+        "anchor": "function APMetaConfigRef:isUnlimitedEnergyEffective",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E09",
+    "title": "实验开关并非全部AND",
+    "rule": "groupSwitch以分号分隔，任一匹配即通过；无值、格式不全放行；开关查询src=5也放行。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 378,
+        "anchor": "function APMetaConfigRef:isGroupSwitchEffective",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E10",
+    "title": "R1/R2/R3频次",
+    "rule": "R1每日次数，key含当天零点；R2次数key含活动endTime，并非账号终身；两者默认1，可参数覆盖；R3不在此层限次，仍受其他规则。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 186,
+        "anchor": "function APMetaConfigRef:createUniqueKey",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 205,
+        "anchor": "function APMetaConfigRef:isRuleEffective",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E11",
+    "title": "计数分两层",
+    "rule": "框架checkpoint计数、同轮类型计数在调用creator之前增加；不等价屏幕已成功显示。配置R1/R2由ACTIVITY_POPUP_OVER处理同步，也可由手动开活动通知；PopupModel本地先+1再异步同步服务器。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/fsm/PopupDoPopState.lua",
+        "line": 16,
+        "anchor": "function PopupDoPopState:onEnter",
+        "sha256": "d6bea132a64d2a1d37ec1feacac5bfdcc51af45c67f674c64d68794a3fc2868c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/processor/AutoPopupProcessor.lua",
+        "line": 25,
+        "anchor": "function AutoPopupProcessor:popupOverFunc",
+        "sha256": "45ab3ea31b7311104840ab96151f444997fadf12985d7d1ea8b9df70f0ca3b21"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/model/PopupModel.lua",
+        "line": 81,
+        "anchor": "function PopupModel:sendPermanentData",
+        "sha256": "ef937635e73867d91f6c13986e380c96c7d4c3046d1d0b3509f09e4149bfdc86"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/model/PopupModel.lua",
+        "line": 91,
+        "anchor": "function PopupModel:sendDailyData",
+        "sha256": "ef937635e73867d91f6c13986e380c96c7d4c3046d1d0b3509f09e4149bfdc86"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 905,
+        "anchor": "function AutoPopupMgr:removeByManualPopup",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E12",
+    "title": "场景1/2/3/4",
+    "rule": "1登录占位默认无类型序列且额度0；2首次主界面/外部回前台等；3带主线/隐藏/满星关信息的出关回主界面流程；4接3，下一关开始面板关闭或未弹开始面板后。失败也可进入3，不能只称通关。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/config/AutoPopupConst.lua",
+        "line": 5,
+        "anchor": "AutoPopupConst.PopStage =",
+        "sha256": "1f04fa63563013f32e7dd0ae0d61ab3a816a1aa448361fc351ec5355f9ff6da2"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 1485,
+        "anchor": "function AutoPopupMgr:onActEnterMainScene",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 511,
+        "anchor": "function AutoPopupMgr:handleStage4AfterStartGamePopup",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 529,
+        "anchor": "function AutoPopupMgr:handleStage4AfterStartGameNoPop",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/config/ServerConfigDefault.lua",
+        "line": 59,
+        "anchor": "ServerConfigDefault.PopTypeFullPriority",
+        "sha256": "c491a785a3a8448397ce35ad8d861947d0dbbc27d123ffc5ae3a7e0103d98eb0"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E13",
+    "title": "场景执行屏障",
+    "rule": "FSM非待机或进关流程中不启动；场景2在图标点击冷却、屏上引导、面板未关闭时会推迟/跳过；doPopup要求在主界面。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 931,
+        "anchor": "function AutoPopupMgr:handlePopup",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 975,
+        "anchor": "function AutoPopupMgr:doPopup",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E14",
+    "title": "分组与日上限",
+    "rule": "服务端popupInfoV2SceneMap覆盖每场景类型额度、类型优先序和预算豁免组；该场景下省略某类额度取0，-1转99。checkpoint上限本地表；未列默认1/日，-1仅跳过此层限制；每日类型总量表当前为空。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/config/ServerConfigMgr.lua",
+        "line": 18,
+        "anchor": "function ServerConfigMgr:update",
+        "sha256": "ccebe52b656aa28b388aaa14a3a306e5b7f2cbb2f00dac83d81d1b1a667de222"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 661,
+        "anchor": "function AutoPopupMgr:getCheckPointLimitNum",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/config/AutoPopupLimit.lua",
+        "line": 147,
+        "anchor": "AutoPopupLimit.DailyPopTypeLimit",
+        "sha256": "893f9c6bf58aeb9731b3b5c1495744a1cf71af72a0575294dd5d3b62178b7d53"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E15",
+    "title": "300秒不是禁止弹窗",
+    "rule": "场景2普通预算4：now-last>300只减本轮数，否则减本轮+上一轮数；豁免组不受该预算。3→4普通预算1只扣当前4轮次，代码未减lastStagePopSum；政策/条件/礼包默认豁免。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 628,
+        "anchor": "function AutoPopupMgr:isLimitedBySameStage",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 601,
+        "anchor": "function AutoPopupMgr:isLimitedByStageChange",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/config/AutoPopupLimit.lua",
+        "line": 213,
+        "anchor": "AutoPopupLimit.StagePopupNum",
+        "sha256": "893f9c6bf58aeb9731b3b5c1495744a1cf71af72a0575294dd5d3b62178b7d53"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/config/ServerConfigDefault.lua",
+        "line": 91,
+        "anchor": "ServerConfigDefault.PopTypeSubPriority",
+        "sha256": "c491a785a3a8448397ce35ad8d861947d0dbbc27d123ffc5ae3a7e0103d98eb0"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E16",
+    "title": "两种入口与去重",
+    "rule": "配置式和注册式并存；同活动有注册式时先从配置候选移除再截断。注册check在场景进入运行；creator并未统一重跑check。队列key=checkpoint，重复写同key覆盖前项。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 442,
+        "anchor": "function ActivityMgr:getAutoPopupData",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/registration/PopupRegistration.lua",
+        "line": 227,
+        "anchor": "function PopupRegistration:_onStageEnter",
+        "sha256": "e68f2ce8275bbb19736f0a4f4348b8251e40becd3a29a6847011ff184591152a"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/registration/PopupRegistration.lua",
+        "line": 289,
+        "anchor": "function PopupRegistration:_enqueueRegisteredPopup",
+        "sha256": "e68f2ce8275bbb19736f0a4f4348b8251e40becd3a29a6847011ff184591152a"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 794,
+        "anchor": "local function addPopupEntry",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E17",
+    "title": "优先顺序分两层",
+    "rule": "配置候选priority=10100-relative值，升序选前limitNum（所以relative越大越靠前）；全队列先按场景类型序、组内checkpoint静态序，再可AI重排。候选排序名次不等于展示。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/APMetaConfigRef.lua",
+        "line": 158,
+        "anchor": "function APMetaConfigRef:getPopRelativePriority",
+        "sha256": "96ff0e34190b00a54644d2678267d8f109346d15052e02b18c7378a1b61f1f79"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 442,
+        "anchor": "function ActivityMgr:getAutoPopupData",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/schedule/PopupSchedule.lua",
+        "line": 331,
+        "anchor": "function PopupSchedule:comparePriority",
+        "sha256": "8df580374be4786acfed70d5c1f4557e51501ef53c6050d186b37db3c1250446"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/schedule/PopupSchedule.lua",
+        "line": 138,
+        "anchor": "function PopupSchedule:prepareDefinitions",
+        "sha256": "8df580374be4786acfed70d5c1f4557e51501ef53c6050d186b37db3c1250446"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E18",
+    "title": "实际取出前仍检查",
+    "rule": "取候选复核类型轮次/日/场景预算、限定场景和checkpoint动态屏蔽；未见统一在这里重查注册业务check或AP完整条件。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/AutoPopupMgr.lua",
+        "line": 172,
+        "anchor": "function AutoPopupMgr:getNextPopupEntryAcrossPopTypes",
+        "sha256": "d46b27b6c6fd581a533ccbdb2c8967615e3275afb2cc4e95c08b10680cfdbbfd"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E19",
+    "title": "AI每日数据与资格",
+    "rule": "拉取需要popup_rec_on1/ON1开关、当天未成功拉取、无在飞请求；登录/回前台/非首次主界面触发。空表响应也可能记录当天已请求。缓存同一天不覆盖，保留3天。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/localactivity/aipopup/AIPopupManager.lua",
+        "line": 99,
+        "anchor": "function Manager:_requestPredictionData",
+        "sha256": "d857cbf0bee1206f84bddfc3582b60e2eeed5f102a22f9e744223c0c70581388"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/localactivity/aipopup/AIPopupManager.lua",
+        "line": 38,
+        "anchor": "function Manager:_registerEvents",
+        "sha256": "d857cbf0bee1206f84bddfc3582b60e2eeed5f102a22f9e744223c0c70581388"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/localactivity/aipopup/model/AIPopupModel.lua",
+        "line": 122,
+        "anchor": "function Model:mergePredictionData",
+        "sha256": "b2cbf1c165aed25a26587b3817707122225f5815c7f0398be0180aa3a84c622c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/localactivity/aipopup/model/AIPopupModel.lua",
+        "line": 13,
+        "anchor": "local MAX_PREDICTION_DAYS",
+        "sha256": "b2cbf1c165aed25a26587b3817707122225f5815c7f0398be0180aa3a84c622c"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E20",
+    "title": "AI改变谁先弹",
+    "rule": "仅场景3/4，两名以上有actId和当天分数候选降序稳定排序；无分数候选位置保留。分数必须0..1，非法按0.12。resolver必须返回同一候选集合，错误回退静态。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/localactivity/aipopup/AIPopupManager.lua",
+        "line": 195,
+        "anchor": "function Manager:resolveSchedule",
+        "sha256": "d857cbf0bee1206f84bddfc3582b60e2eeed5f102a22f9e744223c0c70581388"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/localactivity/aipopup/model/AIPopupModel.lua",
+        "line": 44,
+        "anchor": "local function copyDepthScores",
+        "sha256": "b2cbf1c165aed25a26587b3817707122225f5815c7f0398be0180aa3a84c622c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/schedule/PopupSchedule.lua",
+        "line": 94,
+        "anchor": "function PopupSchedule:_applyResolver",
+        "sha256": "8df580374be4786acfed70d5c1f4557e51501ef53c6050d186b37db3c1250446"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E21",
+    "title": "AI开关的限定",
+    "rule": "请求检查维护开关；排序isEnabled仅缓存predictions非空，实际逐活动再查当日。不能说关开关立即停止已有缓存排序。外层自然天key决定归属，不以payload.target_date覆盖。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/localactivity/aipopup/AIPopupManager.lua",
+        "line": 58,
+        "anchor": "function Manager:isEnabled",
+        "sha256": "d857cbf0bee1206f84bddfc3582b60e2eeed5f102a22f9e744223c0c70581388"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/localactivity/aipopup/AIPopupManager.lua",
+        "line": 62,
+        "anchor": "function Manager:isMaintenanceEnabled",
+        "sha256": "d857cbf0bee1206f84bddfc3582b60e2eeed5f102a22f9e744223c0c70581388"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/feature/localactivity/aipopup/model/AIPopupModel.lua",
+        "line": 65,
+        "anchor": "local function buildPrediction",
+        "sha256": "b2cbf1c165aed25a26587b3817707122225f5815c7f0398be0180aa3a84c622c"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E22",
+    "title": "活动参与标签",
+    "rule": "服务器字符串actId_L1..L4_depth；L1-3深度空；L4需0..1；nil未就绪，空字符串已就绪零活动；坏条丢弃，重复ID保留首条。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activityparticipation/ActivityParticipationMgr.lua",
+        "line": 59,
+        "anchor": "function ActivityParticipationMgr:_parse",
+        "sha256": "f39a249184856922562c559d1dabb1cc4126d7dfa4b38986fdf0c30abd14c13c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/model/ActInfosModel.lua",
+        "line": 54,
+        "anchor": "function ActInfosModel:onResponseGetActInfos2024",
+        "sha256": "fa12f0ee8e2250d459044da538ba232675b3b757483fb7f846dd5c42ed90ed1e"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E23",
+    "title": "参与层级不等于活跃",
+    "rule": "L1有资格，L2已曝光，L3可显示卡片，L4实际参与。卡片：未就绪放行，已就绪无标签不显示；此逻辑不能推成所有强弹的通用资格。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activityparticipation/ActivityParticipationMgr.lua",
+        "line": 110,
+        "anchor": "function ActivityParticipationMgr:shouldShowActivityCardByTag",
+        "sha256": "f39a249184856922562c559d1dabb1cc4126d7dfa4b38986fdf0c30abd14c13c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activityparticipation/ActivityParticipationMgr.lua",
+        "line": 190,
+        "anchor": "function ActivityParticipationMgr:isEligible",
+        "sha256": "f39a249184856922562c559d1dabb1cc4126d7dfa4b38986fdf0c30abd14c13c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activityparticipation/ActivityParticipationMgr.lua",
+        "line": 194,
+        "anchor": "function ActivityParticipationMgr:isExposed",
+        "sha256": "f39a249184856922562c559d1dabb1cc4126d7dfa4b38986fdf0c30abd14c13c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activityparticipation/ActivityParticipationMgr.lua",
+        "line": 199,
+        "anchor": "function ActivityParticipationMgr:hasRealParticipation",
+        "sha256": "f39a249184856922562c559d1dabb1cc4126d7dfa4b38986fdf0c30abd14c13c"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E24",
+    "title": "参与降频",
+    "rule": "active_low_intent ON1拦L2；ON2拦L2/L3；缺标签或未就绪不拦；配置主面板适配表只有6077钓鱼赢家，已进入当期不降频。其他活动需要看各自消费者，不可全量套用。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activityparticipation/ActivityParticipationMgr.lua",
+        "line": 119,
+        "anchor": "function ActivityParticipationMgr:shouldReduceAutoPopup",
+        "sha256": "f39a249184856922562c559d1dabb1cc4126d7dfa4b38986fdf0c30abd14c13c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activityparticipation/ActivityParticipationMgr.lua",
+        "line": 8,
+        "anchor": "local CONFIGURED_MAIN_PANEL_MANAGERS",
+        "sha256": "f39a249184856922562c559d1dabb1cc4126d7dfa4b38986fdf0c30abd14c13c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activityparticipation/ActivityParticipationMgr.lua",
+        "line": 158,
+        "anchor": "function ActivityParticipationMgr:shouldReduceConfiguredMainPanelAutoPopup",
+        "sha256": "f39a249184856922562c559d1dabb1cc4126d7dfa4b38986fdf0c30abd14c13c"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E25",
+    "title": "活动名单不能从框架推线上",
+    "rule": "客户端可读加载算法、字段合同、默认预算、调用逻辑；线上活动名单/时段/资源版本/see、维护分组、AI分数、真实计数需服务端响应。没有服务端生成/训练代码，不能解释其分层算法或线上命中比例。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/loader/ActivityConfigLoader.lua",
+        "line": 6,
+        "anchor": "local function requestActivityConfig",
+        "sha256": "644a58b147000704471045f4c09377aba476b4aa5df664d1dd54b76b13180d44"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/model/ActInfosModel.lua",
+        "line": 54,
+        "anchor": "function ActInfosModel:onResponseGetActInfos2024",
+        "sha256": "fa12f0ee8e2250d459044da538ba232675b3b757483fb7f846dd5c42ed90ed1e"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/model/PopupModel.lua",
+        "line": 35,
+        "anchor": "function PopupModel:syncServerRecord",
+        "sha256": "ef937635e73867d91f6c13986e380c96c7d4c3046d1d0b3509f09e4149bfdc86"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E26",
+    "title": "主面板提前入队与候选名额",
+    "rule": "进入主界面/前台处理同时收集场景2和4主面板，普通主面板每场景只选1；3/4自定义各选3。不能以场景4实际展示时状态反推其条件刚刚重查。结果按stage+isMetaPop缓存，活动移除/弹出通知/活动周期事件清缓存。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/activity/PopupNewActMgr.lua",
+        "line": 434,
+        "anchor": "function PopupNewActMgr:checkStage2And4ActMainPanel",
+        "sha256": "5208118f10b9a2b3e645ee47e856fb5bcf9f88b882a8688732428d240352aec8"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/config/ActivityConst.lua",
+        "line": 48,
+        "anchor": "ActivityConst.PopLimit",
+        "sha256": "1abf94ec04b8218c370d4a99eeccde1122e04232ce67cb4d3cfcc736e63aa9f0"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 442,
+        "anchor": "function ActivityMgr:getAutoPopupData",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/activity/ActivityMgr.lua",
+        "line": 551,
+        "anchor": "function ActivityMgr:onActivityPopupOver",
+        "sha256": "f929dabea1eb12e7c655bb98457760d417df6e6804a670cd499d758e0a9eea78"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  },
+  {
+    "id": "E27",
+    "title": "配置主面板并非关闭后才记数",
+    "rule": "TempActPanelHandler creator仅确认metaId仍存在；派发OPEN_ACTIVITY后立即重置强弹并发ACTIVITY_POPUP_OVER，不等待面板成功打开或关闭。自定义3/4在pcall(customizedCreator)调用未抛错后就发ACTIVITY_POPUP_OVER，不要求返回true或实际显示；完成回调只通知SINGLE_POP_OVER继续队列。",
+    "evidence": [
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/poptype/TempActPanelHandler.lua",
+        "line": 39,
+        "anchor": "function TempActPanelHandler:handleActMainPanel",
+        "sha256": "27a0e8295bad0fc55667aab9d41f2ef1abcc0920caf65af17ae5f0550d2aa75c"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/poptype/ConditionHandler.lua",
+        "line": 103,
+        "anchor": "function ConditionHandler:handleActCustomizedPanelStage3",
+        "sha256": "ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240"
+      },
+      {
+        "path": "analysis/native_decode/decoded/amf/middleware/autopop/module/poptype/ConditionHandler.lua",
+        "line": 142,
+        "anchor": "function ConditionHandler:handleActCustomizedPanelStage4",
+        "sha256": "ca827900b38e1f2de66927e1503f5e85f63042e7b21bd90ecf7719a9152f8240"
+      }
+    ],
+    "boundary": "仅证明此客户端实现，不证明线上启用或送达"
+  }
+]

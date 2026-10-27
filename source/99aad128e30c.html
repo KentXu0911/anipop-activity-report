@@ -1,0 +1,39 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/addfivestepupgrade/config/AddFiveStepConfig.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="99aad128e30c.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/addfivestepupgrade/config/AddFiveStepConfig.lua</h1><p>SHA256 ef83e1f4d37356792ede1bf88f6925595d6ac93c12bbb1c9a95481dda7c84cc9</p><pre><span id="L1" class="line"><a href="#L1">1</a>local AddFiveStepConfig = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>AddFiveStepConfig.ShowPanelType = {</span>
+<span id="L4" class="line"><a href="#L4">4</a>	kStart = 1,</span>
+<span id="L5" class="line"><a href="#L5">5</a>	kWin = 2,</span>
+<span id="L6" class="line"><a href="#L6">6</a>	kEnd = 3,</span>
+<span id="L7" class="line"><a href="#L7">7</a>}</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>AddFiveStepConfig.RewardGroupType = {</span>
+<span id="L10" class="line"><a href="#L10">10</a>	kNone = 0,</span>
+<span id="L11" class="line"><a href="#L11">11</a>	kGroupType1 = 1,</span>
+<span id="L12" class="line"><a href="#L12">12</a>	kGroupType2 = 2,</span>
+<span id="L13" class="line"><a href="#L13">13</a>	kGroupType3 = 3,</span>
+<span id="L14" class="line"><a href="#L14">14</a>	kGroupType4 = 4, --满精力新奖励</span>
+<span id="L15" class="line"><a href="#L15">15</a>	kGroupType5 = 5, --未满精力新奖励</span>
+<span id="L16" class="line"><a href="#L16">16</a>}</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>AddFiveStepConfig.passLevelType = {</span>
+<span id="L19" class="line"><a href="#L19">19</a>	kNone = 0,</span>
+<span id="L20" class="line"><a href="#L20">20</a>	kPassLevel = 1,</span>
+<span id="L21" class="line"><a href="#L21">21</a>	kFailLevel = 2,</span>
+<span id="L22" class="line"><a href="#L22">22</a>}</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>AddFiveStepConfig.saveStartPanelShowInfoKey = &quot;saveStartPanelShowInfoKey&quot; --用来保存是否这关已经随到了奖励 进关清空此数据</span>
+<span id="L25" class="line"><a href="#L25">25</a>AddFiveStepConfig.saveStartPanelParamKey = &quot;saveStartPanelParamKey&quot; --保存进关之后是否触发了活动， 为过关面板展示提供需求。 闪退恢复取消、成功失败面板触发清空</span>
+<span id="L26" class="line"><a href="#L26">26</a>AddFiveStepConfig.saveStartPanelProbabilityKey = &quot;saveStartPanelProbabilityKey&quot; --保存触发概率信息、 计算概率的时候存储，不会清空，但是超过一定数量会清理一些。</span>
+<span id="L27" class="line"><a href="#L27">27</a>AddFiveStepConfig.saveStartPanelShowHistoryKey = &quot;saveStartPanelShowHistoryKey&quot; --保存历史触发信息 只存最后一次触发的信息，进关记录，不会清空。</span>
+<span id="L28" class="line"><a href="#L28">28</a>AddFiveStepConfig.saveGiftParamKey = &quot;saveGiftParamKey&quot; --保存触发的礼包信息  触发礼包保存信息，在购买完成后记录购买完成词条。</span>
+<span id="L29" class="line"><a href="#L29">29</a>AddFiveStepConfig.saveStartPanelInGameInfoKey = &quot;saveStartPanelInGameInfoKey&quot; --记录带着buff进关的时间信息  用来判断24小时能出几次。 不会清空，但是超过数量会清除一些。</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>--废弃使用下面新的key</span>
+<span id="L32" class="line"><a href="#L32">32</a>-- AddFiveStepConfig.saveActiveInfoForInLevelKey = &quot;saveActiveInfoForInLevel&quot; --进关记录触发的信息，用来成功过关，+5步内容。 在开始面板检测的时候清空，闪退恢复成功失败等情况清空</span>
+<span id="L33" class="line"><a href="#L33">33</a></span>
+<span id="L34" class="line"><a href="#L34">34</a>AddFiveStepConfig.saveActiveInfoForPopRewardPanel = &#x27;saveActiveInfoForPopRewardPanel&#x27; --记录激活信息，为了场景3补弹领奖面板。 触发的时候重新赋值，成功过关失败过关的时候设置结果，领奖的时候设置领奖结果</span>
+<span id="L35" class="line"><a href="#L35">35</a></span>
+<span id="L36" class="line"><a href="#L36">36</a>AddFiveStepConfig.add150SoreBuffID = 54306</span>
+<span id="L37" class="line"><a href="#L37">37</a>AddFiveStepConfig.add150ScoreAddNum = 150</span>
+<span id="L38" class="line"><a href="#L38">38</a></span>
+<span id="L39" class="line"><a href="#L39">39</a>return AddFiveStepConfig</span></pre></main></html>

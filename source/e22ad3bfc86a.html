@@ -1,0 +1,888 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/dailyreward/mark/MarkManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="e22ad3bfc86a.lua" download>下载Lua原文</a></p><h1>amf/feature/dailyreward/mark/MarkManager.lua</h1><p>SHA256 b62a5284e5d5d5ff8e5dc48e93e2ffd26ba0dbccf729503ea74c49ae294c676d</p><pre><span id="L1" class="line"><a href="#L1">1</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local MarkConst = require &quot;amf.feature.dailyreward.mark.config.MarkConst&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a></span>
+<span id="L4" class="line"><a href="#L4">4</a>local MarkEventCenter = require &quot;amf.feature.dailyreward.mark.event.MarkEventCenter&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local PropEventCenter = require &quot;amf.middleware.prop.event.PropEventCenter&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local FeedContext = require &quot;amf.middleware.feed.FeedContext&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local FeedRevisitConfig = require &quot;amf.feature.minihub.recommendationfeed.FeedRevisitConfig&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>require &quot;amf.middleware.prop.event.PropEvent&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>require &quot;amf.feature.dailyreward.mark.extend.act.MarkPreOpenContext&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a>require &quot;amf.feature.dailyreward.mark.extend.act.ActFestivalConst&quot;</span>
+<span id="L11" class="line"><a href="#L11">11</a>local MarkManager = class(&quot;MarkManager&quot;)</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>local _curYear = nil</span>
+<span id="L14" class="line"><a href="#L14">14</a>local _curMonth = nil</span>
+<span id="L15" class="line"><a href="#L15">15</a>local _curDay = nil</span>
+<span id="L16" class="line"><a href="#L16">16</a>local privateNS = {}</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>function MarkManager:ctor()</span>
+<span id="L19" class="line"><a href="#L19">19</a>    self._todayIsMark = false</span>
+<span id="L20" class="line"><a href="#L20">20</a>    self._userManager = nil</span>
+<span id="L21" class="line"><a href="#L21">21</a>    self._optionalDataManager = nil</span>
+<span id="L22" class="line"><a href="#L22">22</a>    self._popoutManager = nil</span>
+<span id="L23" class="line"><a href="#L23">23</a>    self._iconManager = nil</span>
+<span id="L24" class="line"><a href="#L24">24</a>    self._autoPopupMgr = nil</span>
+<span id="L25" class="line"><a href="#L25">25</a>    self._profileManager = nil</span>
+<span id="L26" class="line"><a href="#L26">26</a>    self._actScoreBuffMgr = nil</span>
+<span id="L27" class="line"><a href="#L27">27</a>    self._propManager = nil</span>
+<span id="L28" class="line"><a href="#L28">28</a>    self._networkStatusManager = nil</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self._customGainRegistered = false</span>
+<span id="L30" class="line"><a href="#L30">30</a>end</span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>function MarkManager:setNetworkStatusManager(mgr)</span>
+<span id="L33" class="line"><a href="#L33">33</a>    self._networkStatusManager = mgr</span>
+<span id="L34" class="line"><a href="#L34">34</a>end</span>
+<span id="L35" class="line"><a href="#L35">35</a></span>
+<span id="L36" class="line"><a href="#L36">36</a>function MarkManager:setPropManager(mgr)</span>
+<span id="L37" class="line"><a href="#L37">37</a>    self._propManager = mgr</span>
+<span id="L38" class="line"><a href="#L38">38</a>end</span>
+<span id="L39" class="line"><a href="#L39">39</a></span>
+<span id="L40" class="line"><a href="#L40">40</a>function MarkManager:setActScoreBuffMgr(actScoreBuffMgr)</span>
+<span id="L41" class="line"><a href="#L41">41</a>    self._actScoreBuffMgr = actScoreBuffMgr</span>
+<span id="L42" class="line"><a href="#L42">42</a>end</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>function MarkManager:setProfileManager(profileManager)</span>
+<span id="L45" class="line"><a href="#L45">45</a>    self._profileManager = profileManager</span>
+<span id="L46" class="line"><a href="#L46">46</a>end</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>function MarkManager:setAutoPopupMgr(autoPopupMgr)</span>
+<span id="L49" class="line"><a href="#L49">49</a>    self._autoPopupMgr = autoPopupMgr</span>
+<span id="L50" class="line"><a href="#L50">50</a>end</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a>function MarkManager:setPopoutManager(popoutManager)</span>
+<span id="L53" class="line"><a href="#L53">53</a>    self._popoutManager = popoutManager</span>
+<span id="L54" class="line"><a href="#L54">54</a>end</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>function MarkManager:setOptionalDataManager(optionalDataManager)</span>
+<span id="L57" class="line"><a href="#L57">57</a>    self._optionalDataManager = optionalDataManager</span>
+<span id="L58" class="line"><a href="#L58">58</a>end</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>function MarkManager:setUserManager(userManager)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    self._userManager = userManager</span>
+<span id="L62" class="line"><a href="#L62">62</a>end</span>
+<span id="L63" class="line"><a href="#L63">63</a></span>
+<span id="L64" class="line"><a href="#L64">64</a>function MarkManager:setIconManager(iconManager)</span>
+<span id="L65" class="line"><a href="#L65">65</a>    self._iconManager = iconManager</span>
+<span id="L66" class="line"><a href="#L66">66</a>end</span>
+<span id="L67" class="line"><a href="#L67">67</a></span>
+<span id="L68" class="line"><a href="#L68">68</a>function MarkManager:initialize()</span>
+<span id="L69" class="line"><a href="#L69">69</a>    privateNS.markModel = require(&quot;amf.feature.dailyreward.mark.model.MarkModel&quot;):create()</span>
+<span id="L70" class="line"><a href="#L70">70</a>    self._todayIsMark = self._optionalDataManager:getTempOptionalDataValue(&quot;todayIsMark&quot;)</span>
+<span id="L71" class="line"><a href="#L71">71</a>    self:resetTime()</span>
+<span id="L72" class="line"><a href="#L72">72</a>    MarkEventCenter:registerFeature(self)</span>
+<span id="L73" class="line"><a href="#L73">73</a>    MarkEventCenter:registerSystem(self)</span>
+<span id="L74" class="line"><a href="#L74">74</a>    -- 先初始化一次</span>
+<span id="L75" class="line"><a href="#L75">75</a>    self._lastEnabled = self:isEnabled()</span>
+<span id="L76" class="line"><a href="#L76">76</a>    self:registerProp()</span>
+<span id="L77" class="line"><a href="#L77">77</a>    self:registerCustomGainEvent()</span>
+<span id="L78" class="line"><a href="#L78">78</a></span>
+<span id="L79" class="line"><a href="#L79">79</a>end</span>
+<span id="L80" class="line"><a href="#L80">80</a></span>
+<span id="L81" class="line"><a href="#L81">81</a>function MarkManager:registerCustomGainEvent()</span>
+<span id="L82" class="line"><a href="#L82">82</a>    if self._customGainRegistered then return end</span>
+<span id="L83" class="line"><a href="#L83">83</a>    PropEventCenter:register(PropEvent.CUSTOM_GAIN, self._onCustomGain, self)</span>
+<span id="L84" class="line"><a href="#L84">84</a>    self._customGainRegistered = true</span>
+<span id="L85" class="line"><a href="#L85">85</a>end</span>
+<span id="L86" class="line"><a href="#L86">86</a></span>
+<span id="L87" class="line"><a href="#L87">87</a>function MarkManager:registerProp()</span>
+<span id="L88" class="line"><a href="#L88">88</a>    require &quot;amf.feature.dailyreward.mark.prop.AMFProp_56019&quot;</span>
+<span id="L89" class="line"><a href="#L89">89</a>end</span>
+<span id="L90" class="line"><a href="#L90">90</a></span>
+<span id="L91" class="line"><a href="#L91">91</a>function MarkManager:onActUserSyncEnd(event)</span>
+<span id="L92" class="line"><a href="#L92">92</a>    local data = event:getData()</span>
+<span id="L93" class="line"><a href="#L93">93</a>    if data and data.isReconnect then</span>
+<span id="L94" class="line"><a href="#L94">94</a>        self._todayIsMark = self._optionalDataManager:getTempOptionalDataValue(&quot;todayIsMark&quot;)</span>
+<span id="L95" class="line"><a href="#L95">95</a>    end</span>
+<span id="L96" class="line"><a href="#L96">96</a>end</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>function MarkManager:onActEnterStage2(evt)</span>
+<span id="L99" class="line"><a href="#L99">99</a>    if not self:isEnabled() then return end</span>
+<span id="L100" class="line"><a href="#L100">100</a>    local data = evt:getData()</span>
+<span id="L101" class="line"><a href="#L101">101</a>    if not data or not data.isFirstEnter then return end</span>
+<span id="L102" class="line"><a href="#L102">102</a>    if self:isTodayMarked() then return end</span>
+<span id="L103" class="line"><a href="#L103">103</a>    if FeedContext.isFeedEnterUser()</span>
+<span id="L104" class="line"><a href="#L104">104</a>        and FeedContext.getSceneStr() == FeedContext.SceneType.IMPORTANT_EVENT_DROP</span>
+<span id="L105" class="line"><a href="#L105">105</a>        and FeedRevisitConfig.isImportantEventSignIn(FeedContext.getTrialSourceIdFromJS()) then</span>
+<span id="L106" class="line"><a href="#L106">106</a>        return</span>
+<span id="L107" class="line"><a href="#L107">107</a>    end</span>
+<span id="L108" class="line"><a href="#L108">108</a>    local function onHandleOver()</span>
+<span id="L109" class="line"><a href="#L109">109</a>        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.MARK)</span>
+<span id="L110" class="line"><a href="#L110">110</a>    end</span>
+<span id="L111" class="line"><a href="#L111">111</a>    local function creator()</span>
+<span id="L112" class="line"><a href="#L112">112</a>        self:showMainPanel({</span>
+<span id="L113" class="line"><a href="#L113">113</a>            closeCallback = onHandleOver,</span>
+<span id="L114" class="line"><a href="#L114">114</a>            dcLocation = 1,</span>
+<span id="L115" class="line"><a href="#L115">115</a>            isClick = false</span>
+<span id="L116" class="line"><a href="#L116">116</a>        })</span>
+<span id="L117" class="line"><a href="#L117">117</a>    end</span>
+<span id="L118" class="line"><a href="#L118">118</a>    self._autoPopupMgr:addPopupConfig(PopupCheckPoint.MARK, creator)</span>
+<span id="L119" class="line"><a href="#L119">119</a>end</span>
+<span id="L120" class="line"><a href="#L120">120</a></span>
+<span id="L121" class="line"><a href="#L121">121</a>-- 到后台</span>
+<span id="L122" class="line"><a href="#L122">122</a>function MarkManager:onSystemEnterBackground()</span>
+<span id="L123" class="line"><a href="#L123">123</a>    if not EnvUtil:isApp() then return end</span>
+<span id="L124" class="line"><a href="#L124">124</a>    local LocalPush = require &quot;amf.feature.dailyreward.mark.push.LocalPush&quot;</span>
+<span id="L125" class="line"><a href="#L125">125</a>    LocalPush:removeLocalPush()</span>
+<span id="L126" class="line"><a href="#L126">126</a>    if not self:isEnabled() then return end</span>
+<span id="L127" class="line"><a href="#L127">127</a>    LocalPush:checkLocalPush29()</span>
+<span id="L128" class="line"><a href="#L128">128</a>    LocalPush:checkLocalPush23()</span>
+<span id="L129" class="line"><a href="#L129">129</a>end</span>
+<span id="L130" class="line"><a href="#L130">130</a></span>
+<span id="L131" class="line"><a href="#L131">131</a>function MarkManager:onActPlayLevelEnd(evt)</span>
+<span id="L132" class="line"><a href="#L132">132</a>    local data = evt:getData()</span>
+<span id="L133" class="line"><a href="#L133">133</a>    if not data.isWin then return end</span>
+<span id="L134" class="line"><a href="#L134">134</a>    local curEnable = self:isEnabled()</span>
+<span id="L135" class="line"><a href="#L135">135</a>    if self._lastEnabled ~= curEnable and curEnable == true then</span>
+<span id="L136" class="line"><a href="#L136">136</a>        self:initialize()</span>
+<span id="L137" class="line"><a href="#L137">137</a>    end</span>
+<span id="L138" class="line"><a href="#L138">138</a>end</span>
+<span id="L139" class="line"><a href="#L139">139</a></span>
+<span id="L140" class="line"><a href="#L140">140</a>function MarkManager:getCurDay()</span>
+<span id="L141" class="line"><a href="#L141">141</a>    return _curDay</span>
+<span id="L142" class="line"><a href="#L142">142</a>end</span>
+<span id="L143" class="line"><a href="#L143">143</a></span>
+<span id="L144" class="line"><a href="#L144">144</a>function MarkManager:getCurMonth()</span>
+<span id="L145" class="line"><a href="#L145">145</a>    return _curMonth</span>
+<span id="L146" class="line"><a href="#L146">146</a>end</span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>function MarkManager:getCurYear()</span>
+<span id="L149" class="line"><a href="#L149">149</a>    return _curYear</span>
+<span id="L150" class="line"><a href="#L150">150</a>end</span>
+<span id="L151" class="line"><a href="#L151">151</a></span>
+<span id="L152" class="line"><a href="#L152">152</a>function MarkManager:resetTime()</span>
+<span id="L153" class="line"><a href="#L153">153</a>    local timeData = os.date2(TimeKit:timeInSec())</span>
+<span id="L154" class="line"><a href="#L154">154</a>	_curYear = timeData.year</span>
+<span id="L155" class="line"><a href="#L155">155</a>	_curMonth = timeData.month</span>
+<span id="L156" class="line"><a href="#L156">156</a>	_curDay = timeData.day</span>
+<span id="L157" class="line"><a href="#L157">157</a>end</span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>function MarkManager:isEnabled()</span>
+<span id="L160" class="line"><a href="#L160">160</a>    local Group = require &quot;amf.feature.dailyreward.mark.Group&quot;</span>
+<span id="L161" class="line"><a href="#L161">161</a>    if Group:isOff() then return false end</span>
+<span id="L162" class="line"><a href="#L162">162</a>    local userTopLevel = self._userManager:getTopLevelId()</span>
+<span id="L163" class="line"><a href="#L163">163</a>    local showLevel = 201</span>
+<span id="L164" class="line"><a href="#L164">164</a>    if userTopLevel &lt; showLevel then return false end</span>
+<span id="L165" class="line"><a href="#L165">165</a>    return true</span>
+<span id="L166" class="line"><a href="#L166">166</a>end</span>
+<span id="L167" class="line"><a href="#L167">167</a></span>
+<span id="L168" class="line"><a href="#L168">168</a>function MarkManager:isDataEnabled()</span>
+<span id="L169" class="line"><a href="#L169">169</a>    local isDataOk = privateNS.markModel:isDataEnabled()</span>
+<span id="L170" class="line"><a href="#L170">170</a>    local lastReqOk = self:getLastReqYM() == self:getMarkValue(&quot;reqYearAndMonth&quot;)</span>
+<span id="L171" class="line"><a href="#L171">171</a>    local hasTextCache = self:getMarkValue(&quot;markBannerText&quot;)</span>
+<span id="L172" class="line"><a href="#L172">172</a>    -- self:log(&quot;isDataEnabled ----&quot;, isDataOk, lastReqOk, self:getLastReqYM(), self:getMarkValue(&quot;reqYearAndMonth&quot;))</span>
+<span id="L173" class="line"><a href="#L173">173</a>    return isDataOk and lastReqOk and hasTextCache</span>
+<span id="L174" class="line"><a href="#L174">174</a>end</span>
+<span id="L175" class="line"><a href="#L175">175</a></span>
+<span id="L176" class="line"><a href="#L176">176</a>function MarkManager:_checkCanPop(isClick)</span>
+<span id="L177" class="line"><a href="#L177">177</a>    local scene = Director:sharedDirector():getRunningSceneLua()</span>
+<span id="L178" class="line"><a href="#L178">178</a>	if not scene then return false end</span>
+<span id="L179" class="line"><a href="#L179">179</a></span>
+<span id="L180" class="line"><a href="#L180">180</a>	if not scene:isScene(&quot;MainScene&quot;) then return false end</span>
+<span id="L181" class="line"><a href="#L181">181</a></span>
+<span id="L182" class="line"><a href="#L182">182</a>    -- 有界面不弹</span>
+<span id="L183" class="line"><a href="#L183">183</a>    local has, popoutList = self._popoutManager:haveWindowOnScreenWithoutCommonTip(isClick)</span>
+<span id="L184" class="line"><a href="#L184">184</a>    if has then return false end</span>
+<span id="L185" class="line"><a href="#L185">185</a>    return true</span>
+<span id="L186" class="line"><a href="#L186">186</a>end</span>
+<span id="L187" class="line"><a href="#L187">187</a></span>
+<span id="L188" class="line"><a href="#L188">188</a>function MarkManager:updateMarkButton()</span>
+<span id="L189" class="line"><a href="#L189">189</a>    local markIcon = self._iconManager:getIconByIconKey(IconKey.kMark)</span>
+<span id="L190" class="line"><a href="#L190">190</a>    if markIcon then</span>
+<span id="L191" class="line"><a href="#L191">191</a>        markIcon:updateState()</span>
+<span id="L192" class="line"><a href="#L192">192</a>    end</span>
+<span id="L193" class="line"><a href="#L193">193</a>end</span>
+<span id="L194" class="line"><a href="#L194">194</a></span>
+<span id="L195" class="line"><a href="#L195">195</a>function MarkManager:setMarkActContext(context)</span>
+<span id="L196" class="line"><a href="#L196">196</a>    self._markActContext = context</span>
+<span id="L197" class="line"><a href="#L197">197</a>end</span>
+<span id="L198" class="line"><a href="#L198">198</a>function MarkManager:getMarkActContext()</span>
+<span id="L199" class="line"><a href="#L199">199</a>    return self._markActContext</span>
+<span id="L200" class="line"><a href="#L200">200</a>end</span>
+<span id="L201" class="line"><a href="#L201">201</a></span>
+<span id="L202" class="line"><a href="#L202">202</a>-- 展示主界面</span>
+<span id="L203" class="line"><a href="#L203">203</a>function MarkManager:showMainPanel(param)</span>
+<span id="L204" class="line"><a href="#L204">204</a>    if not self:isEnabled() then return end</span>
+<span id="L205" class="line"><a href="#L205">205</a>    local dcLocation = param.dcLocation or -1</span>
+<span id="L206" class="line"><a href="#L206">206</a>    local isClick = param.isClick</span>
+<span id="L207" class="line"><a href="#L207">207</a>    local closeCallback = param.closeCallback</span>
+<span id="L208" class="line"><a href="#L208">208</a>    local skipIfTodayMarked = param.skipIfTodayMarked == true</span>
+<span id="L209" class="line"><a href="#L209">209</a>    local forceRequest = param.forceRequest == true</span>
+<span id="L210" class="line"><a href="#L210">210</a></span>
+<span id="L211" class="line"><a href="#L211">211</a>    self.dcLocation = dcLocation</span>
+<span id="L212" class="line"><a href="#L212">212</a>    -- 没网</span>
+<span id="L213" class="line"><a href="#L213">213</a>    if not self._networkStatusManager:isNetworkEnabled() then</span>
+<span id="L214" class="line"><a href="#L214">214</a>        CommonTip:showTip(&quot;网络异常，请检查网络设置~&quot;)</span>
+<span id="L215" class="line"><a href="#L215">215</a>        safeRunCall(closeCallback)</span>
+<span id="L216" class="line"><a href="#L216">216</a>        return</span>
+<span id="L217" class="line"><a href="#L217">217</a>    end</span>
+<span id="L218" class="line"><a href="#L218">218</a>    -- 点击签到icon，但有界面弹出，不弹</span>
+<span id="L219" class="line"><a href="#L219">219</a>    if isClick and not self:_checkCanPop(isClick) then</span>
+<span id="L220" class="line"><a href="#L220">220</a>        safeRunCall(closeCallback)</span>
+<span id="L221" class="line"><a href="#L221">221</a>        return</span>
+<span id="L222" class="line"><a href="#L222">222</a>    end</span>
+<span id="L223" class="line"><a href="#L223">223</a></span>
+<span id="L224" class="line"><a href="#L224">224</a>    local function _showMainPanel(delegate)</span>
+<span id="L225" class="line"><a href="#L225">225</a>        if skipIfTodayMarked and self:isTodayMarked() then</span>
+<span id="L226" class="line"><a href="#L226">226</a>            safeRunCall(closeCallback)</span>
+<span id="L227" class="line"><a href="#L227">227</a>            return</span>
+<span id="L228" class="line"><a href="#L228">228</a>        end</span>
+<span id="L229" class="line"><a href="#L229">229</a>        if not self:_checkCanPop() then</span>
+<span id="L230" class="line"><a href="#L230">230</a>            safeRunCall(closeCallback)</span>
+<span id="L231" class="line"><a href="#L231">231</a>            return</span>
+<span id="L232" class="line"><a href="#L232">232</a>        end</span>
+<span id="L233" class="line"><a href="#L233">233</a>        local function closeCall()</span>
+<span id="L234" class="line"><a href="#L234">234</a>            -- 刷新签到上的红点</span>
+<span id="L235" class="line"><a href="#L235">235</a>            self:updateMarkButton()</span>
+<span id="L236" class="line"><a href="#L236">236</a>            self.mainPanelVM = nil</span>
+<span id="L237" class="line"><a href="#L237">237</a>            safeRunCall(closeCallback)</span>
+<span id="L238" class="line"><a href="#L238">238</a></span>
+<span id="L239" class="line"><a href="#L239">239</a>            -- if EnvUtil:isOhos() then</span>
+<span id="L240" class="line"><a href="#L240">240</a>            --     local OhosCard = require &quot;ohos_card&quot;</span>
+<span id="L241" class="line"><a href="#L241">241</a>            --     if OhosCard then</span>
+<span id="L242" class="line"><a href="#L242">242</a>            --         OhosCard:flush()</span>
+<span id="L243" class="line"><a href="#L243">243</a>            --     end</span>
+<span id="L244" class="line"><a href="#L244">244</a>            -- end</span>
+<span id="L245" class="line"><a href="#L245">245</a>        end</span>
+<span id="L246" class="line"><a href="#L246">246</a></span>
+<span id="L247" class="line"><a href="#L247">247</a>        delegate.closeCallback = closeCall</span>
+<span id="L248" class="line"><a href="#L248">248</a>        delegate.autoCloseAfterSignIn = param.autoCloseAfterSignIn == true</span>
+<span id="L249" class="line"><a href="#L249">249</a>        delegate.signInRequest = param.signInRequest</span>
+<span id="L250" class="line"><a href="#L250">250</a>        delegate.panelShownCallback = param.panelShownCallback</span>
+<span id="L251" class="line"><a href="#L251">251</a>        local MarkMainPanelVM = require_debug &quot;amf.feature.dailyreward.mark.view.main.MarkMainPanelVM&quot;</span>
+<span id="L252" class="line"><a href="#L252">252</a>        self.mainPanelVM = MarkMainPanelVM:create(delegate)</span>
+<span id="L253" class="line"><a href="#L253">253</a>        self.mainPanelVM:setLoadResFailCallback(closeCallback)</span>
+<span id="L254" class="line"><a href="#L254">254</a>        self.mainPanelVM:popout(nil, not EnvUtil:isMiniGame())</span>
+<span id="L255" class="line"><a href="#L255">255</a></span>
+<span id="L256" class="line"><a href="#L256">256</a>        -- 打点</span>
+<span id="L257" class="line"><a href="#L257">257</a>        self:dc(&quot;signPanel_popUp&quot;)</span>
+<span id="L258" class="line"><a href="#L258">258</a>        self:dc(&quot;newPanel_trigger&quot;,{</span>
+<span id="L259" class="line"><a href="#L259">259</a>                t1=tostring(self:getMarkValue(&quot;totalMark&quot;)),</span>
+<span id="L260" class="line"><a href="#L260">260</a>                t2=tostring(self:getMonthSignCount()),</span>
+<span id="L261" class="line"><a href="#L261">261</a>                t3=tostring(self:getCurMonth()),</span>
+<span id="L262" class="line"><a href="#L262">262</a>            })</span>
+<span id="L263" class="line"><a href="#L263">263</a>    end</span>
+<span id="L264" class="line"><a href="#L264">264</a>    local function _reqThenOpen()</span>
+<span id="L265" class="line"><a href="#L265">265</a>        -- self:log(&quot;签到界面 请求后打开&quot;)</span>
+<span id="L266" class="line"><a href="#L266">266</a>        self:requestMainInfo():next(function(data)</span>
+<span id="L267" class="line"><a href="#L267">267</a>            local context = self:initMarkActContext()</span>
+<span id="L268" class="line"><a href="#L268">268</a>            if context and context:getPreOpenFunc() then</span>
+<span id="L269" class="line"><a href="#L269">269</a>                context:getPreOpenFunc()(function()</span>
+<span id="L270" class="line"><a href="#L270">270</a>                    -- 再判断一次，因为有可能失败了</span>
+<span id="L271" class="line"><a href="#L271">271</a>                    if not context:isEnabled() then</span>
+<span id="L272" class="line"><a href="#L272">272</a>                        self:setMarkActContext(nil)</span>
+<span id="L273" class="line"><a href="#L273">273</a>                    end</span>
+<span id="L274" class="line"><a href="#L274">274</a>                end)</span>
+<span id="L275" class="line"><a href="#L275">275</a>            end</span>
+<span id="L276" class="line"><a href="#L276">276</a>            _showMainPanel({</span>
+<span id="L277" class="line"><a href="#L277">277</a>                dcLocation = dcLocation,</span>
+<span id="L278" class="line"><a href="#L278">278</a>                isClick = isClick,</span>
+<span id="L279" class="line"><a href="#L279">279</a>                closeCallback = closeCallback</span>
+<span id="L280" class="line"><a href="#L280">280</a>            })</span>
+<span id="L281" class="line"><a href="#L281">281</a>        end, function(isCancel)</span>
+<span id="L282" class="line"><a href="#L282">282</a>            safeRunCall(closeCallback)</span>
+<span id="L283" class="line"><a href="#L283">283</a>        end)</span>
+<span id="L284" class="line"><a href="#L284">284</a>    end</span>
+<span id="L285" class="line"><a href="#L285">285</a>    local function _reqAndOpen()</span>
+<span id="L286" class="line"><a href="#L286">286</a>        -- self:log(&quot;签到界面 直接打开&quot;)</span>
+<span id="L287" class="line"><a href="#L287">287</a>        self:requestMainInfo()</span>
+<span id="L288" class="line"><a href="#L288">288</a>        _showMainPanel({</span>
+<span id="L289" class="line"><a href="#L289">289</a>            dcLocation = dcLocation,</span>
+<span id="L290" class="line"><a href="#L290">290</a>            isClick = isClick,</span>
+<span id="L291" class="line"><a href="#L291">291</a>            closeCallback = closeCallback,</span>
+<span id="L292" class="line"><a href="#L292">292</a>            useLocalData = true</span>
+<span id="L293" class="line"><a href="#L293">293</a>        })</span>
+<span id="L294" class="line"><a href="#L294">294</a>    end</span>
+<span id="L295" class="line"><a href="#L295">295</a>    -- 如果是点击icon，一定先请求数据</span>
+<span id="L296" class="line"><a href="#L296">296</a>    if isClick or forceRequest then</span>
+<span id="L297" class="line"><a href="#L297">297</a>        -- self:log(&quot;点击icon&quot;)</span>
+<span id="L298" class="line"><a href="#L298">298</a>        _reqThenOpen()</span>
+<span id="L299" class="line"><a href="#L299">299</a>    else</span>
+<span id="L300" class="line"><a href="#L300">300</a>        -- 如果数据可用就</span>
+<span id="L301" class="line"><a href="#L301">301</a>        if self:isDataEnabled() then</span>
+<span id="L302" class="line"><a href="#L302">302</a>            -- self:log(&quot;数据可用&quot;)</span>
+<span id="L303" class="line"><a href="#L303">303</a>            _reqAndOpen()</span>
+<span id="L304" class="line"><a href="#L304">304</a>        else</span>
+<span id="L305" class="line"><a href="#L305">305</a>            -- self:log(&quot;数据不可用&quot;)</span>
+<span id="L306" class="line"><a href="#L306">306</a>            _reqThenOpen()</span>
+<span id="L307" class="line"><a href="#L307">307</a>        end</span>
+<span id="L308" class="line"><a href="#L308">308</a>    end</span>
+<span id="L309" class="line"><a href="#L309">309</a>end</span>
+<span id="L310" class="line"><a href="#L310">310</a></span>
+<span id="L311" class="line"><a href="#L311">311</a>function MarkManager:initMarkActContext()</span>
+<span id="L312" class="line"><a href="#L312">312</a>    self:setMarkActContext(nil)</span>
+<span id="L313" class="line"><a href="#L313">313</a>    local preOpenContextList = {}</span>
+<span id="L314" class="line"><a href="#L314">314</a>    MarkEventCenter:dispatch(MarkEvent.MARK_PREOPEN_CHECK, preOpenContextList)</span>
+<span id="L315" class="line"><a href="#L315">315</a>    table.sort(preOpenContextList, function(a, b)</span>
+<span id="L316" class="line"><a href="#L316">316</a>        return a:getPriority() &lt; b:getPriority()</span>
+<span id="L317" class="line"><a href="#L317">317</a>    end)</span>
+<span id="L318" class="line"><a href="#L318">318</a>    local context = preOpenContextList[1]</span>
+<span id="L319" class="line"><a href="#L319">319</a>    self:setMarkActContext(context)</span>
+<span id="L320" class="line"><a href="#L320">320</a>    return context</span>
+<span id="L321" class="line"><a href="#L321">321</a>end</span>
+<span id="L322" class="line"><a href="#L322">322</a></span>
+<span id="L323" class="line"><a href="#L323">323</a>-- 跨天</span>
+<span id="L324" class="line"><a href="#L324">324</a>function MarkManager:onActPassDay()</span>
+<span id="L325" class="line"><a href="#L325">325</a>    if not self:isEnabled() then return end</span>
+<span id="L326" class="line"><a href="#L326">326</a>    self._todayIsMark = false</span>
+<span id="L327" class="line"><a href="#L327">327</a>    self:resetTime()</span>
+<span id="L328" class="line"><a href="#L328">328</a>    MarkEventCenter:dispatch(MarkEvent.MARK_PASSDAY)</span>
+<span id="L329" class="line"><a href="#L329">329</a>    if self.mainPanelVM then</span>
+<span id="L330" class="line"><a href="#L330">330</a>        self.mainPanelVM:doPassDayRefresh()</span>
+<span id="L331" class="line"><a href="#L331">331</a>    else</span>
+<span id="L332" class="line"><a href="#L332">332</a>        self:handleAutoPopout(true)</span>
+<span id="L333" class="line"><a href="#L333">333</a>    end</span>
+<span id="L334" class="line"><a href="#L334">334</a>end</span>
+<span id="L335" class="line"><a href="#L335">335</a></span>
+<span id="L336" class="line"><a href="#L336">336</a>function MarkManager:isTodayMarked()</span>
+<span id="L337" class="line"><a href="#L337">337</a>    return self._todayIsMark</span>
+<span id="L338" class="line"><a href="#L338">338</a>end</span>
+<span id="L339" class="line"><a href="#L339">339</a></span>
+<span id="L340" class="line"><a href="#L340">340</a>-- 强弹</span>
+<span id="L341" class="line"><a href="#L341">341</a>function MarkManager:handleAutoPopout(fromPassDay)</span>
+<span id="L342" class="line"><a href="#L342">342</a>    if not self:isEnabled() then return end</span>
+<span id="L343" class="line"><a href="#L343">343</a>    -- 今天签到了不弹</span>
+<span id="L344" class="line"><a href="#L344">344</a>    if self:isTodayMarked() then return end</span>
+<span id="L345" class="line"><a href="#L345">345</a></span>
+<span id="L346" class="line"><a href="#L346">346</a>    local function doMarkAutoPopup()</span>
+<span id="L347" class="line"><a href="#L347">347</a>        self:onActEnterStage2(AMFEvent.new(&quot;&quot;, {</span>
+<span id="L348" class="line"><a href="#L348">348</a>            isFirstEnter = true</span>
+<span id="L349" class="line"><a href="#L349">349</a>        }))</span>
+<span id="L350" class="line"><a href="#L350">350</a>    end</span>
+<span id="L351" class="line"><a href="#L351">351</a>    if fromPassDay then</span>
+<span id="L352" class="line"><a href="#L352">352</a>        local delay = math.random(60)</span>
+<span id="L353" class="line"><a href="#L353">353</a>        setTimeOut(doMarkAutoPopup, delay)</span>
+<span id="L354" class="line"><a href="#L354">354</a>    else</span>
+<span id="L355" class="line"><a href="#L355">355</a>        doMarkAutoPopup()</span>
+<span id="L356" class="line"><a href="#L356">356</a>    end</span>
+<span id="L357" class="line"><a href="#L357">357</a>end</span>
+<span id="L358" class="line"><a href="#L358">358</a></span>
+<span id="L359" class="line"><a href="#L359">359</a>function MarkManager:getMarkValue(keyChain)</span>
+<span id="L360" class="line"><a href="#L360">360</a>    return privateNS.markModel:getValue(keyChain)</span>
+<span id="L361" class="line"><a href="#L361">361</a>end</span>
+<span id="L362" class="line"><a href="#L362">362</a></span>
+<span id="L363" class="line"><a href="#L363">363</a>function MarkManager:setMarkValue(keyChain, value, flush)</span>
+<span id="L364" class="line"><a href="#L364">364</a>    return privateNS.markModel:setValue(keyChain, value, flush)</span>
+<span id="L365" class="line"><a href="#L365">365</a>end</span>
+<span id="L366" class="line"><a href="#L366">366</a></span>
+<span id="L367" class="line"><a href="#L367">367</a>-- 根据day获得签到信息</span>
+<span id="L368" class="line"><a href="#L368">368</a>function MarkManager:getDataByDay(day)</span>
+<span id="L369" class="line"><a href="#L369">369</a>    local dayStatusList = privateNS.markModel:getValue(&quot;dayStatusList&quot;) or {}</span>
+<span id="L370" class="line"><a href="#L370">370</a>    for _,v in ipairs(dayStatusList) do</span>
+<span id="L371" class="line"><a href="#L371">371</a>        if v and v.day == day then</span>
+<span id="L372" class="line"><a href="#L372">372</a>            return v</span>
+<span id="L373" class="line"><a href="#L373">373</a>        end</span>
+<span id="L374" class="line"><a href="#L374">374</a>    end</span>
+<span id="L375" class="line"><a href="#L375">375</a>    return nil</span>
+<span id="L376" class="line"><a href="#L376">376</a>end</span>
+<span id="L377" class="line"><a href="#L377">377</a></span>
+<span id="L378" class="line"><a href="#L378">378</a>-- 获得第一个漏签的日期data</span>
+<span id="L379" class="line"><a href="#L379">379</a>function MarkManager:getFirstMissionDayData()</span>
+<span id="L380" class="line"><a href="#L380">380</a>    local dayStatusList = privateNS.markModel:getValue(&quot;dayStatusList&quot;) or {}</span>
+<span id="L381" class="line"><a href="#L381">381</a>	for _,v in ipairs(dayStatusList) do</span>
+<span id="L382" class="line"><a href="#L382">382</a>		if v and v.markType == MarkConst.MarkType.NONE and v.day &lt; _curDay then</span>
+<span id="L383" class="line"><a href="#L383">383</a>			return v</span>
+<span id="L384" class="line"><a href="#L384">384</a>		end</span>
+<span id="L385" class="line"><a href="#L385">385</a>	end</span>
+<span id="L386" class="line"><a href="#L386">386</a>	return nil</span>
+<span id="L387" class="line"><a href="#L387">387</a>end</span>
+<span id="L388" class="line"><a href="#L388">388</a></span>
+<span id="L389" class="line"><a href="#L389">389</a>function MarkManager:isMonthFullSign()</span>
+<span id="L390" class="line"><a href="#L390">390</a>    local dayStatusList = privateNS.markModel:getValue(&quot;dayStatusList&quot;) or {}</span>
+<span id="L391" class="line"><a href="#L391">391</a>    for _,v in ipairs(dayStatusList) do</span>
+<span id="L392" class="line"><a href="#L392">392</a>        if v and v.markType == MarkConst.MarkType.NONE then</span>
+<span id="L393" class="line"><a href="#L393">393</a>            return false</span>
+<span id="L394" class="line"><a href="#L394">394</a>        end</span>
+<span id="L395" class="line"><a href="#L395">395</a>    end</span>
+<span id="L396" class="line"><a href="#L396">396</a>    return true</span>
+<span id="L397" class="line"><a href="#L397">397</a>end</span>
+<span id="L398" class="line"><a href="#L398">398</a></span>
+<span id="L399" class="line"><a href="#L399">399</a>-- 签到了几天</span>
+<span id="L400" class="line"><a href="#L400">400</a>function MarkManager:getMonthSignCount()</span>
+<span id="L401" class="line"><a href="#L401">401</a>    --  * 签到类型， 0 未签到， 1：正常签到  2：人民币补签  5：v2兼容v1的自动补全签到</span>
+<span id="L402" class="line"><a href="#L402">402</a>    local count = 0</span>
+<span id="L403" class="line"><a href="#L403">403</a>    local dayStatusList = privateNS.markModel:getValue(&quot;dayStatusList&quot;) or {}</span>
+<span id="L404" class="line"><a href="#L404">404</a>    for _,v in ipairs(dayStatusList) do</span>
+<span id="L405" class="line"><a href="#L405">405</a>        if v and v.day &lt;= self:getCurDay() and v.markType &gt; MarkConst.MarkType.NONE then</span>
+<span id="L406" class="line"><a href="#L406">406</a>            count = count + 1</span>
+<span id="L407" class="line"><a href="#L407">407</a>        end</span>
+<span id="L408" class="line"><a href="#L408">408</a>    end</span>
+<span id="L409" class="line"><a href="#L409">409</a>    return count</span>
+<span id="L410" class="line"><a href="#L410">410</a>end</span>
+<span id="L411" class="line"><a href="#L411">411</a></span>
+<span id="L412" class="line"><a href="#L412">412</a>-- 漏签天数</span>
+<span id="L413" class="line"><a href="#L413">413</a>function MarkManager:getMonthMissionCount()</span>
+<span id="L414" class="line"><a href="#L414">414</a>    local count = 0</span>
+<span id="L415" class="line"><a href="#L415">415</a>    local dayStatusList = privateNS.markModel:getValue(&quot;dayStatusList&quot;) or {}</span>
+<span id="L416" class="line"><a href="#L416">416</a>	for _,v in ipairs(dayStatusList) do</span>
+<span id="L417" class="line"><a href="#L417">417</a>		if v and v.markType == MarkConst.MarkType.NONE and v.day &lt; _curDay then</span>
+<span id="L418" class="line"><a href="#L418">418</a>			count = count + 1</span>
+<span id="L419" class="line"><a href="#L419">419</a>		end</span>
+<span id="L420" class="line"><a href="#L420">420</a>	end</span>
+<span id="L421" class="line"><a href="#L421">421</a>	return count</span>
+<span id="L422" class="line"><a href="#L422">422</a>end</span>
+<span id="L423" class="line"><a href="#L423">423</a></span>
+<span id="L424" class="line"><a href="#L424">424</a>function MarkManager:requestFullShareReward(param)</span>
+<span id="L425" class="line"><a href="#L425">425</a>    param = param or {}</span>
+<span id="L426" class="line"><a href="#L426">426</a>    param.year = self:getCurYear()</span>
+<span id="L427" class="line"><a href="#L427">427</a>    param.month = self:getCurMonth()</span>
+<span id="L428" class="line"><a href="#L428">428</a></span>
+<span id="L429" class="line"><a href="#L429">429</a>    local d = deferred.new()</span>
+<span id="L430" class="line"><a href="#L430">430</a>    privateNS.markModel:requestFullShareReward(param):next(function(response)</span>
+<span id="L431" class="line"><a href="#L431">431</a>        local data = response:getData()</span>
+<span id="L432" class="line"><a href="#L432">432</a>        local rewardList = data.rewardBeanList or {}</span>
+<span id="L433" class="line"><a href="#L433">433</a>        if not table.isEmpty(rewardList) then</span>
+<span id="L434" class="line"><a href="#L434">434</a>            -- 打点</span>
+<span id="L435" class="line"><a href="#L435">435</a>            GainPropData:create()</span>
+<span id="L436" class="line"><a href="#L436">436</a>                :setFeature(DcFeatureType.kSignIn)</span>
+<span id="L437" class="line"><a href="#L437">437</a>                :setSource(&quot;sign_2020_share_sendout&quot;)</span>
+<span id="L438" class="line"><a href="#L438">438</a>                :setProps(rewardList)</span>
+<span id="L439" class="line"><a href="#L439">439</a>                :execute()</span>
+<span id="L440" class="line"><a href="#L440">440</a>        end</span>
+<span id="L441" class="line"><a href="#L441">441</a>        -- 修改已经领取过</span>
+<span id="L442" class="line"><a href="#L442">442</a>        self:setMarkValue(&quot;isFullShareRewarded&quot;, true)</span>
+<span id="L443" class="line"><a href="#L443">443</a>        d:resolve(rewardList)</span>
+<span id="L444" class="line"><a href="#L444">444</a>    end, function(response)</span>
+<span id="L445" class="line"><a href="#L445">445</a>        CommonTip:showErrorTip(response)</span>
+<span id="L446" class="line"><a href="#L446">446</a>        d:reject(response:isCancel())</span>
+<span id="L447" class="line"><a href="#L447">447</a>    end)</span>
+<span id="L448" class="line"><a href="#L448">448</a>    return d</span>
+<span id="L449" class="line"><a href="#L449">449</a>end</span>
+<span id="L450" class="line"><a href="#L450">450</a></span>
+<span id="L451" class="line"><a href="#L451">451</a>function MarkManager:requestTotalShareReward(param)</span>
+<span id="L452" class="line"><a href="#L452">452</a>    param = param or {}</span>
+<span id="L453" class="line"><a href="#L453">453</a>    param.year = self:getCurYear()</span>
+<span id="L454" class="line"><a href="#L454">454</a>    param.month = self:getCurMonth()</span>
+<span id="L455" class="line"><a href="#L455">455</a></span>
+<span id="L456" class="line"><a href="#L456">456</a>    local d = deferred.new()</span>
+<span id="L457" class="line"><a href="#L457">457</a>    privateNS.markModel:requestTotalShareReward(param):next(function(response)</span>
+<span id="L458" class="line"><a href="#L458">458</a>        local data = response:getData()</span>
+<span id="L459" class="line"><a href="#L459">459</a>        local rewardList = data.rewardBeanList or {}</span>
+<span id="L460" class="line"><a href="#L460">460</a>        if not table.isEmpty(rewardList) then</span>
+<span id="L461" class="line"><a href="#L461">461</a>            -- 打点</span>
+<span id="L462" class="line"><a href="#L462">462</a>            GainPropData:create()</span>
+<span id="L463" class="line"><a href="#L463">463</a>                :setFeature(DcFeatureType.kSignIn)</span>
+<span id="L464" class="line"><a href="#L464">464</a>                :setSource(&quot;sign_2020_share_total&quot;)</span>
+<span id="L465" class="line"><a href="#L465">465</a>                :setProps(rewardList)</span>
+<span id="L466" class="line"><a href="#L466">466</a>                :execute()</span>
+<span id="L467" class="line"><a href="#L467">467</a>        end</span>
+<span id="L468" class="line"><a href="#L468">468</a>        -- 修改已经领取过</span>
+<span id="L469" class="line"><a href="#L469">469</a>        self:setMarkValue(&quot;isTotalShareRewarded&quot;, true)</span>
+<span id="L470" class="line"><a href="#L470">470</a>        d:resolve(rewardList)</span>
+<span id="L471" class="line"><a href="#L471">471</a>    end, function(response)</span>
+<span id="L472" class="line"><a href="#L472">472</a>        CommonTip:showErrorTip(response)</span>
+<span id="L473" class="line"><a href="#L473">473</a>        d:reject(response:isCancel())</span>
+<span id="L474" class="line"><a href="#L474">474</a>    end)</span>
+<span id="L475" class="line"><a href="#L475">475</a>    return d</span>
+<span id="L476" class="line"><a href="#L476">476</a>end</span>
+<span id="L477" class="line"><a href="#L477">477</a></span>
+<span id="L478" class="line"><a href="#L478">478</a>function MarkManager:getLastReqYM()</span>
+<span id="L479" class="line"><a href="#L479">479</a>    local str = &quot;&quot;..self:getCurYear()..&quot;_&quot;..self:getCurMonth()</span>
+<span id="L480" class="line"><a href="#L480">480</a>    return str</span>
+<span id="L481" class="line"><a href="#L481">481</a>end</span>
+<span id="L482" class="line"><a href="#L482">482</a></span>
+<span id="L483" class="line"><a href="#L483">483</a>-- 主info</span>
+<span id="L484" class="line"><a href="#L484">484</a>function MarkManager:requestMainInfo()</span>
+<span id="L485" class="line"><a href="#L485">485</a>    local d = deferred.new()</span>
+<span id="L486" class="line"><a href="#L486">486</a>    privateNS.markModel:requestMainInfo({</span>
+<span id="L487" class="line"><a href="#L487">487</a>        protocolVersion = MarkConst.ProtocolVersion,</span>
+<span id="L488" class="line"><a href="#L488">488</a>    }):next(function(response)</span>
+<span id="L489" class="line"><a href="#L489">489</a>        self._todayIsMark = self:getDayMarked(self:getCurDay())</span>
+<span id="L490" class="line"><a href="#L490">490</a>        -- 记录上次请求时间</span>
+<span id="L491" class="line"><a href="#L491">491</a>        self:setMarkValue(&quot;reqYearAndMonth&quot;, self:getLastReqYM())</span>
+<span id="L492" class="line"><a href="#L492">492</a>        self:setMarkValue(&quot;isHttpError&quot;, false)</span>
+<span id="L493" class="line"><a href="#L493">493</a>        d:resolve(response:getData())</span>
+<span id="L494" class="line"><a href="#L494">494</a>    end, function(response)</span>
+<span id="L495" class="line"><a href="#L495">495</a>        CommonTip:showErrorTip(response)</span>
+<span id="L496" class="line"><a href="#L496">496</a>        d:reject(response:isCancel())</span>
+<span id="L497" class="line"><a href="#L497">497</a>    end)</span>
+<span id="L498" class="line"><a href="#L498">498</a>    return d</span>
+<span id="L499" class="line"><a href="#L499">499</a>end</span>
+<span id="L500" class="line"><a href="#L500">500</a></span>
+<span id="L501" class="line"><a href="#L501">501</a>-- 补单</span>
+<span id="L502" class="line"><a href="#L502">502</a>function MarkManager:requestConsumeRmbChances()</span>
+<span id="L503" class="line"><a href="#L503">503</a>    local d = deferred.new()</span>
+<span id="L504" class="line"><a href="#L504">504</a>    self:setMarkValue(&quot;isHttpError&quot;, true)</span>
+<span id="L505" class="line"><a href="#L505">505</a>    privateNS.markModel:requestRmbChances():next(function(response)</span>
+<span id="L506" class="line"><a href="#L506">506</a>        local data = response:getData()</span>
+<span id="L507" class="line"><a href="#L507">507</a>        local lastDayList = privateNS.markModel:getValue(&quot;dayStatusList&quot;) or {}</span>
+<span id="L508" class="line"><a href="#L508">508</a>        privateNS.markModel:onResponseMarkV3GetInfo(response, nil, true)</span>
+<span id="L509" class="line"><a href="#L509">509</a>        local dayList = privateNS.markModel:getValue(&quot;dayStatusList&quot;) or {}</span>
+<span id="L510" class="line"><a href="#L510">510</a>        -- 找到补单的那天</span>
+<span id="L511" class="line"><a href="#L511">511</a>        local needDay</span>
+<span id="L512" class="line"><a href="#L512">512</a>        for _,v in ipairs(dayList) do</span>
+<span id="L513" class="line"><a href="#L513">513</a>            local find = false</span>
+<span id="L514" class="line"><a href="#L514">514</a>            for _,vv in ipairs(lastDayList) do</span>
+<span id="L515" class="line"><a href="#L515">515</a>                if v.day == vv.day and v.markType ~= MarkConst.MarkType.NONE and vv.markType == MarkConst.MarkType.NONE then</span>
+<span id="L516" class="line"><a href="#L516">516</a>                    needDay = v.day</span>
+<span id="L517" class="line"><a href="#L517">517</a>                    find = true</span>
+<span id="L518" class="line"><a href="#L518">518</a>                    break</span>
+<span id="L519" class="line"><a href="#L519">519</a>                end</span>
+<span id="L520" class="line"><a href="#L520">520</a>            end</span>
+<span id="L521" class="line"><a href="#L521">521</a>            if find then</span>
+<span id="L522" class="line"><a href="#L522">522</a>                break</span>
+<span id="L523" class="line"><a href="#L523">523</a>            end</span>
+<span id="L524" class="line"><a href="#L524">524</a>        end</span>
+<span id="L525" class="line"><a href="#L525">525</a>        -- 打点</span>
+<span id="L526" class="line"><a href="#L526">526</a>        local count = data.rewards and #data.rewards</span>
+<span id="L527" class="line"><a href="#L527">527</a>        self:dc(&quot;resign_resubmit&quot;,{t1 = count,t2 = privateNS.markModel:getValue(&quot;v3MakeUpChances&quot;)})</span>
+<span id="L528" class="line"><a href="#L528">528</a></span>
+<span id="L529" class="line"><a href="#L529">529</a>        -- 丢单数量清零</span>
+<span id="L530" class="line"><a href="#L530">530</a>        -- 协议里已经发了</span>
+<span id="L531" class="line"><a href="#L531">531</a>        -- privateNS.markModel:setValue(&quot;v3MakeUpChances&quot;, 0)</span>
+<span id="L532" class="line"><a href="#L532">532</a>        self:_checkOtherRewards(data, true, true)</span>
+<span id="L533" class="line"><a href="#L533">533</a>        d:resolve({</span>
+<span id="L534" class="line"><a href="#L534">534</a>            data = data,</span>
+<span id="L535" class="line"><a href="#L535">535</a>            needDay = needDay</span>
+<span id="L536" class="line"><a href="#L536">536</a>        })</span>
+<span id="L537" class="line"><a href="#L537">537</a></span>
+<span id="L538" class="line"><a href="#L538">538</a>        MarkEventCenter:dispatch(MarkEvent.MARK_MARKUP_SUCCESS, {</span>
+<span id="L539" class="line"><a href="#L539">539</a>            day = needDay,</span>
+<span id="L540" class="line"><a href="#L540">540</a>            hasMonthRewards = not table.isEmpty(data.monthRewards or {}),</span>
+<span id="L541" class="line"><a href="#L541">541</a>            from = MarkConst.MarkFromType.COMPENSATION,</span>
+<span id="L542" class="line"><a href="#L542">542</a>        })</span>
+<span id="L543" class="line"><a href="#L543">543</a>        self:setMarkValue(&quot;isHttpError&quot;, false)</span>
+<span id="L544" class="line"><a href="#L544">544</a>    end, function(response)</span>
+<span id="L545" class="line"><a href="#L545">545</a>        CommonTip:showErrorTip(response)</span>
+<span id="L546" class="line"><a href="#L546">546</a>        d:reject(response:isCancel())</span>
+<span id="L547" class="line"><a href="#L547">547</a>    end)</span>
+<span id="L548" class="line"><a href="#L548">548</a>    return d</span>
+<span id="L549" class="line"><a href="#L549">549</a>end</span>
+<span id="L550" class="line"><a href="#L550">550</a></span>
+<span id="L551" class="line"><a href="#L551">551</a>-- 签到</span>
+<span id="L552" class="line"><a href="#L552">552</a>function MarkManager:requestSignIn(param)</span>
+<span id="L553" class="line"><a href="#L553">553</a>    local d = deferred.new()</span>
+<span id="L554" class="line"><a href="#L554">554</a>    self:setMarkValue(&quot;isHttpError&quot;, true)</span>
+<span id="L555" class="line"><a href="#L555">555</a>    -- 测试失败后强弹会不会重新请求</span>
+<span id="L556" class="line"><a href="#L556">556</a>    -- do return d:reject(false) end</span>
+<span id="L557" class="line"><a href="#L557">557</a>    privateNS.markModel:requestSignIn(param):next(function(response)</span>
+<span id="L558" class="line"><a href="#L558">558</a>        local data = response:getData()</span>
+<span id="L559" class="line"><a href="#L559">559</a>        -- 增加签到天数</span>
+<span id="L560" class="line"><a href="#L560">560</a>        self:_addTotalMark()</span>
+<span id="L561" class="line"><a href="#L561">561</a>        -- 设置今天签到了</span>
+<span id="L562" class="line"><a href="#L562">562</a>        local day = param.day</span>
+<span id="L563" class="line"><a href="#L563">563</a>        self:_setDayMarkState(day, MarkConst.MarkType.SIGN)</span>
+<span id="L564" class="line"><a href="#L564">564</a>        self._todayIsMark = true</span>
+<span id="L565" class="line"><a href="#L565">565</a></span>
+<span id="L566" class="line"><a href="#L566">566</a>        self:_checkOtherRewards(data)</span>
+<span id="L567" class="line"><a href="#L567">567</a></span>
+<span id="L568" class="line"><a href="#L568">568</a>        self:dc(&quot;sign_days&quot;,{</span>
+<span id="L569" class="line"><a href="#L569">569</a>            dateTime = param.dateTime,</span>
+<span id="L570" class="line"><a href="#L570">570</a>            t1=tostring(self:getMarkValue(&quot;totalMark&quot;)),</span>
+<span id="L571" class="line"><a href="#L571">571</a>            t2=tostring(self:getMonthSignCount()),</span>
+<span id="L572" class="line"><a href="#L572">572</a>            t3=tostring(self:getCurMonth()),</span>
+<span id="L573" class="line"><a href="#L573">573</a>        })</span>
+<span id="L574" class="line"><a href="#L574">574</a>        self:setMarkValue(&quot;isHttpError&quot;, false)</span>
+<span id="L575" class="line"><a href="#L575">575</a>        -- 签到成功</span>
+<span id="L576" class="line"><a href="#L576">576</a>        _G.amfEC:notifyFeature(FeatureEvent.MARK_SIGN)</span>
+<span id="L577" class="line"><a href="#L577">577</a>        d:resolve(data)</span>
+<span id="L578" class="line"><a href="#L578">578</a></span>
+<span id="L579" class="line"><a href="#L579">579</a>        MarkEventCenter:dispatch(MarkEvent.MARK_MARKUP_SUCCESS, {</span>
+<span id="L580" class="line"><a href="#L580">580</a>            day = day,</span>
+<span id="L581" class="line"><a href="#L581">581</a>            hasMonthRewards = not table.isEmpty(data.monthRewards or {}),</span>
+<span id="L582" class="line"><a href="#L582">582</a>            from = MarkConst.MarkFromType.NORMAL,</span>
+<span id="L583" class="line"><a href="#L583">583</a>        })</span>
+<span id="L584" class="line"><a href="#L584">584</a>    end, function(response)</span>
+<span id="L585" class="line"><a href="#L585">585</a>        if response:isCancel() then</span>
+<span id="L586" class="line"><a href="#L586">586</a>            self:setMarkValue(&quot;isHttpError&quot;, false)</span>
+<span id="L587" class="line"><a href="#L587">587</a>        end</span>
+<span id="L588" class="line"><a href="#L588">588</a>        CommonTip:showErrorTip(response)</span>
+<span id="L589" class="line"><a href="#L589">589</a>        d:reject(response:isCancel())</span>
+<span id="L590" class="line"><a href="#L590">590</a>    end)</span>
+<span id="L591" class="line"><a href="#L591">591</a>    return d</span>
+<span id="L592" class="line"><a href="#L592">592</a>end</span>
+<span id="L593" class="line"><a href="#L593">593</a></span>
+<span id="L594" class="line"><a href="#L594">594</a>function MarkManager:initMakeupPayTracer(goodsId)</span>
+<span id="L595" class="line"><a href="#L595">595</a>    local PaymentTracer = require &#x27;amf.middleware.purchase.dc.trace.PaymentTracer&#x27;</span>
+<span id="L596" class="line"><a href="#L596">596</a>    self._makeupPayTracer = PaymentTracer.createRMBPayTracer(</span>
+<span id="L597" class="line"><a href="#L597">597</a>        DcFeatureType.kSignIn,</span>
+<span id="L598" class="line"><a href="#L598">598</a>        DcSourceType.kSign2020MakeUp,</span>
+<span id="L599" class="line"><a href="#L599">599</a>        goodsId,</span>
+<span id="L600" class="line"><a href="#L600">600</a>        DCPayProgressPayPanelShowType.kUserClick</span>
+<span id="L601" class="line"><a href="#L601">601</a>    )</span>
+<span id="L602" class="line"><a href="#L602">602</a>end</span>
+<span id="L603" class="line"><a href="#L603">603</a></span>
+<span id="L604" class="line"><a href="#L604">604</a>function MarkManager:doTracer(funcName)</span>
+<span id="L605" class="line"><a href="#L605">605</a>    if self._makeupPayTracer then</span>
+<span id="L606" class="line"><a href="#L606">606</a>        self._makeupPayTracer[funcName](self._makeupPayTracer)</span>
+<span id="L607" class="line"><a href="#L607">607</a>    end</span>
+<span id="L608" class="line"><a href="#L608">608</a>end</span>
+<span id="L609" class="line"><a href="#L609">609</a></span>
+<span id="L610" class="line"><a href="#L610">610</a>-- 补签</span>
+<span id="L611" class="line"><a href="#L611">611</a>function MarkManager:requestMakeUp(param)</span>
+<span id="L612" class="line"><a href="#L612">612</a>    local day = param.day</span>
+<span id="L613" class="line"><a href="#L613">613</a>    local goodsId = param.goodsId</span>
+<span id="L614" class="line"><a href="#L614">614</a>    local clickBtn = param.clickBtn</span>
+<span id="L615" class="line"><a href="#L615">615</a>    local d = deferred.new()</span>
+<span id="L616" class="line"><a href="#L616">616</a>    -- 补签时间戳</span>
+<span id="L617" class="line"><a href="#L617">617</a>    local date = {</span>
+<span id="L618" class="line"><a href="#L618">618</a>    	year = _curYear,</span>
+<span id="L619" class="line"><a href="#L619">619</a>    	month = _curMonth,</span>
+<span id="L620" class="line"><a href="#L620">620</a>    	day = day</span>
+<span id="L621" class="line"><a href="#L621">621</a>    }</span>
+<span id="L622" class="line"><a href="#L622">622</a>    local time = os.time2(date)*1000</span>
+<span id="L623" class="line"><a href="#L623">623</a>    -- 补签前检查</span>
+<span id="L624" class="line"><a href="#L624">624</a>    self:_requestPreMakeUp(time):next(function()</span>
+<span id="L625" class="line"><a href="#L625">625</a>        -- 付费</span>
+<span id="L626" class="line"><a href="#L626">626</a>        self:_requestBuy(goodsId):next(function()</span>
+<span id="L627" class="line"><a href="#L627">627</a>            self:_requestMakeup(time):next(function(response)</span>
+<span id="L628" class="line"><a href="#L628">628</a>                local data = response:getData()</span>
+<span id="L629" class="line"><a href="#L629">629</a>                self:_addTotalMark()</span>
+<span id="L630" class="line"><a href="#L630">630</a>                self:_setDayMarkState(day, MarkConst.MarkType.MAKEUP_MONEY)</span>
+<span id="L631" class="line"><a href="#L631">631</a>                self:_checkOtherRewards(data, true)</span>
+<span id="L632" class="line"><a href="#L632">632</a>                self:dc(&quot;resign&quot;,{</span>
+<span id="L633" class="line"><a href="#L633">633</a>                    dateTime = time,</span>
+<span id="L634" class="line"><a href="#L634">634</a>                    t1 = 1,</span>
+<span id="L635" class="line"><a href="#L635">635</a>                    t2 = tostring(privateNS.markModel:getDayCountByMarkType(MarkConst.MarkType.MAKEUP_MONEY)),</span>
+<span id="L636" class="line"><a href="#L636">636</a>                    t3 = clickBtn and 1 or 2,</span>
+<span id="L637" class="line"><a href="#L637">637</a>                    t4 = time,</span>
+<span id="L638" class="line"><a href="#L638">638</a>                    t5 = data.rewards and data.rewards[1].itemId</span>
+<span id="L639" class="line"><a href="#L639">639</a>                })</span>
+<span id="L640" class="line"><a href="#L640">640</a>                d:resolve(data)</span>
+<span id="L641" class="line"><a href="#L641">641</a></span>
+<span id="L642" class="line"><a href="#L642">642</a>                MarkEventCenter:dispatch(MarkEvent.MARK_MARKUP_SUCCESS, {</span>
+<span id="L643" class="line"><a href="#L643">643</a>                    day = day,</span>
+<span id="L644" class="line"><a href="#L644">644</a>                    hasMonthRewards = not table.isEmpty(data.monthRewards or {}),</span>
+<span id="L645" class="line"><a href="#L645">645</a>                    from = MarkConst.MarkFromType.CASH,</span>
+<span id="L646" class="line"><a href="#L646">646</a>                })</span>
+<span id="L647" class="line"><a href="#L647">647</a>            end, function(errCode, isCancel)</span>
+<span id="L648" class="line"><a href="#L648">648</a>                CommonTip:showErrorTip(errCode)</span>
+<span id="L649" class="line"><a href="#L649">649</a>                d:reject(isCancel)</span>
+<span id="L650" class="line"><a href="#L650">650</a>            end)</span>
+<span id="L651" class="line"><a href="#L651">651</a>        end, function(errCode, isCancel)</span>
+<span id="L652" class="line"><a href="#L652">652</a>            -- CommonTip:showErrorTip(errCode)</span>
+<span id="L653" class="line"><a href="#L653">653</a>            d:reject(isCancel)</span>
+<span id="L654" class="line"><a href="#L654">654</a>        end)</span>
+<span id="L655" class="line"><a href="#L655">655</a>    end, function(errCode, isCancel)</span>
+<span id="L656" class="line"><a href="#L656">656</a>        CommonTip:showErrorTip(errCode)</span>
+<span id="L657" class="line"><a href="#L657">657</a>        d:reject(isCancel)</span>
+<span id="L658" class="line"><a href="#L658">658</a>    end)</span>
+<span id="L659" class="line"><a href="#L659">659</a>    return d</span>
+<span id="L660" class="line"><a href="#L660">660</a>end</span>
+<span id="L661" class="line"><a href="#L661">661</a></span>
+<span id="L662" class="line"><a href="#L662">662</a>function MarkManager:_setDayMarkState(day, markType)</span>
+<span id="L663" class="line"><a href="#L663">663</a>    privateNS.markModel:setDayMarkState(day, markType)</span>
+<span id="L664" class="line"><a href="#L664">664</a>end</span>
+<span id="L665" class="line"><a href="#L665">665</a></span>
+<span id="L666" class="line"><a href="#L666">666</a>function MarkManager:getDayMarked(day)</span>
+<span id="L667" class="line"><a href="#L667">667</a>    local markType = self:getDayMarkState(day)</span>
+<span id="L668" class="line"><a href="#L668">668</a>    return markType ~= MarkConst.MarkType.NONE and day &lt;= _curDay</span>
+<span id="L669" class="line"><a href="#L669">669</a>end</span>
+<span id="L670" class="line"><a href="#L670">670</a></span>
+<span id="L671" class="line"><a href="#L671">671</a>function MarkManager:getDayMarkState(day)</span>
+<span id="L672" class="line"><a href="#L672">672</a>    return privateNS.markModel:getDayMarkState(day)</span>
+<span id="L673" class="line"><a href="#L673">673</a>end</span>
+<span id="L674" class="line"><a href="#L674">674</a></span>
+<span id="L675" class="line"><a href="#L675">675</a>-- 需要补签用人民币的的天数</span>
+<span id="L676" class="line"><a href="#L676">676</a>function MarkManager:getMoneyMakeUpDays()</span>
+<span id="L677" class="line"><a href="#L677">677</a>    local count = 0</span>
+<span id="L678" class="line"><a href="#L678">678</a>    local dayStatusList = self:getMarkValue(&quot;dayStatusList&quot;) or {}</span>
+<span id="L679" class="line"><a href="#L679">679</a>    for _,v in ipairs(dayStatusList) do</span>
+<span id="L680" class="line"><a href="#L680">680</a>        if v and v.markType == MarkConst.MarkType.MAKEUP_MONEY then</span>
+<span id="L681" class="line"><a href="#L681">681</a>            count = count + 1</span>
+<span id="L682" class="line"><a href="#L682">682</a>        end</span>
+<span id="L683" class="line"><a href="#L683">683</a>    end</span>
+<span id="L684" class="line"><a href="#L684">684</a>    return count</span>
+<span id="L685" class="line"><a href="#L685">685</a>end</span>
+<span id="L686" class="line"><a href="#L686">686</a></span>
+<span id="L687" class="line"><a href="#L687">687</a>function MarkManager:_addTotalMark(value)</span>
+<span id="L688" class="line"><a href="#L688">688</a>    value = value or 1</span>
+<span id="L689" class="line"><a href="#L689">689</a>    local totalMark = self:getMarkValue(&quot;totalMark&quot;) or 0</span>
+<span id="L690" class="line"><a href="#L690">690</a>    privateNS.markModel:setValue(&quot;totalMark&quot;, totalMark + value)</span>
+<span id="L691" class="line"><a href="#L691">691</a>end</span>
+<span id="L692" class="line"><a href="#L692">692</a></span>
+<span id="L693" class="line"><a href="#L693">693</a>function MarkManager:_requestPreMakeUp(time)</span>
+<span id="L694" class="line"><a href="#L694">694</a>    local d = deferred.new()</span>
+<span id="L695" class="line"><a href="#L695">695</a>    self:setMarkValue(&quot;isHttpError&quot;, true)</span>
+<span id="L696" class="line"><a href="#L696">696</a>    -- 测试失败后强弹会不会重新请求</span>
+<span id="L697" class="line"><a href="#L697">697</a>    -- do return d:reject(0) end</span>
+<span id="L698" class="line"><a href="#L698">698</a>    privateNS.markModel:requestPreMakeUp({dateTime = time}):next(function(response)</span>
+<span id="L699" class="line"><a href="#L699">699</a>        self:setMarkValue(&quot;isHttpError&quot;, false)</span>
+<span id="L700" class="line"><a href="#L700">700</a>        d:resolve()</span>
+<span id="L701" class="line"><a href="#L701">701</a>    end, function(response)</span>
+<span id="L702" class="line"><a href="#L702">702</a>        if response:isCancel() then</span>
+<span id="L703" class="line"><a href="#L703">703</a>            self:setMarkValue(&quot;isHttpError&quot;, false)</span>
+<span id="L704" class="line"><a href="#L704">704</a>        end</span>
+<span id="L705" class="line"><a href="#L705">705</a>        d:reject(response:getErrorCode(), response:isCancel())</span>
+<span id="L706" class="line"><a href="#L706">706</a>    end)</span>
+<span id="L707" class="line"><a href="#L707">707</a>    return d</span>
+<span id="L708" class="line"><a href="#L708">708</a>end</span>
+<span id="L709" class="line"><a href="#L709">709</a></span>
+<span id="L710" class="line"><a href="#L710">710</a>function MarkManager:_requestMakeup(time)</span>
+<span id="L711" class="line"><a href="#L711">711</a>    local d = deferred.new()</span>
+<span id="L712" class="line"><a href="#L712">712</a>    self:setMarkValue(&quot;isHttpError&quot;, true)</span>
+<span id="L713" class="line"><a href="#L713">713</a>    -- 开始补签</span>
+<span id="L714" class="line"><a href="#L714">714</a>    privateNS.markModel:requestMakeUp({</span>
+<span id="L715" class="line"><a href="#L715">715</a>        dateTime = time,</span>
+<span id="L716" class="line"><a href="#L716">716</a>        payType = 0  -- 只有人民币补签</span>
+<span id="L717" class="line"><a href="#L717">717</a>    }):next(function(response)</span>
+<span id="L718" class="line"><a href="#L718">718</a>        self:setMarkValue(&quot;isHttpError&quot;, false)</span>
+<span id="L719" class="line"><a href="#L719">719</a>        d:resolve(response)</span>
+<span id="L720" class="line"><a href="#L720">720</a>    end, function(response)</span>
+<span id="L721" class="line"><a href="#L721">721</a>        d:reject(response:getErrorCode(), response:isCancel())</span>
+<span id="L722" class="line"><a href="#L722">722</a>    end)</span>
+<span id="L723" class="line"><a href="#L723">723</a>     return d</span>
+<span id="L724" class="line"><a href="#L724">724</a>end</span>
+<span id="L725" class="line"><a href="#L725">725</a></span>
+<span id="L726" class="line"><a href="#L726">726</a>function MarkManager:_requestBuy(goodsId)</span>
+<span id="L727" class="line"><a href="#L727">727</a>    local d = deferred.new()</span>
+<span id="L728" class="line"><a href="#L728">728</a>    self:setMarkValue(&quot;isHttpError&quot;, true)</span>
+<span id="L729" class="line"><a href="#L729">729</a>    local function onSuccess()</span>
+<span id="L730" class="line"><a href="#L730">730</a>        self:doTracer(&quot;paySuccess&quot;)</span>
+<span id="L731" class="line"><a href="#L731">731</a>        self:setMarkValue(&quot;isHttpError&quot;, false)</span>
+<span id="L732" class="line"><a href="#L732">732</a>        setTimeOut(function()</span>
+<span id="L733" class="line"><a href="#L733">733</a>            d:resolve()</span>
+<span id="L734" class="line"><a href="#L734">734</a>        end, 1)</span>
+<span id="L735" class="line"><a href="#L735">735</a>    end</span>
+<span id="L736" class="line"><a href="#L736">736</a>    local function onFail(errorCode, errorMsg, payInfo)</span>
+<span id="L737" class="line"><a href="#L737">737</a>        self:doTracer(&quot;payFail&quot;)</span>
+<span id="L738" class="line"><a href="#L738">738</a>        d:reject(errorCode)</span>
+<span id="L739" class="line"><a href="#L739">739</a>    end</span>
+<span id="L740" class="line"><a href="#L740">740</a>    local function onCancel(payInfo)</span>
+<span id="L741" class="line"><a href="#L741">741</a>        self:setMarkValue(&quot;isHttpError&quot;, false)</span>
+<span id="L742" class="line"><a href="#L742">742</a>        self:doTracer(&quot;payCancel&quot;)</span>
+<span id="L743" class="line"><a href="#L743">743</a>        d:reject(nil, true)</span>
+<span id="L744" class="line"><a href="#L744">744</a>    end</span>
+<span id="L745" class="line"><a href="#L745">745</a>    -- 开始购买</span>
+<span id="L746" class="line"><a href="#L746">746</a>    local buyContext = BuyContext.new(goodsId, MoneyType.kRmb)</span>
+<span id="L747" class="line"><a href="#L747">747</a>        :setFeatureAndSource(DcFeatureType.kSignIn, DcSourceType.kSign2020MakeUp)</span>
+<span id="L748" class="line"><a href="#L748">748</a>        :setCallback(onSuccess, onFail, onCancel)</span>
+<span id="L749" class="line"><a href="#L749">749</a>    _G.amfTransaction(TransactionEvent.PAY, buyContext)</span>
+<span id="L750" class="line"><a href="#L750">750</a>    return d</span>
+<span id="L751" class="line"><a href="#L751">751</a>end</span>
+<span id="L752" class="line"><a href="#L752">752</a></span>
+<span id="L753" class="line"><a href="#L753">753</a>-- 28天签到奖励、累签奖励、普通奖励</span>
+<span id="L754" class="line"><a href="#L754">754</a>function MarkManager:_checkOtherRewards(data, isMakeup, isLost)</span>
+<span id="L755" class="line"><a href="#L755">755</a>    if not table.isEmpty(data.rewards) then</span>
+<span id="L756" class="line"><a href="#L756">756</a>        GainPropData:create()</span>
+<span id="L757" class="line"><a href="#L757">757</a>            :setFeature(DcFeatureType.kSignIn)</span>
+<span id="L758" class="line"><a href="#L758">758</a>            :setSource(isMakeup and DcSourceType.kSign2020MakeUp or DcSourceType.kSign2020SignIn)</span>
+<span id="L759" class="line"><a href="#L759">759</a>            :setProps(data.rewards)</span>
+<span id="L760" class="line"><a href="#L760">760</a>            :execute()</span>
+<span id="L761" class="line"><a href="#L761">761</a>    end</span>
+<span id="L762" class="line"><a href="#L762">762</a>    if not table.isEmpty(data.monthRewards) then</span>
+<span id="L763" class="line"><a href="#L763">763</a>        GainPropData:create()</span>
+<span id="L764" class="line"><a href="#L764">764</a>            :setFeature(DcFeatureType.kSignIn)</span>
+<span id="L765" class="line"><a href="#L765">765</a>            :setSource(DcSourceType.kSign2020MonthReward)</span>
+<span id="L766" class="line"><a href="#L766">766</a>            :setProps(data.monthRewards)</span>
+<span id="L767" class="line"><a href="#L767">767</a>            :execute()</span>
+<span id="L768" class="line"><a href="#L768">768</a>    end</span>
+<span id="L769" class="line"><a href="#L769">769</a>    if not table.isEmpty(data.totalRewards) then</span>
+<span id="L770" class="line"><a href="#L770">770</a>        GainPropData:create()</span>
+<span id="L771" class="line"><a href="#L771">771</a>            :setFeature(DcFeatureType.kSignIn)</span>
+<span id="L772" class="line"><a href="#L772">772</a>            :setSource(DcSourceType.kSign2020TotalReward)</span>
+<span id="L773" class="line"><a href="#L773">773</a>            :setProps(data.totalRewards)</span>
+<span id="L774" class="line"><a href="#L774">774</a>            :execute()</span>
+<span id="L775" class="line"><a href="#L775">775</a>    end</span>
+<span id="L776" class="line"><a href="#L776">776</a></span>
+<span id="L777" class="line"><a href="#L777">777</a>    -- 月签到28天奖励</span>
+<span id="L778" class="line"><a href="#L778">778</a>	if data.monthRewards then</span>
+<span id="L779" class="line"><a href="#L779">779</a>        privateNS.markModel:setValue(&quot;monthRewardState&quot;, 1)</span>
+<span id="L780" class="line"><a href="#L780">780</a>		self:dc(&quot;reward_box&quot;)</span>
+<span id="L781" class="line"><a href="#L781">781</a>	end</span>
+<span id="L782" class="line"><a href="#L782">782</a>	-- 累签奖励</span>
+<span id="L783" class="line"><a href="#L783">783</a>	if data.totalRewards then</span>
+<span id="L784" class="line"><a href="#L784">784</a>        local totalMarkRewardStep = privateNS.markModel:getValue(&quot;totalMarkRewardStep&quot;)</span>
+<span id="L785" class="line"><a href="#L785">785</a>        -- markV3ConsumeRmbChances已经把totalMarkRewardStep 加1了，这里不用加了, 其他时候用加</span>
+<span id="L786" class="line"><a href="#L786">786</a>        if not isLost then</span>
+<span id="L787" class="line"><a href="#L787">787</a>		    privateNS.markModel:setValue(&quot;totalMarkRewardStep&quot;, totalMarkRewardStep + 1)</span>
+<span id="L788" class="line"><a href="#L788">788</a>        end</span>
+<span id="L789" class="line"><a href="#L789">789</a>		self:dc(&quot;reward_historyBox&quot;,{t1 =tostring(totalMarkRewardStep + 1)})</span>
+<span id="L790" class="line"><a href="#L790">790</a>	end</span>
+<span id="L791" class="line"><a href="#L791">791</a>	-- 额外的奖励数据</span>
+<span id="L792" class="line"><a href="#L792">792</a>	if data.specialMarkInfos then</span>
+<span id="L793" class="line"><a href="#L793">793</a>		-- 通知活动额外奖励 TODO</span>
+<span id="L794" class="line"><a href="#L794">794</a>		-- MarkManager:notifyAct(MarkMeta.Event.kHandleExtReward, {data = data.specialMarkInfos})</span>
+<span id="L795" class="line"><a href="#L795">795</a>	end</span>
+<span id="L796" class="line"><a href="#L796">796</a>end</span>
+<span id="L797" class="line"><a href="#L797">797</a></span>
+<span id="L798" class="line"><a href="#L798">798</a>function MarkManager:addBuffEndTime(addTime)</span>
+<span id="L799" class="line"><a href="#L799">799</a>    self._actScoreBuffMgr:addScoreBuffEndTime(&quot;addScoreBuff10&quot;, addTime)</span>
+<span id="L800" class="line"><a href="#L800">800</a>end</span>
+<span id="L801" class="line"><a href="#L801">801</a></span>
+<span id="L802" class="line"><a href="#L802">802</a>-- 获得buff的结束时间</span>
+<span id="L803" class="line"><a href="#L803">803</a>function MarkManager:getBuffEndTime()</span>
+<span id="L804" class="line"><a href="#L804">804</a>    local buffEndTime = self._actScoreBuffMgr:getScoreBuffEndTime(&quot;addScoreBuff10&quot;) or 0</span>
+<span id="L805" class="line"><a href="#L805">805</a>    return tonumber(buffEndTime)/1000</span>
+<span id="L806" class="line"><a href="#L806">806</a>end</span>
+<span id="L807" class="line"><a href="#L807">807</a></span>
+<span id="L808" class="line"><a href="#L808">808</a>--获取分数BUFF加成值跟buff结束时间,因为是限时buff，活动结束了依然会走</span>
+<span id="L809" class="line"><a href="#L809">809</a>function MarkManager:getCurAvailableBuffAndEndTime()</span>
+<span id="L810" class="line"><a href="#L810">810</a>    local scoreBuffRate = self._propManager:getScoreBuffRate(MarkConst.BUFF_ID)</span>
+<span id="L811" class="line"><a href="#L811">811</a>    local buffEndTime = self:getBuffEndTime() or 0</span>
+<span id="L812" class="line"><a href="#L812">812</a>    return scoreBuffRate, buffEndTime</span>
+<span id="L813" class="line"><a href="#L813">813</a>end</span>
+<span id="L814" class="line"><a href="#L814">814</a></span>
+<span id="L815" class="line"><a href="#L815">815</a>--分数buff</span>
+<span id="L816" class="line"><a href="#L816">816</a>function MarkManager:onActUBFAddScoreBuff(event)</span>
+<span id="L817" class="line"><a href="#L817">817</a>    local eventData = event:getData()</span>
+<span id="L818" class="line"><a href="#L818">818</a>    if eventData.isAskForHelp then return false end</span>
+<span id="L819" class="line"><a href="#L819">819</a>    local scoreBuffRate, buffEndTime = self:getCurAvailableBuffAndEndTime()</span>
+<span id="L820" class="line"><a href="#L820">820</a>    local hasScoreBuff = buffEndTime &gt; TimeKit:timeInSec()</span>
+<span id="L821" class="line"><a href="#L821">821</a></span>
+<span id="L822" class="line"><a href="#L822">822</a>    local levelId = eventData.levelId</span>
+<span id="L823" class="line"><a href="#L823">823</a>    local levelScene = eventData.levelScene</span>
+<span id="L824" class="line"><a href="#L824">824</a></span>
+<span id="L825" class="line"><a href="#L825">825</a>    local levelSupportType = UBFActHelper:getPlayLevelModeType(levelId, nil, levelScene)</span>
+<span id="L826" class="line"><a href="#L826">826</a>    local levelOk = levelSupportType == LevelSupportModeType.kNormal or levelSupportType == LevelSupportModeType.kExceedStar or levelSupportType == LevelSupportModeType.kExceedScore</span>
+<span id="L827" class="line"><a href="#L827">827</a></span>
+<span id="L828" class="line"><a href="#L828">828</a>    if not levelOk then return end</span>
+<span id="L829" class="line"><a href="#L829">829</a></span>
+<span id="L830" class="line"><a href="#L830">830</a>    if hasScoreBuff then</span>
+<span id="L831" class="line"><a href="#L831">831</a>        local builder = UBFPlayImproveBuffBuilder:create()</span>
+<span id="L832" class="line"><a href="#L832">832</a>        builder:setModSourceId(MarkConst.ACT_ID)</span>
+<span id="L833" class="line"><a href="#L833">833</a>        builder:addBuffWithOld(InitBuffType.CUSTOM_SCORE_BUFF, InitBuffCreateType.BUFF_ACTIVITY, scoreBuffRate - 1)</span>
+<span id="L834" class="line"><a href="#L834">834</a>        table.insert(eventData.buffList, builder:toBuffCreateData() )</span>
+<span id="L835" class="line"><a href="#L835">835</a>    end</span>
+<span id="L836" class="line"><a href="#L836">836</a>end</span>
+<span id="L837" class="line"><a href="#L837">837</a></span>
+<span id="L838" class="line"><a href="#L838">838</a>--开始面板挂牌分数buff显示</span>
+<span id="L839" class="line"><a href="#L839">839</a>function MarkManager:onActScoreBuffLevelStartPanel(event)</span>
+<span id="L840" class="line"><a href="#L840">840</a>    local eventData = event:getData()</span>
+<span id="L841" class="line"><a href="#L841">841</a>    if eventData.isAskForHelp then return false end</span>
+<span id="L842" class="line"><a href="#L842">842</a>    local scoreBuffRate, buffEndTime = self:getCurAvailableBuffAndEndTime()</span>
+<span id="L843" class="line"><a href="#L843">843</a>    local hasScoreBuff = buffEndTime &gt; TimeKit:timeInSec()</span>
+<span id="L844" class="line"><a href="#L844">844</a></span>
+<span id="L845" class="line"><a href="#L845">845</a>    local levelId = eventData.levelId</span>
+<span id="L846" class="line"><a href="#L846">846</a>    local levelScene = eventData.levelScene</span>
+<span id="L847" class="line"><a href="#L847">847</a></span>
+<span id="L848" class="line"><a href="#L848">848</a>    local levelSupportType = UBFActHelper:getPlayLevelModeType(levelId, nil, levelScene)</span>
+<span id="L849" class="line"><a href="#L849">849</a>    local levelOk = levelSupportType == LevelSupportModeType.kNormal or levelSupportType == LevelSupportModeType.kExceedStar or levelSupportType == LevelSupportModeType.kExceedScore</span>
+<span id="L850" class="line"><a href="#L850">850</a></span>
+<span id="L851" class="line"><a href="#L851">851</a>    if not levelOk then return end</span>
+<span id="L852" class="line"><a href="#L852">852</a></span>
+<span id="L853" class="line"><a href="#L853">853</a></span>
+<span id="L854" class="line"><a href="#L854">854</a>    if hasScoreBuff then</span>
+<span id="L855" class="line"><a href="#L855">855</a>        local buffData = {buffExtraRate = scoreBuffRate - 1, buffEndTime = buffEndTime, actId = MarkConst.ACT_ID}</span>
+<span id="L856" class="line"><a href="#L856">856</a>        table.insert(eventData.scoreBuffDataList, buffData)</span>
+<span id="L857" class="line"><a href="#L857">857</a>    end</span>
+<span id="L858" class="line"><a href="#L858">858</a>end</span>
+<span id="L859" class="line"><a href="#L859">859</a></span>
+<span id="L860" class="line"><a href="#L860">860</a>function MarkManager:dc( sub_category, params )</span>
+<span id="L861" class="line"><a href="#L861">861</a>    params = params or {}</span>
+<span id="L862" class="line"><a href="#L862">862</a>    params.game_type = &quot;stage&quot;</span>
+<span id="L863" class="line"><a href="#L863">863</a>    params.game_name = params.game_name or &quot;sign_in_2020&quot;</span>
+<span id="L864" class="line"><a href="#L864">864</a>    params.category = params.category or &quot;sign_in_2020&quot;</span>
+<span id="L865" class="line"><a href="#L865">865</a>    params.sub_category = sub_category</span>
+<span id="L866" class="line"><a href="#L866">866</a></span>
+<span id="L867" class="line"><a href="#L867">867</a>    params.dcLocation = self.dcLocation</span>
+<span id="L868" class="line"><a href="#L868">868</a>    params.t = self.dcLocation == 1 and 0 or 1</span>
+<span id="L869" class="line"><a href="#L869">869</a>    DcUtil:dcForUserTrack(params)</span>
+<span id="L870" class="line"><a href="#L870">870</a>end</span>
+<span id="L871" class="line"><a href="#L871">871</a></span>
+<span id="L872" class="line"><a href="#L872">872</a>function MarkManager:log(...)</span>
+<span id="L873" class="line"><a href="#L873">873</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L874" class="line"><a href="#L874">874</a>        -- printx(27, &quot;MarkManager: &quot;, ...)</span>
+<span id="L875" class="line"><a href="#L875">875</a>        -- UError(&quot;MarkManager: &quot;, ...)</span>
+<span id="L876" class="line"><a href="#L876">876</a>    end</span>
+<span id="L877" class="line"><a href="#L877">877</a>end</span>
+<span id="L878" class="line"><a href="#L878">878</a></span>
+<span id="L879" class="line"><a href="#L879">879</a>---------------------------------- CUSTOM_GAIN ----------------------------------</span>
+<span id="L880" class="line"><a href="#L880">880</a></span>
+<span id="L881" class="line"><a href="#L881">881</a>function MarkManager:_onCustomGain(event)</span>
+<span id="L882" class="line"><a href="#L882">882</a>    local reward = event:getData()</span>
+<span id="L883" class="line"><a href="#L883">883</a>    if reward.itemId == MarkConst.BUFF_ID then</span>
+<span id="L884" class="line"><a href="#L884">884</a>        self:addBuffEndTime((reward.num or 1) * 60 * 1000)</span>
+<span id="L885" class="line"><a href="#L885">885</a>    end</span>
+<span id="L886" class="line"><a href="#L886">886</a>end</span>
+<span id="L887" class="line"><a href="#L887">887</a></span>
+<span id="L888" class="line"><a href="#L888">888</a>return MarkManager</span></pre></main></html>

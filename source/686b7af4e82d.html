@@ -1,0 +1,541 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/winrepeatrank/model/WinRepeatRankModel.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="686b7af4e82d.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/winrepeatrank/model/WinRepeatRankModel.lua</h1><p>SHA256 83fa2150360384ea0978ca643bf2994e855b304089172e953f82a8560d5992a8</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Meta = require(&quot;amf.feature.localactivity.winrepeatrank.meta.WinRepeatRankMeta&quot;)</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local ServerData = class(&quot;WinRepeatRankModel&quot;, AMFDataRef)</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>function ServerData:__installPlugs()</span>
+<span id="L6" class="line"><a href="#L6">6</a>    self:installPlug(AMFDataPlugsType.STORAGE, {</span>
+<span id="L7" class="line"><a href="#L7">7</a>        fileName = &quot;win_repeat_rank_model&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>    }):as(&quot;db&quot;)</span>
+<span id="L9" class="line"><a href="#L9">9</a>end</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>-- ServerData</span>
+<span id="L12" class="line"><a href="#L12">12</a>function ServerData:__declare()</span>
+<span id="L13" class="line"><a href="#L13">13</a>    self:_initLocalData()</span>
+<span id="L14" class="line"><a href="#L14">14</a>    self:_initLocalConfig()</span>
+<span id="L15" class="line"><a href="#L15">15</a>    self:_initLocalKey()</span>
+<span id="L16" class="line"><a href="#L16">16</a>end</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>function ServerData:_initLocalData()</span>
+<span id="L19" class="line"><a href="#L19">19</a>    self.updateDataTime = nil</span>
+<span id="L20" class="line"><a href="#L20">20</a>    self.userData = nil</span>
+<span id="L21" class="line"><a href="#L21">21</a>    self.raceType = nil</span>
+<span id="L22" class="line"><a href="#L22">22</a>    self.stageOneBeginTime = nil</span>
+<span id="L23" class="line"><a href="#L23">23</a>    self.stageOneEndTime = nil</span>
+<span id="L24" class="line"><a href="#L24">24</a>    self.stageTwoBeginTime = nil</span>
+<span id="L25" class="line"><a href="#L25">25</a>    self.stageTwoEndTime = nil</span>
+<span id="L26" class="line"><a href="#L26">26</a>    self.beginTime = nil</span>
+<span id="L27" class="line"><a href="#L27">27</a>    self.endTime = nil</span>
+<span id="L28" class="line"><a href="#L28">28</a>    self.mainBeginTime = nil</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self.mainEndTime = nil</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self.clientVersionControl = nil</span>
+<span id="L31" class="line"><a href="#L31">31</a>    self.openStreakWinThreshold = nil</span>
+<span id="L32" class="line"><a href="#L32">32</a>    self.errCode = nil</span>
+<span id="L33" class="line"><a href="#L33">33</a>    self.canyuHadDC = nil</span>
+<span id="L34" class="line"><a href="#L34">34</a>    self.canyuJoinHadDC = nil</span>
+<span id="L35" class="line"><a href="#L35">35</a>end</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>function ServerData:_initLocalConfig()</span>
+<span id="L38" class="line"><a href="#L38">38</a>    self.config = nil</span>
+<span id="L39" class="line"><a href="#L39">39</a>    self.localConfig = nil</span>
+<span id="L40" class="line"><a href="#L40">40</a>    self.serverVersionedConfig = nil</span>
+<span id="L41" class="line"><a href="#L41">41</a>end</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>function ServerData:_initLocalKey()</span>
+<span id="L44" class="line"><a href="#L44">44</a>    self.savePopCongraKey = nil</span>
+<span id="L45" class="line"><a href="#L45">45</a>    self.savePopMainPanelKey = nil</span>
+<span id="L46" class="line"><a href="#L46">46</a>    self.saveOldScoreDataKey = nil</span>
+<span id="L47" class="line"><a href="#L47">47</a>    self.saveOldRankScoreKey = nil</span>
+<span id="L48" class="line"><a href="#L48">48</a>    self.saveOldRankKey = nil</span>
+<span id="L49" class="line"><a href="#L49">49</a>    self.actIconProgressFullAnim = nil</span>
+<span id="L50" class="line"><a href="#L50">50</a>    self.historyRankKey4046 = nil</span>
+<span id="L51" class="line"><a href="#L51">51</a>    self.historyRankKey4047 = nil</span>
+<span id="L52" class="line"><a href="#L52">52</a>    self.historyRankKey4048 = nil</span>
+<span id="L53" class="line"><a href="#L53">53</a>    self.descPanelPopkey = nil</span>
+<span id="L54" class="line"><a href="#L54">54</a>    self.autoPopReduceEnteredEndTime = nil</span>
+<span id="L55" class="line"><a href="#L55">55</a>end</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>function ServerData:passDayClear()</span>
+<span id="L58" class="line"><a href="#L58">58</a>    -- 跨天</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>end</span>
+<span id="L61" class="line"><a href="#L61">61</a></span>
+<span id="L62" class="line"><a href="#L62">62</a>function ServerData:fromServer(data, config)</span>
+<span id="L63" class="line"><a href="#L63">63</a>    -- 从活动info 发来的信息拆分出 data 和 localConfig</span>
+<span id="L64" class="line"><a href="#L64">64</a>    -- userData是后端数据，self.data.xxx可以自行添加不会覆盖删除</span>
+<span id="L65" class="line"><a href="#L65">65</a>    for k, v in pairs(data) do</span>
+<span id="L66" class="line"><a href="#L66">66</a>        self:setValue(k, v)</span>
+<span id="L67" class="line"><a href="#L67">67</a>    end</span>
+<span id="L68" class="line"><a href="#L68">68</a></span>
+<span id="L69" class="line"><a href="#L69">69</a>    if config and not table.isEmpty(config) then</span>
+<span id="L70" class="line"><a href="#L70">70</a>        config.config = table.deserialize(config.config)</span>
+<span id="L71" class="line"><a href="#L71">71</a>        self:setValue(&quot;localConfig&quot;, config)</span>
+<span id="L72" class="line"><a href="#L72">72</a>    end</span>
+<span id="L73" class="line"><a href="#L73">73</a></span>
+<span id="L74" class="line"><a href="#L74">74</a>    self:flush()</span>
+<span id="L75" class="line"><a href="#L75">75</a>end</span>
+<span id="L76" class="line"><a href="#L76">76</a></span>
+<span id="L77" class="line"><a href="#L77">77</a>function ServerData:getConfig()</span>
+<span id="L78" class="line"><a href="#L78">78</a>    local localConfig = self:getValue(&quot;localConfig&quot;)</span>
+<span id="L79" class="line"><a href="#L79">79</a>    if localConfig and localConfig.config then</span>
+<span id="L80" class="line"><a href="#L80">80</a>        return localConfig.config</span>
+<span id="L81" class="line"><a href="#L81">81</a>    end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>    return {}</span>
+<span id="L84" class="line"><a href="#L84">84</a>end</span>
+<span id="L85" class="line"><a href="#L85">85</a></span>
+<span id="L86" class="line"><a href="#L86">86</a>-- getDataByKey/setDataByKey 仅管理后端 userData 业务字段</span>
+<span id="L87" class="line"><a href="#L87">87</a>function ServerData:getDataByKey(key, default)</span>
+<span id="L88" class="line"><a href="#L88">88</a>    local userData = self:getValue(&quot;userData&quot;)</span>
+<span id="L89" class="line"><a href="#L89">89</a>    if userData and userData[key] ~= nil then</span>
+<span id="L90" class="line"><a href="#L90">90</a>        return userData[key]</span>
+<span id="L91" class="line"><a href="#L91">91</a>    end</span>
+<span id="L92" class="line"><a href="#L92">92</a></span>
+<span id="L93" class="line"><a href="#L93">93</a>    return default</span>
+<span id="L94" class="line"><a href="#L94">94</a>end</span>
+<span id="L95" class="line"><a href="#L95">95</a></span>
+<span id="L96" class="line"><a href="#L96">96</a>function ServerData:setDataByKey(key, value, needSave)</span>
+<span id="L97" class="line"><a href="#L97">97</a>    local userData = self:getValue(&quot;userData&quot;)</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>    if userData then</span>
+<span id="L100" class="line"><a href="#L100">100</a>        userData[key] = value</span>
+<span id="L101" class="line"><a href="#L101">101</a>        self:setValue(&quot;userData&quot;, userData, needSave)</span>
+<span id="L102" class="line"><a href="#L102">102</a>    end</span>
+<span id="L103" class="line"><a href="#L103">103</a>end</span>
+<span id="L104" class="line"><a href="#L104">104</a></span>
+<span id="L105" class="line"><a href="#L105">105</a>function ServerData:addDataByKey(key, value)</span>
+<span id="L106" class="line"><a href="#L106">106</a>    local userData = self:getValue(&quot;userData&quot;)</span>
+<span id="L107" class="line"><a href="#L107">107</a>    if userData and type(userData[key]) == &#x27;number&#x27; then</span>
+<span id="L108" class="line"><a href="#L108">108</a>        userData[key] = userData[key] + value</span>
+<span id="L109" class="line"><a href="#L109">109</a>        self:setValue(&quot;userData&quot;, userData, true)</span>
+<span id="L110" class="line"><a href="#L110">110</a>    end</span>
+<span id="L111" class="line"><a href="#L111">111</a>end</span>
+<span id="L112" class="line"><a href="#L112">112</a></span>
+<span id="L113" class="line"><a href="#L113">113</a>function ServerData:setExDataByKey(key, value, needSave)</span>
+<span id="L114" class="line"><a href="#L114">114</a>    self:setValue(key, value, needSave)</span>
+<span id="L115" class="line"><a href="#L115">115</a>end</span>
+<span id="L116" class="line"><a href="#L116">116</a></span>
+<span id="L117" class="line"><a href="#L117">117</a>function ServerData:getSrcConfig()</span>
+<span id="L118" class="line"><a href="#L118">118</a>    return self:getValue(&quot;serverVersionedConfig&quot;) or {}</span>
+<span id="L119" class="line"><a href="#L119">119</a>end</span>
+<span id="L120" class="line"><a href="#L120">120</a></span>
+<span id="L121" class="line"><a href="#L121">121</a>-- 获取配置</span>
+<span id="L122" class="line"><a href="#L122">122</a>function ServerData:getConfigByKey(key)</span>
+<span id="L123" class="line"><a href="#L123">123</a>    local config = self:getConfig()</span>
+<span id="L124" class="line"><a href="#L124">124</a>    if config and config[key] then</span>
+<span id="L125" class="line"><a href="#L125">125</a>        return config[key]</span>
+<span id="L126" class="line"><a href="#L126">126</a>    end</span>
+<span id="L127" class="line"><a href="#L127">127</a>end</span>
+<span id="L128" class="line"><a href="#L128">128</a></span>
+<span id="L129" class="line"><a href="#L129">129</a>function ServerData:getGuides()</span>
+<span id="L130" class="line"><a href="#L130">130</a>    -- 引导标记</span>
+<span id="L131" class="line"><a href="#L131">131</a>    return self:getDataByKey(&#x27;guideSet&#x27;) or {}</span>
+<span id="L132" class="line"><a href="#L132">132</a>end</span>
+<span id="L133" class="line"><a href="#L133">133</a></span>
+<span id="L134" class="line"><a href="#L134">134</a>function ServerData:addGuides(index)</span>
+<span id="L135" class="line"><a href="#L135">135</a>    -- 添加引导标记</span>
+<span id="L136" class="line"><a href="#L136">136</a></span>
+<span id="L137" class="line"><a href="#L137">137</a>    local guideSet = self:getDataByKey(&#x27;guideSet&#x27;)</span>
+<span id="L138" class="line"><a href="#L138">138</a>    table.insert(guideSet, index)</span>
+<span id="L139" class="line"><a href="#L139">139</a>    self:setDataByKey(&#x27;guideSet&#x27;, guideSet, true)</span>
+<span id="L140" class="line"><a href="#L140">140</a></span>
+<span id="L141" class="line"><a href="#L141">141</a>    self:flush()</span>
+<span id="L142" class="line"><a href="#L142">142</a>end</span>
+<span id="L143" class="line"><a href="#L143">143</a></span>
+<span id="L144" class="line"><a href="#L144">144</a>function ServerData:checkGuide(index)</span>
+<span id="L145" class="line"><a href="#L145">145</a>    -- 检查引导标记</span>
+<span id="L146" class="line"><a href="#L146">146</a>    local guideSet = self:getDataByKey(&#x27;guideSet&#x27;) or {}</span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>    return table.exist(guideSet, index)</span>
+<span id="L149" class="line"><a href="#L149">149</a>end</span>
+<span id="L150" class="line"><a href="#L150">150</a></span>
+<span id="L151" class="line"><a href="#L151">151</a>function ServerData:setGuideIndex(index)</span>
+<span id="L152" class="line"><a href="#L152">152</a>    self:addGuides(index)</span>
+<span id="L153" class="line"><a href="#L153">153</a></span>
+<span id="L154" class="line"><a href="#L154">154</a>    local ActCommonHttp = require(&quot;amf.middleware.activity.http.ActCommonHttp&quot;)</span>
+<span id="L155" class="line"><a href="#L155">155</a>    ActCommonHttp:setActGuideFlag(Meta.ACT_ID, index)</span>
+<span id="L156" class="line"><a href="#L156">156</a>end</span>
+<span id="L157" class="line"><a href="#L157">157</a></span>
+<span id="L158" class="line"><a href="#L158">158</a>--------------------------时间 -----</span>
+<span id="L159" class="line"><a href="#L159">159</a>function ServerData:getStageOneBeginTime()</span>
+<span id="L160" class="line"><a href="#L160">160</a>    local periodConfig = self:getConfigByKey(&#x27;periodConfig&#x27;) or {}</span>
+<span id="L161" class="line"><a href="#L161">161</a>    return tonumber(periodConfig.stageOneBeginTimeLong)</span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>function ServerData:getStageOneEndTime()</span>
+<span id="L165" class="line"><a href="#L165">165</a>    local periodConfig = self:getConfigByKey(&#x27;periodConfig&#x27;) or {}</span>
+<span id="L166" class="line"><a href="#L166">166</a>    return tonumber(periodConfig.stageOneEndTimeLong)</span>
+<span id="L167" class="line"><a href="#L167">167</a>end</span>
+<span id="L168" class="line"><a href="#L168">168</a></span>
+<span id="L169" class="line"><a href="#L169">169</a>function ServerData:getStageTwoBeginTime()</span>
+<span id="L170" class="line"><a href="#L170">170</a>    local periodConfig = self:getConfigByKey(&#x27;periodConfig&#x27;) or {}</span>
+<span id="L171" class="line"><a href="#L171">171</a>    return tonumber(periodConfig.stageTwoBeginTimeLong)</span>
+<span id="L172" class="line"><a href="#L172">172</a>end</span>
+<span id="L173" class="line"><a href="#L173">173</a></span>
+<span id="L174" class="line"><a href="#L174">174</a>function ServerData:getStageTwoEndTime()</span>
+<span id="L175" class="line"><a href="#L175">175</a>    local periodConfig = self:getConfigByKey(&#x27;periodConfig&#x27;) or {}</span>
+<span id="L176" class="line"><a href="#L176">176</a>    return tonumber(periodConfig.stageTwoEndTimeLong)</span>
+<span id="L177" class="line"><a href="#L177">177</a>end</span>
+<span id="L178" class="line"><a href="#L178">178</a></span>
+<span id="L179" class="line"><a href="#L179">179</a>-------------------------------------------shihao.zhang----------------------------------------------------</span>
+<span id="L180" class="line"><a href="#L180">180</a>-- 获取奖励</span>
+<span id="L181" class="line"><a href="#L181">181</a>-- type1预选赛2新星赛3精英赛</span>
+<span id="L182" class="line"><a href="#L182">182</a>function ServerData:getRewardsByTypeAndRank(type, rank)</span>
+<span id="L183" class="line"><a href="#L183">183</a>    return self:getRankRewards(type, rank)</span>
+<span id="L184" class="line"><a href="#L184">184</a>end</span>
+<span id="L185" class="line"><a href="#L185">185</a></span>
+<span id="L186" class="line"><a href="#L186">186</a>-- 精英赛第一名奖励</span>
+<span id="L187" class="line"><a href="#L187">187</a>function ServerData:getEliteCompetitionFirstRewards()</span>
+<span id="L188" class="line"><a href="#L188">188</a>    return self:getRankRewards(Meta.mainPanelShowType.kMainPanel3, 1)</span>
+<span id="L189" class="line"><a href="#L189">189</a>end</span>
+<span id="L190" class="line"><a href="#L190">190</a></span>
+<span id="L191" class="line"><a href="#L191">191</a>-- 新星赛第一名奖励</span>
+<span id="L192" class="line"><a href="#L192">192</a>function ServerData:getNewStarCompetitionFirstRewards()</span>
+<span id="L193" class="line"><a href="#L193">193</a>    return self:getRankRewards(Meta.mainPanelShowType.kMainPanel2, 1)</span>
+<span id="L194" class="line"><a href="#L194">194</a>end</span>
+<span id="L195" class="line"><a href="#L195">195</a></span>
+<span id="L196" class="line"><a href="#L196">196</a>-- 非满级到满级奖励</span>
+<span id="L197" class="line"><a href="#L197">197</a>function ServerData:getFMJToMJRewards()</span>
+<span id="L198" class="line"><a href="#L198">198</a>    return {{</span>
+<span id="L199" class="line"><a href="#L199">199</a>        itemId = 10098,</span>
+<span id="L200" class="line"><a href="#L200">200</a>        num = 1</span>
+<span id="L201" class="line"><a href="#L201">201</a>    }}</span>
+<span id="L202" class="line"><a href="#L202">202</a>end</span>
+<span id="L203" class="line"><a href="#L203">203</a></span>
+<span id="L204" class="line"><a href="#L204">204</a>-- 满级到满星奖励</span>
+<span id="L205" class="line"><a href="#L205">205</a>function ServerData:getMJToMXRewards()</span>
+<span id="L206" class="line"><a href="#L206">206</a>    return {{</span>
+<span id="L207" class="line"><a href="#L207">207</a>        itemId = 10098,</span>
+<span id="L208" class="line"><a href="#L208">208</a>        num = 1</span>
+<span id="L209" class="line"><a href="#L209">209</a>    }}</span>
+<span id="L210" class="line"><a href="#L210">210</a>end</span>
+<span id="L211" class="line"><a href="#L211">211</a></span>
+<span id="L212" class="line"><a href="#L212">212</a>function ServerData:getWinningCount()</span>
+<span id="L213" class="line"><a href="#L213">213</a>    return self:getDataByKey(&#x27;streakNum&#x27;) or 0</span>
+<span id="L214" class="line"><a href="#L214">214</a>end</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>function ServerData:clearWinningCount()</span>
+<span id="L217" class="line"><a href="#L217">217</a>    self:setDataByKey(&#x27;streakNum&#x27;, 0, true)</span>
+<span id="L218" class="line"><a href="#L218">218</a>end</span>
+<span id="L219" class="line"><a href="#L219">219</a></span>
+<span id="L220" class="line"><a href="#L220">220</a>function ServerData:getAddScore(winCount)</span>
+<span id="L221" class="line"><a href="#L221">221</a>    if not winCount then</span>
+<span id="L222" class="line"><a href="#L222">222</a>        winCount = self:getDataByKey(&quot;streakNum&quot;) or 0</span>
+<span id="L223" class="line"><a href="#L223">223</a>    end</span>
+<span id="L224" class="line"><a href="#L224">224</a></span>
+<span id="L225" class="line"><a href="#L225">225</a>    if winCount == 0 then</span>
+<span id="L226" class="line"><a href="#L226">226</a>        return 0</span>
+<span id="L227" class="line"><a href="#L227">227</a>    end</span>
+<span id="L228" class="line"><a href="#L228">228</a></span>
+<span id="L229" class="line"><a href="#L229">229</a>    local maxNum = 0</span>
+<span id="L230" class="line"><a href="#L230">230</a>    local streakWinScoreTable = self:getConfigByKey(&quot;streakWinScoreTable&quot;) or {}</span>
+<span id="L231" class="line"><a href="#L231">231</a>    for k, v in ipairs(streakWinScoreTable) do</span>
+<span id="L232" class="line"><a href="#L232">232</a>        if winCount == v.streakWin then</span>
+<span id="L233" class="line"><a href="#L233">233</a>            return v.score</span>
+<span id="L234" class="line"><a href="#L234">234</a>        end</span>
+<span id="L235" class="line"><a href="#L235">235</a>        maxNum = math.max(maxNum, v.score)</span>
+<span id="L236" class="line"><a href="#L236">236</a>    end</span>
+<span id="L237" class="line"><a href="#L237">237</a></span>
+<span id="L238" class="line"><a href="#L238">238</a>    return maxNum</span>
+<span id="L239" class="line"><a href="#L239">239</a>end</span>
+<span id="L240" class="line"><a href="#L240">240</a></span>
+<span id="L241" class="line"><a href="#L241">241</a>-- 加连胜</span>
+<span id="L242" class="line"><a href="#L242">242</a>function ServerData:addWinningCount(num)</span>
+<span id="L243" class="line"><a href="#L243">243</a>    -- 连胜数量增加</span>
+<span id="L244" class="line"><a href="#L244">244</a>    local winningCount = self:getDataByKey(&#x27;streakNum&#x27;) or 0</span>
+<span id="L245" class="line"><a href="#L245">245</a></span>
+<span id="L246" class="line"><a href="#L246">246</a>    winningCount = winningCount + num</span>
+<span id="L247" class="line"><a href="#L247">247</a></span>
+<span id="L248" class="line"><a href="#L248">248</a>    self:setDataByKey(&#x27;streakNum&#x27;, winningCount, true)</span>
+<span id="L249" class="line"><a href="#L249">249</a></span>
+<span id="L250" class="line"><a href="#L250">250</a>    self:flush()</span>
+<span id="L251" class="line"><a href="#L251">251</a>end</span>
+<span id="L252" class="line"><a href="#L252">252</a></span>
+<span id="L253" class="line"><a href="#L253">253</a>function ServerData:canGetDoubleScore()</span>
+<span id="L254" class="line"><a href="#L254">254</a>    -- 是否可以多倍获得积分</span>
+<span id="L255" class="line"><a href="#L255">255</a>    local doubleNum = self:getScoreDoubleNum()</span>
+<span id="L256" class="line"><a href="#L256">256</a>    return doubleNum &gt; 1</span>
+<span id="L257" class="line"><a href="#L257">257</a>end</span>
+<span id="L258" class="line"><a href="#L258">258</a></span>
+<span id="L259" class="line"><a href="#L259">259</a>function ServerData:getScoreDoubleNum()</span>
+<span id="L260" class="line"><a href="#L260">260</a>    -- 获取可获得的积分倍数</span>
+<span id="L261" class="line"><a href="#L261">261</a>    local doubleNum = 1</span>
+<span id="L262" class="line"><a href="#L262">262</a>    local userStateManager = _G.amfBean(&quot;UserStateManager&quot;)</span>
+<span id="L263" class="line"><a href="#L263">263</a>    if not userStateManager:isFMJ() then</span>
+<span id="L264" class="line"><a href="#L264">264</a>        doubleNum = _G.amfBean(&quot;FullStarLevelLibManager&quot;):canPlay() and 4 or 2</span>
+<span id="L265" class="line"><a href="#L265">265</a>    end</span>
+<span id="L266" class="line"><a href="#L266">266</a>    return doubleNum</span>
+<span id="L267" class="line"><a href="#L267">267</a>end</span>
+<span id="L268" class="line"><a href="#L268">268</a></span>
+<span id="L269" class="line"><a href="#L269">269</a>--------------------------</span>
+<span id="L270" class="line"><a href="#L270">270</a>----------zhigang</span>
+<span id="L271" class="line"><a href="#L271">271</a>--------------------------</span>
+<span id="L272" class="line"><a href="#L272">272</a></span>
+<span id="L273" class="line"><a href="#L273">273</a>function ServerData:updateDataFromActInfo(actInfo)</span>
+<span id="L274" class="line"><a href="#L274">274</a>    if not actInfo then</span>
+<span id="L275" class="line"><a href="#L275">275</a>        return</span>
+<span id="L276" class="line"><a href="#L276">276</a>    end</span>
+<span id="L277" class="line"><a href="#L277">277</a></span>
+<span id="L278" class="line"><a href="#L278">278</a>    if not actInfo.extra then</span>
+<span id="L279" class="line"><a href="#L279">279</a>        return</span>
+<span id="L280" class="line"><a href="#L280">280</a>    end</span>
+<span id="L281" class="line"><a href="#L281">281</a></span>
+<span id="L282" class="line"><a href="#L282">282</a>    local extra = table.deserialize(actInfo.extra)</span>
+<span id="L283" class="line"><a href="#L283">283</a></span>
+<span id="L284" class="line"><a href="#L284">284</a>    -- 更新小组结算信息</span>
+<span id="L285" class="line"><a href="#L285">285</a>    self:updateGroupRewardInfo(extra.preselectionInfo, extra.risingStarsInfo, extra.eliteInfo)</span>
+<span id="L286" class="line"><a href="#L286">286</a></span>
+<span id="L287" class="line"><a href="#L287">287</a>    -- 更新进组状态</span>
+<span id="L288" class="line"><a href="#L288">288</a>    self:setDataByKey(&#x27;entryGroup&#x27;, extra.entryGroup)</span>
+<span id="L289" class="line"><a href="#L289">289</a></span>
+<span id="L290" class="line"><a href="#L290">290</a>    self:flush()</span>
+<span id="L291" class="line"><a href="#L291">291</a>end</span>
+<span id="L292" class="line"><a href="#L292">292</a></span>
+<span id="L293" class="line"><a href="#L293">293</a>function ServerData:updateGroupRewardInfo(preselectionInfo, risingStarsInfo, eliteInfo)</span>
+<span id="L294" class="line"><a href="#L294">294</a>    -- 从actInfo更新最新的领奖数据</span>
+<span id="L295" class="line"><a href="#L295">295</a>    if preselectionInfo then</span>
+<span id="L296" class="line"><a href="#L296">296</a>        self:setDataByKey(&#x27;preselectionInfo&#x27;, table.clone(preselectionInfo))</span>
+<span id="L297" class="line"><a href="#L297">297</a>    else</span>
+<span id="L298" class="line"><a href="#L298">298</a>        self:setDataByKey(&#x27;preselectionInfo&#x27;, nil)</span>
+<span id="L299" class="line"><a href="#L299">299</a>    end</span>
+<span id="L300" class="line"><a href="#L300">300</a></span>
+<span id="L301" class="line"><a href="#L301">301</a>    if risingStarsInfo then</span>
+<span id="L302" class="line"><a href="#L302">302</a>        self:setDataByKey(&#x27;risingStarsInfo&#x27;, table.clone(risingStarsInfo))</span>
+<span id="L303" class="line"><a href="#L303">303</a>    else</span>
+<span id="L304" class="line"><a href="#L304">304</a>        self:setDataByKey(&#x27;risingStarsInfo&#x27;, nil)</span>
+<span id="L305" class="line"><a href="#L305">305</a>    end</span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>    if eliteInfo then</span>
+<span id="L308" class="line"><a href="#L308">308</a>        self:setDataByKey(&#x27;eliteInfo&#x27;, table.clone(eliteInfo))</span>
+<span id="L309" class="line"><a href="#L309">309</a>    else</span>
+<span id="L310" class="line"><a href="#L310">310</a>        self:setDataByKey(&#x27;eliteInfo&#x27;, nil)</span>
+<span id="L311" class="line"><a href="#L311">311</a>    end</span>
+<span id="L312" class="line"><a href="#L312">312</a>end</span>
+<span id="L313" class="line"><a href="#L313">313</a></span>
+<span id="L314" class="line"><a href="#L314">314</a>function ServerData:checkCanGetGroupRewardForIcon()</span>
+<span id="L315" class="line"><a href="#L315">315</a>    -- 是否可以领取小组奖励 ,真的有奖可领</span>
+<span id="L316" class="line"><a href="#L316">316</a>    local preselectionInfo = self:getDataByKey(&#x27;preselectionInfo&#x27;)</span>
+<span id="L317" class="line"><a href="#L317">317</a>    local risingStarsInfo = self:getDataByKey(&#x27;risingStarsInfo&#x27;)</span>
+<span id="L318" class="line"><a href="#L318">318</a>    local eliteInfo = self:getDataByKey(&#x27;eliteInfo&#x27;)</span>
+<span id="L319" class="line"><a href="#L319">319</a></span>
+<span id="L320" class="line"><a href="#L320">320</a>    if preselectionInfo then</span>
+<span id="L321" class="line"><a href="#L321">321</a>        if not preselectionInfo.acquiredReward and preselectionInfo.canReward then</span>
+<span id="L322" class="line"><a href="#L322">322</a>            return true, preselectionInfo</span>
+<span id="L323" class="line"><a href="#L323">323</a>        end</span>
+<span id="L324" class="line"><a href="#L324">324</a>    end</span>
+<span id="L325" class="line"><a href="#L325">325</a></span>
+<span id="L326" class="line"><a href="#L326">326</a>    if risingStarsInfo then</span>
+<span id="L327" class="line"><a href="#L327">327</a>        if not risingStarsInfo.acquiredReward and risingStarsInfo.canReward then</span>
+<span id="L328" class="line"><a href="#L328">328</a>            return true, risingStarsInfo</span>
+<span id="L329" class="line"><a href="#L329">329</a>        end</span>
+<span id="L330" class="line"><a href="#L330">330</a>    end</span>
+<span id="L331" class="line"><a href="#L331">331</a></span>
+<span id="L332" class="line"><a href="#L332">332</a>    if eliteInfo then</span>
+<span id="L333" class="line"><a href="#L333">333</a>        if not eliteInfo.acquiredReward and eliteInfo.canReward then</span>
+<span id="L334" class="line"><a href="#L334">334</a>            return true, eliteInfo</span>
+<span id="L335" class="line"><a href="#L335">335</a>        end</span>
+<span id="L336" class="line"><a href="#L336">336</a>    end</span>
+<span id="L337" class="line"><a href="#L337">337</a></span>
+<span id="L338" class="line"><a href="#L338">338</a>    return false, {}</span>
+<span id="L339" class="line"><a href="#L339">339</a>end</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>function ServerData:checkCanGetGroupReward()</span>
+<span id="L342" class="line"><a href="#L342">342</a>    -- 是否可以领取小组奖励</span>
+<span id="L343" class="line"><a href="#L343">343</a>    local preselectionInfo = self:getDataByKey(&#x27;preselectionInfo&#x27;)</span>
+<span id="L344" class="line"><a href="#L344">344</a>    local risingStarsInfo = self:getDataByKey(&#x27;risingStarsInfo&#x27;)</span>
+<span id="L345" class="line"><a href="#L345">345</a>    local eliteInfo = self:getDataByKey(&#x27;eliteInfo&#x27;)</span>
+<span id="L346" class="line"><a href="#L346">346</a></span>
+<span id="L347" class="line"><a href="#L347">347</a>    if preselectionInfo then</span>
+<span id="L348" class="line"><a href="#L348">348</a>        if not preselectionInfo.acquiredReward then</span>
+<span id="L349" class="line"><a href="#L349">349</a>            return true, preselectionInfo</span>
+<span id="L350" class="line"><a href="#L350">350</a>        end</span>
+<span id="L351" class="line"><a href="#L351">351</a>    end</span>
+<span id="L352" class="line"><a href="#L352">352</a></span>
+<span id="L353" class="line"><a href="#L353">353</a>    if risingStarsInfo then</span>
+<span id="L354" class="line"><a href="#L354">354</a>        if not risingStarsInfo.acquiredReward then</span>
+<span id="L355" class="line"><a href="#L355">355</a>            return true, risingStarsInfo</span>
+<span id="L356" class="line"><a href="#L356">356</a>        end</span>
+<span id="L357" class="line"><a href="#L357">357</a>    end</span>
+<span id="L358" class="line"><a href="#L358">358</a></span>
+<span id="L359" class="line"><a href="#L359">359</a>    if eliteInfo then</span>
+<span id="L360" class="line"><a href="#L360">360</a>        if not eliteInfo.acquiredReward then</span>
+<span id="L361" class="line"><a href="#L361">361</a>            return true, eliteInfo</span>
+<span id="L362" class="line"><a href="#L362">362</a>        end</span>
+<span id="L363" class="line"><a href="#L363">363</a>    end</span>
+<span id="L364" class="line"><a href="#L364">364</a></span>
+<span id="L365" class="line"><a href="#L365">365</a>    return false, {}</span>
+<span id="L366" class="line"><a href="#L366">366</a>end</span>
+<span id="L367" class="line"><a href="#L367">367</a></span>
+<span id="L368" class="line"><a href="#L368">368</a>function ServerData:setGroupRewardSucess(mainPanelShowType)</span>
+<span id="L369" class="line"><a href="#L369">369</a>    if mainPanelShowType == Meta.mainPanelShowType.kMainPanel1 then</span>
+<span id="L370" class="line"><a href="#L370">370</a>        local preselectionInfo = self:getDataByKey(&#x27;preselectionInfo&#x27;)</span>
+<span id="L371" class="line"><a href="#L371">371</a>        if preselectionInfo then</span>
+<span id="L372" class="line"><a href="#L372">372</a>            preselectionInfo.acquiredReward = true</span>
+<span id="L373" class="line"><a href="#L373">373</a>            self:setDataByKey(&#x27;preselectionInfo&#x27;, preselectionInfo, true)</span>
+<span id="L374" class="line"><a href="#L374">374</a>        end</span>
+<span id="L375" class="line"><a href="#L375">375</a>    elseif mainPanelShowType == Meta.mainPanelShowType.kMainPanel2 then</span>
+<span id="L376" class="line"><a href="#L376">376</a>        local risingStarsInfo = self:getDataByKey(&#x27;risingStarsInfo&#x27;)</span>
+<span id="L377" class="line"><a href="#L377">377</a>        if risingStarsInfo then</span>
+<span id="L378" class="line"><a href="#L378">378</a>            risingStarsInfo.acquiredReward = true</span>
+<span id="L379" class="line"><a href="#L379">379</a>            self:setDataByKey(&#x27;risingStarsInfo&#x27;, risingStarsInfo, true)</span>
+<span id="L380" class="line"><a href="#L380">380</a>        end</span>
+<span id="L381" class="line"><a href="#L381">381</a>    elseif mainPanelShowType == Meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L382" class="line"><a href="#L382">382</a>        local eliteInfo = self:getDataByKey(&#x27;eliteInfo&#x27;)</span>
+<span id="L383" class="line"><a href="#L383">383</a>        if eliteInfo then</span>
+<span id="L384" class="line"><a href="#L384">384</a>            eliteInfo.acquiredReward = true</span>
+<span id="L385" class="line"><a href="#L385">385</a>            self:setDataByKey(&#x27;eliteInfo&#x27;, eliteInfo, true)</span>
+<span id="L386" class="line"><a href="#L386">386</a>        end</span>
+<span id="L387" class="line"><a href="#L387">387</a>    end</span>
+<span id="L388" class="line"><a href="#L388">388</a>end</span>
+<span id="L389" class="line"><a href="#L389">389</a></span>
+<span id="L390" class="line"><a href="#L390">390</a>function ServerData:getGroupRank(mainPanelShowType)</span>
+<span id="L391" class="line"><a href="#L391">391</a>    if mainPanelShowType == Meta.mainPanelShowType.kMainPanel1 then</span>
+<span id="L392" class="line"><a href="#L392">392</a>        local preselectionInfo = self:getDataByKey(&#x27;preselectionInfo&#x27;)</span>
+<span id="L393" class="line"><a href="#L393">393</a>        if preselectionInfo then</span>
+<span id="L394" class="line"><a href="#L394">394</a>            return preselectionInfo.rank</span>
+<span id="L395" class="line"><a href="#L395">395</a>        end</span>
+<span id="L396" class="line"><a href="#L396">396</a></span>
+<span id="L397" class="line"><a href="#L397">397</a>    elseif mainPanelShowType == Meta.mainPanelShowType.kMainPanel2 then</span>
+<span id="L398" class="line"><a href="#L398">398</a>        local risingStarsInfo = self:getDataByKey(&#x27;risingStarsInfo&#x27;)</span>
+<span id="L399" class="line"><a href="#L399">399</a>        if risingStarsInfo then</span>
+<span id="L400" class="line"><a href="#L400">400</a>            return risingStarsInfo.rank</span>
+<span id="L401" class="line"><a href="#L401">401</a>        end</span>
+<span id="L402" class="line"><a href="#L402">402</a></span>
+<span id="L403" class="line"><a href="#L403">403</a>    elseif mainPanelShowType == Meta.mainPanelShowType.kMainPanel3 then</span>
+<span id="L404" class="line"><a href="#L404">404</a>        local eliteInfo = self:getDataByKey(&#x27;eliteInfo&#x27;)</span>
+<span id="L405" class="line"><a href="#L405">405</a>        if eliteInfo then</span>
+<span id="L406" class="line"><a href="#L406">406</a>            return eliteInfo.rank</span>
+<span id="L407" class="line"><a href="#L407">407</a>        end</span>
+<span id="L408" class="line"><a href="#L408">408</a>    end</span>
+<span id="L409" class="line"><a href="#L409">409</a></span>
+<span id="L410" class="line"><a href="#L410">410</a>    return 0</span>
+<span id="L411" class="line"><a href="#L411">411</a>end</span>
+<span id="L412" class="line"><a href="#L412">412</a></span>
+<span id="L413" class="line"><a href="#L413">413</a>function ServerData:checkCanGetMJReward()</span>
+<span id="L414" class="line"><a href="#L414">414</a>    -- 是否可以领满级奖励</span>
+<span id="L415" class="line"><a href="#L415">415</a>    local userStateManager = _G.amfBean(&quot;UserStateManager&quot;)</span>
+<span id="L416" class="line"><a href="#L416">416</a>    local bFMJ = userStateManager:isFMJ()</span>
+<span id="L417" class="line"><a href="#L417">417</a>    if not bFMJ and not self:getDataByKey(&#x27;gotFullLevelReward&#x27;) then</span>
+<span id="L418" class="line"><a href="#L418">418</a>        return true</span>
+<span id="L419" class="line"><a href="#L419">419</a>    end</span>
+<span id="L420" class="line"><a href="#L420">420</a>    return false</span>
+<span id="L421" class="line"><a href="#L421">421</a>end</span>
+<span id="L422" class="line"><a href="#L422">422</a></span>
+<span id="L423" class="line"><a href="#L423">423</a>function ServerData:checkCanGetMJMXReward()</span>
+<span id="L424" class="line"><a href="#L424">424</a>    -- 是否可以领满级满星奖励</span>
+<span id="L425" class="line"><a href="#L425">425</a>    local userStateManager = _G.amfBean(&quot;UserStateManager&quot;)</span>
+<span id="L426" class="line"><a href="#L426">426</a>    local bFMJ = userStateManager:isFMJ()</span>
+<span id="L427" class="line"><a href="#L427">427</a>    local bMainStarFull = userStateManager:isMainStarFull()</span>
+<span id="L428" class="line"><a href="#L428">428</a>    local bColorfulStarFull = userStateManager:isColorfulStarFull()</span>
+<span id="L429" class="line"><a href="#L429">429</a>    if not bFMJ and (bMainStarFull and bColorfulStarFull) and not self:getDataByKey(&#x27;gotFullStarsReward&#x27;) then</span>
+<span id="L430" class="line"><a href="#L430">430</a>        return true</span>
+<span id="L431" class="line"><a href="#L431">431</a>    end</span>
+<span id="L432" class="line"><a href="#L432">432</a>    return false</span>
+<span id="L433" class="line"><a href="#L433">433</a>end</span>
+<span id="L434" class="line"><a href="#L434">434</a></span>
+<span id="L435" class="line"><a href="#L435">435</a>function ServerData:getCurMainTimeShowType()</span>
+<span id="L436" class="line"><a href="#L436">436</a>    -- 获取当前小组状态</span>
+<span id="L437" class="line"><a href="#L437">437</a>    local raceType = self:getDataByKey(&#x27;raceType&#x27;)</span>
+<span id="L438" class="line"><a href="#L438">438</a>    return raceType</span>
+<span id="L439" class="line"><a href="#L439">439</a>end</span>
+<span id="L440" class="line"><a href="#L440">440</a></span>
+<span id="L441" class="line"><a href="#L441">441</a>function ServerData:clearWinNum()</span>
+<span id="L442" class="line"><a href="#L442">442</a>    -- 失败情况连胜</span>
+<span id="L443" class="line"><a href="#L443">443</a>    self:setDataByKey(&#x27;streakNum&#x27;, 0, true)</span>
+<span id="L444" class="line"><a href="#L444">444</a>end</span>
+<span id="L445" class="line"><a href="#L445">445</a></span>
+<span id="L446" class="line"><a href="#L446">446</a>function ServerData:checkIsEnterGroup()</span>
+<span id="L447" class="line"><a href="#L447">447</a>    -- 是否进入小组</span>
+<span id="L448" class="line"><a href="#L448">448</a>    return self:getDataByKey(&#x27;entryGroup&#x27;)</span>
+<span id="L449" class="line"><a href="#L449">449</a>end</span>
+<span id="L450" class="line"><a href="#L450">450</a></span>
+<span id="L451" class="line"><a href="#L451">451</a>function ServerData:setEnterGroup()</span>
+<span id="L452" class="line"><a href="#L452">452</a>    -- 设置进入小组</span>
+<span id="L453" class="line"><a href="#L453">453</a>    return self:setDataByKey(&#x27;entryGroup&#x27;, true, true)</span>
+<span id="L454" class="line"><a href="#L454">454</a>end</span>
+<span id="L455" class="line"><a href="#L455">455</a></span>
+<span id="L456" class="line"><a href="#L456">456</a>function ServerData:setNoEnterGroup()</span>
+<span id="L457" class="line"><a href="#L457">457</a>    -- 设置未进入小组</span>
+<span id="L458" class="line"><a href="#L458">458</a>    return self:setDataByKey(&#x27;entryGroup&#x27;, false, true)</span>
+<span id="L459" class="line"><a href="#L459">459</a>end</span>
+<span id="L460" class="line"><a href="#L460">460</a></span>
+<span id="L461" class="line"><a href="#L461">461</a>function ServerData:getRankRewards(mainPanelShowType, rank)</span>
+<span id="L462" class="line"><a href="#L462">462</a>    -- 根据界面 与排名获取奖励 没有返回空table</span>
+<span id="L463" class="line"><a href="#L463">463</a>    local raceConfigTable = self:getConfigByKey(&quot;raceConfigTable&quot;) or {}</span>
+<span id="L464" class="line"><a href="#L464">464</a>    local configStr = Meta:getConfigStrByMainPanelShowType(mainPanelShowType)</span>
+<span id="L465" class="line"><a href="#L465">465</a></span>
+<span id="L466" class="line"><a href="#L466">466</a>    for i, v in ipairs(raceConfigTable) do</span>
+<span id="L467" class="line"><a href="#L467">467</a>        if v.raceType == configStr then</span>
+<span id="L468" class="line"><a href="#L468">468</a>            return v.rankRewardList[rank] or {}</span>
+<span id="L469" class="line"><a href="#L469">469</a>        end</span>
+<span id="L470" class="line"><a href="#L470">470</a>    end</span>
+<span id="L471" class="line"><a href="#L471">471</a>    return {}</span>
+<span id="L472" class="line"><a href="#L472">472</a>end</span>
+<span id="L473" class="line"><a href="#L473">473</a></span>
+<span id="L474" class="line"><a href="#L474">474</a>function ServerData:getCanGetRankRewardRank(mainPanelShowType)</span>
+<span id="L475" class="line"><a href="#L475">475</a>    -- 前几名可以领奖</span>
+<span id="L476" class="line"><a href="#L476">476</a>    local raceConfigTable = self:getConfigByKey(&quot;raceConfigTable&quot;) or {}</span>
+<span id="L477" class="line"><a href="#L477">477</a>    local configStr = Meta:getConfigStrByMainPanelShowType(mainPanelShowType)</span>
+<span id="L478" class="line"><a href="#L478">478</a></span>
+<span id="L479" class="line"><a href="#L479">479</a>    for i, v in ipairs(raceConfigTable) do</span>
+<span id="L480" class="line"><a href="#L480">480</a>        if v.raceType == configStr then</span>
+<span id="L481" class="line"><a href="#L481">481</a>            return #v.rankRewardList</span>
+<span id="L482" class="line"><a href="#L482">482</a>        end</span>
+<span id="L483" class="line"><a href="#L483">483</a>    end</span>
+<span id="L484" class="line"><a href="#L484">484</a>    return 0</span>
+<span id="L485" class="line"><a href="#L485">485</a>end</span>
+<span id="L486" class="line"><a href="#L486">486</a></span>
+<span id="L487" class="line"><a href="#L487">487</a>function ServerData:getWinScoreAddNum(winNum)</span>
+<span id="L488" class="line"><a href="#L488">488</a>    -- 根据连胜数获取应该获得的积分</span>
+<span id="L489" class="line"><a href="#L489">489</a>    local streakWinScoreTable = self:getConfigByKey(&quot;streakWinScoreTable&quot;) or {}</span>
+<span id="L490" class="line"><a href="#L490">490</a>    local maxRewardWinNum = #streakWinScoreTable</span>
+<span id="L491" class="line"><a href="#L491">491</a>    if winNum &gt; maxRewardWinNum then</span>
+<span id="L492" class="line"><a href="#L492">492</a>        winNum = maxRewardWinNum</span>
+<span id="L493" class="line"><a href="#L493">493</a>    end</span>
+<span id="L494" class="line"><a href="#L494">494</a></span>
+<span id="L495" class="line"><a href="#L495">495</a>    for i, v in ipairs(streakWinScoreTable) do</span>
+<span id="L496" class="line"><a href="#L496">496</a>        if v.streakWin == winNum then</span>
+<span id="L497" class="line"><a href="#L497">497</a>            return v.score</span>
+<span id="L498" class="line"><a href="#L498">498</a>        end</span>
+<span id="L499" class="line"><a href="#L499">499</a>    end</span>
+<span id="L500" class="line"><a href="#L500">500</a></span>
+<span id="L501" class="line"><a href="#L501">501</a>    return 0</span>
+<span id="L502" class="line"><a href="#L502">502</a>end</span>
+<span id="L503" class="line"><a href="#L503">503</a></span>
+<span id="L504" class="line"><a href="#L504">504</a>function ServerData:getCurWinScoreAddNum(winNum)</span>
+<span id="L505" class="line"><a href="#L505">505</a>    -- 根据当前连胜数获取加分值</span>
+<span id="L506" class="line"><a href="#L506">506</a>    local curWinNum = winNum or self:getWinningCount()</span>
+<span id="L507" class="line"><a href="#L507">507</a>    local addScoreNum = self:getWinScoreAddNum(curWinNum)</span>
+<span id="L508" class="line"><a href="#L508">508</a>    if self:canGetDoubleScore() then</span>
+<span id="L509" class="line"><a href="#L509">509</a>        addScoreNum = addScoreNum * 2</span>
+<span id="L510" class="line"><a href="#L510">510</a>    end</span>
+<span id="L511" class="line"><a href="#L511">511</a>    return addScoreNum</span>
+<span id="L512" class="line"><a href="#L512">512</a>end</span>
+<span id="L513" class="line"><a href="#L513">513</a></span>
+<span id="L514" class="line"><a href="#L514">514</a>function ServerData:getAddScoreBuffEndTime()</span>
+<span id="L515" class="line"><a href="#L515">515</a>    -- 获取加分buff</span>
+<span id="L516" class="line"><a href="#L516">516</a>    local endTime = math.ceil(tonumber(self:getDataByKey(&quot;buffExpireTime&quot;, 0)) / 1000)</span>
+<span id="L517" class="line"><a href="#L517">517</a>    local curTime = TimeKit:timeInSec()</span>
+<span id="L518" class="line"><a href="#L518">518</a>    if curTime &lt;= endTime then</span>
+<span id="L519" class="line"><a href="#L519">519</a>        return true, endTime</span>
+<span id="L520" class="line"><a href="#L520">520</a>    end</span>
+<span id="L521" class="line"><a href="#L521">521</a>    return false, 0</span>
+<span id="L522" class="line"><a href="#L522">522</a>end</span>
+<span id="L523" class="line"><a href="#L523">523</a></span>
+<span id="L524" class="line"><a href="#L524">524</a>function ServerData:addScoreBuffTime(addNum)</span>
+<span id="L525" class="line"><a href="#L525">525</a>    -- 加buff</span>
+<span id="L526" class="line"><a href="#L526">526</a>    local endTime = tonumber(self:getDataByKey(&quot;buffExpireTime&quot;, 0))</span>
+<span id="L527" class="line"><a href="#L527">527</a>    local oneTime = 60 * 1000</span>
+<span id="L528" class="line"><a href="#L528">528</a>    local addTime = addNum * oneTime</span>
+<span id="L529" class="line"><a href="#L529">529</a>    local curTime = TimeKit:timeInSec()</span>
+<span id="L530" class="line"><a href="#L530">530</a></span>
+<span id="L531" class="line"><a href="#L531">531</a>    if curTime &lt;= endTime then</span>
+<span id="L532" class="line"><a href="#L532">532</a>        endTime = endTime + addTime</span>
+<span id="L533" class="line"><a href="#L533">533</a>    else</span>
+<span id="L534" class="line"><a href="#L534">534</a>        endTime = curTime + addTime</span>
+<span id="L535" class="line"><a href="#L535">535</a>    end</span>
+<span id="L536" class="line"><a href="#L536">536</a>    self:setDataByKey(&#x27;buffExpireTime&#x27;, endTime, true)</span>
+<span id="L537" class="line"><a href="#L537">537</a>    self:flush()</span>
+<span id="L538" class="line"><a href="#L538">538</a>end</span>
+<span id="L539" class="line"><a href="#L539">539</a>--------------------------</span>
+<span id="L540" class="line"><a href="#L540">540</a></span>
+<span id="L541" class="line"><a href="#L541">541</a>return ServerData</span></pre></main></html>

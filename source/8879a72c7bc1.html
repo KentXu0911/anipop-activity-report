@@ -1,0 +1,401 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/levelarea/levelconfig/LevelUnlockConfigParser.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="8879a72c7bc1.lua" download>下载Lua原文</a></p><h1>amf/middleware/levelarea/levelconfig/LevelUnlockConfigParser.lua</h1><p>SHA256 4195fbc11bd38df46132880d1329799d3f5a2c05260090c6f2bc2a19e13619a8</p><pre><span id="L1" class="line"><a href="#L1">1</a>require &#x27;amf.middleware.levelarea.config.LevelAreaConst&#x27;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local LevelAreaUtil = require &#x27;amf.middleware.levelarea.util.LevelAreaUtil&#x27;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local LevelUnlockConfigUtil = require &#x27;amf.middleware.levelarea.levelconfig.util.LevelUnlockConfigUtil&#x27;</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>local LevelUnlockConfigParser = class(&quot;LevelUnlockConfigParser&quot;)</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>function LevelUnlockConfigParser:init()</span>
+<span id="L8" class="line"><a href="#L8">8</a>    self.levelUnlockConfig = {}</span>
+<span id="L9" class="line"><a href="#L9">9</a>    self.levelUnlockConfigOri = {}</span>
+<span id="L10" class="line"><a href="#L10">10</a>    self:loadConfig()</span>
+<span id="L11" class="line"><a href="#L11">11</a>end</span>
+<span id="L12" class="line"><a href="#L12">12</a>------------------------------</span>
+<span id="L13" class="line"><a href="#L13">13</a>------------配置加载</span>
+<span id="L14" class="line"><a href="#L14">14</a>------------------------------</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>function LevelUnlockConfigParser:loadConfig()</span>
+<span id="L17" class="line"><a href="#L17">17</a>    self:loadLevelUnlockConfig()</span>
+<span id="L18" class="line"><a href="#L18">18</a>end</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>function LevelUnlockConfigParser:loadLevelUnlockConfig()</span>
+<span id="L21" class="line"><a href="#L21">21</a>    local result = {}</span>
+<span id="L22" class="line"><a href="#L22">22</a>    MetaConfigUtil:traverseConfigThenRelease(&quot;level_unlock_config&quot;, function(k, v)</span>
+<span id="L23" class="line"><a href="#L23">23</a>        if k == &quot;configVersion&quot; then</span>
+<span id="L24" class="line"><a href="#L24">24</a>            result[k] = tonumber(v)</span>
+<span id="L25" class="line"><a href="#L25">25</a>        else</span>
+<span id="L26" class="line"><a href="#L26">26</a>            local cfgList = v[1].unlockData</span>
+<span id="L27" class="line"><a href="#L27">27</a>            local dataList = {}</span>
+<span id="L28" class="line"><a href="#L28">28</a>            for i, rawData in ipairs(cfgList) do</span>
+<span id="L29" class="line"><a href="#L29">29</a>                local dataPiece = {}</span>
+<span id="L30" class="line"><a href="#L30">30</a>                for key, val in pairs(rawData) do</span>
+<span id="L31" class="line"><a href="#L31">31</a>                    if key == &quot;id&quot; or key == &quot;minVer&quot; then</span>
+<span id="L32" class="line"><a href="#L32">32</a>                        dataPiece[key] = tonumber(val)</span>
+<span id="L33" class="line"><a href="#L33">33</a>                    elseif key == &quot;startTime&quot; then</span>
+<span id="L34" class="line"><a href="#L34">34</a>                        local startTimeStr = tostring(val)</span>
+<span id="L35" class="line"><a href="#L35">35</a>                        dataPiece[key] = tostring(val)</span>
+<span id="L36" class="line"><a href="#L36">36</a>                        if startTimeStr then</span>
+<span id="L37" class="line"><a href="#L37">37</a>                            dataPiece[&quot;startTimeStamp&quot;] = os.time2(parseTime(startTimeStr))</span>
+<span id="L38" class="line"><a href="#L38">38</a>                        end</span>
+<span id="L39" class="line"><a href="#L39">39</a>                    elseif key == &quot;areaIDs&quot; then</span>
+<span id="L40" class="line"><a href="#L40">40</a>                        if type(val) == &quot;number&quot; then</span>
+<span id="L41" class="line"><a href="#L41">41</a>                            dataPiece[key] = {val}</span>
+<span id="L42" class="line"><a href="#L42">42</a>                        else</span>
+<span id="L43" class="line"><a href="#L43">43</a>                            local areaList = LevelUnlockConfigUtil:parseItemList(val)</span>
+<span id="L44" class="line"><a href="#L44">44</a>                            if areaList then</span>
+<span id="L45" class="line"><a href="#L45">45</a>                                table.sort(areaList, function(a,b) return a &lt; b end)</span>
+<span id="L46" class="line"><a href="#L46">46</a>                                dataPiece[key] = areaList</span>
+<span id="L47" class="line"><a href="#L47">47</a>                            end</span>
+<span id="L48" class="line"><a href="#L48">48</a>                        end</span>
+<span id="L49" class="line"><a href="#L49">49</a>                    end</span>
+<span id="L50" class="line"><a href="#L50">50</a>                end</span>
+<span id="L51" class="line"><a href="#L51">51</a>                dataList[i] = dataPiece</span>
+<span id="L52" class="line"><a href="#L52">52</a>            end</span>
+<span id="L53" class="line"><a href="#L53">53</a>            result[k] = dataList</span>
+<span id="L54" class="line"><a href="#L54">54</a>        end</span>
+<span id="L55" class="line"><a href="#L55">55</a>    end)</span>
+<span id="L56" class="line"><a href="#L56">56</a></span>
+<span id="L57" class="line"><a href="#L57">57</a>    self.levelUnlockConfig = result</span>
+<span id="L58" class="line"><a href="#L58">58</a>    self.levelUnlockConfigOri = table.clone(result)</span>
+<span id="L59" class="line"><a href="#L59">59</a>end</span>
+<span id="L60" class="line"><a href="#L60">60</a></span>
+<span id="L61" class="line"><a href="#L61">61</a>function LevelUnlockConfigParser:resetConfig()</span>
+<span id="L62" class="line"><a href="#L62">62</a>    self.levelUnlockConfig = table.clone(self.levelUnlockConfigOri)</span>
+<span id="L63" class="line"><a href="#L63">63</a>end</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>------------------------------</span>
+<span id="L66" class="line"><a href="#L66">66</a>------------计算isTopArea</span>
+<span id="L67" class="line"><a href="#L67">67</a>------------------------------</span>
+<span id="L68" class="line"><a href="#L68">68</a></span>
+<span id="L69" class="line"><a href="#L69">69</a>function LevelUnlockConfigParser:refreshTopAreaFlagOnUserInit( isOffLine, lastUserTime )</span>
+<span id="L70" class="line"><a href="#L70">70</a></span>
+<span id="L71" class="line"><a href="#L71">71</a>    --在线登录使用当前时间初始化，离线登录使用记录的时间初始化</span>
+<span id="L72" class="line"><a href="#L72">72</a>    local timeSec = 0</span>
+<span id="L73" class="line"><a href="#L73">73</a>    if isOffLine then</span>
+<span id="L74" class="line"><a href="#L74">74</a>        timeSec = lastUserTime or 0</span>
+<span id="L75" class="line"><a href="#L75">75</a>    else</span>
+<span id="L76" class="line"><a href="#L76">76</a>        timeSec = TimeKit:timeInSec()</span>
+<span id="L77" class="line"><a href="#L77">77</a>    end</span>
+<span id="L78" class="line"><a href="#L78">78</a>    self:refreshTopAreaFlag(timeSec)</span>
+<span id="L79" class="line"><a href="#L79">79</a>end</span>
+<span id="L80" class="line"><a href="#L80">80</a></span>
+<span id="L81" class="line"><a href="#L81">81</a>function LevelUnlockConfigParser:refreshTopAreaFlagOnOnlineUnlock()</span>
+<span id="L82" class="line"><a href="#L82">82</a>    local timeSec = TimeKit:timeInSec()</span>
+<span id="L83" class="line"><a href="#L83">83</a>    self:refreshTopAreaFlag(timeSec)</span>
+<span id="L84" class="line"><a href="#L84">84</a>end</span>
+<span id="L85" class="line"><a href="#L85">85</a></span>
+<span id="L86" class="line"><a href="#L86">86</a>function LevelUnlockConfigParser:refreshTopAreaFlag(timeSec)</span>
+<span id="L87" class="line"><a href="#L87">87</a>    --重置配置，重新计算flag</span>
+<span id="L88" class="line"><a href="#L88">88</a>    self:resetConfig()</span>
+<span id="L89" class="line"><a href="#L89">89</a>    self:refreshTopAreaFlagByTime(timeSec)</span>
+<span id="L90" class="line"><a href="#L90">90</a>end</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>function LevelUnlockConfigParser:refreshTopAreaFlagByTime( timeSec )</span>
+<span id="L93" class="line"><a href="#L93">93</a>    local currTime = timeSec or TimeKit:timeInSec()</span>
+<span id="L94" class="line"><a href="#L94">94</a></span>
+<span id="L95" class="line"><a href="#L95">95</a>    -- 配置已经排好序</span>
+<span id="L96" class="line"><a href="#L96">96</a>    local mainLevelConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.MAIN_LEVEL)</span>
+<span id="L97" class="line"><a href="#L97">97</a>    local hiddenLevelConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.HIDDEN_LEVEL)</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>    -- for i=#mainLevelConfig-5, #mainLevelConfig do</span>
+<span id="L100" class="line"><a href="#L100">100</a>    --     LevelAreaUtil:log(&quot;LevelUnlockConfigParser mainLevelConfig 1111&quot;, i, mainLevelConfig[i])</span>
+<span id="L101" class="line"><a href="#L101">101</a>    -- end</span>
+<span id="L102" class="line"><a href="#L102">102</a></span>
+<span id="L103" class="line"><a href="#L103">103</a>    if mainLevelConfig then</span>
+<span id="L104" class="line"><a href="#L104">104</a>        local param = {</span>
+<span id="L105" class="line"><a href="#L105">105</a>            currTime = currTime,</span>
+<span id="L106" class="line"><a href="#L106">106</a>            targetConfig = mainLevelConfig,</span>
+<span id="L107" class="line"><a href="#L107">107</a>            isMainLevel = true,</span>
+<span id="L108" class="line"><a href="#L108">108</a>        }</span>
+<span id="L109" class="line"><a href="#L109">109</a>        self:setNextPeriodAreaAsTop(param)</span>
+<span id="L110" class="line"><a href="#L110">110</a>    end</span>
+<span id="L111" class="line"><a href="#L111">111</a>    if hiddenLevelConfig then</span>
+<span id="L112" class="line"><a href="#L112">112</a>        local param = {</span>
+<span id="L113" class="line"><a href="#L113">113</a>            currTime = currTime,</span>
+<span id="L114" class="line"><a href="#L114">114</a>            targetConfig = hiddenLevelConfig,</span>
+<span id="L115" class="line"><a href="#L115">115</a>            isMainLevel = false,</span>
+<span id="L116" class="line"><a href="#L116">116</a>        }</span>
+<span id="L117" class="line"><a href="#L117">117</a>        self:setNextPeriodAreaAsTop(param)</span>
+<span id="L118" class="line"><a href="#L118">118</a>    end</span>
+<span id="L119" class="line"><a href="#L119">119</a></span>
+<span id="L120" class="line"><a href="#L120">120</a>    -- for i=#mainLevelConfig-5, #mainLevelConfig do</span>
+<span id="L121" class="line"><a href="#L121">121</a>    --     LevelAreaUtil:log(&quot;LevelUnlockConfigParser mainLevelConfig 22222&quot;, i, mainLevelConfig[i])</span>
+<span id="L122" class="line"><a href="#L122">122</a>    -- end</span>
+<span id="L123" class="line"><a href="#L123">123</a>end</span>
+<span id="L124" class="line"><a href="#L124">124</a></span>
+<span id="L125" class="line"><a href="#L125">125</a>-- 主线 &amp; 隐藏关，当前时间段的下一周为top区域</span>
+<span id="L126" class="line"><a href="#L126">126</a>-- 原因：周五开新关前，会更新一版将top移到再下周的配置，本次重构将其之间节点提前，一开新关就移动top到下周</span>
+<span id="L127" class="line"><a href="#L127">127</a>-- 详情可以咨询庄sir，每周发level_unlock_config_config的时候，最后一条是保底配置，倒数第二条是预览配置，真正的配置是从倒数第三条开始</span>
+<span id="L128" class="line"><a href="#L128">128</a>function LevelUnlockConfigParser:setNextPeriodAreaAsTop(param)</span>
+<span id="L129" class="line"><a href="#L129">129</a>    local currTime = param.currTime</span>
+<span id="L130" class="line"><a href="#L130">130</a>    local targetConfig = param.targetConfig</span>
+<span id="L131" class="line"><a href="#L131">131</a>    local isMainLevel = param.isMainLevel</span>
+<span id="L132" class="line"><a href="#L132">132</a></span>
+<span id="L133" class="line"><a href="#L133">133</a>    local start = #targetConfig</span>
+<span id="L134" class="line"><a href="#L134">134</a>    local isFound = false</span>
+<span id="L135" class="line"><a href="#L135">135</a></span>
+<span id="L136" class="line"><a href="#L136">136</a>    if isMainLevel then</span>
+<span id="L137" class="line"><a href="#L137">137</a>        -- top不能是最后那条9999保底，也不能是倒数第二条是待发布仅预览</span>
+<span id="L138" class="line"><a href="#L138">138</a>        start = start + _G.levelUnlockConst.lastSafeConfigIndex</span>
+<span id="L139" class="line"><a href="#L139">139</a>        local data = targetConfig[start]</span>
+<span id="L140" class="line"><a href="#L140">140</a>        if data.startTimeStamp &lt; currTime then</span>
+<span id="L141" class="line"><a href="#L141">141</a>            -- 最高合法配置的时间就已经过期，说明没发新关、或者本地没有拉取到新关配置，强行认为最高配置就是最新</span>
+<span id="L142" class="line"><a href="#L142">142</a>            data.lastOpenedArea = true</span>
+<span id="L143" class="line"><a href="#L143">143</a>            data.isTopArea = true</span>
+<span id="L144" class="line"><a href="#L144">144</a>            isFound = true</span>
+<span id="L145" class="line"><a href="#L145">145</a>        end</span>
+<span id="L146" class="line"><a href="#L146">146</a>    end</span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>    if not isFound then</span>
+<span id="L149" class="line"><a href="#L149">149</a>        for i = start, 2, -1 do</span>
+<span id="L150" class="line"><a href="#L150">150</a>            local data = targetConfig[i]</span>
+<span id="L151" class="line"><a href="#L151">151</a>            local formerData = targetConfig[i - 1]</span>
+<span id="L152" class="line"><a href="#L152">152</a>            if data and formerData then</span>
+<span id="L153" class="line"><a href="#L153">153</a>                --增加i==2, 兼容时间被调到很久之前，找不到配置的问题</span>
+<span id="L154" class="line"><a href="#L154">154</a>                if (data.startTimeStamp &gt; currTime) and (formerData.startTimeStamp &lt;= currTime) or (i == 2) then</span>
+<span id="L155" class="line"><a href="#L155">155</a>                    data.isTopArea = true</span>
+<span id="L156" class="line"><a href="#L156">156</a>                    formerData.lastOpenedArea = true</span>
+<span id="L157" class="line"><a href="#L157">157</a>                    break</span>
+<span id="L158" class="line"><a href="#L158">158</a>                end</span>
+<span id="L159" class="line"><a href="#L159">159</a>            end</span>
+<span id="L160" class="line"><a href="#L160">160</a>        end</span>
+<span id="L161" class="line"><a href="#L161">161</a>    end</span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a></span>
+<span id="L165" class="line"><a href="#L165">165</a>------------------------------</span>
+<span id="L166" class="line"><a href="#L166">166</a>------------使用</span>
+<span id="L167" class="line"><a href="#L167">167</a>------------------------------</span>
+<span id="L168" class="line"><a href="#L168">168</a></span>
+<span id="L169" class="line"><a href="#L169">169</a>function LevelUnlockConfigParser:getLevelUnlockConfig()</span>
+<span id="L170" class="line"><a href="#L170">170</a>    return self.levelUnlockConfig</span>
+<span id="L171" class="line"><a href="#L171">171</a>end</span>
+<span id="L172" class="line"><a href="#L172">172</a></span>
+<span id="L173" class="line"><a href="#L173">173</a>-- 配置版本</span>
+<span id="L174" class="line"><a href="#L174">174</a>function LevelUnlockConfigParser:getAreaUnlockConfigVersion()</span>
+<span id="L175" class="line"><a href="#L175">175</a>    if self.levelUnlockConfig and self.levelUnlockConfig.configVersion then</span>
+<span id="L176" class="line"><a href="#L176">176</a>        return self.levelUnlockConfig.configVersion</span>
+<span id="L177" class="line"><a href="#L177">177</a>    end</span>
+<span id="L178" class="line"><a href="#L178">178</a>    return 0</span>
+<span id="L179" class="line"><a href="#L179">179</a>end</span>
+<span id="L180" class="line"><a href="#L180">180</a></span>
+<span id="L181" class="line"><a href="#L181">181</a>--根据配置类型获取解锁配置列表</span>
+<span id="L182" class="line"><a href="#L182">182</a>--fourStarAdjustUnlock 应该没地方用了，4星跟主线一样开。</span>
+<span id="L183" class="line"><a href="#L183">183</a>function LevelUnlockConfigParser:getUnlockConfigListByConfigType(configType)</span>
+<span id="L184" class="line"><a href="#L184">184</a>    if self.levelUnlockConfig and configType then</span>
+<span id="L185" class="line"><a href="#L185">185</a>        if configType == _G.levelUnlockConst.LevelUnlockConfigType.MAIN_LEVEL then</span>
+<span id="L186" class="line"><a href="#L186">186</a>            return self.levelUnlockConfig.mainLevelUnlock</span>
+<span id="L187" class="line"><a href="#L187">187</a>        elseif configType == _G.levelUnlockConst.LevelUnlockConfigType.HIDDEN_LEVEL then</span>
+<span id="L188" class="line"><a href="#L188">188</a>            return self.levelUnlockConfig.hiddenLevelUnlock</span>
+<span id="L189" class="line"><a href="#L189">189</a>        elseif configType == _G.levelUnlockConst.LevelUnlockConfigType.FOUR_STAR_ADJUST_LEVEL then</span>
+<span id="L190" class="line"><a href="#L190">190</a>            return self.levelUnlockConfig.fourStarAdjustUnlock</span>
+<span id="L191" class="line"><a href="#L191">191</a>        end</span>
+<span id="L192" class="line"><a href="#L192">192</a>    end</span>
+<span id="L193" class="line"><a href="#L193">193</a>    return nil</span>
+<span id="L194" class="line"><a href="#L194">194</a>end</span>
+<span id="L195" class="line"><a href="#L195">195</a></span>
+<span id="L196" class="line"><a href="#L196">196</a>-- 当前最低未开放区域 + 之后的一个区域（不包含9999条目）</span>
+<span id="L197" class="line"><a href="#L197">197</a>function LevelUnlockConfigParser:getMainAreaUnlockInfoOfTopAreas()</span>
+<span id="L198" class="line"><a href="#L198">198</a>    local infoTable = {}</span>
+<span id="L199" class="line"><a href="#L199">199</a>    local topAreaId = nil</span>
+<span id="L200" class="line"><a href="#L200">200</a>    local mainLevelConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.MAIN_LEVEL)</span>
+<span id="L201" class="line"><a href="#L201">201</a>    if mainLevelConfig then</span>
+<span id="L202" class="line"><a href="#L202">202</a>        for i = #mainLevelConfig, 1, -1 do</span>
+<span id="L203" class="line"><a href="#L203">203</a>            local v = mainLevelConfig[i]</span>
+<span id="L204" class="line"><a href="#L204">204</a>            if v and v.isTopArea then</span>
+<span id="L205" class="line"><a href="#L205">205</a>                table.insert(infoTable, v)</span>
+<span id="L206" class="line"><a href="#L206">206</a>                table.insert(infoTable, mainLevelConfig[i+1])</span>
+<span id="L207" class="line"><a href="#L207">207</a>                local topAreaIDs = v.areaIDs</span>
+<span id="L208" class="line"><a href="#L208">208</a>                if topAreaIDs and #topAreaIDs &gt; 0 then</span>
+<span id="L209" class="line"><a href="#L209">209</a>                    topAreaId = topAreaIDs[#topAreaIDs]</span>
+<span id="L210" class="line"><a href="#L210">210</a>                end</span>
+<span id="L211" class="line"><a href="#L211">211</a>                break</span>
+<span id="L212" class="line"><a href="#L212">212</a>            end</span>
+<span id="L213" class="line"><a href="#L213">213</a>        end</span>
+<span id="L214" class="line"><a href="#L214">214</a>    end</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>    table.sort(infoTable, function(a,b) return a.id &lt; b.id end)</span>
+<span id="L217" class="line"><a href="#L217">217</a></span>
+<span id="L218" class="line"><a href="#L218">218</a>    return infoTable, topAreaId</span>
+<span id="L219" class="line"><a href="#L219">219</a>end</span>
+<span id="L220" class="line"><a href="#L220">220</a></span>
+<span id="L221" class="line"><a href="#L221">221</a>function LevelUnlockConfigParser:getAreaConfigByAreaId(areaId)</span>
+<span id="L222" class="line"><a href="#L222">222</a>    local unlockConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.MAIN_LEVEL)</span>
+<span id="L223" class="line"><a href="#L223">223</a>    for i = #unlockConfig, 1, -1 do</span>
+<span id="L224" class="line"><a href="#L224">224</a>        local v = unlockConfig[i]</span>
+<span id="L225" class="line"><a href="#L225">225</a>        if v and v.areaIDs and table.exist(v.areaIDs, areaId) then</span>
+<span id="L226" class="line"><a href="#L226">226</a>            return v</span>
+<span id="L227" class="line"><a href="#L227">227</a>        end</span>
+<span id="L228" class="line"><a href="#L228">228</a>    end</span>
+<span id="L229" class="line"><a href="#L229">229</a>end</span>
+<span id="L230" class="line"><a href="#L230">230</a></span>
+<span id="L231" class="line"><a href="#L231">231</a>-- 获取主线关最低未开放区域集的ID信息</span>
+<span id="L232" class="line"><a href="#L232">232</a>function LevelUnlockConfigParser:getAreaUnlockDataOfTopMainArea()</span>
+<span id="L233" class="line"><a href="#L233">233</a>    local mainLevelConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.MAIN_LEVEL)</span>
+<span id="L234" class="line"><a href="#L234">234</a>    if mainLevelConfig then</span>
+<span id="L235" class="line"><a href="#L235">235</a>        for i = #mainLevelConfig, 1, -1 do</span>
+<span id="L236" class="line"><a href="#L236">236</a>            local v = mainLevelConfig[i]</span>
+<span id="L237" class="line"><a href="#L237">237</a>            if v and v.isTopArea == true then</span>
+<span id="L238" class="line"><a href="#L238">238</a>                return v</span>
+<span id="L239" class="line"><a href="#L239">239</a>            end</span>
+<span id="L240" class="line"><a href="#L240">240</a>        end</span>
+<span id="L241" class="line"><a href="#L241">241</a>    end</span>
+<span id="L242" class="line"><a href="#L242">242</a>    return nil</span>
+<span id="L243" class="line"><a href="#L243">243</a>end</span>
+<span id="L244" class="line"><a href="#L244">244</a></span>
+<span id="L245" class="line"><a href="#L245">245</a>-- 获取主线关当前已可解锁的顶部区  </span>
+<span id="L246" class="line"><a href="#L246">246</a>function LevelUnlockConfigParser:getTopUnlockArea()</span>
+<span id="L247" class="line"><a href="#L247">247</a>    return self:getAreaUnlockDataOfLastOpenedMainArea()</span>
+<span id="L248" class="line"><a href="#L248">248</a>end</span>
+<span id="L249" class="line"><a href="#L249">249</a></span>
+<span id="L250" class="line"><a href="#L250">250</a>-- 获取主线关最高已开放区域的ID列表</span>
+<span id="L251" class="line"><a href="#L251">251</a>-- lastOpenedArea 这个可以是上周的，也可以是跟isTopArea一个。</span>
+<span id="L252" class="line"><a href="#L252">252</a>function LevelUnlockConfigParser:getAreaUnlockDataOfLastOpenedMainArea()</span>
+<span id="L253" class="line"><a href="#L253">253</a>    local mainLevelConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.MAIN_LEVEL)</span>
+<span id="L254" class="line"><a href="#L254">254</a>    if mainLevelConfig then</span>
+<span id="L255" class="line"><a href="#L255">255</a>        for i = #mainLevelConfig, 1, -1 do</span>
+<span id="L256" class="line"><a href="#L256">256</a>            local v = mainLevelConfig[i]</span>
+<span id="L257" class="line"><a href="#L257">257</a>            if v and v.lastOpenedArea == true then</span>
+<span id="L258" class="line"><a href="#L258">258</a>                return v</span>
+<span id="L259" class="line"><a href="#L259">259</a>            end</span>
+<span id="L260" class="line"><a href="#L260">260</a>        end</span>
+<span id="L261" class="line"><a href="#L261">261</a>    end</span>
+<span id="L262" class="line"><a href="#L262">262</a>    return nil</span>
+<span id="L263" class="line"><a href="#L263">263</a>end</span>
+<span id="L264" class="line"><a href="#L264">264</a></span>
+<span id="L265" class="line"><a href="#L265">265</a>-- 根据配置id，获取主线的解锁配置</span>
+<span id="L266" class="line"><a href="#L266">266</a>function LevelUnlockConfigParser:getAreaUnlockDataOnMainAreaById(configID)</span>
+<span id="L267" class="line"><a href="#L267">267</a>    local mainLevelConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.MAIN_LEVEL)</span>
+<span id="L268" class="line"><a href="#L268">268</a>    if mainLevelConfig then</span>
+<span id="L269" class="line"><a href="#L269">269</a>        --先按有序找，找不到再遍历</span>
+<span id="L270" class="line"><a href="#L270">270</a>        local configInfo = mainLevelConfig[configID]</span>
+<span id="L271" class="line"><a href="#L271">271</a>        if configInfo and configInfo.id == configID then</span>
+<span id="L272" class="line"><a href="#L272">272</a>            return configInfo</span>
+<span id="L273" class="line"><a href="#L273">273</a>        end</span>
+<span id="L274" class="line"><a href="#L274">274</a></span>
+<span id="L275" class="line"><a href="#L275">275</a>        --遍历查询</span>
+<span id="L276" class="line"><a href="#L276">276</a>        for i = #mainLevelConfig, 1, -1 do</span>
+<span id="L277" class="line"><a href="#L277">277</a>            local v = mainLevelConfig[i]</span>
+<span id="L278" class="line"><a href="#L278">278</a>            if v and v.id == configID then</span>
+<span id="L279" class="line"><a href="#L279">279</a>                return v</span>
+<span id="L280" class="line"><a href="#L280">280</a>            end</span>
+<span id="L281" class="line"><a href="#L281">281</a>        end</span>
+<span id="L282" class="line"><a href="#L282">282</a>    end</span>
+<span id="L283" class="line"><a href="#L283">283</a>    return nil</span>
+<span id="L284" class="line"><a href="#L284">284</a>end</span>
+<span id="L285" class="line"><a href="#L285">285</a></span>
+<span id="L286" class="line"><a href="#L286">286</a>------</span>
+<span id="L287" class="line"><a href="#L287">287</a>--根据配置类型和数据ID获取解锁数据</span>
+<span id="L288" class="line"><a href="#L288">288</a>function LevelUnlockConfigParser:getUnlockDataByDataID(targetUnlockConfig, configID)</span>
+<span id="L289" class="line"><a href="#L289">289</a>    -- 一般来说应该是相等的，为了提高效率，先检查一波</span>
+<span id="L290" class="line"><a href="#L290">290</a>    if targetUnlockConfig[configID] and (targetUnlockConfig[configID].id == tonumber(configID)) then</span>
+<span id="L291" class="line"><a href="#L291">291</a>        return targetUnlockConfig[configID]</span>
+<span id="L292" class="line"><a href="#L292">292</a>    end</span>
+<span id="L293" class="line"><a href="#L293">293</a>    -- 未命中后的兜底</span>
+<span id="L294" class="line"><a href="#L294">294</a>    for _, unlockData in pairs(targetUnlockConfig) do</span>
+<span id="L295" class="line"><a href="#L295">295</a>        if unlockData.id == configID then</span>
+<span id="L296" class="line"><a href="#L296">296</a>            return unlockData</span>
+<span id="L297" class="line"><a href="#L297">297</a>        end</span>
+<span id="L298" class="line"><a href="#L298">298</a>    end</span>
+<span id="L299" class="line"><a href="#L299">299</a>    return nil</span>
+<span id="L300" class="line"><a href="#L300">300</a>end</span>
+<span id="L301" class="line"><a href="#L301">301</a></span>
+<span id="L302" class="line"><a href="#L302">302</a>function LevelUnlockConfigParser:getMinAreaIDOfTargetConfig( configID, configType )</span>
+<span id="L303" class="line"><a href="#L303">303</a>    if configID then</span>
+<span id="L304" class="line"><a href="#L304">304</a>        local unlockConfigList = self:getUnlockConfigListByConfigType(configType)</span>
+<span id="L305" class="line"><a href="#L305">305</a>        if unlockConfigList then</span>
+<span id="L306" class="line"><a href="#L306">306</a>            local targetConfig = self:getUnlockDataByDataID(unlockConfigList, configID)</span>
+<span id="L307" class="line"><a href="#L307">307</a>            if targetConfig and targetConfig.areaIDs and #targetConfig.areaIDs &gt; 0 then</span>
+<span id="L308" class="line"><a href="#L308">308</a>                return targetConfig.areaIDs[1] -- 是排好序的</span>
+<span id="L309" class="line"><a href="#L309">309</a>            end</span>
+<span id="L310" class="line"><a href="#L310">310</a>        end</span>
+<span id="L311" class="line"><a href="#L311">311</a>    end</span>
+<span id="L312" class="line"><a href="#L312">312</a>    -- 找不到</span>
+<span id="L313" class="line"><a href="#L313">313</a>    return -1</span>
+<span id="L314" class="line"><a href="#L314">314</a>end</span>
+<span id="L315" class="line"><a href="#L315">315</a></span>
+<span id="L316" class="line"><a href="#L316">316</a>--和targetAreaId 同时开放的一批区域中，最低的区域</span>
+<span id="L317" class="line"><a href="#L317">317</a>--例如targetAreaId是某一次新发45关时开放的，涉及三个区域，40101，40102，40103，则返回40101</span>
+<span id="L318" class="line"><a href="#L318">318</a>function LevelUnlockConfigParser:getMinAreaIdInAreaBound( areaId )</span>
+<span id="L319" class="line"><a href="#L319">319</a>    local mainLevelConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.MAIN_LEVEL)</span>
+<span id="L320" class="line"><a href="#L320">320</a>    if mainLevelConfig then</span>
+<span id="L321" class="line"><a href="#L321">321</a>        for i = #mainLevelConfig, 1, -1 do</span>
+<span id="L322" class="line"><a href="#L322">322</a>            local areaIDs = mainLevelConfig[i].areaIDs</span>
+<span id="L323" class="line"><a href="#L323">323</a>            for _, areaID in ipairs(areaIDs) do</span>
+<span id="L324" class="line"><a href="#L324">324</a>                if areaID == areaId then</span>
+<span id="L325" class="line"><a href="#L325">325</a>                    return areaIDs[1], #areaIDs</span>
+<span id="L326" class="line"><a href="#L326">326</a>                end</span>
+<span id="L327" class="line"><a href="#L327">327</a>            end</span>
+<span id="L328" class="line"><a href="#L328">328</a>        end</span>
+<span id="L329" class="line"><a href="#L329">329</a>    end</span>
+<span id="L330" class="line"><a href="#L330">330</a>    return areaId, 1</span>
+<span id="L331" class="line"><a href="#L331">331</a>end</span>
+<span id="L332" class="line"><a href="#L332">332</a></span>
+<span id="L333" class="line"><a href="#L333">333</a>function LevelUnlockConfigParser:getAreaUnlockConfigByAreaId( areaId )</span>
+<span id="L334" class="line"><a href="#L334">334</a>    local mainLevelConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.MAIN_LEVEL)</span>
+<span id="L335" class="line"><a href="#L335">335</a>    if mainLevelConfig then</span>
+<span id="L336" class="line"><a href="#L336">336</a>        for i = #mainLevelConfig, 1, -1 do</span>
+<span id="L337" class="line"><a href="#L337">337</a>            local v = mainLevelConfig[i]</span>
+<span id="L338" class="line"><a href="#L338">338</a>            if v and v.areaIDs and table.exist(v.areaIDs, areaId) then</span>
+<span id="L339" class="line"><a href="#L339">339</a>                return v</span>
+<span id="L340" class="line"><a href="#L340">340</a>            end</span>
+<span id="L341" class="line"><a href="#L341">341</a>        end</span>
+<span id="L342" class="line"><a href="#L342">342</a>    end</span>
+<span id="L343" class="line"><a href="#L343">343</a>    return nil</span>
+<span id="L344" class="line"><a href="#L344">344</a>end</span>
+<span id="L345" class="line"><a href="#L345">345</a></span>
+<span id="L346" class="line"><a href="#L346">346</a>function LevelUnlockConfigParser:getAreaOpenTime(areaId)</span>
+<span id="L347" class="line"><a href="#L347">347</a>    local areaInfo = self:getAreaUnlockConfigByAreaId(areaId)</span>
+<span id="L348" class="line"><a href="#L348">348</a>    if areaInfo then</span>
+<span id="L349" class="line"><a href="#L349">349</a>        return areaInfo.startTimeStamp</span>
+<span id="L350" class="line"><a href="#L350">350</a>    end</span>
+<span id="L351" class="line"><a href="#L351">351</a>    return nil</span>
+<span id="L352" class="line"><a href="#L352">352</a>end</span>
+<span id="L353" class="line"><a href="#L353">353</a></span>
+<span id="L354" class="line"><a href="#L354">354</a>-- 获得当前最低未开放隐藏区域</span>
+<span id="L355" class="line"><a href="#L355">355</a>-- 可能是老旧的版本代码，以前隐藏关会上下一起开。</span>
+<span id="L356" class="line"><a href="#L356">356</a>function LevelUnlockConfigParser:getAreaUnlockInfoOfTopHiddenAreas()</span>
+<span id="L357" class="line"><a href="#L357">357</a>    local infoTable = {}</span>
+<span id="L358" class="line"><a href="#L358">358</a>    local hiddenLevelConfig = self:getUnlockConfigListByConfigType(_G.levelUnlockConst.LevelUnlockConfigType.HIDDEN_LEVEL)</span>
+<span id="L359" class="line"><a href="#L359">359</a>    if hiddenLevelConfig then</span>
+<span id="L360" class="line"><a href="#L360">360</a>        for i = #hiddenLevelConfig, 1, -1 do</span>
+<span id="L361" class="line"><a href="#L361">361</a>            local v = hiddenLevelConfig[i]</span>
+<span id="L362" class="line"><a href="#L362">362</a>            if v and (v.isTopArea == true) then</span>
+<span id="L363" class="line"><a href="#L363">363</a>                table.insert(infoTable, v)</span>
+<span id="L364" class="line"><a href="#L364">364</a>            end</span>
+<span id="L365" class="line"><a href="#L365">365</a>        end</span>
+<span id="L366" class="line"><a href="#L366">366</a>        table.sort(infoTable, function(a,b) return a.id &lt; b.id end)</span>
+<span id="L367" class="line"><a href="#L367">367</a>    end</span>
+<span id="L368" class="line"><a href="#L368">368</a>    return infoTable</span>
+<span id="L369" class="line"><a href="#L369">369</a>end</span>
+<span id="L370" class="line"><a href="#L370">370</a></span>
+<span id="L371" class="line"><a href="#L371">371</a>-- 取主线关最低未开放区域集的最高区域ID（当有多个区域时，返回ID最大的）</span>
+<span id="L372" class="line"><a href="#L372">372</a>function LevelUnlockConfigParser:getLastAreaIDOfTopMainArea()</span>
+<span id="L373" class="line"><a href="#L373">373</a>    local topAreaUnlockData = self:getAreaUnlockDataOfTopMainArea()</span>
+<span id="L374" class="line"><a href="#L374">374</a>    if topAreaUnlockData then</span>
+<span id="L375" class="line"><a href="#L375">375</a>        local topAreaIDs = topAreaUnlockData.areaIDs</span>
+<span id="L376" class="line"><a href="#L376">376</a>        if topAreaIDs and #topAreaIDs &gt; 0 then</span>
+<span id="L377" class="line"><a href="#L377">377</a>            -- 是排好序的</span>
+<span id="L378" class="line"><a href="#L378">378</a>            return topAreaIDs[#topAreaIDs]</span>
+<span id="L379" class="line"><a href="#L379">379</a>        end</span>
+<span id="L380" class="line"><a href="#L380">380</a>    end</span>
+<span id="L381" class="line"><a href="#L381">381</a>    return nil</span>
+<span id="L382" class="line"><a href="#L382">382</a>end</span>
+<span id="L383" class="line"><a href="#L383">383</a></span>
+<span id="L384" class="line"><a href="#L384">384</a>--获取头部区域关卡数量（根据开放的区域数计算）</span>
+<span id="L385" class="line"><a href="#L385">385</a>function LevelUnlockConfigParser:getTopAreaLevelCount()</span>
+<span id="L386" class="line"><a href="#L386">386</a>    local topAreaUnlockData = self:getTopUnlockArea()</span>
+<span id="L387" class="line"><a href="#L387">387</a>    if topAreaUnlockData then</span>
+<span id="L388" class="line"><a href="#L388">388</a>        local topAreaIDs = topAreaUnlockData.areaIDs</span>
+<span id="L389" class="line"><a href="#L389">389</a>        local topOpenAreaCount = #topAreaIDs</span>
+<span id="L390" class="line"><a href="#L390">390</a>        return topOpenAreaCount*15</span>
+<span id="L391" class="line"><a href="#L391">391</a>    end</span>
+<span id="L392" class="line"><a href="#L392">392</a>    return 0</span>
+<span id="L393" class="line"><a href="#L393">393</a>end</span>
+<span id="L394" class="line"><a href="#L394">394</a></span>
+<span id="L395" class="line"><a href="#L395">395</a>function LevelUnlockConfigParser:getAreaUnlockTime(areaId)</span>
+<span id="L396" class="line"><a href="#L396">396</a>    local areaConfig = self:getAreaConfigByAreaId(areaId)</span>
+<span id="L397" class="line"><a href="#L397">397</a>    if not areaConfig then return nil end </span>
+<span id="L398" class="line"><a href="#L398">398</a>    return areaConfig.startTimeStamp or nil</span>
+<span id="L399" class="line"><a href="#L399">399</a>end</span>
+<span id="L400" class="line"><a href="#L400">400</a></span>
+<span id="L401" class="line"><a href="#L401">401</a>return LevelUnlockConfigParser</span></pre></main></html>

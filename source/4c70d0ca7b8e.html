@@ -1,0 +1,317 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/canteen/config/Meta.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="4c70d0ca7b8e.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/canteen/config/Meta.lua</h1><p>SHA256 3071a976d115684cd46d4dae8d278f5d73bb0a98dc8b1ecd6b00610b506a861a</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Meta = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>Meta.ACT_ROUND = 12 --每期迭代更改</span>
+<span id="L4" class="line"><a href="#L4">4</a>--只更换头像框的情况新增头像框资源和配置后在这里改下即可</span>
+<span id="L5" class="line"><a href="#L5">5</a>--新增菜谱需要在这加下相关配置</span>
+<span id="L6" class="line"><a href="#L6">6</a>Meta.headFrameTypeId = 60000 + HeadFrameType.kCanteen_2025_zhongqiu  --包内引流记得也改下</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>Meta.clientIdBegin = 9000000</span>
+<span id="L9" class="line"><a href="#L9">9</a>Meta.dianzanRes = &quot;amf/activity/canteen/materials/dianzan.png&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a>Meta.zanId = -1</span>
+<span id="L11" class="line"><a href="#L11">11</a>Meta.scoreBuff20Id = 52908</span>
+<span id="L12" class="line"><a href="#L12">12</a>Meta.preFrameName = &quot;canteen_&quot;</span>
+<span id="L13" class="line"><a href="#L13">13</a>Meta.foodResPath = &quot;amf/activity/canteen/texture/canteenFoodRes.plist&quot;</span>
+<span id="L14" class="line"><a href="#L14">14</a>Meta.inLevelFoodResPath = &quot;tempFunctionResInLevel/Canteen/json/foodRes.plist&quot;</span>
+<span id="L15" class="line"><a href="#L15">15</a>Meta.downloadLabels = {</span>
+<span id="L16" class="line"><a href="#L16">16</a>    &quot;canteen&quot;</span>
+<span id="L17" class="line"><a href="#L17">17</a>}</span>
+<span id="L18" class="line"><a href="#L18">18</a>Meta.needLoadFiles = {</span>
+<span id="L19" class="line"><a href="#L19">19</a>    Meta.dianzanRes,</span>
+<span id="L20" class="line"><a href="#L20">20</a>}</span>
+<span id="L21" class="line"><a href="#L21">21</a>-- Meta.autoDownload = true</span>
+<span id="L22" class="line"><a href="#L22">22</a>Meta.dcFeature = &quot;chef_god&quot;</span>
+<span id="L23" class="line"><a href="#L23">23</a>Meta.actId = 3068</span>
+<span id="L24" class="line"><a href="#L24">24</a></span>
+<span id="L25" class="line"><a href="#L25">25</a></span>
+<span id="L26" class="line"><a href="#L26">26</a>Meta.guideIds = {</span>
+<span id="L27" class="line"><a href="#L27">27</a>    --常用ID</span>
+<span id="L28" class="line"><a href="#L28">28</a>    kJoinActivity = 1 ,</span>
+<span id="L29" class="line"><a href="#L29">29</a>    SHAREREWARD_1 = 2,</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>    --图鉴ID 100~1000</span>
+<span id="L33" class="line"><a href="#L33">33</a>    MENU_1 = 101,</span>
+<span id="L34" class="line"><a href="#L34">34</a>    MENU_2 = 102,</span>
+<span id="L35" class="line"><a href="#L35">35</a>    MENU_3 = 103,</span>
+<span id="L36" class="line"><a href="#L36">36</a>    MENU_4 = 104,</span>
+<span id="L37" class="line"><a href="#L37">37</a>    MENU_5 = 105,</span>
+<span id="L38" class="line"><a href="#L38">38</a>    MENU_112 = 112,</span>
+<span id="L39" class="line"><a href="#L39">39</a>    MENU_113 = 113,</span>
+<span id="L40" class="line"><a href="#L40">40</a>    MENU_120 = 120,</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>    --中秋限时食谱</span>
+<span id="L43" class="line"><a href="#L43">43</a>    MENU_121 = 121,</span>
+<span id="L44" class="line"><a href="#L44">44</a>    MENU_122 = 122,</span>
+<span id="L45" class="line"><a href="#L45">45</a>    --冬至限定食谱</span>
+<span id="L46" class="line"><a href="#L46">46</a>    MENU_123 = 123,</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>    --100口碑值分享 1000 + ACT_OPEN_VERSION</span>
+<span id="L49" class="line"><a href="#L49">49</a>    SHAREREWARD_2 = 1000,</span>
+<span id="L50" class="line"><a href="#L50">50</a>    --节日限时菜谱分享 2000 + ACT_OPEN_VERSION</span>
+<span id="L51" class="line"><a href="#L51">51</a>    SHAREREWARD_3 = 2000,</span>
+<span id="L52" class="line"><a href="#L52">52</a>}</span>
+<span id="L53" class="line"><a href="#L53">53</a></span>
+<span id="L54" class="line"><a href="#L54">54</a></span>
+<span id="L55" class="line"><a href="#L55">55</a>Meta.specialIds = {</span>
+<span id="L56" class="line"><a href="#L56">56</a>    kSpA = 9,</span>
+<span id="L57" class="line"><a href="#L57">57</a>    kSpB = 10,</span>
+<span id="L58" class="line"><a href="#L58">58</a>}</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>Meta.limitMenus = {</span>
+<span id="L61" class="line"><a href="#L61">61</a>    111,112,113,114,115,116,117,118,119,120,121,122,123</span>
+<span id="L62" class="line"><a href="#L62">62</a>}</span>
+<span id="L63" class="line"><a href="#L63">63</a></span>
+<span id="L64" class="line"><a href="#L64">64</a>Meta.materialIds = {</span>
+<span id="L65" class="line"><a href="#L65">65</a>    kSpA = tostring(Meta.specialIds.kSpA),--万能食材</span>
+<span id="L66" class="line"><a href="#L66">66</a>    kSpB = tostring(Meta.specialIds.kSpB),</span>
+<span id="L67" class="line"><a href="#L67">67</a>    material_N_1_1 = &#x27;1&#x27;, --鸡蛋</span>
+<span id="L68" class="line"><a href="#L68">68</a>    material_N_1_2 = &#x27;2&#x27;, --油菜</span>
+<span id="L69" class="line"><a href="#L69">69</a>    material_N_1_3 = &#x27;3&#x27;, --面粉</span>
+<span id="L70" class="line"><a href="#L70">70</a>    material_N_1_4 = &#x27;4&#x27;, --蘑菇</span>
+<span id="L71" class="line"><a href="#L71">71</a></span>
+<span id="L72" class="line"><a href="#L72">72</a>    material_N_2_1 = &#x27;5&#x27;, --猪肉</span>
+<span id="L73" class="line"><a href="#L73">73</a>    material_N_2_2 = &#x27;6&#x27;, --鸡肉</span>
+<span id="L74" class="line"><a href="#L74">74</a></span>
+<span id="L75" class="line"><a href="#L75">75</a>    material_N_3_1 = &#x27;7&#x27;, -- 鱼</span>
+<span id="L76" class="line"><a href="#L76">76</a>    material_N_3_2 = &#x27;8&#x27;, --扇贝</span>
+<span id="L77" class="line"><a href="#L77">77</a></span>
+<span id="L78" class="line"><a href="#L78">78</a>    material_EX_A_12 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpA * 100 + 12), --蒜</span>
+<span id="L79" class="line"><a href="#L79">79</a>    material_EX_A_13 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpA * 100 + 13), --葱</span>
+<span id="L80" class="line"><a href="#L80">80</a>    material_EX_A_20 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpA * 100 + 20), --金针菇</span>
+<span id="L81" class="line"><a href="#L81">81</a>    material_EX_A_21_22 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpA * 100 + 21), --面团</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>    material_EX_B_12 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpB * 100 + 12), --虾</span>
+<span id="L84" class="line"><a href="#L84">84</a>    material_EX_B_13 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpB * 100 + 13), --鸭子</span>
+<span id="L85" class="line"><a href="#L85">85</a>    material_EX_B_20 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpB * 100 + 20), --肥牛</span>
+<span id="L86" class="line"><a href="#L86">86</a>    material_EX_B_21 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpB * 100 + 21), --豆沙</span>
+<span id="L87" class="line"><a href="#L87">87</a>    material_EX_B_22 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpB * 100 + 22), --果仁</span>
+<span id="L88" class="line"><a href="#L88">88</a>    material_EX_B_23 = tostring(Meta.clientIdBegin +  Meta.specialIds.kSpB * 100 + 23), --馅料</span>
+<span id="L89" class="line"><a href="#L89">89</a>}</span>
+<span id="L90" class="line"><a href="#L90">90</a></span>
+<span id="L91" class="line"><a href="#L91">91</a>Meta.itemIds = {</span>
+<span id="L92" class="line"><a href="#L92">92</a>    kSpA = 52906,</span>
+<span id="L93" class="line"><a href="#L93">93</a>    kSpB = 52907,</span>
+<span id="L94" class="line"><a href="#L94">94</a>}</span>
+<span id="L95" class="line"><a href="#L95">95</a></span>
+<span id="L96" class="line"><a href="#L96">96</a>Meta.itemId2MaterialsId = {</span>
+<span id="L97" class="line"><a href="#L97">97</a>    [Meta.itemIds.kSpA] = Meta.materialIds.kSpA,</span>
+<span id="L98" class="line"><a href="#L98">98</a>    [Meta.itemIds.kSpB] = Meta.materialIds.kSpB,</span>
+<span id="L99" class="line"><a href="#L99">99</a>}</span>
+<span id="L100" class="line"><a href="#L100">100</a></span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a></span>
+<span id="L103" class="line"><a href="#L103">103</a>Meta.spMenuNeedMaterials = {</span>
+<span id="L104" class="line"><a href="#L104">104</a>    [112] = {A = Meta.materialIds.material_EX_A_12,B = Meta.materialIds.material_EX_B_12},</span>
+<span id="L105" class="line"><a href="#L105">105</a>    [113] = {A = Meta.materialIds.material_EX_A_13,B = Meta.materialIds.material_EX_B_13},</span>
+<span id="L106" class="line"><a href="#L106">106</a>    [120] = {A = Meta.materialIds.material_EX_A_20,B = Meta.materialIds.material_EX_B_20},</span>
+<span id="L107" class="line"><a href="#L107">107</a>    [121] = {A = Meta.materialIds.material_EX_A_21_22,B = Meta.materialIds.material_EX_B_21},</span>
+<span id="L108" class="line"><a href="#L108">108</a>    [122] = {A = Meta.materialIds.material_EX_A_21_22,B = Meta.materialIds.material_EX_B_22},</span>
+<span id="L109" class="line"><a href="#L109">109</a>    [123] = {A = Meta.materialIds.material_EX_A_21_22,B = Meta.materialIds.material_EX_B_23},</span>
+<span id="L110" class="line"><a href="#L110">110</a>}</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>Meta.materialRes = {</span>
+<span id="L113" class="line"><a href="#L113">113</a>    [Meta.materialIds.material_N_1_1] = &#x27;ingredient_52.png&#x27;,</span>
+<span id="L114" class="line"><a href="#L114">114</a>    [Meta.materialIds.material_N_1_2] = &#x27;ingredient_53.png&#x27;,</span>
+<span id="L115" class="line"><a href="#L115">115</a>    [Meta.materialIds.material_N_1_3] = &#x27;ingredient_54.png&#x27;,</span>
+<span id="L116" class="line"><a href="#L116">116</a>    [Meta.materialIds.material_N_1_4] = &#x27;ingredient_55.png&#x27;,</span>
+<span id="L117" class="line"><a href="#L117">117</a>    [Meta.materialIds.material_N_2_1] = &#x27;ingredient_56.png&#x27;,</span>
+<span id="L118" class="line"><a href="#L118">118</a>    [Meta.materialIds.material_N_2_2] = &#x27;ingredient_57.png&#x27;,</span>
+<span id="L119" class="line"><a href="#L119">119</a>    [Meta.materialIds.material_N_3_1] = &#x27;ingredient_58.png&#x27;,</span>
+<span id="L120" class="line"><a href="#L120">120</a>    [Meta.materialIds.material_N_3_2] = &#x27;ingredient_59.png&#x27;,</span>
+<span id="L121" class="line"><a href="#L121">121</a>    [Meta.materialIds.kSpA] = &#x27;ingredient_rand.png&#x27;,</span>
+<span id="L122" class="line"><a href="#L122">122</a>    [Meta.materialIds.kSpB] = &#x27;ingredient_rand.png&#x27;,</span>
+<span id="L123" class="line"><a href="#L123">123</a></span>
+<span id="L124" class="line"><a href="#L124">124</a>    [Meta.materialIds.material_EX_A_12] = &#x27;ingredient_sp4.png&#x27;,</span>
+<span id="L125" class="line"><a href="#L125">125</a>    [Meta.materialIds.material_EX_A_13] = &#x27;ingredient_sp3.png&#x27;,</span>
+<span id="L126" class="line"><a href="#L126">126</a>    [Meta.materialIds.material_EX_A_20] = &#x27;ingredient_sp2.png&#x27;,</span>
+<span id="L127" class="line"><a href="#L127">127</a>    [Meta.materialIds.material_EX_B_12] = &#x27;ingredient_sp5.png&#x27;,</span>
+<span id="L128" class="line"><a href="#L128">128</a>    [Meta.materialIds.material_EX_B_13] = &#x27;ingredient_sp6.png&#x27;,</span>
+<span id="L129" class="line"><a href="#L129">129</a>    [Meta.materialIds.material_EX_B_20] = &#x27;ingredient_sp1.png&#x27;,</span>
+<span id="L130" class="line"><a href="#L130">130</a></span>
+<span id="L131" class="line"><a href="#L131">131</a></span>
+<span id="L132" class="line"><a href="#L132">132</a>    [Meta.materialIds.material_EX_A_21_22] = &#x27;ingredient_sp7.png&#x27;,</span>
+<span id="L133" class="line"><a href="#L133">133</a>    [Meta.materialIds.material_EX_B_21] = &#x27;ingredient_sp8.png&#x27;,</span>
+<span id="L134" class="line"><a href="#L134">134</a>    [Meta.materialIds.material_EX_B_22] = &#x27;ingredient_sp9.png&#x27;,</span>
+<span id="L135" class="line"><a href="#L135">135</a>    [Meta.materialIds.material_EX_B_23] = &#x27;ingredient_sp10.png&#x27;,</span>
+<span id="L136" class="line"><a href="#L136">136</a>}</span>
+<span id="L137" class="line"><a href="#L137">137</a></span>
+<span id="L138" class="line"><a href="#L138">138</a>Meta.menuRes = {</span>
+<span id="L139" class="line"><a href="#L139">139</a>    [0] = &#x27;menu_0.png&#x27;,</span>
+<span id="L140" class="line"><a href="#L140">140</a>    [1] = &#x27;menu_1.png&#x27;,</span>
+<span id="L141" class="line"><a href="#L141">141</a>    [2] = &#x27;menu_2.png&#x27;,</span>
+<span id="L142" class="line"><a href="#L142">142</a>    [3] = &#x27;menu_3.png&#x27;,</span>
+<span id="L143" class="line"><a href="#L143">143</a>    [4] = &#x27;menu_4.png&#x27;,</span>
+<span id="L144" class="line"><a href="#L144">144</a>    [5] = &#x27;menu_5.png&#x27;,</span>
+<span id="L145" class="line"><a href="#L145">145</a>    [112] = &#x27;menu_12.png&#x27;,</span>
+<span id="L146" class="line"><a href="#L146">146</a>    [113] = &#x27;menu_13.png&#x27;,</span>
+<span id="L147" class="line"><a href="#L147">147</a>    [120] = &#x27;menu_20.png&#x27;,</span>
+<span id="L148" class="line"><a href="#L148">148</a>    [121] = &#x27;menu_21.png&#x27;,</span>
+<span id="L149" class="line"><a href="#L149">149</a>    [122] = &#x27;menu_22.png&#x27;,</span>
+<span id="L150" class="line"><a href="#L150">150</a>    [123] = &#x27;menu_23.png&#x27;,</span>
+<span id="L151" class="line"><a href="#L151">151</a>}</span>
+<span id="L152" class="line"><a href="#L152">152</a></span>
+<span id="L153" class="line"><a href="#L153">153</a>Meta.popGiftStage4Key = &#x27;TodayStage4PopoutGift&#x27;</span>
+<span id="L154" class="line"><a href="#L154">154</a>Meta.popYinLiuStage4Key = &#x27;TodayStage4PopoutYinliu&#x27;</span>
+<span id="L155" class="line"><a href="#L155">155</a>Meta.limitTimePassLevelKey = &#x27;limitTimePassLevel&#x27;</span>
+<span id="L156" class="line"><a href="#L156">156</a>Meta.giftPopoutLimit = 3</span>
+<span id="L157" class="line"><a href="#L157">157</a></span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>Meta.materialName = {</span>
+<span id="L160" class="line"><a href="#L160">160</a>    [Meta.materialIds.material_N_1_1] = &#x27;鸡蛋&#x27;,</span>
+<span id="L161" class="line"><a href="#L161">161</a>    [Meta.materialIds.material_N_1_2] = &#x27;青菜&#x27;,</span>
+<span id="L162" class="line"><a href="#L162">162</a>    [Meta.materialIds.material_N_1_3] = &#x27;面粉&#x27;,</span>
+<span id="L163" class="line"><a href="#L163">163</a>    [Meta.materialIds.material_N_1_4] = &#x27;蘑菇&#x27;,</span>
+<span id="L164" class="line"><a href="#L164">164</a>    [Meta.materialIds.material_N_2_1] = &#x27;猪肉&#x27;,</span>
+<span id="L165" class="line"><a href="#L165">165</a>    [Meta.materialIds.material_N_2_2] = &#x27;鸡肉&#x27;,</span>
+<span id="L166" class="line"><a href="#L166">166</a>    [Meta.materialIds.material_N_3_1] = &#x27;鱼&#x27;,</span>
+<span id="L167" class="line"><a href="#L167">167</a>    [Meta.materialIds.material_N_3_2] = &#x27;扇贝&#x27;,</span>
+<span id="L168" class="line"><a href="#L168">168</a>    [Meta.materialIds.kSpA] = &#x27;万能食材A&#x27;,</span>
+<span id="L169" class="line"><a href="#L169">169</a>    [Meta.materialIds.kSpB] = &#x27;万能食材B&#x27;,</span>
+<span id="L170" class="line"><a href="#L170">170</a></span>
+<span id="L171" class="line"><a href="#L171">171</a>    [Meta.materialIds.material_EX_A_12] = &#x27;蒜&#x27;,</span>
+<span id="L172" class="line"><a href="#L172">172</a>    [Meta.materialIds.material_EX_A_13] = &#x27;葱&#x27;,</span>
+<span id="L173" class="line"><a href="#L173">173</a>    [Meta.materialIds.material_EX_A_20] = &#x27;金针菇&#x27;,</span>
+<span id="L174" class="line"><a href="#L174">174</a>    [Meta.materialIds.material_EX_B_12] = &#x27;虾&#x27;,</span>
+<span id="L175" class="line"><a href="#L175">175</a>    [Meta.materialIds.material_EX_B_13] = &#x27;鸭子&#x27;,</span>
+<span id="L176" class="line"><a href="#L176">176</a>    [Meta.materialIds.material_EX_B_20] = &#x27;肥牛&#x27;,</span>
+<span id="L177" class="line"><a href="#L177">177</a></span>
+<span id="L178" class="line"><a href="#L178">178</a></span>
+<span id="L179" class="line"><a href="#L179">179</a>    [Meta.materialIds.material_EX_A_21_22] = &#x27;面团&#x27;,</span>
+<span id="L180" class="line"><a href="#L180">180</a>    [Meta.materialIds.material_EX_B_21] = &#x27;豆沙&#x27;,</span>
+<span id="L181" class="line"><a href="#L181">181</a>    [Meta.materialIds.material_EX_B_22] = &#x27;果仁&#x27;,</span>
+<span id="L182" class="line"><a href="#L182">182</a>    [Meta.materialIds.material_EX_B_23] = &#x27;馅料&#x27;,</span>
+<span id="L183" class="line"><a href="#L183">183</a>}</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>Meta.materialDesc = {</span>
+<span id="L186" class="line"><a href="#L186">186</a>    [Meta.materialIds.material_N_1_1] = &#x27;闯关获得&#x27;,</span>
+<span id="L187" class="line"><a href="#L187">187</a>    [Meta.materialIds.material_N_1_2] = &#x27;闯关获得&#x27;,</span>
+<span id="L188" class="line"><a href="#L188">188</a>    [Meta.materialIds.material_N_1_3] = &#x27;闯关获得&#x27;,</span>
+<span id="L189" class="line"><a href="#L189">189</a>    [Meta.materialIds.material_N_1_4] = &#x27;闯关获得&#x27;,</span>
+<span id="L190" class="line"><a href="#L190">190</a>    [Meta.materialIds.material_N_2_1] = &#x27;三星通关获得&#x27;,</span>
+<span id="L191" class="line"><a href="#L191">191</a>    [Meta.materialIds.material_N_2_2] = &#x27;三星通关获得&#x27;,</span>
+<span id="L192" class="line"><a href="#L192">192</a>    [Meta.materialIds.material_N_3_1] = &#x27;彩星通关获得&#x27;,</span>
+<span id="L193" class="line"><a href="#L193">193</a>    [Meta.materialIds.material_N_3_2] = &#x27;彩星通关获得&#x27;,</span>
+<span id="L194" class="line"><a href="#L194">194</a>    [Meta.materialIds.kSpA] = &#x27;三星或彩星通关获得&#x27;,</span>
+<span id="L195" class="line"><a href="#L195">195</a>    [Meta.materialIds.kSpB] = &#x27;三星或彩星通关获得&#x27;,</span>
+<span id="L196" class="line"><a href="#L196">196</a></span>
+<span id="L197" class="line"><a href="#L197">197</a>    [Meta.materialIds.material_EX_A_12] = &#x27;闯关获得&#x27;,</span>
+<span id="L198" class="line"><a href="#L198">198</a>    [Meta.materialIds.material_EX_A_13] = &#x27;闯关获得&#x27;,</span>
+<span id="L199" class="line"><a href="#L199">199</a>    [Meta.materialIds.material_EX_A_20] = &#x27;闯关获得&#x27;,</span>
+<span id="L200" class="line"><a href="#L200">200</a>    [Meta.materialIds.material_EX_B_12] = &#x27;三星或彩星通关获得&#x27;,</span>
+<span id="L201" class="line"><a href="#L201">201</a>    [Meta.materialIds.material_EX_B_13] = &#x27;三星或彩星通关获得&#x27;,</span>
+<span id="L202" class="line"><a href="#L202">202</a>    [Meta.materialIds.material_EX_B_20] = &#x27;三星或彩星通关获得&#x27;,</span>
+<span id="L203" class="line"><a href="#L203">203</a></span>
+<span id="L204" class="line"><a href="#L204">204</a>    [Meta.materialIds.material_EX_A_21_22] = &#x27;闯关获得&#x27;,</span>
+<span id="L205" class="line"><a href="#L205">205</a>    [Meta.materialIds.material_EX_B_21] = &#x27;三星或彩星通关获得&#x27;,</span>
+<span id="L206" class="line"><a href="#L206">206</a>    [Meta.materialIds.material_EX_B_22] = &#x27;三星或彩星通关获得&#x27;,</span>
+<span id="L207" class="line"><a href="#L207">207</a>    [Meta.materialIds.material_EX_B_23] = &#x27;三星或彩星通关获得&#x27;,</span>
+<span id="L208" class="line"><a href="#L208">208</a>}</span>
+<span id="L209" class="line"><a href="#L209">209</a></span>
+<span id="L210" class="line"><a href="#L210">210</a>Meta.materialBgRes = {</span>
+<span id="L211" class="line"><a href="#L211">211</a>    [Meta.materialIds.material_N_1_1] = &#x27;level_1.png&#x27;,</span>
+<span id="L212" class="line"><a href="#L212">212</a>    [Meta.materialIds.material_N_1_2] = &#x27;level_1.png&#x27;,</span>
+<span id="L213" class="line"><a href="#L213">213</a>    [Meta.materialIds.material_N_1_3] = &#x27;level_1.png&#x27;,</span>
+<span id="L214" class="line"><a href="#L214">214</a>    [Meta.materialIds.material_N_1_4] = &#x27;level_1.png&#x27;,</span>
+<span id="L215" class="line"><a href="#L215">215</a>    [Meta.materialIds.material_N_2_1] = &#x27;level_2.png&#x27;,</span>
+<span id="L216" class="line"><a href="#L216">216</a>    [Meta.materialIds.material_N_2_2] = &#x27;level_2.png&#x27;,</span>
+<span id="L217" class="line"><a href="#L217">217</a>    [Meta.materialIds.material_N_3_1] = &#x27;level_3.png&#x27;,</span>
+<span id="L218" class="line"><a href="#L218">218</a>    [Meta.materialIds.material_N_3_2] = &#x27;level_4.png&#x27;,</span>
+<span id="L219" class="line"><a href="#L219">219</a></span>
+<span id="L220" class="line"><a href="#L220">220</a>    [Meta.materialIds.material_EX_A_12] = &#x27;level_5.png&#x27;,</span>
+<span id="L221" class="line"><a href="#L221">221</a>    [Meta.materialIds.material_EX_A_13] = &#x27;level_5.png&#x27;,</span>
+<span id="L222" class="line"><a href="#L222">222</a>    [Meta.materialIds.material_EX_A_20] = &#x27;level_5.png&#x27;,</span>
+<span id="L223" class="line"><a href="#L223">223</a></span>
+<span id="L224" class="line"><a href="#L224">224</a>    [Meta.materialIds.material_EX_B_12] = &#x27;level_6.png&#x27;,</span>
+<span id="L225" class="line"><a href="#L225">225</a>    [Meta.materialIds.material_EX_B_13] = &#x27;level_6.png&#x27;,</span>
+<span id="L226" class="line"><a href="#L226">226</a>    [Meta.materialIds.material_EX_B_20] = &#x27;level_6.png&#x27;,</span>
+<span id="L227" class="line"><a href="#L227">227</a></span>
+<span id="L228" class="line"><a href="#L228">228</a>    [Meta.materialIds.kSpA] = &#x27;level_6.png&#x27;,</span>
+<span id="L229" class="line"><a href="#L229">229</a>    [Meta.materialIds.kSpB] = &#x27;level_6.png&#x27;,</span>
+<span id="L230" class="line"><a href="#L230">230</a></span>
+<span id="L231" class="line"><a href="#L231">231</a>    [Meta.materialIds.material_EX_A_21_22] = &#x27;level_5.png&#x27;,</span>
+<span id="L232" class="line"><a href="#L232">232</a>    [Meta.materialIds.material_EX_B_21] = &#x27;level_6.png&#x27;,</span>
+<span id="L233" class="line"><a href="#L233">233</a>    [Meta.materialIds.material_EX_B_22] = &#x27;level_6.png&#x27;,</span>
+<span id="L234" class="line"><a href="#L234">234</a>    [Meta.materialIds.material_EX_B_23] = &#x27;level_6.png&#x27;,</span>
+<span id="L235" class="line"><a href="#L235">235</a>}</span>
+<span id="L236" class="line"><a href="#L236">236</a></span>
+<span id="L237" class="line"><a href="#L237">237</a></span>
+<span id="L238" class="line"><a href="#L238">238</a>Meta.menuName = {</span>
+<span id="L239" class="line"><a href="#L239">239</a>    [0] = &quot;&quot;,</span>
+<span id="L240" class="line"><a href="#L240">240</a>    [1] = &quot;煎蛋拉面&quot;,</span>
+<span id="L241" class="line"><a href="#L241">241</a>    [2] = &quot;小鸡炖蘑菇&quot;,</span>
+<span id="L242" class="line"><a href="#L242">242</a>    [3] = &quot;四喜丸子&quot;,</span>
+<span id="L243" class="line"><a href="#L243">243</a>    [4] = &quot;糖醋鲤鱼&quot;,</span>
+<span id="L244" class="line"><a href="#L244">244</a>    [5] = &quot;佛跳墙&quot;,</span>
+<span id="L245" class="line"><a href="#L245">245</a>    [112] = &quot;蒜蓉虾球&quot;,</span>
+<span id="L246" class="line"><a href="#L246">246</a>    [113] = &quot;北京烤鸭&quot;,</span>
+<span id="L247" class="line"><a href="#L247">247</a>    [120] = &quot;肥牛火锅&quot;,</span>
+<span id="L248" class="line"><a href="#L248">248</a>    [121] = &quot;豆沙月饼&quot;,</span>
+<span id="L249" class="line"><a href="#L249">249</a>    [122] = &quot;五仁月饼&quot;,</span>
+<span id="L250" class="line"><a href="#L250">250</a>    [123] = &quot;温暖水饺&quot;,</span>
+<span id="L251" class="line"><a href="#L251">251</a>}</span>
+<span id="L252" class="line"><a href="#L252">252</a></span>
+<span id="L253" class="line"><a href="#L253">253</a>Meta.menuCollectionIdMapping = {</span>
+<span id="L254" class="line"><a href="#L254">254</a>    [1] = &quot;92&quot;,</span>
+<span id="L255" class="line"><a href="#L255">255</a>    [2] = &quot;93&quot;,</span>
+<span id="L256" class="line"><a href="#L256">256</a>    [3] = &quot;94&quot;,</span>
+<span id="L257" class="line"><a href="#L257">257</a>    [4] = &quot;95&quot;,</span>
+<span id="L258" class="line"><a href="#L258">258</a>    [5] = &quot;96&quot;,</span>
+<span id="L259" class="line"><a href="#L259">259</a>    [112] = &quot;97&quot;,</span>
+<span id="L260" class="line"><a href="#L260">260</a>    [113] = &quot;98&quot;,</span>
+<span id="L261" class="line"><a href="#L261">261</a>    [120] = &quot;99&quot;,</span>
+<span id="L262" class="line"><a href="#L262">262</a>    [121] = &quot;128&quot;,</span>
+<span id="L263" class="line"><a href="#L263">263</a>    [122] = &quot;129&quot;,</span>
+<span id="L264" class="line"><a href="#L264">264</a>    [123] = &quot;139&quot;,</span>
+<span id="L265" class="line"><a href="#L265">265</a>    -- [&quot;93&quot;] = 2,</span>
+<span id="L266" class="line"><a href="#L266">266</a>    -- [&quot;94&quot;] = 3,</span>
+<span id="L267" class="line"><a href="#L267">267</a>    -- [&quot;95&quot;] = 4,</span>
+<span id="L268" class="line"><a href="#L268">268</a>    -- [&quot;96&quot;] = 5,</span>
+<span id="L269" class="line"><a href="#L269">269</a>    -- [&quot;97&quot;] = 112,</span>
+<span id="L270" class="line"><a href="#L270">270</a>    -- [&quot;98&quot;] = 113,</span>
+<span id="L271" class="line"><a href="#L271">271</a>    -- [&quot;99&quot;] = 120,</span>
+<span id="L272" class="line"><a href="#L272">272</a>}</span>
+<span id="L273" class="line"><a href="#L273">273</a></span>
+<span id="L274" class="line"><a href="#L274">274</a>Meta.menuDesc = {</span>
+<span id="L275" class="line"><a href="#L275">275</a>    [0] = &quot;完成限时食谱解锁图鉴&quot;,</span>
+<span id="L276" class="line"><a href="#L276">276</a>    [1] = &quot;拉面裹满了鲜美的汤汁，搭配酥香可口的煎蛋，是最简单的食材却有最幸福的味道。&quot;,</span>
+<span id="L277" class="line"><a href="#L277">277</a>    [2] = &quot;鸡肉酥烂入味，与蘑菇的鲜香融合，炖出美味浓郁的汤汁，是一道给人满满的温暖感的家常菜。&quot;,</span>
+<span id="L278" class="line"><a href="#L278">278</a>    [3] = &quot;肉丸外脆里嫩，搭配浓郁酱汁，美味可口。不多不少的四枚肉丸，寓意着福、禄、寿、喜四大喜事。&quot;,</span>
+<span id="L279" class="line"><a href="#L279">279</a>    [4] = &quot;炸制过的鱼肉鲜嫩滑润，浇上特制糖醋汁，制成这道酸甜香脆，口感丰富的美味。&quot;,</span>
+<span id="L280" class="line"><a href="#L280">280</a>    [5] = &quot;选用多种食材，以高汤文火煨制而成的名菜。浓郁醇香，荤而不腻，正是：酝启荤香飘四邻，佛闻弃禅跳墙来。&quot;,</span>
+<span id="L281" class="line"><a href="#L281">281</a>    [112] = &quot;新鲜多汁的虾仁搭配蒜蓉调味，烹饪而成一道滋味鲜美的佳肴，外型精致色泽诱人，品尝起来回味无穷。&quot;,</span>
+<span id="L282" class="line"><a href="#L282">282</a>    [113] = &quot;鸭皮酥脆，鸭肉多汁，搭配上薄饼、酱料、葱丝、黄瓜，入口层次丰富，滋味醇厚，被誉为“天下美味”。&quot;,</span>
+<span id="L283" class="line"><a href="#L283">283</a>    [120] = &quot;中华美食的代表之一，火锅把浓厚汤底和新鲜食材完美地结合在一起，让每一位品尝者都能享受自己最爱的风味。&quot;,</span>
+<span id="L284" class="line"><a href="#L284">284</a>    [121] = &quot;选用红豆精心制作内馅，甜而不腻，口感绵软顺滑，入口即化。&quot;,</span>
+<span id="L285" class="line"><a href="#L285">285</a>    [122] = &quot;经典的中式传统月饼，内馅由五种坚果组成，香脆可口，营养丰富。&quot;,</span>
+<span id="L286" class="line"><a href="#L286">286</a>    [123] = &quot;咬一口嫩滑多汁，饱满的滋味在唇齿间蔓延，温暖入心。&quot;,</span>
+<span id="L287" class="line"><a href="#L287">287</a>}</span>
+<span id="L288" class="line"><a href="#L288">288</a></span>
+<span id="L289" class="line"><a href="#L289">289</a>Meta.titleText = {</span>
+<span id="L290" class="line"><a href="#L290">290</a>    [&quot;52&quot;] = &quot;普通食材-鸡蛋&quot;,</span>
+<span id="L291" class="line"><a href="#L291">291</a>    [&quot;53&quot;] = &quot;普通食材-青菜&quot;,</span>
+<span id="L292" class="line"><a href="#L292">292</a>    [&quot;54&quot;] = &quot;普通食材-面粉&quot;,</span>
+<span id="L293" class="line"><a href="#L293">293</a>    [&quot;55&quot;] = &quot;普通食材-蘑菇&quot;,</span>
+<span id="L294" class="line"><a href="#L294">294</a>    [&quot;56&quot;] = &quot;中级食材-猪肉&quot;,</span>
+<span id="L295" class="line"><a href="#L295">295</a>    [&quot;57&quot;] = &quot;中级食材-鸡肉&quot;,</span>
+<span id="L296" class="line"><a href="#L296">296</a>    [&quot;58&quot;] = &quot;高级食材-鱼&quot;,</span>
+<span id="L297" class="line"><a href="#L297">297</a>    [&quot;59&quot;] = &quot;珍贵食材-扇贝&quot;,</span>
+<span id="L298" class="line"><a href="#L298">298</a>    [&quot;60&quot;] = {</span>
+<span id="L299" class="line"><a href="#L299">299</a>        [1] = &quot;限时食材-蒜&quot;,</span>
+<span id="L300" class="line"><a href="#L300">300</a>        [2] = &quot;限时食材-葱&quot;,</span>
+<span id="L301" class="line"><a href="#L301">301</a>        [3] = &quot;限时食材-金针菇&quot;,</span>
+<span id="L302" class="line"><a href="#L302">302</a>        [4] = &quot;限时食材-面团&quot;,</span>
+<span id="L303" class="line"><a href="#L303">303</a>        [5] = &quot;限时食材-面团&quot;,</span>
+<span id="L304" class="line"><a href="#L304">304</a>        [6] = &quot;限时食材-面团&quot;,</span>
+<span id="L305" class="line"><a href="#L305">305</a>    },</span>
+<span id="L306" class="line"><a href="#L306">306</a>    [&quot;61&quot;] = {</span>
+<span id="L307" class="line"><a href="#L307">307</a>        [1] = &quot;高级限时食材-虾&quot;,</span>
+<span id="L308" class="line"><a href="#L308">308</a>        [2] = &quot;高级限时食材-鸭子&quot;,</span>
+<span id="L309" class="line"><a href="#L309">309</a>        [3] = &quot;高级限时食材-肥牛&quot;,</span>
+<span id="L310" class="line"><a href="#L310">310</a>        [4] = &quot;高级限时食材-豆沙&quot;,</span>
+<span id="L311" class="line"><a href="#L311">311</a>        [5] = &quot;高级限时食材-果仁&quot;,</span>
+<span id="L312" class="line"><a href="#L312">312</a>        [6] = &quot;限时食材-馅料&quot;,</span>
+<span id="L313" class="line"><a href="#L313">313</a>    },</span>
+<span id="L314" class="line"><a href="#L314">314</a>    [&quot;106&quot;] = &quot;随机食材&quot;,</span>
+<span id="L315" class="line"><a href="#L315">315</a>}</span>
+<span id="L316" class="line"><a href="#L316">316</a></span>
+<span id="L317" class="line"><a href="#L317">317</a>return Meta</span></pre></main></html>

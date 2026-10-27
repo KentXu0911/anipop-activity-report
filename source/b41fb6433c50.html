@@ -1,0 +1,121 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/mergeevolution/const/MergeEvolutionConst.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="b41fb6433c50.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/mergeevolution/const/MergeEvolutionConst.lua</h1><p>SHA256 a892620548974e0b5fae100347bc04d6e283a187a850c3f074fec48a32d2e99c</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Const = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a>Const.PACKAGE_MODULE_VERSION = 1     -- 礼包版本</span>
+<span id="L3" class="line"><a href="#L3">3</a>Const.actOpenVersion = 1</span>
+<span id="L4" class="line"><a href="#L4">4</a>Const.actId = 3077</span>
+<span id="L5" class="line"><a href="#L5">5</a>Const.actChName = &quot;春田合合&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>Const.actSource = &quot;mergeevolution/Config.lua&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a></span>
+<span id="L8" class="line"><a href="#L8">8</a>Const.gameName = &quot;small_merge&quot;            -- 打点用</span>
+<span id="L9" class="line"><a href="#L9">9</a>Const.dcFeature = &quot;small_merge&quot;            -- 打点用</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>Const.downloadLabels = {</span>
+<span id="L12" class="line"><a href="#L12">12</a>    &quot;mergeevolution_pub&quot;,</span>
+<span id="L13" class="line"><a href="#L13">13</a>    &quot;mergeevolution_autopop&quot;,</span>
+<span id="L14" class="line"><a href="#L14">14</a>}</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>Const.needLoadFiles = {</span>
+<span id="L17" class="line"><a href="#L17">17</a>    &quot;amf/activity/mergeevolution/common/material/collection.png&quot;,</span>
+<span id="L18" class="line"><a href="#L18">18</a>}</span>
+<span id="L19" class="line"><a href="#L19">19</a></span>
+<span id="L20" class="line"><a href="#L20">20</a>Const.infoPrefix = &quot;userInfo&quot;</span>
+<span id="L21" class="line"><a href="#L21">21</a>Const.configPrefix = &quot;localConfig&quot;</span>
+<span id="L22" class="line"><a href="#L22">22</a>Const.timePrefix = &quot;timeInfo&quot;</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>Const.MapStatus = {</span>
+<span id="L25" class="line"><a href="#L25">25</a>    LOCK = 1,           -- 进行中，包括未解锁和解锁未领奖</span>
+<span id="L26" class="line"><a href="#L26">26</a>    FINISHED = 2,       -- 已领地图奖励</span>
+<span id="L27" class="line"><a href="#L27">27</a>    MOSAIC = 3,         -- 已镶嵌宝石</span>
+<span id="L28" class="line"><a href="#L28">28</a>}</span>
+<span id="L29" class="line"><a href="#L29">29</a></span>
+<span id="L30" class="line"><a href="#L30">30</a>Const.haptics = {</span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>}</span>
+<span id="L33" class="line"><a href="#L33">33</a></span>
+<span id="L34" class="line"><a href="#L34">34</a>Const.ActProps = {</span>
+<span id="L35" class="line"><a href="#L35">35</a>    COLLECTION = 52938,</span>
+<span id="L36" class="line"><a href="#L36">36</a>    SCORE_BUFF_20 = 52939,</span>
+<span id="L37" class="line"><a href="#L37">37</a>    SCORE_BUFF_50 = 52940,</span>
+<span id="L38" class="line"><a href="#L38">38</a>    </span>
+<span id="L39" class="line"><a href="#L39">39</a>}</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>Const.RealRewards = {</span>
+<span id="L42" class="line"><a href="#L42">42</a>    REAL_REWARD_1 = 80292,</span>
+<span id="L43" class="line"><a href="#L43">43</a>    REAL_REWARD_2 = 80299,</span>
+<span id="L44" class="line"><a href="#L44">44</a>}</span>
+<span id="L45" class="line"><a href="#L45">45</a></span>
+<span id="L46" class="line"><a href="#L46">46</a>Const.SkinMap = {</span>
+<span id="L47" class="line"><a href="#L47">47</a>    SPRING_2026_03 = 1,</span>
+<span id="L48" class="line"><a href="#L48">48</a>    SPRING_2026_05 = 2,</span>
+<span id="L49" class="line"><a href="#L49">49</a>    SPRING_2026_06 = 3,</span>
+<span id="L50" class="line"><a href="#L50">50</a>    SPRING_2026_07 = 4,</span>
+<span id="L51" class="line"><a href="#L51">51</a>}</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>Const.ResInPack = {</span>
+<span id="L54" class="line"><a href="#L54">54</a>     -- texture</span>
+<span id="L55" class="line"><a href="#L55">55</a>    COLLECTION = &quot;/material/collection.png&quot;,      --体力icon</span>
+<span id="L56" class="line"><a href="#L56">56</a>    MATERIAL =  &quot;/material/material.plist&quot;,      --棋子图标</span>
+<span id="L57" class="line"><a href="#L57">57</a>    --spine</span>
+<span id="L58" class="line"><a href="#L58">58</a>    BOX_GEM = &quot;/spine/baoxiang_zuanshi.skel&quot;,    --宝石动画</span>
+<span id="L59" class="line"><a href="#L59">59</a>    </span>
+<span id="L60" class="line"><a href="#L60">60</a>}</span>
+<span id="L61" class="line"><a href="#L61">61</a></span>
+<span id="L62" class="line"><a href="#L62">62</a>Const.PanelUIInPack = {</span>
+<span id="L63" class="line"><a href="#L63">63</a>    YINLIU_PANEL = &quot;.YinliuPanel_UI&quot;,</span>
+<span id="L64" class="line"><a href="#L64">64</a>    PROCESS_GIFT_PANEL = &quot;.ProcessGiftPanel_UI&quot;,</span>
+<span id="L65" class="line"><a href="#L65">65</a>}</span>
+<span id="L66" class="line"><a href="#L66">66</a></span>
+<span id="L67" class="line"><a href="#L67">67</a>Const.IsResOrUICommon = {</span>
+<span id="L68" class="line"><a href="#L68">68</a>    [Const.ResInPack.COLLECTION] = true,</span>
+<span id="L69" class="line"><a href="#L69">69</a>    [Const.PanelUIInPack.PROCESS_GIFT_PANEL] = true,</span>
+<span id="L70" class="line"><a href="#L70">70</a>}</span>
+<span id="L71" class="line"><a href="#L71">71</a></span>
+<span id="L72" class="line"><a href="#L72">72</a>Const.SkinPath = {</span>
+<span id="L73" class="line"><a href="#L73">73</a>    [Const.SkinMap.SPRING_2026_03] = &quot;spring_2026_05&quot;,</span>
+<span id="L74" class="line"><a href="#L74">74</a>    [Const.SkinMap.SPRING_2026_05] = &quot;spring_2026_05&quot;,</span>
+<span id="L75" class="line"><a href="#L75">75</a>    [Const.SkinMap.SPRING_2026_06] = &quot;spring_2026_06&quot;,</span>
+<span id="L76" class="line"><a href="#L76">76</a>    [Const.SkinMap.SPRING_2026_07] = &quot;spring_2026_07&quot;,</span>
+<span id="L77" class="line"><a href="#L77">77</a>}</span>
+<span id="L78" class="line"><a href="#L78">78</a></span>
+<span id="L79" class="line"><a href="#L79">79</a>Const.OnceGuideIndexTable = {</span>
+<span id="L80" class="line"><a href="#L80">80</a>    2,   -- 新手引导2-5</span>
+<span id="L81" class="line"><a href="#L81">81</a>    3,</span>
+<span id="L82" class="line"><a href="#L82">82</a>    4,</span>
+<span id="L83" class="line"><a href="#L83">83</a>    5,</span>
+<span id="L84" class="line"><a href="#L84">84</a>}</span>
+<span id="L85" class="line"><a href="#L85">85</a></span>
+<span id="L86" class="line"><a href="#L86">86</a>function Const:getResPath(Res)</span>
+<span id="L87" class="line"><a href="#L87">87</a>    local mgr = _G.amfBean(&quot;MergeEvolutionManager&quot;)</span>
+<span id="L88" class="line"><a href="#L88">88</a>    local skin = mgr:getModel():getSkin()</span>
+<span id="L89" class="line"><a href="#L89">89</a>    local id = self:getSkinId(skin)</span>
+<span id="L90" class="line"><a href="#L90">90</a>    if Const.IsResOrUICommon[Res] then</span>
+<span id="L91" class="line"><a href="#L91">91</a>        return &quot;amf/activity/mergeevolution/common&quot; .. Res</span>
+<span id="L92" class="line"><a href="#L92">92</a>    else</span>
+<span id="L93" class="line"><a href="#L93">93</a>        return &quot;amf/activity/mergeevolution/skin/&quot; .. Const.SkinPath[id] .. Res</span>
+<span id="L94" class="line"><a href="#L94">94</a>    end</span>
+<span id="L95" class="line"><a href="#L95">95</a>end</span>
+<span id="L96" class="line"><a href="#L96">96</a></span>
+<span id="L97" class="line"><a href="#L97">97</a>function Const:getUIPath(UI)</span>
+<span id="L98" class="line"><a href="#L98">98</a>    local mgr = _G.amfBean(&quot;MergeEvolutionManager&quot;)</span>
+<span id="L99" class="line"><a href="#L99">99</a>    local skin = mgr:getModel():getSkin()</span>
+<span id="L100" class="line"><a href="#L100">100</a>    local id = self:getSkinId(skin)</span>
+<span id="L101" class="line"><a href="#L101">101</a>    if Const.IsResOrUICommon[UI] then</span>
+<span id="L102" class="line"><a href="#L102">102</a>        return &quot;amf.feature.localactivity.mergeevolution.view.uisource&quot; .. UI</span>
+<span id="L103" class="line"><a href="#L103">103</a>    else</span>
+<span id="L104" class="line"><a href="#L104">104</a>        return &quot;amf.feature.localactivity.mergeevolution.view.uisource.&quot;.. Const.SkinPath[id] .. UI</span>
+<span id="L105" class="line"><a href="#L105">105</a>    end</span>
+<span id="L106" class="line"><a href="#L106">106</a>end</span>
+<span id="L107" class="line"><a href="#L107">107</a></span>
+<span id="L108" class="line"><a href="#L108">108</a>function Const:getSkinId(key)</span>
+<span id="L109" class="line"><a href="#L109">109</a>    return self.SkinMap[string.upper(key)] or 1</span>
+<span id="L110" class="line"><a href="#L110">110</a>end</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>Const.TipText = {</span>
+<span id="L113" class="line"><a href="#L113">113</a>    [1] = &quot;活动开启，来参与吧！&quot;,</span>
+<span id="L114" class="line"><a href="#L114">114</a>    [2] = &quot;有奖励可以领取！&quot;,</span>
+<span id="L115" class="line"><a href="#L115">115</a>    [3] = &quot;体力充足，来合成吧！&quot;,</span>
+<span id="L116" class="line"><a href="#L116">116</a>}</span>
+<span id="L117" class="line"><a href="#L117">117</a></span>
+<span id="L118" class="line"><a href="#L118">118</a>Const.DRAINAGE_ENERGY = 50</span>
+<span id="L119" class="line"><a href="#L119">119</a>Const.DRAINAGE_POP_MAX = 2</span>
+<span id="L120" class="line"><a href="#L120">120</a></span>
+<span id="L121" class="line"><a href="#L121">121</a>return Const</span></pre></main></html>

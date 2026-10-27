@@ -1,0 +1,1742 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/fruittree/act/collectword/CollectWordManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="0bc3a04765db.lua" download>下载Lua原文</a></p><h1>amf/feature/fruittree/act/collectword/CollectWordManager.lua</h1><p>SHA256 7b7ca4e2f6f1f26dcf5148eab2d71a820b43df6c2c20371252df00ebde79ca7e</p><pre><span id="L1" class="line"><a href="#L1">1</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>require &quot;amf.feature.fruittree.act.collectword.config.CollectWordConst&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local FruitTreeEventCenter = require &quot;amf.feature.fruittree.event.FruitTreeEventCenter&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local Res = require &quot;amf.feature.fruittree.act.collectword.config.Res&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local MarkEventCenter = require &quot;amf.feature.dailyreward.mark.event.MarkEventCenter&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local SaveTool = require &quot;amf.feature.fruittree.act.collectword.util.SaveTool&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>local CollectWordManager = class(&quot;CollectWordManager&quot;)</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>local function getPropEventCenter()</span>
+<span id="L11" class="line"><a href="#L11">11</a>    return require &quot;amf.middleware.prop.event.PropEventCenter&quot;</span>
+<span id="L12" class="line"><a href="#L12">12</a>end</span>
+<span id="L13" class="line"><a href="#L13">13</a></span>
+<span id="L14" class="line"><a href="#L14">14</a>local function hasPropCustomEvents()</span>
+<span id="L15" class="line"><a href="#L15">15</a>    return PropEvent</span>
+<span id="L16" class="line"><a href="#L16">16</a>        and PropEvent.CUSTOM_GAIN</span>
+<span id="L17" class="line"><a href="#L17">17</a>        and PropEvent.CUSTOM_CONSUME</span>
+<span id="L18" class="line"><a href="#L18">18</a>        and PropEvent.RESOLVE_ICON</span>
+<span id="L19" class="line"><a href="#L19">19</a>end</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>function CollectWordManager:ctor()</span>
+<span id="L22" class="line"><a href="#L22">22</a>    self.model = nil</span>
+<span id="L23" class="line"><a href="#L23">23</a></span>
+<span id="L24" class="line"><a href="#L24">24</a>    self._fruitTreeManager = nil</span>
+<span id="L25" class="line"><a href="#L25">25</a>    self._activityMgr = nil</span>
+<span id="L26" class="line"><a href="#L26">26</a>    self._assetsUtil = nil</span>
+<span id="L27" class="line"><a href="#L27">27</a>    self._autoPopupMgr = nil</span>
+<span id="L28" class="line"><a href="#L28">28</a>    self._profileManager = nil</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self._isSupportShare = false</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self._isWeiboInstalled = false</span>
+<span id="L31" class="line"><a href="#L31">31</a>    self._isWeixinInstalled = false</span>
+<span id="L32" class="line"><a href="#L32">32</a>end</span>
+<span id="L33" class="line"><a href="#L33">33</a></span>
+<span id="L34" class="line"><a href="#L34">34</a>function CollectWordManager:refreshShareState()</span>
+<span id="L35" class="line"><a href="#L35">35</a>    self._isSupportShare, self._isWeiboInstalled, self._isWeixinInstalled = ShareCenterUtil:checkShareState()</span>
+<span id="L36" class="line"><a href="#L36">36</a>    -- TEST</span>
+<span id="L37" class="line"><a href="#L37">37</a>    -- self._isSupportShare = true</span>
+<span id="L38" class="line"><a href="#L38">38</a>    -- self._isWeiboInstalled = true</span>
+<span id="L39" class="line"><a href="#L39">39</a>    -- self._isWeixinInstalled = true</span>
+<span id="L40" class="line"><a href="#L40">40</a>end</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>function CollectWordManager:getShareState()</span>
+<span id="L43" class="line"><a href="#L43">43</a>    return {</span>
+<span id="L44" class="line"><a href="#L44">44</a>        isSupportShare = self._isSupportShare,</span>
+<span id="L45" class="line"><a href="#L45">45</a>        isWeiboInstalled = self._isWeiboInstalled,</span>
+<span id="L46" class="line"><a href="#L46">46</a>        isWeixinInstalled = self._isWeixinInstalled,</span>
+<span id="L47" class="line"><a href="#L47">47</a>    }</span>
+<span id="L48" class="line"><a href="#L48">48</a>end</span>
+<span id="L49" class="line"><a href="#L49">49</a></span>
+<span id="L50" class="line"><a href="#L50">50</a>function CollectWordManager:setProfileManager(mgr)</span>
+<span id="L51" class="line"><a href="#L51">51</a>    self._profileManager = mgr</span>
+<span id="L52" class="line"><a href="#L52">52</a>end</span>
+<span id="L53" class="line"><a href="#L53">53</a></span>
+<span id="L54" class="line"><a href="#L54">54</a>function CollectWordManager:setAutoPopupMgr(mgr)</span>
+<span id="L55" class="line"><a href="#L55">55</a>    self._autoPopupMgr = mgr</span>
+<span id="L56" class="line"><a href="#L56">56</a>end</span>
+<span id="L57" class="line"><a href="#L57">57</a></span>
+<span id="L58" class="line"><a href="#L58">58</a>function CollectWordManager:setAssetsUtil(assetsUtil)</span>
+<span id="L59" class="line"><a href="#L59">59</a>    self._assetsUtil = assetsUtil</span>
+<span id="L60" class="line"><a href="#L60">60</a>end</span>
+<span id="L61" class="line"><a href="#L61">61</a></span>
+<span id="L62" class="line"><a href="#L62">62</a>function CollectWordManager:setActivityMgr(mgr)</span>
+<span id="L63" class="line"><a href="#L63">63</a>    self._activityMgr = mgr</span>
+<span id="L64" class="line"><a href="#L64">64</a>end</span>
+<span id="L65" class="line"><a href="#L65">65</a></span>
+<span id="L66" class="line"><a href="#L66">66</a>function CollectWordManager:setFruitTreeManager(mgr)</span>
+<span id="L67" class="line"><a href="#L67">67</a>    self._fruitTreeManager = mgr</span>
+<span id="L68" class="line"><a href="#L68">68</a>end</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>function CollectWordManager:addToMgr(vm, param)</span>
+<span id="L71" class="line"><a href="#L71">71</a>    if not vm then return end</span>
+<span id="L72" class="line"><a href="#L72">72</a>    self._vmMap = self._vmMap or {}</span>
+<span id="L73" class="line"><a href="#L73">73</a>    self._vmMap[vm] = param or true</span>
+<span id="L74" class="line"><a href="#L74">74</a>end</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>function CollectWordManager:hasPanel()</span>
+<span id="L77" class="line"><a href="#L77">77</a>    for k, v in pairs(self._vmMap or {}) do</span>
+<span id="L78" class="line"><a href="#L78">78</a>        if k and isSafeCocosObj(k) then</span>
+<span id="L79" class="line"><a href="#L79">79</a>            return true</span>
+<span id="L80" class="line"><a href="#L80">80</a>        end</span>
+<span id="L81" class="line"><a href="#L81">81</a>    end</span>
+<span id="L82" class="line"><a href="#L82">82</a>    return false</span>
+<span id="L83" class="line"><a href="#L83">83</a>end</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>function CollectWordManager:closeAll(fromPassDay)</span>
+<span id="L86" class="line"><a href="#L86">86</a>    -- 关闭所有界面</span>
+<span id="L87" class="line"><a href="#L87">87</a>    for vm, _ in pairs(self._vmMap or {}) do</span>
+<span id="L88" class="line"><a href="#L88">88</a>        if vm and not vm.isDisposed then</span>
+<span id="L89" class="line"><a href="#L89">89</a>            vm:close()</span>
+<span id="L90" class="line"><a href="#L90">90</a>        end</span>
+<span id="L91" class="line"><a href="#L91">91</a>    end</span>
+<span id="L92" class="line"><a href="#L92">92</a>    self._vmMap = {}</span>
+<span id="L93" class="line"><a href="#L93">93</a>    -- 关闭主界面</span>
+<span id="L94" class="line"><a href="#L94">94</a>    if self._mainVM and not self._mainVM.isDisposed then</span>
+<span id="L95" class="line"><a href="#L95">95</a>        self._mainVM:close()</span>
+<span id="L96" class="line"><a href="#L96">96</a>        if fromPassDay then</span>
+<span id="L97" class="line"><a href="#L97">97</a>            local tip = self:consumeCloseTip(fromPassDay)</span>
+<span id="L98" class="line"><a href="#L98">98</a>            if tip then</span>
+<span id="L99" class="line"><a href="#L99">99</a>                CommonTip:showTip(tip)</span>
+<span id="L100" class="line"><a href="#L100">100</a>            end</span>
+<span id="L101" class="line"><a href="#L101">101</a>        end</span>
+<span id="L102" class="line"><a href="#L102">102</a>    end</span>
+<span id="L103" class="line"><a href="#L103">103</a>end</span>
+<span id="L104" class="line"><a href="#L104">104</a></span>
+<span id="L105" class="line"><a href="#L105">105</a>function CollectWordManager:isFeatureEnabled()</span>
+<span id="L106" class="line"><a href="#L106">106</a>    if _G.__CollectWordTestMode == true then return true end</span>
+<span id="L107" class="line"><a href="#L107">107</a>    return FeatureSwitch:isOpen(FeatureSwitch.Type.FRUITTREE_COLLECT_WORD)</span>
+<span id="L108" class="line"><a href="#L108">108</a>end</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>function CollectWordManager:initialize()</span>
+<span id="L111" class="line"><a href="#L111">111</a>    if not self:isFeatureEnabled() then return end</span>
+<span id="L112" class="line"><a href="#L112">112</a>    self:registerProps()</span>
+<span id="L113" class="line"><a href="#L113">113</a>    self.model = require(&quot;amf.feature.fruittree.act.collectword.model.Model&quot;):create()</span>
+<span id="L114" class="line"><a href="#L114">114</a>    self.actInfo = require(&quot;amf.feature.fruittree.act.collectword.model.ActInfo&quot;):create()</span>
+<span id="L115" class="line"><a href="#L115">115</a>    self._vmMap = {}</span>
+<span id="L116" class="line"><a href="#L116">116</a>    self:registerEvent()</span>
+<span id="L117" class="line"><a href="#L117">117</a>    -- 分享</span>
+<span id="L118" class="line"><a href="#L118">118</a>    require(&quot;amf.feature.fruittree.act.collectword.share.ResponseAskWordShareHandler&quot;):create()</span>
+<span id="L119" class="line"><a href="#L119">119</a>    require(&quot;amf.feature.fruittree.act.collectword.share.ResponseSendWordShareHandler&quot;):create()</span>
+<span id="L120" class="line"><a href="#L120">120</a>    require (&quot;amf.feature.fruittree.act.collectword.share.ResponseSpeedShareHandler&quot;):create()</span>
+<span id="L121" class="line"><a href="#L121">121</a>end</span>
+<span id="L122" class="line"><a href="#L122">122</a></span>
+<span id="L123" class="line"><a href="#L123">123</a>function CollectWordManager:onActInfoUpdate(event)</span>
+<span id="L124" class="line"><a href="#L124">124</a>    local data = event:getData()</span>
+<span id="L125" class="line"><a href="#L125">125</a>    local actInfos = data.actInfos or {}</span>
+<span id="L126" class="line"><a href="#L126">126</a>    local actInfo = actInfos[tostring(CollectWordConst.ACT_ID)]</span>
+<span id="L127" class="line"><a href="#L127">127</a>    if not actInfo then</span>
+<span id="L128" class="line"><a href="#L128">128</a>        return</span>
+<span id="L129" class="line"><a href="#L129">129</a>    end</span>
+<span id="L130" class="line"><a href="#L130">130</a>    self:updateActInfo():next(function()</span>
+<span id="L131" class="line"><a href="#L131">131</a>    end, function()</span>
+<span id="L132" class="line"><a href="#L132">132</a>        self.model:reset()</span>
+<span id="L133" class="line"><a href="#L133">133</a>    end)</span>
+<span id="L134" class="line"><a href="#L134">134</a>end</span>
+<span id="L135" class="line"><a href="#L135">135</a></span>
+<span id="L136" class="line"><a href="#L136">136</a>-- 到后台添加本地推送</span>
+<span id="L137" class="line"><a href="#L137">137</a>function CollectWordManager:onSystemEnterBackground()</span>
+<span id="L138" class="line"><a href="#L138">138</a>    if not self:isEnabled() then return end</span>
+<span id="L139" class="line"><a href="#L139">139</a>    local LocalPush = require &quot;amf.feature.fruittree.act.collectword.localpush.LocalPush&quot;</span>
+<span id="L140" class="line"><a href="#L140">140</a>    LocalPush:checkLocalPush()</span>
+<span id="L141" class="line"><a href="#L141">141</a>end</span>
+<span id="L142" class="line"><a href="#L142">142</a></span>
+<span id="L143" class="line"><a href="#L143">143</a>function CollectWordManager:setMainVM(bValue)</span>
+<span id="L144" class="line"><a href="#L144">144</a>    self._mainVM = bValue</span>
+<span id="L145" class="line"><a href="#L145">145</a>end</span>
+<span id="L146" class="line"><a href="#L146">146</a></span>
+<span id="L147" class="line"><a href="#L147">147</a>function CollectWordManager:tryStartUpdateIcon()</span>
+<span id="L148" class="line"><a href="#L148">148</a>    if self.timerId then return end</span>
+<span id="L149" class="line"><a href="#L149">149</a>    self.timerId = TimerUtil.addAlarm(function()</span>
+<span id="L150" class="line"><a href="#L150">150</a>        self:_updateIconInfo()</span>
+<span id="L151" class="line"><a href="#L151">151</a>    end, 1, 0)</span>
+<span id="L152" class="line"><a href="#L152">152</a>end</span>
+<span id="L153" class="line"><a href="#L153">153</a></span>
+<span id="L154" class="line"><a href="#L154">154</a>function CollectWordManager:isActEnabled()</span>
+<span id="L155" class="line"><a href="#L155">155</a>    return self.actInfo and self.actInfo:isEnabled(self:hasRealProps())</span>
+<span id="L156" class="line"><a href="#L156">156</a>end</span>
+<span id="L157" class="line"><a href="#L157">157</a></span>
+<span id="L158" class="line"><a href="#L158">158</a>function CollectWordManager:isActEnd()</span>
+<span id="L159" class="line"><a href="#L159">159</a>    return self.actInfo and self.actInfo:isActEnd()</span>
+<span id="L160" class="line"><a href="#L160">160</a>end</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>function CollectWordManager:_updateIconInfo()</span>
+<span id="L163" class="line"><a href="#L163">163</a>    if self.actInfo:isActEnd() then</span>
+<span id="L164" class="line"><a href="#L164">164</a>        if self.timerId then</span>
+<span id="L165" class="line"><a href="#L165">165</a>            TimerUtil.removeAlarm(self.timerId)</span>
+<span id="L166" class="line"><a href="#L166">166</a>            self.timerId = nil</span>
+<span id="L167" class="line"><a href="#L167">167</a>        end</span>
+<span id="L168" class="line"><a href="#L168">168</a>        self:resetActInfo()</span>
+<span id="L169" class="line"><a href="#L169">169</a>        -- 刷新icon显示</span>
+<span id="L170" class="line"><a href="#L170">170</a>        FruitTreeEventCenter:dispatch(FruitTreeEvent.ACT_DATA_CHANGE)</span>
+<span id="L171" class="line"><a href="#L171">171</a>        FruitTreeEventCenter:dispatch(FruitTreeEvent.ICON_SHOWTIP, {</span>
+<span id="L172" class="line"><a href="#L172">172</a>            clearTip = true</span>
+<span id="L173" class="line"><a href="#L173">173</a>        })</span>
+<span id="L174" class="line"><a href="#L174">174</a>        self:closeAll()</span>
+<span id="L175" class="line"><a href="#L175">175</a>        self:unregisterEvent()</span>
+<span id="L176" class="line"><a href="#L176">176</a>        self:unloadAllFiles()</span>
+<span id="L177" class="line"><a href="#L177">177</a>        return</span>
+<span id="L178" class="line"><a href="#L178">178</a>    end</span>
+<span id="L179" class="line"><a href="#L179">179</a>    if self.actInfo:isNotOpen() then</span>
+<span id="L180" class="line"><a href="#L180">180</a>        return</span>
+<span id="L181" class="line"><a href="#L181">181</a>    end</span>
+<span id="L182" class="line"><a href="#L182">182</a></span>
+<span id="L183" class="line"><a href="#L183">183</a>    local lastTipTime = self._lastTipTime or 0</span>
+<span id="L184" class="line"><a href="#L184">184</a>    local curTime = TimeKit:timeInMillis()</span>
+<span id="L185" class="line"><a href="#L185">185</a>    if self._mainVM and not self._mainVM.isDisposed then</span>
+<span id="L186" class="line"><a href="#L186">186</a>        self._lastTipTime = curTime</span>
+<span id="L187" class="line"><a href="#L187">187</a>        return</span>
+<span id="L188" class="line"><a href="#L188">188</a>    end</span>
+<span id="L189" class="line"><a href="#L189">189</a></span>
+<span id="L190" class="line"><a href="#L190">190</a>    if curTime - lastTipTime &gt;= CollectWordConst.TIP_INTERVAL_TIME or self._forceShowTip then</span>
+<span id="L191" class="line"><a href="#L191">191</a>        self._forceShowTip = false</span>
+<span id="L192" class="line"><a href="#L192">192</a>        self._lastTipTime = curTime</span>
+<span id="L193" class="line"><a href="#L193">193</a>        local tipText</span>
+<span id="L194" class="line"><a href="#L194">194</a>        local key = self.actInfo:getValue(&quot;mainBeginTime&quot;) .. &quot;_hasEnterCollectWordAct&quot;</span>
+<span id="L195" class="line"><a href="#L195">195</a>        if self:getActValue(&quot;hasReceiveWord&quot;) then</span>
+<span id="L196" class="line"><a href="#L196">196</a>            tipText = CollectWordConst.Desc.ICON_TIP_RECEIVE_WORD</span>
+<span id="L197" class="line"><a href="#L197">197</a>        elseif not LocalDB:getBool(key) then</span>
+<span id="L198" class="line"><a href="#L198">198</a>            tipText = CollectWordConst.Desc.ICON_TIP_NOT_ENTER_FRUIT</span>
+<span id="L199" class="line"><a href="#L199">199</a>            LocalDB:setBool(key, true)</span>
+<span id="L200" class="line"><a href="#L200">200</a>            FruitTreeEventCenter:dispatch(FruitTreeEvent.ICON_SHOW_GUIDE_HAND)</span>
+<span id="L201" class="line"><a href="#L201">201</a>        end</span>
+<span id="L202" class="line"><a href="#L202">202</a>        if tipText then</span>
+<span id="L203" class="line"><a href="#L203">203</a>            FruitTreeEventCenter:dispatch(FruitTreeEvent.ICON_SHOWTIP, {</span>
+<span id="L204" class="line"><a href="#L204">204</a>                text = tipText</span>
+<span id="L205" class="line"><a href="#L205">205</a>            })</span>
+<span id="L206" class="line"><a href="#L206">206</a>        end</span>
+<span id="L207" class="line"><a href="#L207">207</a>    end</span>
+<span id="L208" class="line"><a href="#L208">208</a>end</span>
+<span id="L209" class="line"><a href="#L209">209</a></span>
+<span id="L210" class="line"><a href="#L210">210</a>function CollectWordManager:registerProps()</span>
+<span id="L211" class="line"><a href="#L211">211</a>    local PropRegister = require &quot;amf.feature.fruittree.act.collectword.prop.PropRegister&quot;</span>
+<span id="L212" class="line"><a href="#L212">212</a>    PropRegister:register()</span>
+<span id="L213" class="line"><a href="#L213">213</a>end</span>
+<span id="L214" class="line"><a href="#L214">214</a></span>
+<span id="L215" class="line"><a href="#L215">215</a>function CollectWordManager:isPlatformSupport()</span>
+<span id="L216" class="line"><a href="#L216">216</a>    if EnvUtil:isOhos() then return false end</span>
+<span id="L217" class="line"><a href="#L217">217</a>    return true</span>
+<span id="L218" class="line"><a href="#L218">218</a>end</span>
+<span id="L219" class="line"><a href="#L219">219</a></span>
+<span id="L220" class="line"><a href="#L220">220</a>function CollectWordManager:isLocalEnabled()</span>
+<span id="L221" class="line"><a href="#L221">221</a>    if not self:isFeatureEnabled() then</span>
+<span id="L222" class="line"><a href="#L222">222</a>        return false, &quot;feature_switch_disable&quot;</span>
+<span id="L223" class="line"><a href="#L223">223</a>    end</span>
+<span id="L224" class="line"><a href="#L224">224</a>    if not self:isPlatformSupport() then</span>
+<span id="L225" class="line"><a href="#L225">225</a>        return false, &quot;platform_disable&quot;</span>
+<span id="L226" class="line"><a href="#L226">226</a>    end</span>
+<span id="L227" class="line"><a href="#L227">227</a>    if not self._fruitTreeManager:isEnabled() then</span>
+<span id="L228" class="line"><a href="#L228">228</a>        return false, &quot;fruittree_disable&quot;</span>
+<span id="L229" class="line"><a href="#L229">229</a>    end</span>
+<span id="L230" class="line"><a href="#L230">230</a>    return true</span>
+<span id="L231" class="line"><a href="#L231">231</a>end</span>
+<span id="L232" class="line"><a href="#L232">232</a></span>
+<span id="L233" class="line"><a href="#L233">233</a>function CollectWordManager:isEnabled()</span>
+<span id="L234" class="line"><a href="#L234">234</a>    if not self:isLocalEnabled() then</span>
+<span id="L235" class="line"><a href="#L235">235</a>        return false, &quot;localEnabled&quot;</span>
+<span id="L236" class="line"><a href="#L236">236</a>    end</span>
+<span id="L237" class="line"><a href="#L237">237</a>    if not self.actInfo then</span>
+<span id="L238" class="line"><a href="#L238">238</a>        return false, &quot;act_enable&quot;</span>
+<span id="L239" class="line"><a href="#L239">239</a>    end</span>
+<span id="L240" class="line"><a href="#L240">240</a>    if not self:isActEnabled() then</span>
+<span id="L241" class="line"><a href="#L241">241</a>        return false, &quot;act_enable&quot;, self.actInfo:getValue(&quot;mainBeginTime&quot;), self.actInfo:getValue(&quot;mainEndTime&quot;)</span>
+<span id="L242" class="line"><a href="#L242">242</a>    end</span>
+<span id="L243" class="line"><a href="#L243">243</a>    if not self.model or not self.model:isEnabled() then</span>
+<span id="L244" class="line"><a href="#L244">244</a>        return false, &quot;model_enabled&quot;</span>
+<span id="L245" class="line"><a href="#L245">245</a>    end</span>
+<span id="L246" class="line"><a href="#L246">246</a>    return true, &quot;&quot;</span>
+<span id="L247" class="line"><a href="#L247">247</a>end</span>
+<span id="L248" class="line"><a href="#L248">248</a></span>
+<span id="L249" class="line"><a href="#L249">249</a>function CollectWordManager:isLevelSupport()</span>
+<span id="L250" class="line"><a href="#L250">250</a>    return self.actInfo and self.actInfo:isLevelSupport()</span>
+<span id="L251" class="line"><a href="#L251">251</a>end</span>
+<span id="L252" class="line"><a href="#L252">252</a></span>
+<span id="L253" class="line"><a href="#L253">253</a>function CollectWordManager:hasRealProps()</span>
+<span id="L254" class="line"><a href="#L254">254</a>    return self:getDataValue(&quot;havaRealProps&quot;) == true</span>
+<span id="L255" class="line"><a href="#L255">255</a>end</span>
+<span id="L256" class="line"><a href="#L256">256</a></span>
+<span id="L257" class="line"><a href="#L257">257</a>function CollectWordManager:isInRewardTime()</span>
+<span id="L258" class="line"><a href="#L258">258</a>    return self.actInfo and self.actInfo:isInRewardTime()</span>
+<span id="L259" class="line"><a href="#L259">259</a>end</span>
+<span id="L260" class="line"><a href="#L260">260</a></span>
+<span id="L261" class="line"><a href="#L261">261</a>local _spines = {</span>
+<span id="L262" class="line"><a href="#L262">262</a>    Res.Spine.GOLD_FRUIT,</span>
+<span id="L263" class="line"><a href="#L263">263</a>    Res.Spine.ACT_FRUIT,</span>
+<span id="L264" class="line"><a href="#L264">264</a>    Res.Spine.ACT_FRUIT_BELOW,</span>
+<span id="L265" class="line"><a href="#L265">265</a>    Res.Spine.ACT_FRUIT_FRONT,</span>
+<span id="L266" class="line"><a href="#L266">266</a>    Res.Spine.RIPEN_FX,</span>
+<span id="L267" class="line"><a href="#L267">267</a>    Res.Spine.GET_WORD,</span>
+<span id="L268" class="line"><a href="#L268">268</a>    Res.Spine.FEI,</span>
+<span id="L269" class="line"><a href="#L269">269</a>    Res.Spine.BUBBLE,</span>
+<span id="L270" class="line"><a href="#L270">270</a>}</span>
+<span id="L271" class="line"><a href="#L271">271</a></span>
+<span id="L272" class="line"><a href="#L272">272</a>local _plists = {</span>
+<span id="L273" class="line"><a href="#L273">273</a>    Res.Plist.MAIN,</span>
+<span id="L274" class="line"><a href="#L274">274</a>    Res.Plist.PUB_FRAME,</span>
+<span id="L275" class="line"><a href="#L275">275</a>}</span>
+<span id="L276" class="line"><a href="#L276">276</a></span>
+<span id="L277" class="line"><a href="#L277">277</a>local _files = {</span>
+<span id="L278" class="line"><a href="#L278">278</a>    Res.File.SHOWOFF_LIGHT,</span>
+<span id="L279" class="line"><a href="#L279">279</a>    Res.File.SHOWOFF_TREE,</span>
+<span id="L280" class="line"><a href="#L280">280</a>    Res.File.DACHE,</span>
+<span id="L281" class="line"><a href="#L281">281</a>}</span>
+<span id="L282" class="line"><a href="#L282">282</a>_files = table.union(_files, Res.Materials)</span>
+<span id="L283" class="line"><a href="#L283">283</a></span>
+<span id="L284" class="line"><a href="#L284">284</a>function CollectWordManager:getResList()</span>
+<span id="L285" class="line"><a href="#L285">285</a>    local list = table.union(_spines, _plists)</span>
+<span id="L286" class="line"><a href="#L286">286</a>    list = table.union(list, _files)</span>
+<span id="L287" class="line"><a href="#L287">287</a>    return list</span>
+<span id="L288" class="line"><a href="#L288">288</a>end</span>
+<span id="L289" class="line"><a href="#L289">289</a></span>
+<span id="L290" class="line"><a href="#L290">290</a>function CollectWordManager:isResReady()</span>
+<span id="L291" class="line"><a href="#L291">291</a>    return self._isResReady</span>
+<span id="L292" class="line"><a href="#L292">292</a>end</span>
+<span id="L293" class="line"><a href="#L293">293</a></span>
+<span id="L294" class="line"><a href="#L294">294</a>function CollectWordManager:loadRes()</span>
+<span id="L295" class="line"><a href="#L295">295</a>    local d = deferred.new()</span>
+<span id="L296" class="line"><a href="#L296">296</a>    if EnvUtil:isUnity() then</span>
+<span id="L297" class="line"><a href="#L297">297</a>        local list = self:getResList()</span>
+<span id="L298" class="line"><a href="#L298">298</a>        self._assetsUtil:loadMiniFiles(list, false):next(function()</span>
+<span id="L299" class="line"><a href="#L299">299</a>            if not self._isResReady then</span>
+<span id="L300" class="line"><a href="#L300">300</a>                -- 创建的时候先load一次</span>
+<span id="L301" class="line"><a href="#L301">301</a>                self:loadAllFiles()</span>
+<span id="L302" class="line"><a href="#L302">302</a>                self._isResReady = true</span>
+<span id="L303" class="line"><a href="#L303">303</a>            end</span>
+<span id="L304" class="line"><a href="#L304">304</a>            d:resolve()</span>
+<span id="L305" class="line"><a href="#L305">305</a>        end)</span>
+<span id="L306" class="line"><a href="#L306">306</a>    else</span>
+<span id="L307" class="line"><a href="#L307">307</a>        if not self._isResReady then</span>
+<span id="L308" class="line"><a href="#L308">308</a>            -- 创建的时候先load一次</span>
+<span id="L309" class="line"><a href="#L309">309</a>            self:loadAllFiles()</span>
+<span id="L310" class="line"><a href="#L310">310</a>            self._isResReady = true</span>
+<span id="L311" class="line"><a href="#L311">311</a>        end</span>
+<span id="L312" class="line"><a href="#L312">312</a>        d:resolve()</span>
+<span id="L313" class="line"><a href="#L313">313</a>    end</span>
+<span id="L314" class="line"><a href="#L314">314</a>    return d</span>
+<span id="L315" class="line"><a href="#L315">315</a>end</span>
+<span id="L316" class="line"><a href="#L316">316</a></span>
+<span id="L317" class="line"><a href="#L317">317</a>function CollectWordManager:isMainScene()</span>
+<span id="L318" class="line"><a href="#L318">318</a>    local scene = Director:sharedDirector():getRunningSceneLua()</span>
+<span id="L319" class="line"><a href="#L319">319</a>    return scene and scene:isScene(&quot;MainScene&quot;)</span>
+<span id="L320" class="line"><a href="#L320">320</a>end</span>
+<span id="L321" class="line"><a href="#L321">321</a></span>
+<span id="L322" class="line"><a href="#L322">322</a>function CollectWordManager:registerEvent()</span>
+<span id="L323" class="line"><a href="#L323">323</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActInfoUpdate, self)</span>
+<span id="L324" class="line"><a href="#L324">324</a>    FruitTreeEventCenter:registerSystem(self)</span>
+<span id="L325" class="line"><a href="#L325">325</a>    FruitTreeEventCenter:registerFeature(self)</span>
+<span id="L326" class="line"><a href="#L326">326</a>    FruitTreeEventCenter:register(FruitTreeEvent.PRE_OPEN_CHECK, self.onFruitTreePreOpenCheck, self)</span>
+<span id="L327" class="line"><a href="#L327">327</a>    FruitTreeEventCenter:register(FruitTreeEvent.ICON_REWARD_CHECK, self.onIconRewardCheck, self)</span>
+<span id="L328" class="line"><a href="#L328">328</a>    -- 沿用旧版 FruitTreeActCollectWord 策略：新字也统一算作“奖”红点，不单独走 new act 检查。</span>
+<span id="L329" class="line"><a href="#L329">329</a>    -- FruitTreeEventCenter:register(FruitTreeEvent.ICON_NEW_CHECK, self.onIconNewCheck, self)</span>
+<span id="L330" class="line"><a href="#L330">330</a>    MarkEventCenter:register(MarkEvent.MARK_PREOPEN_CHECK, self.onMarkPreOpenEvent, self)</span>
+<span id="L331" class="line"><a href="#L331">331</a>    local PropEventCenter = getPropEventCenter()</span>
+<span id="L332" class="line"><a href="#L332">332</a>    if PropEventCenter and hasPropCustomEvents() then</span>
+<span id="L333" class="line"><a href="#L333">333</a>        PropEventCenter:register(PropEvent.CUSTOM_GAIN, self.onCustomGain, self)</span>
+<span id="L334" class="line"><a href="#L334">334</a>        PropEventCenter:register(PropEvent.CUSTOM_CONSUME, self.onCustomConsume, self)</span>
+<span id="L335" class="line"><a href="#L335">335</a>        PropEventCenter:register(PropEvent.RESOLVE_ICON, self.onResolveIcon, self)</span>
+<span id="L336" class="line"><a href="#L336">336</a>    end</span>
+<span id="L337" class="line"><a href="#L337">337</a>end</span>
+<span id="L338" class="line"><a href="#L338">338</a></span>
+<span id="L339" class="line"><a href="#L339">339</a>function CollectWordManager:unregisterEvent()</span>
+<span id="L340" class="line"><a href="#L340">340</a>    ActivityEventCenter:unregister(ActivityEvent.ACT_INFOS_UPDATE, self.onActInfoUpdate)</span>
+<span id="L341" class="line"><a href="#L341">341</a>    FruitTreeEventCenter:unregisterSystem(self)</span>
+<span id="L342" class="line"><a href="#L342">342</a>    FruitTreeEventCenter:unregisterFeature(self)</span>
+<span id="L343" class="line"><a href="#L343">343</a>    FruitTreeEventCenter:unregister(FruitTreeEvent.PRE_OPEN_CHECK, self.onFruitTreePreOpenCheck)</span>
+<span id="L344" class="line"><a href="#L344">344</a>    FruitTreeEventCenter:unregister(FruitTreeEvent.ICON_REWARD_CHECK, self.onIconRewardCheck)</span>
+<span id="L345" class="line"><a href="#L345">345</a>    -- 沿用旧版 FruitTreeActCollectWord 策略：新字也统一算作“奖”红点，不单独走 new act 检查。</span>
+<span id="L346" class="line"><a href="#L346">346</a>    -- FruitTreeEventCenter:unregister(FruitTreeEvent.ICON_NEW_CHECK, self.onIconNewCheck)</span>
+<span id="L347" class="line"><a href="#L347">347</a>    MarkEventCenter:unregister(MarkEvent.MARK_PREOPEN_CHECK, self.onMarkPreOpenEvent, self)</span>
+<span id="L348" class="line"><a href="#L348">348</a>    local PropEventCenter = getPropEventCenter()</span>
+<span id="L349" class="line"><a href="#L349">349</a>    if PropEventCenter and hasPropCustomEvents() then</span>
+<span id="L350" class="line"><a href="#L350">350</a>        PropEventCenter:unregister(PropEvent.CUSTOM_GAIN, self.onCustomGain)</span>
+<span id="L351" class="line"><a href="#L351">351</a>        PropEventCenter:unregister(PropEvent.CUSTOM_CONSUME, self.onCustomConsume)</span>
+<span id="L352" class="line"><a href="#L352">352</a>        PropEventCenter:unregister(PropEvent.RESOLVE_ICON, self.onResolveIcon)</span>
+<span id="L353" class="line"><a href="#L353">353</a>    end</span>
+<span id="L354" class="line"><a href="#L354">354</a>end</span>
+<span id="L355" class="line"><a href="#L355">355</a></span>
+<span id="L356" class="line"><a href="#L356">356</a>function CollectWordManager:isMarkBannerEnabled()</span>
+<span id="L357" class="line"><a href="#L357">357</a>    return self:isLocalEnabled() and self.actInfo and self.actInfo:isInActTime()</span>
+<span id="L358" class="line"><a href="#L358">358</a>end</span>
+<span id="L359" class="line"><a href="#L359">359</a></span>
+<span id="L360" class="line"><a href="#L360">360</a>function CollectWordManager:onMarkPreOpenEvent(evt)</span>
+<span id="L361" class="line"><a href="#L361">361</a>    if not self:isMarkBannerEnabled() then return end</span>
+<span id="L362" class="line"><a href="#L362">362</a>    local contextList = evt:getData()</span>
+<span id="L363" class="line"><a href="#L363">363</a>    local context = MarkPreOpenContext.new()</span>
+<span id="L364" class="line"><a href="#L364">364</a>        :setPriority(ActFestivalConst.Priority.COLLECT_WORD)</span>
+<span id="L365" class="line"><a href="#L365">365</a>        :setExtLoadFiles({</span>
+<span id="L366" class="line"><a href="#L366">366</a>            &quot;amf/dailyreward/mark/extend/collectword/banner.png&quot;</span>
+<span id="L367" class="line"><a href="#L367">367</a>        })</span>
+<span id="L368" class="line"><a href="#L368">368</a>        :setEnabledCheckFunc(function()</span>
+<span id="L369" class="line"><a href="#L369">369</a>            return self:isMarkBannerEnabled()</span>
+<span id="L370" class="line"><a href="#L370">370</a>        end)</span>
+<span id="L371" class="line"><a href="#L371">371</a>        :setPreOpenFunc(function(callback)</span>
+<span id="L372" class="line"><a href="#L372">372</a>            -- TODO 不用请求数据了吧，没有就没有吧</span>
+<span id="L373" class="line"><a href="#L373">373</a>            safeRunCall(callback)</span>
+<span id="L374" class="line"><a href="#L374">374</a>        end)</span>
+<span id="L375" class="line"><a href="#L375">375</a>        :setBannerCreator(function()</span>
+<span id="L376" class="line"><a href="#L376">376</a>            local banner = Sprite:create(&quot;amf/dailyreward/mark/extend/collectword/banner.png&quot;)</span>
+<span id="L377" class="line"><a href="#L377">377</a>            local UIButton = require &quot;amf.middleware.ui.kit.component.button.UIButton&quot;</span>
+<span id="L378" class="line"><a href="#L378">378</a>            local btn = UIButton:createButton({</span>
+<span id="L379" class="line"><a href="#L379">379</a>                scaleMode = UIButtonConfig.BtnScales.k50,</span>
+<span id="L380" class="line"><a href="#L380">380</a>                str = &quot;点击查看&quot;,</span>
+<span id="L381" class="line"><a href="#L381">381</a>            })</span>
+<span id="L382" class="line"><a href="#L382">382</a>            banner:addChild(btn)</span>
+<span id="L383" class="line"><a href="#L383">383</a>            local saveKey = &quot;mark_has_show_reward_&quot;..(self.actInfo:getValue(&quot;mainBeginTime&quot;) or &quot;&quot;)</span>
+<span id="L384" class="line"><a href="#L384">384</a>            if not self:hasGuideIndex(CollectWordConst.GuideIds.GUIDE1) and not SaveTool:getValue(saveKey) then</span>
+<span id="L385" class="line"><a href="#L385">385</a>                SaveTool:setValue(saveKey, true)</span>
+<span id="L386" class="line"><a href="#L386">386</a>                btn:setRedDot(&quot;奖&quot;)</span>
+<span id="L387" class="line"><a href="#L387">387</a>            end</span>
+<span id="L388" class="line"><a href="#L388">388</a></span>
+<span id="L389" class="line"><a href="#L389">389</a>            btn:setPositionXY(521,50)</span>
+<span id="L390" class="line"><a href="#L390">390</a>            btn:setCallback(function()</span>
+<span id="L391" class="line"><a href="#L391">391</a>                -- 如果是强弹，给他中断了</span>
+<span id="L392" class="line"><a href="#L392">392</a>                self._autoPopupMgr:resetPopup()</span>
+<span id="L393" class="line"><a href="#L393">393</a>                MarkEventCenter:dispatch(MarkEvent.MARK_CLOSE)</span>
+<span id="L394" class="line"><a href="#L394">394</a>                self._fruitTreeManager:openFruitTreePanel({</span>
+<span id="L395" class="line"><a href="#L395">395</a>                    t1 = &quot;sign_in&quot;</span>
+<span id="L396" class="line"><a href="#L396">396</a>                })</span>
+<span id="L397" class="line"><a href="#L397">397</a>            end)</span>
+<span id="L398" class="line"><a href="#L398">398</a>            return banner</span>
+<span id="L399" class="line"><a href="#L399">399</a>        end, ccp(305, 91))</span>
+<span id="L400" class="line"><a href="#L400">400</a>    table.insert(contextList, context)</span>
+<span id="L401" class="line"><a href="#L401">401</a>end</span>
+<span id="L402" class="line"><a href="#L402">402</a></span>
+<span id="L403" class="line"><a href="#L403">403</a>function CollectWordManager:onActPassDay()</span>
+<span id="L404" class="line"><a href="#L404">404</a>    self:closeAll(true)</span>
+<span id="L405" class="line"><a href="#L405">405</a>end</span>
+<span id="L406" class="line"><a href="#L406">406</a></span>
+<span id="L407" class="line"><a href="#L407">407</a>function CollectWordManager:getPassDayCloseTip()</span>
+<span id="L408" class="line"><a href="#L408">408</a>    if not self.actInfo then</span>
+<span id="L409" class="line"><a href="#L409">409</a>        return CollectWordConst.Desc.TIP_PASS_DAY</span>
+<span id="L410" class="line"><a href="#L410">410</a>    end</span>
+<span id="L411" class="line"><a href="#L411">411</a></span>
+<span id="L412" class="line"><a href="#L412">412</a>    if self.actInfo:isActEnd() then</span>
+<span id="L413" class="line"><a href="#L413">413</a>        return CollectWordConst.Desc.TIP_ACT_END</span>
+<span id="L414" class="line"><a href="#L414">414</a>    end</span>
+<span id="L415" class="line"><a href="#L415">415</a></span>
+<span id="L416" class="line"><a href="#L416">416</a>    if not self.actInfo:isEnabled(self:hasRealProps()) and self.actInfo:isInRewardTime() then</span>
+<span id="L417" class="line"><a href="#L417">417</a>        return CollectWordConst.Desc.TIP_ACT_END</span>
+<span id="L418" class="line"><a href="#L418">418</a>    end</span>
+<span id="L419" class="line"><a href="#L419">419</a></span>
+<span id="L420" class="line"><a href="#L420">420</a>    return CollectWordConst.Desc.TIP_PASS_DAY</span>
+<span id="L421" class="line"><a href="#L421">421</a>end</span>
+<span id="L422" class="line"><a href="#L422">422</a></span>
+<span id="L423" class="line"><a href="#L423">423</a>function CollectWordManager:consumeCloseTip(fromPassDay)</span>
+<span id="L424" class="line"><a href="#L424">424</a>    if fromPassDay then</span>
+<span id="L425" class="line"><a href="#L425">425</a>        return self:getPassDayCloseTip()</span>
+<span id="L426" class="line"><a href="#L426">426</a>    end</span>
+<span id="L427" class="line"><a href="#L427">427</a></span>
+<span id="L428" class="line"><a href="#L428">428</a>    if self:isActEnd() then</span>
+<span id="L429" class="line"><a href="#L429">429</a>        return CollectWordConst.Desc.TIP_ACT_END</span>
+<span id="L430" class="line"><a href="#L430">430</a>    end</span>
+<span id="L431" class="line"><a href="#L431">431</a></span>
+<span id="L432" class="line"><a href="#L432">432</a>    return nil</span>
+<span id="L433" class="line"><a href="#L433">433</a>end</span>
+<span id="L434" class="line"><a href="#L434">434</a></span>
+<span id="L435" class="line"><a href="#L435">435</a>-- 收到字界面</span>
+<span id="L436" class="line"><a href="#L436">436</a>function CollectWordManager:showGetWordPanel(delegate)</span>
+<span id="L437" class="line"><a href="#L437">437</a>    delegate = delegate or {}</span>
+<span id="L438" class="line"><a href="#L438">438</a>    local receiveWordInfoListA = delegate.rewards or {}</span>
+<span id="L439" class="line"><a href="#L439">439</a>    local shareType = delegate.shareType</span>
+<span id="L440" class="line"><a href="#L440">440</a>    local tempData = table.clone(receiveWordInfoListA)</span>
+<span id="L441" class="line"><a href="#L441">441</a></span>
+<span id="L442" class="line"><a href="#L442">442</a>    local rewardMap = {}</span>
+<span id="L443" class="line"><a href="#L443">443</a>    local personMap = {}</span>
+<span id="L444" class="line"><a href="#L444">444</a>    local rewardList = {}</span>
+<span id="L445" class="line"><a href="#L445">445</a>    local personList = {}</span>
+<span id="L446" class="line"><a href="#L446">446</a>    for _, v in pairs(tempData) do</span>
+<span id="L447" class="line"><a href="#L447">447</a>        if not personMap[tostring(v.xxlId)] then</span>
+<span id="L448" class="line"><a href="#L448">448</a>            personMap[tostring(v.xxlId)] = 1</span>
+<span id="L449" class="line"><a href="#L449">449</a>        end</span>
+<span id="L450" class="line"><a href="#L450">450</a>    end</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>    local personNum = table.size(personMap)</span>
+<span id="L453" class="line"><a href="#L453">453</a></span>
+<span id="L454" class="line"><a href="#L454">454</a>    for _, v in pairs(tempData) do</span>
+<span id="L455" class="line"><a href="#L455">455</a>        table.insert(personList, v)</span>
+<span id="L456" class="line"><a href="#L456">456</a>    end</span>
+<span id="L457" class="line"><a href="#L457">457</a></span>
+<span id="L458" class="line"><a href="#L458">458</a>    table.sort(personList, function(a, b)</span>
+<span id="L459" class="line"><a href="#L459">459</a>        return tonumber(a.time or 0) &lt; tonumber(b.time or 0)</span>
+<span id="L460" class="line"><a href="#L460">460</a>    end)</span>
+<span id="L461" class="line"><a href="#L461">461</a></span>
+<span id="L462" class="line"><a href="#L462">462</a>    local shareTime = personList[1].shareTime or 0</span>
+<span id="L463" class="line"><a href="#L463">463</a></span>
+<span id="L464" class="line"><a href="#L464">464</a>    local personName = cutNameByteSensitive(personList[1].name, 12, nil, true)</span>
+<span id="L465" class="line"><a href="#L465">465</a>    if personNum &gt; 1 then</span>
+<span id="L466" class="line"><a href="#L466">466</a>        personName = personName..&quot;等&quot;</span>
+<span id="L467" class="line"><a href="#L467">467</a>    end</span>
+<span id="L468" class="line"><a href="#L468">468</a></span>
+<span id="L469" class="line"><a href="#L469">469</a>    for _, v in pairs(tempData) do</span>
+<span id="L470" class="line"><a href="#L470">470</a>        if rewardMap[tostring(v.itemId)] then</span>
+<span id="L471" class="line"><a href="#L471">471</a>            rewardMap[tostring(v.itemId)] = rewardMap[tostring(v.itemId)] + 1</span>
+<span id="L472" class="line"><a href="#L472">472</a>        else</span>
+<span id="L473" class="line"><a href="#L473">473</a>            rewardMap[tostring(v.itemId)] = 1</span>
+<span id="L474" class="line"><a href="#L474">474</a>        end</span>
+<span id="L475" class="line"><a href="#L475">475</a>    end</span>
+<span id="L476" class="line"><a href="#L476">476</a>    for k, v in pairs(rewardMap) do</span>
+<span id="L477" class="line"><a href="#L477">477</a>        local t = {</span>
+<span id="L478" class="line"><a href="#L478">478</a>            itemId = tonumber(k),</span>
+<span id="L479" class="line"><a href="#L479">479</a>            num = v,</span>
+<span id="L480" class="line"><a href="#L480">480</a>            dontFly = delegate.dontFly</span>
+<span id="L481" class="line"><a href="#L481">481</a>        }</span>
+<span id="L482" class="line"><a href="#L482">482</a>        safeRunCall(delegate.fillFlyFunc, tonumber(k), function(flyFunc)</span>
+<span id="L483" class="line"><a href="#L483">483</a>            t.flyFunc = flyFunc</span>
+<span id="L484" class="line"><a href="#L484">484</a>        end)</span>
+<span id="L485" class="line"><a href="#L485">485</a>        table.insert(rewardList, t)</span>
+<span id="L486" class="line"><a href="#L486">486</a>    end</span>
+<span id="L487" class="line"><a href="#L487">487</a></span>
+<span id="L488" class="line"><a href="#L488">488</a>    for _, v in pairs(rewardList) do</span>
+<span id="L489" class="line"><a href="#L489">489</a>        if self:getWordIsNew(v.itemId) then</span>
+<span id="L490" class="line"><a href="#L490">490</a>            v.newSign = true</span>
+<span id="L491" class="line"><a href="#L491">491</a>        end</span>
+<span id="L492" class="line"><a href="#L492">492</a>    end</span>
+<span id="L493" class="line"><a href="#L493">493</a></span>
+<span id="L494" class="line"><a href="#L494">494</a>    local NameLabel = require &quot;amf.middleware.ui.kit.component.namelabel.NameLabel&quot;</span>
+<span id="L495" class="line"><a href="#L495">495</a>    local nameText = NameLabel:create(personName, 26, nil, kCCTextAlignmentCenter, kCCVerticalTextAlignmentTop)</span>
+<span id="L496" class="line"><a href="#L496">496</a>    nameText:setTextColor(hex2ccc4(&quot;b17149FF&quot;))</span>
+<span id="L497" class="line"><a href="#L497">497</a>    nameText.ignorePack = true</span>
+<span id="L498" class="line"><a href="#L498">498</a></span>
+<span id="L499" class="line"><a href="#L499">499</a></span>
+<span id="L500" class="line"><a href="#L500">500</a>    local DrainagePanelVM = require &quot;amf.middleware.ui.kit.panel.second.DrainagePanelVM&quot;</span>
+<span id="L501" class="line"><a href="#L501">501</a>    local builder = DrainagePanelVM.Builder.new()</span>
+<span id="L502" class="line"><a href="#L502">502</a>    if shareType == CollectWordConst.ShareType.ASKWORD_BEHELP then</span>
+<span id="L503" class="line"><a href="#L503">503</a>        builder:setTitle(&quot;索要成功&quot;)</span>
+<span id="L504" class="line"><a href="#L504">504</a>    else</span>
+<span id="L505" class="line"><a href="#L505">505</a>        builder:setTitle(&quot;收下赠礼&quot;)</span>
+<span id="L506" class="line"><a href="#L506">506</a>    end</span>
+<span id="L507" class="line"><a href="#L507">507</a>    builder:setNumButton(&#x27;收下&#x27;, nil)</span>
+<span id="L508" class="line"><a href="#L508">508</a>    if shareType == CollectWordConst.ShareType.ASKWORD_BEHELP then</span>
+<span id="L509" class="line"><a href="#L509">509</a>        local ts = math.floor(tonumber(shareTime) / 1000)</span>
+<span id="L510" class="line"><a href="#L510">510</a>        local year = tonumber( os.date( &quot;%y&quot; , ts ) )</span>
+<span id="L511" class="line"><a href="#L511">511</a>        local month =  tonumber( os.date( &quot;%m&quot; , ts ) )</span>
+<span id="L512" class="line"><a href="#L512">512</a>        local day =  tonumber( os.date( &quot;%d&quot; , ts ) )</span>
+<span id="L513" class="line"><a href="#L513">513</a>        local text1 = tostring(month)..&quot;月&quot;..tostring(day)..&quot;日&quot;</span>
+<span id="L514" class="line"><a href="#L514">514</a>        builder:pushDesc(nameText)</span>
+<span id="L515" class="line"><a href="#L515">515</a>        builder:pushDesc(&#x27;接受您&#x27;..text1..&#x27;发出的索要申请，送来了活动果，快收下吧~&#x27;)</span>
+<span id="L516" class="line"><a href="#L516">516</a>    else</span>
+<span id="L517" class="line"><a href="#L517">517</a>        builder:pushDesc(&#x27;好友&#x27;)</span>
+<span id="L518" class="line"><a href="#L518">518</a>        builder:pushDesc(nameText)</span>
+<span id="L519" class="line"><a href="#L519">519</a>        builder:pushDesc(&#x27;给您送来了以下文字果，快快收下吧~&#x27;)</span>
+<span id="L520" class="line"><a href="#L520">520</a>    end</span>
+<span id="L521" class="line"><a href="#L521">521</a></span>
+<span id="L522" class="line"><a href="#L522">522</a>    builder:pushBlock(rewardList, &#x27;请收下&#x27;)</span>
+<span id="L523" class="line"><a href="#L523">523</a>    builder:setCloseCallback(delegate.closeCallback)</span>
+<span id="L524" class="line"><a href="#L524">524</a>    builder:setFly(true)</span>
+<span id="L525" class="line"><a href="#L525">525</a>    local vm = builder:build()</span>
+<span id="L526" class="line"><a href="#L526">526</a>    vm:popout()</span>
+<span id="L527" class="line"><a href="#L527">527</a>    self:addToMgr(vm)</span>
+<span id="L528" class="line"><a href="#L528">528</a>end</span>
+<span id="L529" class="line"><a href="#L529">529</a></span>
+<span id="L530" class="line"><a href="#L530">530</a>function CollectWordManager:onActEnterStage4()</span>
+<span id="L531" class="line"><a href="#L531">531</a>    if not self:isEnabled() then return end</span>
+<span id="L532" class="line"><a href="#L532">532</a></span>
+<span id="L533" class="line"><a href="#L533">533</a>    local function showGotoGet(hasReward, onPopout)</span>
+<span id="L534" class="line"><a href="#L534">534</a>        local function onHandleOver()</span>
+<span id="L535" class="line"><a href="#L535">535</a>            AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.COLLECT_WORD)</span>
+<span id="L536" class="line"><a href="#L536">536</a>        end</span>
+<span id="L537" class="line"><a href="#L537">537</a></span>
+<span id="L538" class="line"><a href="#L538">538</a>        local function creator()</span>
+<span id="L539" class="line"><a href="#L539">539</a>            if not self:isEnabled() then</span>
+<span id="L540" class="line"><a href="#L540">540</a>                onHandleOver()</span>
+<span id="L541" class="line"><a href="#L541">541</a>                return</span>
+<span id="L542" class="line"><a href="#L542">542</a>            end</span>
+<span id="L543" class="line"><a href="#L543">543</a>            self:loadRes():next(function()</span>
+<span id="L544" class="line"><a href="#L544">544</a>                if not self:isEnabled() then</span>
+<span id="L545" class="line"><a href="#L545">545</a>                    onHandleOver()</span>
+<span id="L546" class="line"><a href="#L546">546</a>                    return</span>
+<span id="L547" class="line"><a href="#L547">547</a>                end</span>
+<span id="L548" class="line"><a href="#L548">548</a>                safeRunCall(onPopout)</span>
+<span id="L549" class="line"><a href="#L549">549</a>                self:showBackflowPanel({</span>
+<span id="L550" class="line"><a href="#L550">550</a>                    hasReward = hasReward,</span>
+<span id="L551" class="line"><a href="#L551">551</a>                    closeCallback = onHandleOver</span>
+<span id="L552" class="line"><a href="#L552">552</a>                })</span>
+<span id="L553" class="line"><a href="#L553">553</a>            end, function()</span>
+<span id="L554" class="line"><a href="#L554">554</a>                onHandleOver()</span>
+<span id="L555" class="line"><a href="#L555">555</a>            end)</span>
+<span id="L556" class="line"><a href="#L556">556</a>        end</span>
+<span id="L557" class="line"><a href="#L557">557</a></span>
+<span id="L558" class="line"><a href="#L558">558</a>        self._autoPopupMgr:addPopupConfig(PopupCheckPoint.COLLECT_WORD, creator)</span>
+<span id="L559" class="line"><a href="#L559">559</a>    end</span>
+<span id="L560" class="line"><a href="#L560">560</a></span>
+<span id="L561" class="line"><a href="#L561">561</a>    local todayCount = SaveTool:getTodayPopPanelCount(&quot;todayPopPanelCount&quot;) or 0</span>
+<span id="L562" class="line"><a href="#L562">562</a>    local function markTodayPopout()</span>
+<span id="L563" class="line"><a href="#L563">563</a>        SaveTool:setTodayPopPanelCount(&quot;todayPopPanelCount&quot;, todayCount + 1)</span>
+<span id="L564" class="line"><a href="#L564">564</a>    end</span>
+<span id="L565" class="line"><a href="#L565">565</a></span>
+<span id="L566" class="line"><a href="#L566">566</a>    if todayCount &lt; 3 then</span>
+<span id="L567" class="line"><a href="#L567">567</a>        if self:hasRipenFruit() and self:hasGuideIndex(CollectWordConst.GuideIds.GUIDE1) then</span>
+<span id="L568" class="line"><a href="#L568">568</a>            showGotoGet(true, markTodayPopout)</span>
+<span id="L569" class="line"><a href="#L569">569</a>        elseif not SaveTool:getTodayPopFlowPanel(&quot;hasPopout_flowPanel&quot;)</span>
+<span id="L570" class="line"><a href="#L570">570</a>            and not self:hasActived() then</span>
+<span id="L571" class="line"><a href="#L571">571</a>            showGotoGet(false, function()</span>
+<span id="L572" class="line"><a href="#L572">572</a>                SaveTool:setTodayPopFlowPanel(&quot;hasPopout_flowPanel&quot;, true)</span>
+<span id="L573" class="line"><a href="#L573">573</a>                markTodayPopout()</span>
+<span id="L574" class="line"><a href="#L574">574</a>            end)</span>
+<span id="L575" class="line"><a href="#L575">575</a>        end</span>
+<span id="L576" class="line"><a href="#L576">576</a>    end</span>
+<span id="L577" class="line"><a href="#L577">577</a>end</span>
+<span id="L578" class="line"><a href="#L578">578</a></span>
+<span id="L579" class="line"><a href="#L579">579</a>-- 引导界面</span>
+<span id="L580" class="line"><a href="#L580">580</a>function CollectWordManager:showBackflowPanel(param)</span>
+<span id="L581" class="line"><a href="#L581">581</a>    local BackflowPanelVM = require &quot;amf.feature.fruittree.act.collectword.view.BackFlowPanelVM&quot;</span>
+<span id="L582" class="line"><a href="#L582">582</a>    local vm = BackflowPanelVM:create(param)</span>
+<span id="L583" class="line"><a href="#L583">583</a>    vm:setLoadResFailCallback(function()</span>
+<span id="L584" class="line"><a href="#L584">584</a>        safeRunCall(param.closeCallback)</span>
+<span id="L585" class="line"><a href="#L585">585</a>    end)</span>
+<span id="L586" class="line"><a href="#L586">586</a>    vm:popout()</span>
+<span id="L587" class="line"><a href="#L587">587</a>    self:addToMgr(vm)</span>
+<span id="L588" class="line"><a href="#L588">588</a>end</span>
+<span id="L589" class="line"><a href="#L589">589</a></span>
+<span id="L590" class="line"><a href="#L590">590</a>function CollectWordManager:loadAllFiles()</span>
+<span id="L591" class="line"><a href="#L591">591</a>    self._hasLoadFiles = true</span>
+<span id="L592" class="line"><a href="#L592">592</a>    for _, v in ipairs(_plists) do</span>
+<span id="L593" class="line"><a href="#L593">593</a>        UICreateUtil:loadPlist(v)</span>
+<span id="L594" class="line"><a href="#L594">594</a>    end</span>
+<span id="L595" class="line"><a href="#L595">595</a></span>
+<span id="L596" class="line"><a href="#L596">596</a>    for _, v in ipairs(_spines) do</span>
+<span id="L597" class="line"><a href="#L597">597</a>        UICreateUtil:loadSpineRes(v)</span>
+<span id="L598" class="line"><a href="#L598">598</a>    end</span>
+<span id="L599" class="line"><a href="#L599">599</a>end</span>
+<span id="L600" class="line"><a href="#L600">600</a></span>
+<span id="L601" class="line"><a href="#L601">601</a>function CollectWordManager:unloadAllFiles()</span>
+<span id="L602" class="line"><a href="#L602">602</a>    if not self._hasLoadFiles then return end</span>
+<span id="L603" class="line"><a href="#L603">603</a>    for _, v in ipairs(_plists) do</span>
+<span id="L604" class="line"><a href="#L604">604</a>        UICreateUtil:unloadPlist(v)</span>
+<span id="L605" class="line"><a href="#L605">605</a>    end</span>
+<span id="L606" class="line"><a href="#L606">606</a></span>
+<span id="L607" class="line"><a href="#L607">607</a>    for _, v in ipairs(_spines) do</span>
+<span id="L608" class="line"><a href="#L608">608</a>        UICreateUtil:unloadSpineRes(v)</span>
+<span id="L609" class="line"><a href="#L609">609</a>    end</span>
+<span id="L610" class="line"><a href="#L610">610</a></span>
+<span id="L611" class="line"><a href="#L611">611</a>    for i, v in ipairs(_files) do</span>
+<span id="L612" class="line"><a href="#L612">612</a>        CCTextureCache:sharedTextureCache():removeTextureForKey(</span>
+<span id="L613" class="line"><a href="#L613">613</a>            _G.ccFullPath(SpriteUtil:getRealResourceName(v), true)</span>
+<span id="L614" class="line"><a href="#L614">614</a>        )</span>
+<span id="L615" class="line"><a href="#L615">615</a>    end</span>
+<span id="L616" class="line"><a href="#L616">616</a>end</span>
+<span id="L617" class="line"><a href="#L617">617</a></span>
+<span id="L618" class="line"><a href="#L618">618</a>-- 红点检查</span>
+<span id="L619" class="line"><a href="#L619">619</a>-- function CollectWordManager:onIconNumCheck(evt)</span>
+<span id="L620" class="line"><a href="#L620">620</a>--     if not self:isEnabled() then return end</span>
+<span id="L621" class="line"><a href="#L621">621</a>--     local contextList = evt:getData()</span>
+<span id="L622" class="line"><a href="#L622">622</a>--     local context = ActIconNumContext.new()</span>
+<span id="L623" class="line"><a href="#L623">623</a>--         :setPriority(FruitTreeConst.ActPriority.COLLECT_WORLD)</span>
+<span id="L624" class="line"><a href="#L624">624</a>--         :setMsgNum()</span>
+<span id="L625" class="line"><a href="#L625">625</a>--     table.insert(contextList, context)</span>
+<span id="L626" class="line"><a href="#L626">626</a>-- end</span>
+<span id="L627" class="line"><a href="#L627">627</a></span>
+<span id="L628" class="line"><a href="#L628">628</a>-- 奖字检查</span>
+<span id="L629" class="line"><a href="#L629">629</a>function CollectWordManager:onIconRewardCheck(evt)</span>
+<span id="L630" class="line"><a href="#L630">630</a>    if not self:isLocalEnabled() then</span>
+<span id="L631" class="line"><a href="#L631">631</a>        return</span>
+<span id="L632" class="line"><a href="#L632">632</a>    end</span>
+<span id="L633" class="line"><a href="#L633">633</a>    if not self.actInfo then return end</span>
+<span id="L634" class="line"><a href="#L634">634</a>    local contextList = evt:getData()</span>
+<span id="L635" class="line"><a href="#L635">635</a>    local hasReward = self:getActValue(&quot;hasReward&quot;)</span>
+<span id="L636" class="line"><a href="#L636">636</a>    local hasNewWord = self:getActValue(&quot;hasNewWord&quot;)</span>
+<span id="L637" class="line"><a href="#L637">637</a>    local hasReceiveWord = self:getActValue(&quot;hasReceiveWord&quot;)</span>
+<span id="L638" class="line"><a href="#L638">638</a>    if self.actInfo:isInRewardTime() then</span>
+<span id="L639" class="line"><a href="#L639">639</a>        hasNewWord = false</span>
+<span id="L640" class="line"><a href="#L640">640</a>        hasReceiveWord = false</span>
+<span id="L641" class="line"><a href="#L641">641</a>    end</span>
+<span id="L642" class="line"><a href="#L642">642</a></span>
+<span id="L643" class="line"><a href="#L643">643</a>    local context = ActIconRewardContext.new()</span>
+<span id="L644" class="line"><a href="#L644">644</a>        :setPriority(FruitTreeConst.ActPriority.COLLECT_WORLD)</span>
+<span id="L645" class="line"><a href="#L645">645</a>        :setHasReward(hasReward or hasNewWord or hasReceiveWord)</span>
+<span id="L646" class="line"><a href="#L646">646</a>    table.insert(contextList, context)</span>
+<span id="L647" class="line"><a href="#L647">647</a>end</span>
+<span id="L648" class="line"><a href="#L648">648</a></span>
+<span id="L649" class="line"><a href="#L649">649</a>-- 新字检查</span>
+<span id="L650" class="line"><a href="#L650">650</a>-- function CollectWordManager:onIconNewCheck(evt)</span>
+<span id="L651" class="line"><a href="#L651">651</a>--     if not self:isLocalEnabled() then</span>
+<span id="L652" class="line"><a href="#L652">652</a>--         return</span>
+<span id="L653" class="line"><a href="#L653">653</a>--     end</span>
+<span id="L654" class="line"><a href="#L654">654</a>--     if not self.actInfo then return end</span>
+<span id="L655" class="line"><a href="#L655">655</a>--     local hasReward = self:getActValue(&quot;hasReward&quot;)</span>
+<span id="L656" class="line"><a href="#L656">656</a>--     local hasNewWord = self:getActValue(&quot;hasNewWord&quot;)</span>
+<span id="L657" class="line"><a href="#L657">657</a>--     local contextList = evt:getData()</span>
+<span id="L658" class="line"><a href="#L658">658</a>--     local context = ActIconNewContext.new()</span>
+<span id="L659" class="line"><a href="#L659">659</a>--         :setPriority(FruitTreeConst.ActPriority.COLLECT_WORLD)</span>
+<span id="L660" class="line"><a href="#L660">660</a>--         :setNew(not hasReward and hasNewWord)</span>
+<span id="L661" class="line"><a href="#L661">661</a>--     table.insert(contextList, context)</span>
+<span id="L662" class="line"><a href="#L662">662</a>-- end</span>
+<span id="L663" class="line"><a href="#L663">663</a></span>
+<span id="L664" class="line"><a href="#L664">664</a>-- 打开金银果树前检查</span>
+<span id="L665" class="line"><a href="#L665">665</a>function CollectWordManager:onFruitTreePreOpenCheck(evt)</span>
+<span id="L666" class="line"><a href="#L666">666</a>    if not self:isLocalEnabled() then</span>
+<span id="L667" class="line"><a href="#L667">667</a>        return</span>
+<span id="L668" class="line"><a href="#L668">668</a>    end</span>
+<span id="L669" class="line"><a href="#L669">669</a>    if not self.actInfo:isInActTime() and not self.actInfo:isInRewardTime() then</span>
+<span id="L670" class="line"><a href="#L670">670</a>        return false</span>
+<span id="L671" class="line"><a href="#L671">671</a>    end</span>
+<span id="L672" class="line"><a href="#L672">672</a>    local preOpenList = evt:getData()</span>
+<span id="L673" class="line"><a href="#L673">673</a>    local actPreOpenContext = ActFruitTreePreOpenContext.new()</span>
+<span id="L674" class="line"><a href="#L674">674</a>        :setPriority(FruitTreeConst.ActPriority.COLLECT_WORLD)</span>
+<span id="L675" class="line"><a href="#L675">675</a>        :setPanelVM(require &quot;amf.feature.fruittree.act.collectword.view.FruitTreeMainPanel_CollectWordVM&quot;)</span>
+<span id="L676" class="line"><a href="#L676">676</a>        :setFunction(function(callback)</span>
+<span id="L677" class="line"><a href="#L677">677</a>            local Condition = require &quot;amf.script.sugar.Condition&quot;</span>
+<span id="L678" class="line"><a href="#L678">678</a>            local cond = Condition.new(function()</span>
+<span id="L679" class="line"><a href="#L679">679</a>                safeRunCall(callback)</span>
+<span id="L680" class="line"><a href="#L680">680</a>            end, 2)</span>
+<span id="L681" class="line"><a href="#L681">681</a>            self:loadRes():next(function()</span>
+<span id="L682" class="line"><a href="#L682">682</a>                cond:notify()</span>
+<span id="L683" class="line"><a href="#L683">683</a>            end, function()</span>
+<span id="L684" class="line"><a href="#L684">684</a>                cond:notify()</span>
+<span id="L685" class="line"><a href="#L685">685</a>            end)</span>
+<span id="L686" class="line"><a href="#L686">686</a>            self:requestMainInfo():next(function()</span>
+<span id="L687" class="line"><a href="#L687">687</a>                cond:notify()</span>
+<span id="L688" class="line"><a href="#L688">688</a>            end, function()</span>
+<span id="L689" class="line"><a href="#L689">689</a>                cond:notify()</span>
+<span id="L690" class="line"><a href="#L690">690</a>            end)</span>
+<span id="L691" class="line"><a href="#L691">691</a>        end)</span>
+<span id="L692" class="line"><a href="#L692">692</a>        :setEnabledFunc(function()</span>
+<span id="L693" class="line"><a href="#L693">693</a>            return self:isEnabled()</span>
+<span id="L694" class="line"><a href="#L694">694</a>        end)</span>
+<span id="L695" class="line"><a href="#L695">695</a>    table.insert(preOpenList, actPreOpenContext)</span>
+<span id="L696" class="line"><a href="#L696">696</a>end</span>
+<span id="L697" class="line"><a href="#L697">697</a></span>
+<span id="L698" class="line"><a href="#L698">698</a>-- 关闭界面后需要重置一下</span>
+<span id="L699" class="line"><a href="#L699">699</a>function CollectWordManager:resetActInfo()</span>
+<span id="L700" class="line"><a href="#L700">700</a>    if not self.actInfo then return end</span>
+<span id="L701" class="line"><a href="#L701">701</a>    self:setActValue(&quot;hasNewWord&quot;, false)</span>
+<span id="L702" class="line"><a href="#L702">702</a>    self:setActValue(&quot;hasReceiveWord&quot;, false)</span>
+<span id="L703" class="line"><a href="#L703">703</a>    if self.actInfo:isInActTime() and self:isEnabled() then</span>
+<span id="L704" class="line"><a href="#L704">704</a>        local hasTaskReward = self:hasTaskCanReward()</span>
+<span id="L705" class="line"><a href="#L705">705</a>        local canLotter = self:canLotter()</span>
+<span id="L706" class="line"><a href="#L706">706</a>        local hasRippen = self:hasRipenFruit()</span>
+<span id="L707" class="line"><a href="#L707">707</a>        local canActive = self:isCanActive()</span>
+<span id="L708" class="line"><a href="#L708">708</a>        self:setActValue(&quot;hasReward&quot;, hasTaskReward or canLotter or hasRippen or canActive)</span>
+<span id="L709" class="line"><a href="#L709">709</a>    elseif self:isInRewardTime() then</span>
+<span id="L710" class="line"><a href="#L710">710</a>        self:setActValue(&quot;hasReward&quot;, self:hasRealProps() and not self:getDataValue(&quot;contact&quot;))</span>
+<span id="L711" class="line"><a href="#L711">711</a>    else</span>
+<span id="L712" class="line"><a href="#L712">712</a>        self:setActValue(&quot;hasReward&quot;, false)</span>
+<span id="L713" class="line"><a href="#L713">713</a>    end</span>
+<span id="L714" class="line"><a href="#L714">714</a>end</span>
+<span id="L715" class="line"><a href="#L715">715</a></span>
+<span id="L716" class="line"><a href="#L716">716</a>-- actInfo</span>
+<span id="L717" class="line"><a href="#L717">717</a>function CollectWordManager:updateActInfo()</span>
+<span id="L718" class="line"><a href="#L718">718</a>    if not self:isLocalEnabled() then return deferred.error() end</span>
+<span id="L719" class="line"><a href="#L719">719</a>    local actInfo = self._activityMgr:getActInfo(CollectWordConst.ACT_ID)</span>
+<span id="L720" class="line"><a href="#L720">720</a>    if actInfo and actInfo.extra and actInfo.extra ~= &quot;&quot; then</span>
+<span id="L721" class="line"><a href="#L721">721</a>        local tb = table.deserialize(actInfo.extra)</span>
+<span id="L722" class="line"><a href="#L722">722</a>        if type(tb) ~= &quot;table&quot; then</span>
+<span id="L723" class="line"><a href="#L723">723</a>            return deferred.error()</span>
+<span id="L724" class="line"><a href="#L724">724</a>        end</span>
+<span id="L725" class="line"><a href="#L725">725</a>        self.actInfo:parseData(tb)</span>
+<span id="L726" class="line"><a href="#L726">726</a>        if not self:isActEnabled() then</span>
+<span id="L727" class="line"><a href="#L727">727</a>            return deferred.error()</span>
+<span id="L728" class="line"><a href="#L728">728</a>        end</span>
+<span id="L729" class="line"><a href="#L729">729</a></span>
+<span id="L730" class="line"><a href="#L730">730</a>        if not self._hasRequestLightMainInfo then</span>
+<span id="L731" class="line"><a href="#L731">731</a>            self._hasRequestLightMainInfo = true</span>
+<span id="L732" class="line"><a href="#L732">732</a>            self:requestMainInfo(nil, nil, true)</span>
+<span id="L733" class="line"><a href="#L733">733</a>        end</span>
+<span id="L734" class="line"><a href="#L734">734</a></span>
+<span id="L735" class="line"><a href="#L735">735</a>        -- 通知刷新icon</span>
+<span id="L736" class="line"><a href="#L736">736</a>        FruitTreeEventCenter:dispatch(FruitTreeEvent.ACT_DATA_CHANGE)</span>
+<span id="L737" class="line"><a href="#L737">737</a>        -- 刷新icon的特效</span>
+<span id="L738" class="line"><a href="#L738">738</a>        local hasReward = self:getActValue(&quot;hasReward&quot;)</span>
+<span id="L739" class="line"><a href="#L739">739</a>        local hasNewWord = self:getActValue(&quot;hasNewWord&quot;)</span>
+<span id="L740" class="line"><a href="#L740">740</a>        if hasReward or hasNewWord then</span>
+<span id="L741" class="line"><a href="#L741">741</a>            FruitTreeEventCenter:dispatch(FruitTreeEvent.ICON_SHOW_NEWANIM)</span>
+<span id="L742" class="line"><a href="#L742">742</a>        else</span>
+<span id="L743" class="line"><a href="#L743">743</a>            FruitTreeEventCenter:dispatch(FruitTreeEvent.ICON_HIDE_NEWANIM)</span>
+<span id="L744" class="line"><a href="#L744">744</a>        end</span>
+<span id="L745" class="line"><a href="#L745">745</a>        self:tryStartUpdateIcon()</span>
+<span id="L746" class="line"><a href="#L746">746</a>        return deferred.success()</span>
+<span id="L747" class="line"><a href="#L747">747</a>    end</span>
+<span id="L748" class="line"><a href="#L748">748</a>    return deferred.error()</span>
+<span id="L749" class="line"><a href="#L749">749</a>end</span>
+<span id="L750" class="line"><a href="#L750">750</a></span>
+<span id="L751" class="line"><a href="#L751">751</a>-- 主info</span>
+<span id="L752" class="line"><a href="#L752">752</a>function CollectWordManager:requestMainInfo(param, loading, light)</span>
+<span id="L753" class="line"><a href="#L753">753</a>    param = param or {}</span>
+<span id="L754" class="line"><a href="#L754">754</a>    param.configMd5 = self:getConfigValue(&quot;configMd5&quot;) or &quot;&quot;</span>
+<span id="L755" class="line"><a href="#L755">755</a>    if not light then</span>
+<span id="L756" class="line"><a href="#L756">756</a>        param.active = true</span>
+<span id="L757" class="line"><a href="#L757">757</a>    end</span>
+<span id="L758" class="line"><a href="#L758">758</a>    local d = deferred.new()</span>
+<span id="L759" class="line"><a href="#L759">759</a>    self._isRequestingMain = true</span>
+<span id="L760" class="line"><a href="#L760">760</a>    self.model:requestMainInfo(param, loading):next(function(response)</span>
+<span id="L761" class="line"><a href="#L761">761</a>        local data = response:getData()</span>
+<span id="L762" class="line"><a href="#L762">762</a>        local info = data.info or {}</span>
+<span id="L763" class="line"><a href="#L763">763</a>        -- 把别人送的字列表和别人点链接，给我的奖励赋给info</span>
+<span id="L764" class="line"><a href="#L764">764</a>        info.receiveWordInfoList = data.receiveWordInfoList or {}</span>
+<span id="L765" class="line"><a href="#L765">765</a>        -- showBeHelpRewardList 对应旧版“别人点击我分享链接后的奖励”。</span>
+<span id="L766" class="line"><a href="#L766">766</a>        -- 当前活动该奖励已下线，保留旧逻辑注释但不再入账/弹奖/打点。</span>
+<span id="L767" class="line"><a href="#L767">767</a>        -- info.showBeHelpRewardList = data.showBeHelpRewardList or {}</span>
+<span id="L768" class="line"><a href="#L768">768</a></span>
+<span id="L769" class="line"><a href="#L769">769</a>        -- if not table.isEmpty(data.showBeHelpRewardList) then</span>
+<span id="L770" class="line"><a href="#L770">770</a>        --     -- 这里应该加上奖励</span>
+<span id="L771" class="line"><a href="#L771">771</a>        --     GainPropData:create()</span>
+<span id="L772" class="line"><a href="#L772">772</a>        --         :setFeature(CollectWordConst.DC_FEATURE)</span>
+<span id="L773" class="line"><a href="#L773">773</a>        --         :setSource(CollectWordConst.DC_SOURCE..&quot;_share&quot;)</span>
+<span id="L774" class="line"><a href="#L774">774</a>        --         :setProps(info.showBeHelpRewardList)</span>
+<span id="L775" class="line"><a href="#L775">775</a>        --         :execute()</span>
+<span id="L776" class="line"><a href="#L776">776</a></span>
+<span id="L777" class="line"><a href="#L777">777</a>        --     self:dc(&quot;beclick&quot;, &quot;share&quot;)</span>
+<span id="L778" class="line"><a href="#L778">778</a>        -- end</span>
+<span id="L779" class="line"><a href="#L779">779</a>        local config = data.extra</span>
+<span id="L780" class="line"><a href="#L780">780</a>        if config and config ~= &quot;&quot; then</span>
+<span id="L781" class="line"><a href="#L781">781</a>            config = table.deserialize(config)</span>
+<span id="L782" class="line"><a href="#L782">782</a>            if type(config) == &quot;table&quot; then</span>
+<span id="L783" class="line"><a href="#L783">783</a>                self.model:parseConfig(config)</span>
+<span id="L784" class="line"><a href="#L784">784</a>            end</span>
+<span id="L785" class="line"><a href="#L785">785</a>        end</span>
+<span id="L786" class="line"><a href="#L786">786</a>        self.model:parseData(info)</span>
+<span id="L787" class="line"><a href="#L787">787</a>        -- 如果有收到的字，那么先减去，后边播动画再加上</span>
+<span id="L788" class="line"><a href="#L788">788</a>        if param.active and self:hasReceivedWords() then</span>
+<span id="L789" class="line"><a href="#L789">789</a>            local receiveList = self:getReceivedWordInfoList()</span>
+<span id="L790" class="line"><a href="#L790">790</a></span>
+<span id="L791" class="line"><a href="#L791">791</a>            local reciveList = self:getReceiveWordsList(CollectWordConst.ShareType.SENDWORD_RECEIVE_OTHER)</span>
+<span id="L792" class="line"><a href="#L792">792</a>            local askList = self:getReceiveWordsList(CollectWordConst.ShareType.ASKWORD_BEHELP)</span>
+<span id="L793" class="line"><a href="#L793">793</a>            local dcRewards = {}</span>
+<span id="L794" class="line"><a href="#L794">794</a>            local dcRewards2 = {}</span>
+<span id="L795" class="line"><a href="#L795">795</a>            for i, v in ipairs(askList) do</span>
+<span id="L796" class="line"><a href="#L796">796</a>                table.insert(dcRewards, {itemId = v.itemId, num = 1})</span>
+<span id="L797" class="line"><a href="#L797">797</a>            end</span>
+<span id="L798" class="line"><a href="#L798">798</a>            for i, v in ipairs(reciveList) do</span>
+<span id="L799" class="line"><a href="#L799">799</a>                table.insert(dcRewards2, {itemId = v.itemId, num = 1})</span>
+<span id="L800" class="line"><a href="#L800">800</a>            end</span>
+<span id="L801" class="line"><a href="#L801">801</a></span>
+<span id="L802" class="line"><a href="#L802">802</a>            -- 只打获得点</span>
+<span id="L803" class="line"><a href="#L803">803</a>            -- 被别人帮助成功获得的字</span>
+<span id="L804" class="line"><a href="#L804">804</a>            for i, v in ipairs(dcRewards) do</span>
+<span id="L805" class="line"><a href="#L805">805</a>                DcDataCommon:create()</span>
+<span id="L806" class="line"><a href="#L806">806</a>                    :setFeature(CollectWordConst.DC_FEATURE)</span>
+<span id="L807" class="line"><a href="#L807">807</a>                    :setSource(CollectWordConst.DC_SOURCE..&quot;_demand&quot;)</span>
+<span id="L808" class="line"><a href="#L808">808</a>                    :setActId(CollectWordConst.ACT_ID)</span>
+<span id="L809" class="line"><a href="#L809">809</a>                    :setGainProp(v)</span>
+<span id="L810" class="line"><a href="#L810">810</a>                    :execute()</span>
+<span id="L811" class="line"><a href="#L811">811</a>            end</span>
+<span id="L812" class="line"><a href="#L812">812</a></span>
+<span id="L813" class="line"><a href="#L813">813</a>            -- 好友通过游戏内赠送的字</span>
+<span id="L814" class="line"><a href="#L814">814</a>            for i, v in ipairs(dcRewards2) do</span>
+<span id="L815" class="line"><a href="#L815">815</a>                DcDataCommon:create()</span>
+<span id="L816" class="line"><a href="#L816">816</a>                :setFeature(CollectWordConst.DC_FEATURE)</span>
+<span id="L817" class="line"><a href="#L817">817</a>                :setSource(CollectWordConst.DC_SOURCE..&quot;_reward&quot;)</span>
+<span id="L818" class="line"><a href="#L818">818</a>                :setActId(CollectWordConst.ACT_ID)</span>
+<span id="L819" class="line"><a href="#L819">819</a>                :setGainProp(v)</span>
+<span id="L820" class="line"><a href="#L820">820</a>                :execute()</span>
+<span id="L821" class="line"><a href="#L821">821</a>            end</span>
+<span id="L822" class="line"><a href="#L822">822</a></span>
+<span id="L823" class="line"><a href="#L823">823</a>            for _, v in ipairs(receiveList) do</span>
+<span id="L824" class="line"><a href="#L824">824</a>                self:addWordNum(v.itemId, -1)</span>
+<span id="L825" class="line"><a href="#L825">825</a>            end</span>
+<span id="L826" class="line"><a href="#L826">826</a>        end</span>
+<span id="L827" class="line"><a href="#L827">827</a>        d:resolve()</span>
+<span id="L828" class="line"><a href="#L828">828</a>    end, function(response)</span>
+<span id="L829" class="line"><a href="#L829">829</a>        if not response:isCancel() and loading and not light then</span>
+<span id="L830" class="line"><a href="#L830">830</a>            CommonTip:showErrorTip(response)</span>
+<span id="L831" class="line"><a href="#L831">831</a>        end</span>
+<span id="L832" class="line"><a href="#L832">832</a>        d:reject()</span>
+<span id="L833" class="line"><a href="#L833">833</a>    end)</span>
+<span id="L834" class="line"><a href="#L834">834</a>    return d</span>
+<span id="L835" class="line"><a href="#L835">835</a>end</span>
+<span id="L836" class="line"><a href="#L836">836</a></span>
+<span id="L837" class="line"><a href="#L837">837</a>-- 摘果子</span>
+<span id="L838" class="line"><a href="#L838">838</a>function CollectWordManager:requestPick(param)</span>
+<span id="L839" class="line"><a href="#L839">839</a>    local d = deferred.new()</span>
+<span id="L840" class="line"><a href="#L840">840</a>    self.model:requestPick(param):next(function(response)</span>
+<span id="L841" class="line"><a href="#L841">841</a>        local data = response:getData()</span>
+<span id="L842" class="line"><a href="#L842">842</a>        local rewardList = data.rewardList or {}</span>
+<span id="L843" class="line"><a href="#L843">843</a>        -- 剔除寄语id</span>
+<span id="L844" class="line"><a href="#L844">844</a>        local tempList = {}</span>
+<span id="L845" class="line"><a href="#L845">845</a>        for _, v in ipairs(rewardList) do</span>
+<span id="L846" class="line"><a href="#L846">846</a>            if v.itemId ~= CollectWordConst.PROP_ID_WORD_JY then</span>
+<span id="L847" class="line"><a href="#L847">847</a>                table.insert(tempList, v)</span>
+<span id="L848" class="line"><a href="#L848">848</a>            end</span>
+<span id="L849" class="line"><a href="#L849">849</a>        end</span>
+<span id="L850" class="line"><a href="#L850">850</a>        if not table.isEmpty(tempList) then</span>
+<span id="L851" class="line"><a href="#L851">851</a>            GainPropData:create()</span>
+<span id="L852" class="line"><a href="#L852">852</a>                :setFeature(CollectWordConst.DC_FEATURE)</span>
+<span id="L853" class="line"><a href="#L853">853</a>                :setSource(CollectWordConst.DC_SOURCE..&quot;_main&quot;)</span>
+<span id="L854" class="line"><a href="#L854">854</a>                :setProps(tempList)</span>
+<span id="L855" class="line"><a href="#L855">855</a>                :execute()</span>
+<span id="L856" class="line"><a href="#L856">856</a>        end</span>
+<span id="L857" class="line"><a href="#L857">857</a>        -- 修改fruitData</span>
+<span id="L858" class="line"><a href="#L858">858</a>        local fruitData = data.fruitData</span>
+<span id="L859" class="line"><a href="#L859">859</a>        if fruitData then</span>
+<span id="L860" class="line"><a href="#L860">860</a>            self:setDataValue(&quot;fruitData&quot;, fruitData)</span>
+<span id="L861" class="line"><a href="#L861">861</a>        end</span>
+<span id="L862" class="line"><a href="#L862">862</a>        -- 增加任务进度</span>
+<span id="L863" class="line"><a href="#L863">863</a>        self:addTaskProgressByType(CollectWordConst.TaskType.PICK_TOTAL)</span>
+<span id="L864" class="line"><a href="#L864">864</a>        self:addTaskProgressByType(CollectWordConst.TaskType.PICK_CONTINUE)</span>
+<span id="L865" class="line"><a href="#L865">865</a>        d:resolve(tempList)</span>
+<span id="L866" class="line"><a href="#L866">866</a>    end, function(response)</span>
+<span id="L867" class="line"><a href="#L867">867</a>        if not response:isCancel() then</span>
+<span id="L868" class="line"><a href="#L868">868</a>            CommonTip:showErrorTip(response)</span>
+<span id="L869" class="line"><a href="#L869">869</a>        end</span>
+<span id="L870" class="line"><a href="#L870">870</a>        d:reject()</span>
+<span id="L871" class="line"><a href="#L871">871</a>    end)</span>
+<span id="L872" class="line"><a href="#L872">872</a>    return d</span>
+<span id="L873" class="line"><a href="#L873">873</a>end</span>
+<span id="L874" class="line"><a href="#L874">874</a></span>
+<span id="L875" class="line"><a href="#L875">875</a>-- 激活</span>
+<span id="L876" class="line"><a href="#L876">876</a>function CollectWordManager:requestActivate(param)</span>
+<span id="L877" class="line"><a href="#L877">877</a>    param = param or {}</span>
+<span id="L878" class="line"><a href="#L878">878</a>    local d = deferred.new()</span>
+<span id="L879" class="line"><a href="#L879">879</a>    self.model:requestActivate(param):next(function(response)</span>
+<span id="L880" class="line"><a href="#L880">880</a>        local data = response:getData()</span>
+<span id="L881" class="line"><a href="#L881">881</a>        local rewardList = data.rewardList or {}</span>
+<span id="L882" class="line"><a href="#L882">882</a>        -- 加奖励</span>
+<span id="L883" class="line"><a href="#L883">883</a>        GainPropData:create()</span>
+<span id="L884" class="line"><a href="#L884">884</a>            :setFeature(CollectWordConst.DC_FEATURE)</span>
+<span id="L885" class="line"><a href="#L885">885</a>            :setSource(CollectWordConst.DC_SOURCE..&quot;_main&quot;)</span>
+<span id="L886" class="line"><a href="#L886">886</a>            :setProps(rewardList)</span>
+<span id="L887" class="line"><a href="#L887">887</a>            :execute()</span>
+<span id="L888" class="line"><a href="#L888">888</a>        -- 减字</span>
+<span id="L889" class="line"><a href="#L889">889</a>        self:onWordActive()</span>
+<span id="L890" class="line"><a href="#L890">890</a>        -- 先不设置，播完动画再设置</span>
+<span id="L891" class="line"><a href="#L891">891</a>        -- self:setDataValue(&quot;luckyFruitId&quot;, luckyFruitId or 0)</span>
+<span id="L892" class="line"><a href="#L892">892</a>        d:resolve(data)</span>
+<span id="L893" class="line"><a href="#L893">893</a>    end,function(response)</span>
+<span id="L894" class="line"><a href="#L894">894</a>        if not response:isCancel() then</span>
+<span id="L895" class="line"><a href="#L895">895</a>            CommonTip:showErrorTip(response)</span>
+<span id="L896" class="line"><a href="#L896">896</a>        end</span>
+<span id="L897" class="line"><a href="#L897">897</a>        d:reject()</span>
+<span id="L898" class="line"><a href="#L898">898</a>    end)</span>
+<span id="L899" class="line"><a href="#L899">899</a>    return d</span>
+<span id="L900" class="line"><a href="#L900">900</a>end</span>
+<span id="L901" class="line"><a href="#L901">901</a></span>
+<span id="L902" class="line"><a href="#L902">902</a>-- 请求赠送文字果</span>
+<span id="L903" class="line"><a href="#L903">903</a>function CollectWordManager:requestSendWord(param)</span>
+<span id="L904" class="line"><a href="#L904">904</a>    local d = deferred.new()</span>
+<span id="L905" class="line"><a href="#L905">905</a>    param = param or {}</span>
+<span id="L906" class="line"><a href="#L906">906</a>    param.shareType = CollectWordConst.ShareType.SEND_WORD</span>
+<span id="L907" class="line"><a href="#L907">907</a>    self:requestShareKey(param):next(function(shareKey)</span>
+<span id="L908" class="line"><a href="#L908">908</a>        self:requestShareSuccess({</span>
+<span id="L909" class="line"><a href="#L909">909</a>            shareKey = shareKey</span>
+<span id="L910" class="line"><a href="#L910">910</a>        }):next(function()</span>
+<span id="L911" class="line"><a href="#L911">911</a>            -- 成功</span>
+<span id="L912" class="line"><a href="#L912">912</a>            _G.ConsumePropData:create()</span>
+<span id="L913" class="line"><a href="#L913">913</a>                :setFeature(CollectWordConst.DC_FEATURE)</span>
+<span id="L914" class="line"><a href="#L914">914</a>                :setSource(param.dcSource or CollectWordConst.DC_SOURCE..&quot;_vx&quot;)</span>
+<span id="L915" class="line"><a href="#L915">915</a>                :setProp({itemId = param.itemId, num = 1})</span>
+<span id="L916" class="line"><a href="#L916">916</a>                :execute()</span>
+<span id="L917" class="line"><a href="#L917">917</a>            self:addTaskProgressByType(CollectWordConst.TaskType.SEND_WORD)</span>
+<span id="L918" class="line"><a href="#L918">918</a>            d:resolve(shareKey)</span>
+<span id="L919" class="line"><a href="#L919">919</a>        end, function()</span>
+<span id="L920" class="line"><a href="#L920">920</a>            d:reject()</span>
+<span id="L921" class="line"><a href="#L921">921</a>        end)</span>
+<span id="L922" class="line"><a href="#L922">922</a>    end, function()</span>
+<span id="L923" class="line"><a href="#L923">923</a>        d:reject()</span>
+<span id="L924" class="line"><a href="#L924">924</a>    end)</span>
+<span id="L925" class="line"><a href="#L925">925</a>    return d</span>
+<span id="L926" class="line"><a href="#L926">926</a>end</span>
+<span id="L927" class="line"><a href="#L927">927</a></span>
+<span id="L928" class="line"><a href="#L928">928</a>-- 赠送字给游戏内好友</span>
+<span id="L929" class="line"><a href="#L929">929</a>function CollectWordManager:requestSendWordToFriend(param)</span>
+<span id="L930" class="line"><a href="#L930">930</a>    local d = deferred.new()</span>
+<span id="L931" class="line"><a href="#L931">931</a>    self.model:requestSendToFriend(param):next(function(response)</span>
+<span id="L932" class="line"><a href="#L932">932</a>        ConsumePropData:create()</span>
+<span id="L933" class="line"><a href="#L933">933</a>            :setFeature(CollectWordConst.DC_FEATURE)</span>
+<span id="L934" class="line"><a href="#L934">934</a>            :setSource(CollectWordConst.DC_SOURCE..&quot;_friend&quot;)</span>
+<span id="L935" class="line"><a href="#L935">935</a>            :setProp({itemId = param.itemId, num = 1})</span>
+<span id="L936" class="line"><a href="#L936">936</a>            :execute()</span>
+<span id="L937" class="line"><a href="#L937">937</a>        self:addTaskProgressByType(CollectWordConst.TaskType.SEND_WORD)</span>
+<span id="L938" class="line"><a href="#L938">938</a>        d:resolve()</span>
+<span id="L939" class="line"><a href="#L939">939</a>    end, function(response)</span>
+<span id="L940" class="line"><a href="#L940">940</a>        if not response:isCancel() then</span>
+<span id="L941" class="line"><a href="#L941">941</a>            CommonTip:showErrorTip(response)</span>
+<span id="L942" class="line"><a href="#L942">942</a>        end</span>
+<span id="L943" class="line"><a href="#L943">943</a>        d:reject()</span>
+<span id="L944" class="line"><a href="#L944">944</a>    end)</span>
+<span id="L945" class="line"><a href="#L945">945</a>    return d</span>
+<span id="L946" class="line"><a href="#L946">946</a>end</span>
+<span id="L947" class="line"><a href="#L947">947</a></span>
+<span id="L948" class="line"><a href="#L948">948</a>-- 分享key</span>
+<span id="L949" class="line"><a href="#L949">949</a>function CollectWordManager:requestShareKey(param)</span>
+<span id="L950" class="line"><a href="#L950">950</a>    param = param or {}</span>
+<span id="L951" class="line"><a href="#L951">951</a>    param.id = CollectWordConst.SHARE_ID</span>
+<span id="L952" class="line"><a href="#L952">952</a>    param.targetCount = param.shareType</span>
+<span id="L953" class="line"><a href="#L953">953</a>    param.timestamp = param.itemId or param.shareType</span>
+<span id="L954" class="line"><a href="#L954">954</a>    local d = deferred.new()</span>
+<span id="L955" class="line"><a href="#L955">955</a>    self.model:requestShareKey(param):next(function(response)</span>
+<span id="L956" class="line"><a href="#L956">956</a>        local data = response:getData()</span>
+<span id="L957" class="line"><a href="#L957">957</a>        local shareKey = data.shareKey or &quot;&quot;</span>
+<span id="L958" class="line"><a href="#L958">958</a>        if shareKey == &quot;&quot; then</span>
+<span id="L959" class="line"><a href="#L959">959</a>            d:reject(response)</span>
+<span id="L960" class="line"><a href="#L960">960</a>            return</span>
+<span id="L961" class="line"><a href="#L961">961</a>        end</span>
+<span id="L962" class="line"><a href="#L962">962</a>        d:resolve(shareKey)</span>
+<span id="L963" class="line"><a href="#L963">963</a>    end, function(response)</span>
+<span id="L964" class="line"><a href="#L964">964</a>        if not response:isCancel() then</span>
+<span id="L965" class="line"><a href="#L965">965</a>            CommonTip:showErrorTip(response)</span>
+<span id="L966" class="line"><a href="#L966">966</a>        end</span>
+<span id="L967" class="line"><a href="#L967">967</a>        d:reject()</span>
+<span id="L968" class="line"><a href="#L968">968</a>    end)</span>
+<span id="L969" class="line"><a href="#L969">969</a>    return d</span>
+<span id="L970" class="line"><a href="#L970">970</a>end</span>
+<span id="L971" class="line"><a href="#L971">971</a></span>
+<span id="L972" class="line"><a href="#L972">972</a>-- 通知后端分享成功</span>
+<span id="L973" class="line"><a href="#L973">973</a>function CollectWordManager:requestShareSuccess(param, extParam)</span>
+<span id="L974" class="line"><a href="#L974">974</a>    extParam = extParam or {}</span>
+<span id="L975" class="line"><a href="#L975">975</a>    param = param or {}</span>
+<span id="L976" class="line"><a href="#L976">976</a>    param.id = CollectWordConst.SHARE_ID</span>
+<span id="L977" class="line"><a href="#L977">977</a>    local d = deferred.new()</span>
+<span id="L978" class="line"><a href="#L978">978</a>    self.model:requestShareSuccess(param):next(function(response)</span>
+<span id="L979" class="line"><a href="#L979">979</a>        local data = response:getData()</span>
+<span id="L980" class="line"><a href="#L980">980</a>        local rewardList = data.rewardList or {}</span>
+<span id="L981" class="line"><a href="#L981">981</a></span>
+<span id="L982" class="line"><a href="#L982">982</a>        if not table.isEmpty(rewardList) then</span>
+<span id="L983" class="line"><a href="#L983">983</a>            GainPropData:create()</span>
+<span id="L984" class="line"><a href="#L984">984</a>                :setFeature(CollectWordConst.DC_FEATURE)</span>
+<span id="L985" class="line"><a href="#L985">985</a>                :setSource(extParam.source or CollectWordConst.DC_SOURCE..&quot;_main&quot;)</span>
+<span id="L986" class="line"><a href="#L986">986</a>                :setProps(rewardList)</span>
+<span id="L987" class="line"><a href="#L987">987</a>                :execute()</span>
+<span id="L988" class="line"><a href="#L988">988</a>        end</span>
+<span id="L989" class="line"><a href="#L989">989</a></span>
+<span id="L990" class="line"><a href="#L990">990</a>        d:resolve(rewardList)</span>
+<span id="L991" class="line"><a href="#L991">991</a>    end, function(response)</span>
+<span id="L992" class="line"><a href="#L992">992</a>        if not response:isCancel() then</span>
+<span id="L993" class="line"><a href="#L993">993</a>            CommonTip:showErrorTip(response)</span>
+<span id="L994" class="line"><a href="#L994">994</a>        end</span>
+<span id="L995" class="line"><a href="#L995">995</a>        d:reject()</span>
+<span id="L996" class="line"><a href="#L996">996</a>    end)</span>
+<span id="L997" class="line"><a href="#L997">997</a>    return d</span>
+<span id="L998" class="line"><a href="#L998">998</a>end</span>
+<span id="L999" class="line"><a href="#L999">999</a></span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>-- 任务奖励领取</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>function CollectWordManager:requestTaskReward(param)</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>    local d = deferred.new()</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>    self.model:requestTaskReward(param):next(function(response)</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>        local data = response:getData()</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>        local s = CollectWordConst.DC_SOURCE..&quot;_task&quot;</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>        if param.taskId == 0 then</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>            s = CollectWordConst.DC_SOURCE..&quot;_draw&quot;</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>        end</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>        -- 加奖励</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>        GainPropData:create()</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>            :setFeature(CollectWordConst.DC_FEATURE)</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>            :setSource(s)</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a>            :setProps(data.rewardList)</span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>            :execute()</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>        local taskId = param.taskId</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a>        -- 设置任务领取状态</span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>        self:setTaskRewarded(taskId)</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>        if taskId == 0 then</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a>            self:setDataValue(&quot;activateItemList&quot;, data.rewardList or {})</span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>        end</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>        d:resolve(data.rewardList)</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>    end, function(response)</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>        if not response:isCancel() then</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>            CommonTip:showErrorTip(response)</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>        end</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>        d:reject()</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>    end)</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>    return d</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>end</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a></span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>-- 获取帮助记录</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>function CollectWordManager:requestRecord(param)</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>    local d = deferred.new()</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a>    self.model:requestRecord(param):next(function(response)</span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>        local data = response:getData()</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>        d:resolve(data)</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>    end, function(response)</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>        if not response:isCancel() then</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>            CommonTip:showErrorTip(response)</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>        end</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>        d:reject(response)</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>    end)</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>    return d</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>end</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a></span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>-- 获取实物中奖记录</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>function CollectWordManager:requestRealRecord(param)</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>    local d = deferred.new()</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a>    self.model:requestRealRecord(param or {}):next(function(response)</span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>        local data = response:getData()</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>        d:resolve(data)</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>    end, function(response)</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a>        if not response:isCancel() then</span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>            CommonTip:showErrorTip(response)</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>        end</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>        d:reject(response)</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>    end)</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>    return d</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>end</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a></span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>-- 设置引导标记</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>function CollectWordManager:addGuideIndex(index)</span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>    if self:hasGuideIndex(index) then return end</span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>    local guideIdSet = self:getDataValue(&quot;guideIdSet&quot;) or {}</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>    table.insert(guideIdSet, index)</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>    self:setDataValue(&quot;guideIdSet&quot;, guideIdSet)</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a>    -- 引导标记</span>
+<span id="L1068" class="line"><a href="#L1068">1068</a>    local SetActGuidFlag = require &quot;amf.middleware.activity.http.SetActGuidFlag&quot;</span>
+<span id="L1069" class="line"><a href="#L1069">1069</a>    SetActGuidFlag:post({</span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>        actId = CollectWordConst.ACT_ID,</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>        index = index</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>    })</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a>end</span>
+<span id="L1074" class="line"><a href="#L1074">1074</a></span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>function CollectWordManager:hasGuideIndex(index)</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>    local guideIdSet = self:getDataValue(&quot;guideIdSet&quot;) or {}</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>    return table.exist(guideIdSet, index)</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>end</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a></span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>-- 设置任务已经领取了</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>function CollectWordManager:setTaskRewarded(taskId)</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>    if taskId == 0 then</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>        self:setDataValue(&quot;taskProgressReward&quot;, true)</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a>    else</span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>        self:addTaskRewardSet(taskId)</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>    end</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>end</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a></span>
+<span id="L1089" class="line"><a href="#L1089">1089</a>function CollectWordManager:addTaskRewardSet(taskId)</span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>    local taskRewardSet = self:getDataValue(&quot;taskRewardSet&quot;) or {}</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a>    table.insert(taskRewardSet, taskId)</span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>    self:setDataValue(&quot;taskRewardSet&quot;, taskRewardSet)</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>end</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a></span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>-- 增加任务进度</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a>function CollectWordManager:addTaskProgressByType(taskType, num)</span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>    -- 点链接可能会走到，这时没有请求数据</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>    if not self:getDataValue(&quot;hasInit&quot;) then return end</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>    num = num or 1</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>    if taskType == CollectWordConst.TaskType.PICK_CONTINUE then</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>        -- 给今天加数据</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a>        self:addTodayPickNum(num)</span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>        -- 计算连续摘取的天数,这个比较特殊不能走下边的接口</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a>        self:updateTaskContiDays()</span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>    elseif taskType == CollectWordConst.TaskType.PICK_TOTAL then</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>        self:addPickFruitNum()</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>        self:addTaskTargetPro(taskType, num)</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a>    else</span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>        self:addTaskTargetPro(taskType, num)</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>    end</span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>end</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a></span>
+<span id="L1113" class="line"><a href="#L1113">1113</a>-- 增加任务进度</span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>function CollectWordManager:addTaskTargetPro(taskType, num)</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a>    num = num or 1</span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>    local taskTargetMap = self:getDataValue(&quot;taskTargetMap&quot;) or {}</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a>    if not taskTargetMap[tostring(taskType)] then</span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>        taskTargetMap[tostring(taskType)] = 0</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>    end</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a>    taskTargetMap[tostring(taskType)] = taskTargetMap[tostring(taskType)] + num</span>
+<span id="L1121" class="line"><a href="#L1121">1121</a>    self:setDataValue(&quot;taskTargetMap&quot;, taskTargetMap)</span>
+<span id="L1122" class="line"><a href="#L1122">1122</a>end</span>
+<span id="L1123" class="line"><a href="#L1123">1123</a></span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>function CollectWordManager:addPickFruitNum(num)</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>    num = num or 1</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a>    local pickFruitNum = self:getDataValue(&quot;pickFruitNum&quot;) or 0</span>
+<span id="L1127" class="line"><a href="#L1127">1127</a>    pickFruitNum = pickFruitNum + num</span>
+<span id="L1128" class="line"><a href="#L1128">1128</a>    self:setDataValue(&quot;pickFruitNum&quot;, pickFruitNum)</span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>end</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a></span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>-- 更新任务类型为连续摘取天数</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a>function CollectWordManager:updateTaskContiDays()</span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>    local todayNum = self:getTodayNum()</span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>    local count = 0</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a>    for i = todayNum, 1, -1 do</span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>        local dayData = self:getDayData(i)</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>        if dayData and dayData.pickFruitNum &gt; 0 then</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>            count = count + 1</span>
+<span id="L1139" class="line"><a href="#L1139">1139</a>        else</span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>            break</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>        end</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a>    end</span>
+<span id="L1143" class="line"><a href="#L1143">1143</a>    self:setTaskTargetData(CollectWordConst.TaskType.PICK_CONTINUE, count)</span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>end</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a></span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>-- 设置任务进度数据</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a>function CollectWordManager:setTaskTargetData(taskType, value)</span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>    local taskTargetMap = self:getDataValue(&quot;taskTargetMap&quot;) or {}</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>    taskTargetMap[tostring(taskType)] = value</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>    self:setDataValue(&quot;taskTargetMap&quot;, taskTargetMap)</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>end</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a></span>
+<span id="L1153" class="line"><a href="#L1153">1153</a>-- 获得任务进度</span>
+<span id="L1154" class="line"><a href="#L1154">1154</a>function CollectWordManager:getTaskProgressByType(taskType)</span>
+<span id="L1155" class="line"><a href="#L1155">1155</a>    local taskTargetMap = self:getDataValue(&quot;taskTargetMap&quot;) or {}</span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>    return taskTargetMap[tostring(taskType)] or 0</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a>end</span>
+<span id="L1158" class="line"><a href="#L1158">1158</a></span>
+<span id="L1159" class="line"><a href="#L1159">1159</a>-- 获得传入天数的数据</span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>function CollectWordManager:getDayData(dayNum)</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a>    local todayNum = tostring(dayNum)</span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>    local perDayMap = self:getDataValue(&quot;perDayMap&quot;) or {}</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a>    local todayData = perDayMap[todayNum]</span>
+<span id="L1164" class="line"><a href="#L1164">1164</a>    return todayData</span>
+<span id="L1165" class="line"><a href="#L1165">1165</a>end</span>
+<span id="L1166" class="line"><a href="#L1166">1166</a></span>
+<span id="L1167" class="line"><a href="#L1167">1167</a>-- 给今天加摘取次数</span>
+<span id="L1168" class="line"><a href="#L1168">1168</a>function CollectWordManager:addTodayPickNum(num)</span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>    num = num or 1</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a>    local todayData = self:getTodayData()</span>
+<span id="L1171" class="line"><a href="#L1171">1171</a>    if not todayData then</span>
+<span id="L1172" class="line"><a href="#L1172">1172</a>        todayData = self:addTodayDefaultData()</span>
+<span id="L1173" class="line"><a href="#L1173">1173</a>    end</span>
+<span id="L1174" class="line"><a href="#L1174">1174</a>    todayData.pickFruitNum = todayData.pickFruitNum + num</span>
+<span id="L1175" class="line"><a href="#L1175">1175</a>    self:setDayData(todayData)</span>
+<span id="L1176" class="line"><a href="#L1176">1176</a>end</span>
+<span id="L1177" class="line"><a href="#L1177">1177</a></span>
+<span id="L1178" class="line"><a href="#L1178">1178</a>function CollectWordManager:addTodayDefaultData()</span>
+<span id="L1179" class="line"><a href="#L1179">1179</a>    local todayNum = self:getTodayNum()</span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>    local todayData = {</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a>        pickFruitNum = 0,  -- 这天摘取次数</span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>        speedUpSet = {}, -- 加速id列表，帮助列表，可以拿到今天帮助了几次</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a>        askforSucc = false,  -- 是否索要成功</span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>    }</span>
+<span id="L1185" class="line"><a href="#L1185">1185</a>    local perDayMap = self:getDataValue(&quot;perDayMap&quot;) or {}</span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>    perDayMap[tostring(todayNum)] = todayData</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a>    self:setDataValue(&quot;perDayMap&quot;, perDayMap)</span>
+<span id="L1188" class="line"><a href="#L1188">1188</a>    return todayData</span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>end</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a></span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>function CollectWordManager:getTodayData()</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a>    local todayNum = self:getTodayNum()</span>
+<span id="L1193" class="line"><a href="#L1193">1193</a>    local perDayMap = self:getDataValue(&quot;perDayMap&quot;) or {}</span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>    local todayData = perDayMap[tostring(todayNum)]</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>    return todayData</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a>end</span>
+<span id="L1197" class="line"><a href="#L1197">1197</a></span>
+<span id="L1198" class="line"><a href="#L1198">1198</a>-- 获取今天第几天</span>
+<span id="L1199" class="line"><a href="#L1199">1199</a>function CollectWordManager:getTodayNum()</span>
+<span id="L1200" class="line"><a href="#L1200">1200</a>    local sec = TimeKit:timeInSec()</span>
+<span id="L1201" class="line"><a href="#L1201">1201</a>    local todayNum = time2day(sec)</span>
+<span id="L1202" class="line"><a href="#L1202">1202</a>    return todayNum</span>
+<span id="L1203" class="line"><a href="#L1203">1203</a>end</span>
+<span id="L1204" class="line"><a href="#L1204">1204</a></span>
+<span id="L1205" class="line"><a href="#L1205">1205</a>-- 设置有实物了</span>
+<span id="L1206" class="line"><a href="#L1206">1206</a>function CollectWordManager:setHasRealProp(value)</span>
+<span id="L1207" class="line"><a href="#L1207">1207</a>    self:setDataValue(&quot;havaRealProps&quot;, value)</span>
+<span id="L1208" class="line"><a href="#L1208">1208</a>end</span>
+<span id="L1209" class="line"><a href="#L1209">1209</a></span>
+<span id="L1210" class="line"><a href="#L1210">1210</a>function CollectWordManager:isRealProp(itemId)</span>
+<span id="L1211" class="line"><a href="#L1211">1211</a>    return CollectWordConst.MaterialCfg[tostring(itemId)]</span>
+<span id="L1212" class="line"><a href="#L1212">1212</a>end</span>
+<span id="L1213" class="line"><a href="#L1213">1213</a></span>
+<span id="L1214" class="line"><a href="#L1214">1214</a>function CollectWordManager:isWordProp(itemId)</span>
+<span id="L1215" class="line"><a href="#L1215">1215</a>    itemId = tonumber(itemId)</span>
+<span id="L1216" class="line"><a href="#L1216">1216</a>    for _, wordId in pairs(CollectWordConst.Words) do</span>
+<span id="L1217" class="line"><a href="#L1217">1217</a>        if tonumber(wordId) == itemId then</span>
+<span id="L1218" class="line"><a href="#L1218">1218</a>            return true</span>
+<span id="L1219" class="line"><a href="#L1219">1219</a>        end</span>
+<span id="L1220" class="line"><a href="#L1220">1220</a>    end</span>
+<span id="L1221" class="line"><a href="#L1221">1221</a>    return false</span>
+<span id="L1222" class="line"><a href="#L1222">1222</a>end</span>
+<span id="L1223" class="line"><a href="#L1223">1223</a></span>
+<span id="L1224" class="line"><a href="#L1224">1224</a>function CollectWordManager:getWordIndexByItemId(itemId)</span>
+<span id="L1225" class="line"><a href="#L1225">1225</a>    itemId = tonumber(itemId)</span>
+<span id="L1226" class="line"><a href="#L1226">1226</a>    local count = table.count(CollectWordConst.Words)</span>
+<span id="L1227" class="line"><a href="#L1227">1227</a>    for i = 1, count, 1 do</span>
+<span id="L1228" class="line"><a href="#L1228">1228</a>        if tonumber(CollectWordConst.Words[&quot;WORD_&quot;..i]) == itemId then</span>
+<span id="L1229" class="line"><a href="#L1229">1229</a>            return i</span>
+<span id="L1230" class="line"><a href="#L1230">1230</a>        end</span>
+<span id="L1231" class="line"><a href="#L1231">1231</a>    end</span>
+<span id="L1232" class="line"><a href="#L1232">1232</a>    return nil</span>
+<span id="L1233" class="line"><a href="#L1233">1233</a>end</span>
+<span id="L1234" class="line"><a href="#L1234">1234</a></span>
+<span id="L1235" class="line"><a href="#L1235">1235</a>function CollectWordManager:onCustomGain(event)</span>
+<span id="L1236" class="line"><a href="#L1236">1236</a>    local reward = event and event:getData()</span>
+<span id="L1237" class="line"><a href="#L1237">1237</a>    if not reward then return end</span>
+<span id="L1238" class="line"><a href="#L1238">1238</a>    local itemId = tonumber(reward.itemId)</span>
+<span id="L1239" class="line"><a href="#L1239">1239</a>    local num = reward.num or 0</span>
+<span id="L1240" class="line"><a href="#L1240">1240</a>    if self:isWordProp(itemId) then</span>
+<span id="L1241" class="line"><a href="#L1241">1241</a>        self:addWordNum(itemId, num)</span>
+<span id="L1242" class="line"><a href="#L1242">1242</a>    elseif self:isRealProp(itemId) then</span>
+<span id="L1243" class="line"><a href="#L1243">1243</a>        self:setHasRealProp(true)</span>
+<span id="L1244" class="line"><a href="#L1244">1244</a>    end</span>
+<span id="L1245" class="line"><a href="#L1245">1245</a>end</span>
+<span id="L1246" class="line"><a href="#L1246">1246</a></span>
+<span id="L1247" class="line"><a href="#L1247">1247</a>function CollectWordManager:onCustomConsume(event)</span>
+<span id="L1248" class="line"><a href="#L1248">1248</a>    local reward = event and event:getData()</span>
+<span id="L1249" class="line"><a href="#L1249">1249</a>    if not reward then return end</span>
+<span id="L1250" class="line"><a href="#L1250">1250</a>    local itemId = tonumber(reward.itemId)</span>
+<span id="L1251" class="line"><a href="#L1251">1251</a>    if self:isWordProp(itemId) then</span>
+<span id="L1252" class="line"><a href="#L1252">1252</a>        self:addWordNum(itemId, -(reward.num or 0))</span>
+<span id="L1253" class="line"><a href="#L1253">1253</a>    end</span>
+<span id="L1254" class="line"><a href="#L1254">1254</a>end</span>
+<span id="L1255" class="line"><a href="#L1255">1255</a></span>
+<span id="L1256" class="line"><a href="#L1256">1256</a>function CollectWordManager:onResolveIcon(event)</span>
+<span id="L1257" class="line"><a href="#L1257">1257</a>    local data = event and event:getData()</span>
+<span id="L1258" class="line"><a href="#L1258">1258</a>    if not data or not data.callback then return end</span>
+<span id="L1259" class="line"><a href="#L1259">1259</a>    local itemId = tonumber(data.itemId)</span>
+<span id="L1260" class="line"><a href="#L1260">1260</a>    local wordIndex = self:getWordIndexByItemId(itemId)</span>
+<span id="L1261" class="line"><a href="#L1261">1261</a>    if wordIndex then</span>
+<span id="L1262" class="line"><a href="#L1262">1262</a>        data.callback({</span>
+<span id="L1263" class="line"><a href="#L1263">1263</a>            Atlas = Res.Plist.PUB_FRAME,</span>
+<span id="L1264" class="line"><a href="#L1264">1264</a>            Frame = &quot;JinYinGuoShu_2023/ActCollectWordFrame/&quot;..wordIndex..&quot;_n&quot;,</span>
+<span id="L1265" class="line"><a href="#L1265">1265</a>            IsPropPng = false,</span>
+<span id="L1266" class="line"><a href="#L1266">1266</a>        })</span>
+<span id="L1267" class="line"><a href="#L1267">1267</a>        return</span>
+<span id="L1268" class="line"><a href="#L1268">1268</a>    end</span>
+<span id="L1269" class="line"><a href="#L1269">1269</a>    if self:isRealProp(itemId) then</span>
+<span id="L1270" class="line"><a href="#L1270">1270</a>        data.callback({</span>
+<span id="L1271" class="line"><a href="#L1271">1271</a>            Atlas = &quot;&quot;,</span>
+<span id="L1272" class="line"><a href="#L1272">1272</a>            Frame = Res:getMaterialPath(itemId),</span>
+<span id="L1273" class="line"><a href="#L1273">1273</a>            IsPropPng = true,</span>
+<span id="L1274" class="line"><a href="#L1274">1274</a>        })</span>
+<span id="L1275" class="line"><a href="#L1275">1275</a>    end</span>
+<span id="L1276" class="line"><a href="#L1276">1276</a>end</span>
+<span id="L1277" class="line"><a href="#L1277">1277</a></span>
+<span id="L1278" class="line"><a href="#L1278">1278</a>-- 激活修改数据</span>
+<span id="L1279" class="line"><a href="#L1279">1279</a>function CollectWordManager:onWordActive()</span>
+<span id="L1280" class="line"><a href="#L1280">1280</a>    self:setDataValue(&quot;activate&quot;, true)</span>
+<span id="L1281" class="line"><a href="#L1281">1281</a>    -- 减字</span>
+<span id="L1282" class="line"><a href="#L1282">1282</a>    for _, v in pairs(CollectWordConst.Words) do</span>
+<span id="L1283" class="line"><a href="#L1283">1283</a>        self:addWordNum(v, -1)</span>
+<span id="L1284" class="line"><a href="#L1284">1284</a>    end</span>
+<span id="L1285" class="line"><a href="#L1285">1285</a>end</span>
+<span id="L1286" class="line"><a href="#L1286">1286</a></span>
+<span id="L1287" class="line"><a href="#L1287">1287</a>-- 加字</span>
+<span id="L1288" class="line"><a href="#L1288">1288</a>function CollectWordManager:addWordNum(itemId, num)</span>
+<span id="L1289" class="line"><a href="#L1289">1289</a>    -- 点链接可能会走到，这时没有请求数据</span>
+<span id="L1290" class="line"><a href="#L1290">1290</a>    if not self:getDataValue(&quot;hasInit&quot;) then return end</span>
+<span id="L1291" class="line"><a href="#L1291">1291</a>    local wordMap = self:getDataValue(&quot;wordMap&quot;) or {}</span>
+<span id="L1292" class="line"><a href="#L1292">1292</a>    local key = tostring(itemId)</span>
+<span id="L1293" class="line"><a href="#L1293">1293</a>    local preCount = wordMap[key] or 0</span>
+<span id="L1294" class="line"><a href="#L1294">1294</a>    wordMap[key] = preCount + num</span>
+<span id="L1295" class="line"><a href="#L1295">1295</a>    self:setDataValue(&quot;wordMap&quot;, wordMap)</span>
+<span id="L1296" class="line"><a href="#L1296">1296</a></span>
+<span id="L1297" class="line"><a href="#L1297">1297</a>    self:addWordNumTotal(itemId, num)</span>
+<span id="L1298" class="line"><a href="#L1298">1298</a>    self:setActValue(&quot;wordInfo&quot;, wordMap)</span>
+<span id="L1299" class="line"><a href="#L1299">1299</a>end</span>
+<span id="L1300" class="line"><a href="#L1300">1300</a></span>
+<span id="L1301" class="line"><a href="#L1301">1301</a>function CollectWordManager:addWordNumTotal(itemId, num)</span>
+<span id="L1302" class="line"><a href="#L1302">1302</a>    local strKey = tostring(itemId)</span>
+<span id="L1303" class="line"><a href="#L1303">1303</a>    local wordMapTotal = self:getDataValue(&quot;wordMapTotal&quot;, strKey)</span>
+<span id="L1304" class="line"><a href="#L1304">1304</a>    local preCount = wordMapTotal[strKey] or 0</span>
+<span id="L1305" class="line"><a href="#L1305">1305</a>    wordMapTotal[strKey] = preCount + num</span>
+<span id="L1306" class="line"><a href="#L1306">1306</a>    self:setDataValue(&quot;wordMapTotal&quot;, wordMapTotal)</span>
+<span id="L1307" class="line"><a href="#L1307">1307</a>end</span>
+<span id="L1308" class="line"><a href="#L1308">1308</a></span>
+<span id="L1309" class="line"><a href="#L1309">1309</a>-- 是否有收到的字</span>
+<span id="L1310" class="line"><a href="#L1310">1310</a>function CollectWordManager:hasReceivedWords()</span>
+<span id="L1311" class="line"><a href="#L1311">1311</a>    local receiveList = self:getReceivedWordInfoList()</span>
+<span id="L1312" class="line"><a href="#L1312">1312</a>    return table.count(receiveList) &gt; 0</span>
+<span id="L1313" class="line"><a href="#L1313">1313</a>end</span>
+<span id="L1314" class="line"><a href="#L1314">1314</a></span>
+<span id="L1315" class="line"><a href="#L1315">1315</a>-- 收到的字果信息列表</span>
+<span id="L1316" class="line"><a href="#L1316">1316</a>function CollectWordManager:getReceivedWordInfoList()</span>
+<span id="L1317" class="line"><a href="#L1317">1317</a>    return self:getDataValue(&quot;receiveWordInfoList&quot;) or {}</span>
+<span id="L1318" class="line"><a href="#L1318">1318</a>end</span>
+<span id="L1319" class="line"><a href="#L1319">1319</a></span>
+<span id="L1320" class="line"><a href="#L1320">1320</a>-- 获得别人赠送字列表</span>
+<span id="L1321" class="line"><a href="#L1321">1321</a>function CollectWordManager:getReceiveWordsList(type)</span>
+<span id="L1322" class="line"><a href="#L1322">1322</a>    local list = self:getReceivedWordInfoList()</span>
+<span id="L1323" class="line"><a href="#L1323">1323</a>    local tempList = {}</span>
+<span id="L1324" class="line"><a href="#L1324">1324</a>    for i, v in ipairs(list ) do</span>
+<span id="L1325" class="line"><a href="#L1325">1325</a>        if v.shareType == type then</span>
+<span id="L1326" class="line"><a href="#L1326">1326</a>            table.insert(tempList, v)</span>
+<span id="L1327" class="line"><a href="#L1327">1327</a>        end</span>
+<span id="L1328" class="line"><a href="#L1328">1328</a>    end</span>
+<span id="L1329" class="line"><a href="#L1329">1329</a>    return tempList</span>
+<span id="L1330" class="line"><a href="#L1330">1330</a>end</span>
+<span id="L1331" class="line"><a href="#L1331">1331</a></span>
+<span id="L1332" class="line"><a href="#L1332">1332</a>-- 打点109</span>
+<span id="L1333" class="line"><a href="#L1333">1333</a>function CollectWordManager:dc(category, subCategory, extraData)</span>
+<span id="L1334" class="line"><a href="#L1334">1334</a>    local params = {</span>
+<span id="L1335" class="line"><a href="#L1335">1335</a>        game_type = &quot;stage&quot;,</span>
+<span id="L1336" class="line"><a href="#L1336">1336</a>        game_name = CollectWordConst.GAME_NAME,</span>
+<span id="L1337" class="line"><a href="#L1337">1337</a>        category = category,</span>
+<span id="L1338" class="line"><a href="#L1338">1338</a>        sub_category = subCategory,</span>
+<span id="L1339" class="line"><a href="#L1339">1339</a>    }</span>
+<span id="L1340" class="line"><a href="#L1340">1340</a></span>
+<span id="L1341" class="line"><a href="#L1341">1341</a>    for i, v in pairs(extraData or {}) do</span>
+<span id="L1342" class="line"><a href="#L1342">1342</a>        params[i] = v</span>
+<span id="L1343" class="line"><a href="#L1343">1343</a>    end</span>
+<span id="L1344" class="line"><a href="#L1344">1344</a>    -- print(&quot;CollectWordManager:dc ---&quot;, tts(params))</span>
+<span id="L1345" class="line"><a href="#L1345">1345</a>    DcUtil:activity(params)</span>
+<span id="L1346" class="line"><a href="#L1346">1346</a>end</span>
+<span id="L1347" class="line"><a href="#L1347">1347</a></span>
+<span id="L1348" class="line"><a href="#L1348">1348</a>function CollectWordManager:setDayData(todayData, dayNum)</span>
+<span id="L1349" class="line"><a href="#L1349">1349</a>    dayNum = dayNum or self:getTodayNum()</span>
+<span id="L1350" class="line"><a href="#L1350">1350</a>    local perDayMap = self:getDataValue(&quot;perDayMap&quot;) or {}</span>
+<span id="L1351" class="line"><a href="#L1351">1351</a>    perDayMap[tostring(dayNum)] = todayData</span>
+<span id="L1352" class="line"><a href="#L1352">1352</a>    self:setDataValue(&quot;perDayMap&quot;, perDayMap)</span>
+<span id="L1353" class="line"><a href="#L1353">1353</a>end</span>
+<span id="L1354" class="line"><a href="#L1354">1354</a></span>
+<span id="L1355" class="line"><a href="#L1355">1355</a>function CollectWordManager:getDataValue(key)</span>
+<span id="L1356" class="line"><a href="#L1356">1356</a>    return self.model:getValue(key)</span>
+<span id="L1357" class="line"><a href="#L1357">1357</a>end</span>
+<span id="L1358" class="line"><a href="#L1358">1358</a></span>
+<span id="L1359" class="line"><a href="#L1359">1359</a>function CollectWordManager:getConfigValue(key)</span>
+<span id="L1360" class="line"><a href="#L1360">1360</a>    return self.model:getValue(key)</span>
+<span id="L1361" class="line"><a href="#L1361">1361</a>end</span>
+<span id="L1362" class="line"><a href="#L1362">1362</a></span>
+<span id="L1363" class="line"><a href="#L1363">1363</a>function CollectWordManager:setDataValue(key, value)</span>
+<span id="L1364" class="line"><a href="#L1364">1364</a>    self.model:setValue(key, value)</span>
+<span id="L1365" class="line"><a href="#L1365">1365</a>end</span>
+<span id="L1366" class="line"><a href="#L1366">1366</a></span>
+<span id="L1367" class="line"><a href="#L1367">1367</a>function CollectWordManager:setConfigValue(key, value)</span>
+<span id="L1368" class="line"><a href="#L1368">1368</a>    self.model:setValue(key, value)</span>
+<span id="L1369" class="line"><a href="#L1369">1369</a>end</span>
+<span id="L1370" class="line"><a href="#L1370">1370</a></span>
+<span id="L1371" class="line"><a href="#L1371">1371</a>function CollectWordManager:getActValue(key)</span>
+<span id="L1372" class="line"><a href="#L1372">1372</a>    return self.actInfo:getValue(key)</span>
+<span id="L1373" class="line"><a href="#L1373">1373</a>end</span>
+<span id="L1374" class="line"><a href="#L1374">1374</a></span>
+<span id="L1375" class="line"><a href="#L1375">1375</a>function CollectWordManager:setActValue(key, value)</span>
+<span id="L1376" class="line"><a href="#L1376">1376</a>    self.actInfo:setValue(key, value)</span>
+<span id="L1377" class="line"><a href="#L1377">1377</a>end</span>
+<span id="L1378" class="line"><a href="#L1378">1378</a></span>
+<span id="L1379" class="line"><a href="#L1379">1379</a>-- 6级风车币果</span>
+<span id="L1380" class="line"><a href="#L1380">1380</a>function CollectWordManager:createGoldFruitIcon()</span>
+<span id="L1381" class="line"><a href="#L1381">1381</a>    local layer = Layer:create()</span>
+<span id="L1382" class="line"><a href="#L1382">1382</a>    layer:setContentSize(CCSizeMake(100, 100))</span>
+<span id="L1383" class="line"><a href="#L1383">1383</a>    layer:setAnchorPoint(ccp(0.5, 0))</span>
+<span id="L1384" class="line"><a href="#L1384">1384</a></span>
+<span id="L1385" class="line"><a href="#L1385">1385</a>    local spine = UICreateUtil:createSpine(Res.Spine.GOLD_FRUIT)</span>
+<span id="L1386" class="line"><a href="#L1386">1386</a>    spine:playByName(&quot;idle&quot;, true)</span>
+<span id="L1387" class="line"><a href="#L1387">1387</a>    spine:setScale(0.8)</span>
+<span id="L1388" class="line"><a href="#L1388">1388</a>    spine:setPositionXY(layer:getContentSize().width/2-4, 10)</span>
+<span id="L1389" class="line"><a href="#L1389">1389</a>    layer:addChild(spine)</span>
+<span id="L1390" class="line"><a href="#L1390">1390</a>    return layer</span>
+<span id="L1391" class="line"><a href="#L1391">1391</a>end</span>
+<span id="L1392" class="line"><a href="#L1392">1392</a></span>
+<span id="L1393" class="line"><a href="#L1393">1393</a>function CollectWordManager:createActFruit(withEff, withStar, noCountDown)</span>
+<span id="L1394" class="line"><a href="#L1394">1394</a>    local ActCollectFruitNode = require &quot;amf.feature.fruittree.act.collectword.view.ActCollectFruitNode&quot;</span>
+<span id="L1395" class="line"><a href="#L1395">1395</a>    local node = ActCollectFruitNode:create({</span>
+<span id="L1396" class="line"><a href="#L1396">1396</a>        noCountDown = noCountDown,</span>
+<span id="L1397" class="line"><a href="#L1397">1397</a>    })</span>
+<span id="L1398" class="line"><a href="#L1398">1398</a>    if withEff then</span>
+<span id="L1399" class="line"><a href="#L1399">1399</a>        node:playEffect()</span>
+<span id="L1400" class="line"><a href="#L1400">1400</a>    end</span>
+<span id="L1401" class="line"><a href="#L1401">1401</a>    if withStar then</span>
+<span id="L1402" class="line"><a href="#L1402">1402</a>        node:playStarAnim()</span>
+<span id="L1403" class="line"><a href="#L1403">1403</a>    end</span>
+<span id="L1404" class="line"><a href="#L1404">1404</a>    return node</span>
+<span id="L1405" class="line"><a href="#L1405">1405</a>end</span>
+<span id="L1406" class="line"><a href="#L1406">1406</a></span>
+<span id="L1407" class="line"><a href="#L1407">1407</a>-- 今日摘取次数</span>
+<span id="L1408" class="line"><a href="#L1408">1408</a>function CollectWordManager:getTodayPickNum()</span>
+<span id="L1409" class="line"><a href="#L1409">1409</a>    local todayData = self:getTodayData()</span>
+<span id="L1410" class="line"><a href="#L1410">1410</a>    if not todayData then return 0 end</span>
+<span id="L1411" class="line"><a href="#L1411">1411</a>    return todayData.pickFruitNum</span>
+<span id="L1412" class="line"><a href="#L1412">1412</a>end</span>
+<span id="L1413" class="line"><a href="#L1413">1413</a></span>
+<span id="L1414" class="line"><a href="#L1414">1414</a>-- 获得剩余摘取次数</span>
+<span id="L1415" class="line"><a href="#L1415">1415</a>function CollectWordManager:getLeftPickNum()</span>
+<span id="L1416" class="line"><a href="#L1416">1416</a>    local todayPick = self:getTodayPickNum()</span>
+<span id="L1417" class="line"><a href="#L1417">1417</a>    local perDayPickNum = self:getConfigValue(&quot;perDayPickMaxNum&quot;) or 3</span>
+<span id="L1418" class="line"><a href="#L1418">1418</a>    return perDayPickNum - todayPick</span>
+<span id="L1419" class="line"><a href="#L1419">1419</a>end</span>
+<span id="L1420" class="line"><a href="#L1420">1420</a></span>
+<span id="L1421" class="line"><a href="#L1421">1421</a>-- 获得初始化成熟时间戳</span>
+<span id="L1422" class="line"><a href="#L1422">1422</a>function CollectWordManager:getOriginRipeTime()</span>
+<span id="L1423" class="line"><a href="#L1423">1423</a>    local fruitData = self:getDataValue(&quot;fruitData&quot;)</span>
+<span id="L1424" class="line"><a href="#L1424">1424</a>    if not fruitData then return 0 end</span>
+<span id="L1425" class="line"><a href="#L1425">1425</a>    return tonumber(fruitData.ripeTime) or 0</span>
+<span id="L1426" class="line"><a href="#L1426">1426</a>end</span>
+<span id="L1427" class="line"><a href="#L1427">1427</a></span>
+<span id="L1428" class="line"><a href="#L1428">1428</a>-- 获得被帮助的时间</span>
+<span id="L1429" class="line"><a href="#L1429">1429</a>function CollectWordManager:getHelpSpeedTime()</span>
+<span id="L1430" class="line"><a href="#L1430">1430</a>    local fruitData = self:getDataValue(&quot;fruitData&quot;)</span>
+<span id="L1431" class="line"><a href="#L1431">1431</a>    if not fruitData then return 0 end</span>
+<span id="L1432" class="line"><a href="#L1432">1432</a>    return tonumber(fruitData.helpSpeedTime) or 0</span>
+<span id="L1433" class="line"><a href="#L1433">1433</a>end</span>
+<span id="L1434" class="line"><a href="#L1434">1434</a></span>
+<span id="L1435" class="line"><a href="#L1435">1435</a>-- 果实id</span>
+<span id="L1436" class="line"><a href="#L1436">1436</a>function CollectWordManager:getFruitId()</span>
+<span id="L1437" class="line"><a href="#L1437">1437</a>    local fruitData = self:getDataValue(&quot;fruitData&quot;)</span>
+<span id="L1438" class="line"><a href="#L1438">1438</a>    if not fruitData then return 0 end</span>
+<span id="L1439" class="line"><a href="#L1439">1439</a>    return fruitData.id or 0</span>
+<span id="L1440" class="line"><a href="#L1440">1440</a>end</span>
+<span id="L1441" class="line"><a href="#L1441">1441</a></span>
+<span id="L1442" class="line"><a href="#L1442">1442</a>-- 果子成熟倒计时时间</span>
+<span id="L1443" class="line"><a href="#L1443">1443</a>function CollectWordManager:getRipenCountDownTime()</span>
+<span id="L1444" class="line"><a href="#L1444">1444</a>    local ripenTime = self:getRipenTime()</span>
+<span id="L1445" class="line"><a href="#L1445">1445</a>    local curTime = TimeKit:timeInMillis()</span>
+<span id="L1446" class="line"><a href="#L1446">1446</a>    return ripenTime - curTime</span>
+<span id="L1447" class="line"><a href="#L1447">1447</a>end</span>
+<span id="L1448" class="line"><a href="#L1448">1448</a></span>
+<span id="L1449" class="line"><a href="#L1449">1449</a>-- 获得真正的成熟时间</span>
+<span id="L1450" class="line"><a href="#L1450">1450</a>function CollectWordManager:getRipenTime()</span>
+<span id="L1451" class="line"><a href="#L1451">1451</a>    local originRipenTime = self:getOriginRipeTime()</span>
+<span id="L1452" class="line"><a href="#L1452">1452</a>    local helpSpeedTime = self:getHelpSpeedTime()</span>
+<span id="L1453" class="line"><a href="#L1453">1453</a>    return originRipenTime - helpSpeedTime</span>
+<span id="L1454" class="line"><a href="#L1454">1454</a>end</span>
+<span id="L1455" class="line"><a href="#L1455">1455</a></span>
+<span id="L1456" class="line"><a href="#L1456">1456</a>-- 获得本次要播的减少时间</span>
+<span id="L1457" class="line"><a href="#L1457">1457</a>function CollectWordManager:getReduceTime()</span>
+<span id="L1458" class="line"><a href="#L1458">1458</a>    local fruitData = self:getDataValue(&quot;fruitData&quot;)</span>
+<span id="L1459" class="line"><a href="#L1459">1459</a>    if not fruitData then return 0 end</span>
+<span id="L1460" class="line"><a href="#L1460">1460</a>    return tonumber(fruitData.thisOpenHelpSpeedTime) or 0</span>
+<span id="L1461" class="line"><a href="#L1461">1461</a>end</span>
+<span id="L1462" class="line"><a href="#L1462">1462</a></span>
+<span id="L1463" class="line"><a href="#L1463">1463</a>-- 设置本次减少时间</span>
+<span id="L1464" class="line"><a href="#L1464">1464</a>function CollectWordManager:setReduceTime(value)</span>
+<span id="L1465" class="line"><a href="#L1465">1465</a>    local fruitData = self:getDataValue(&quot;fruitData&quot;)</span>
+<span id="L1466" class="line"><a href="#L1466">1466</a>    if not fruitData then return end</span>
+<span id="L1467" class="line"><a href="#L1467">1467</a>    fruitData.thisOpenHelpSpeedTime = value</span>
+<span id="L1468" class="line"><a href="#L1468">1468</a>    -- 这个字段没什么用</span>
+<span id="L1469" class="line"><a href="#L1469">1469</a>    fruitData.beSpeed = value ~= 0</span>
+<span id="L1470" class="line"><a href="#L1470">1470</a>    self:setDataValue(&quot;fruitData&quot;, fruitData)</span>
+<span id="L1471" class="line"><a href="#L1471">1471</a>end</span>
+<span id="L1472" class="line"><a href="#L1472">1472</a></span>
+<span id="L1473" class="line"><a href="#L1473">1473</a>-- 别人点链接给我的奖励</span>
+<span id="L1474" class="line"><a href="#L1474">1474</a>function CollectWordManager:getShowBeHelpRewardList()</span>
+<span id="L1475" class="line"><a href="#L1475">1475</a>    return self:getDataValue(&quot;showBeHelpRewardList&quot;) or {}</span>
+<span id="L1476" class="line"><a href="#L1476">1476</a>end</span>
+<span id="L1477" class="line"><a href="#L1477">1477</a></span>
+<span id="L1478" class="line"><a href="#L1478">1478</a>-- 获得有多少个字</span>
+<span id="L1479" class="line"><a href="#L1479">1479</a>function CollectWordManager:getWordCountById(wordId)</span>
+<span id="L1480" class="line"><a href="#L1480">1480</a>    local wordMap = self:getDataValue(&quot;wordMap&quot;) or {}</span>
+<span id="L1481" class="line"><a href="#L1481">1481</a>    local strKey = tostring(wordId)</span>
+<span id="L1482" class="line"><a href="#L1482">1482</a>    return wordMap[strKey] or 0</span>
+<span id="L1483" class="line"><a href="#L1483">1483</a>end</span>
+<span id="L1484" class="line"><a href="#L1484">1484</a></span>
+<span id="L1485" class="line"><a href="#L1485">1485</a>-- 是否是字</span>
+<span id="L1486" class="line"><a href="#L1486">1486</a>function CollectWordManager:isWordItem(itemId)</span>
+<span id="L1487" class="line"><a href="#L1487">1487</a>    for _, v in pairs(CollectWordConst.Words) do</span>
+<span id="L1488" class="line"><a href="#L1488">1488</a>        if itemId == v then</span>
+<span id="L1489" class="line"><a href="#L1489">1489</a>            return true</span>
+<span id="L1490" class="line"><a href="#L1490">1490</a>        end</span>
+<span id="L1491" class="line"><a href="#L1491">1491</a>    end</span>
+<span id="L1492" class="line"><a href="#L1492">1492</a>    return false</span>
+<span id="L1493" class="line"><a href="#L1493">1493</a>end</span>
+<span id="L1494" class="line"><a href="#L1494">1494</a></span>
+<span id="L1495" class="line"><a href="#L1495">1495</a>-- 判断获得的字是否是第一次获得</span>
+<span id="L1496" class="line"><a href="#L1496">1496</a>function CollectWordManager:getWordIsNew(itemId)</span>
+<span id="L1497" class="line"><a href="#L1497">1497</a>    if not self:isEnabled() then return false end</span>
+<span id="L1498" class="line"><a href="#L1498">1498</a>    local wordMapTotal = self:getDataValue(&quot;wordMapTotal&quot;) or {}</span>
+<span id="L1499" class="line"><a href="#L1499">1499</a>    return wordMapTotal[tostring(itemId)] and wordMapTotal[tostring(itemId)] == 1</span>
+<span id="L1500" class="line"><a href="#L1500">1500</a>end</span>
+<span id="L1501" class="line"><a href="#L1501">1501</a></span>
+<span id="L1502" class="line"><a href="#L1502">1502</a>-- 是否已经激活了</span>
+<span id="L1503" class="line"><a href="#L1503">1503</a>function CollectWordManager:hasActived()</span>
+<span id="L1504" class="line"><a href="#L1504">1504</a>    return self:getDataValue(&quot;activate&quot;)</span>
+<span id="L1505" class="line"><a href="#L1505">1505</a>end</span>
+<span id="L1506" class="line"><a href="#L1506">1506</a></span>
+<span id="L1507" class="line"><a href="#L1507">1507</a>-- 是否可以激活</span>
+<span id="L1508" class="line"><a href="#L1508">1508</a>function CollectWordManager:isCanActive()</span>
+<span id="L1509" class="line"><a href="#L1509">1509</a>    if self:hasActived() then return false end</span>
+<span id="L1510" class="line"><a href="#L1510">1510</a>    local wordMap = self:getDataValue(&quot;wordMap&quot;)</span>
+<span id="L1511" class="line"><a href="#L1511">1511</a>    if not wordMap then return false end</span>
+<span id="L1512" class="line"><a href="#L1512">1512</a>    for _, v in pairs(CollectWordConst.Words) do</span>
+<span id="L1513" class="line"><a href="#L1513">1513</a>        if not wordMap[tostring(v)] or wordMap[tostring(v)] == 0 then</span>
+<span id="L1514" class="line"><a href="#L1514">1514</a>            return false</span>
+<span id="L1515" class="line"><a href="#L1515">1515</a>        end</span>
+<span id="L1516" class="line"><a href="#L1516">1516</a>    end</span>
+<span id="L1517" class="line"><a href="#L1517">1517</a>    return true</span>
+<span id="L1518" class="line"><a href="#L1518">1518</a>end</span>
+<span id="L1519" class="line"><a href="#L1519">1519</a></span>
+<span id="L1520" class="line"><a href="#L1520">1520</a>function CollectWordManager:getCanAskWordList()</span>
+<span id="L1521" class="line"><a href="#L1521">1521</a>    local list = {}</span>
+<span id="L1522" class="line"><a href="#L1522">1522</a>    local wordMap = self:getDataValue(&quot;wordMap&quot;) or {}</span>
+<span id="L1523" class="line"><a href="#L1523">1523</a>    for _, v in pairs(CollectWordConst.Words) do</span>
+<span id="L1524" class="line"><a href="#L1524">1524</a>        local strKey = tostring(v)</span>
+<span id="L1525" class="line"><a href="#L1525">1525</a>        if not wordMap[strKey] or wordMap[strKey] == 0 then</span>
+<span id="L1526" class="line"><a href="#L1526">1526</a>            table.insert(list, {itemId = v, num = 1})</span>
+<span id="L1527" class="line"><a href="#L1527">1527</a>        end</span>
+<span id="L1528" class="line"><a href="#L1528">1528</a>    end</span>
+<span id="L1529" class="line"><a href="#L1529">1529</a>    table.sort(list, function(a, b)</span>
+<span id="L1530" class="line"><a href="#L1530">1530</a>        return a.itemId &lt; b.itemId</span>
+<span id="L1531" class="line"><a href="#L1531">1531</a>    end)</span>
+<span id="L1532" class="line"><a href="#L1532">1532</a>    return list</span>
+<span id="L1533" class="line"><a href="#L1533">1533</a>end</span>
+<span id="L1534" class="line"><a href="#L1534">1534</a></span>
+<span id="L1535" class="line"><a href="#L1535">1535</a>function CollectWordManager:isCanAskWord()</span>
+<span id="L1536" class="line"><a href="#L1536">1536</a>    return not self:getTodayHasAskFor()</span>
+<span id="L1537" class="line"><a href="#L1537">1537</a>end</span>
+<span id="L1538" class="line"><a href="#L1538">1538</a></span>
+<span id="L1539" class="line"><a href="#L1539">1539</a>-- 获得可以赠送的字的列表</span>
+<span id="L1540" class="line"><a href="#L1540">1540</a>function CollectWordManager:getCanSendWordList()</span>
+<span id="L1541" class="line"><a href="#L1541">1541</a>    local list = {}</span>
+<span id="L1542" class="line"><a href="#L1542">1542</a>    local wordMap = self:getDataValue(&quot;wordMap&quot;) or {}</span>
+<span id="L1543" class="line"><a href="#L1543">1543</a>    for _, v in pairs(CollectWordConst.Words) do</span>
+<span id="L1544" class="line"><a href="#L1544">1544</a>        local strKey = tostring(v)</span>
+<span id="L1545" class="line"><a href="#L1545">1545</a>        if wordMap[strKey] and wordMap[strKey] &gt; 0 then</span>
+<span id="L1546" class="line"><a href="#L1546">1546</a>            table.insert(list, {itemId = v, num = wordMap[strKey]})</span>
+<span id="L1547" class="line"><a href="#L1547">1547</a>        end</span>
+<span id="L1548" class="line"><a href="#L1548">1548</a>    end</span>
+<span id="L1549" class="line"><a href="#L1549">1549</a>    table.sort(list, function(a, b)</span>
+<span id="L1550" class="line"><a href="#L1550">1550</a>        return a.itemId &lt; b.itemId</span>
+<span id="L1551" class="line"><a href="#L1551">1551</a>    end)</span>
+<span id="L1552" class="line"><a href="#L1552">1552</a>    return list</span>
+<span id="L1553" class="line"><a href="#L1553">1553</a>end</span>
+<span id="L1554" class="line"><a href="#L1554">1554</a></span>
+<span id="L1555" class="line"><a href="#L1555">1555</a>-- 今天是否已经索要成功了</span>
+<span id="L1556" class="line"><a href="#L1556">1556</a>function CollectWordManager:getTodayHasAskFor()</span>
+<span id="L1557" class="line"><a href="#L1557">1557</a>    local todayData = self:getTodayData()</span>
+<span id="L1558" class="line"><a href="#L1558">1558</a>    if not todayData then return false end</span>
+<span id="L1559" class="line"><a href="#L1559">1559</a>    return todayData.askforSucc</span>
+<span id="L1560" class="line"><a href="#L1560">1560</a>end</span>
+<span id="L1561" class="line"><a href="#L1561">1561</a></span>
+<span id="L1562" class="line"><a href="#L1562">1562</a>-- 是否可以赠送</span>
+<span id="L1563" class="line"><a href="#L1563">1563</a>function CollectWordManager:isCanSendWord()</span>
+<span id="L1564" class="line"><a href="#L1564">1564</a>    local wordMap = self:getDataValue(&quot;wordMap&quot;) or {}</span>
+<span id="L1565" class="line"><a href="#L1565">1565</a>    for _, v in pairs(CollectWordConst.Words) do</span>
+<span id="L1566" class="line"><a href="#L1566">1566</a>        local strKey = tostring(v)</span>
+<span id="L1567" class="line"><a href="#L1567">1567</a>        if wordMap[strKey] and wordMap[strKey] &gt; 0 then</span>
+<span id="L1568" class="line"><a href="#L1568">1568</a>            return true</span>
+<span id="L1569" class="line"><a href="#L1569">1569</a>        end</span>
+<span id="L1570" class="line"><a href="#L1570">1570</a>    end</span>
+<span id="L1571" class="line"><a href="#L1571">1571</a>    return false</span>
+<span id="L1572" class="line"><a href="#L1572">1572</a>end</span>
+<span id="L1573" class="line"><a href="#L1573">1573</a></span>
+<span id="L1574" class="line"><a href="#L1574">1574</a>-- 果子是否成熟了</span>
+<span id="L1575" class="line"><a href="#L1575">1575</a>function CollectWordManager:hasRipenFruit()</span>
+<span id="L1576" class="line"><a href="#L1576">1576</a>    return self:getRipenTime() &lt;= TimeKit:timeInMillis()</span>
+<span id="L1577" class="line"><a href="#L1577">1577</a>end</span>
+<span id="L1578" class="line"><a href="#L1578">1578</a></span>
+<span id="L1579" class="line"><a href="#L1579">1579</a>-- 摘果子提示</span>
+<span id="L1580" class="line"><a href="#L1580">1580</a>function CollectWordManager:getPickFruitTip()</span>
+<span id="L1581" class="line"><a href="#L1581">1581</a>    local needPro = self:getConfigValue(&quot;taskProgress&quot;) or {}</span>
+<span id="L1582" class="line"><a href="#L1582">1582</a>    local taskMetaList = self:getConfigValue(&quot;gatherWordTaskMetaList&quot;) or {}</span>
+<span id="L1583" class="line"><a href="#L1583">1583</a>    for i, v in ipairs(taskMetaList) do</span>
+<span id="L1584" class="line"><a href="#L1584">1584</a>        if v.taskType == CollectWordConst.TaskType.PICK_TOTAL then</span>
+<span id="L1585" class="line"><a href="#L1585">1585</a>            local pro = self:getTaskProgressByType(v.taskType)</span>
+<span id="L1586" class="line"><a href="#L1586">1586</a>            if pro &lt;= v.taskTarget then</span>
+<span id="L1587" class="line"><a href="#L1587">1587</a>                return &quot;果实任务进度：成功摘取&quot;..pro..&quot;/&quot;..v.taskTarget..&quot;次活动果&quot;</span>
+<span id="L1588" class="line"><a href="#L1588">1588</a>            end</span>
+<span id="L1589" class="line"><a href="#L1589">1589</a>        end</span>
+<span id="L1590" class="line"><a href="#L1590">1590</a>    end</span>
+<span id="L1591" class="line"><a href="#L1591">1591</a>    return nil</span>
+<span id="L1592" class="line"><a href="#L1592">1592</a>end</span>
+<span id="L1593" class="line"><a href="#L1593">1593</a></span>
+<span id="L1594" class="line"><a href="#L1594">1594</a>-- 炫耀奖励已经领取了</span>
+<span id="L1595" class="line"><a href="#L1595">1595</a>function CollectWordManager:setShowRewarded()</span>
+<span id="L1596" class="line"><a href="#L1596">1596</a>    self:setDataValue(&quot;showReward&quot;, true)</span>
+<span id="L1597" class="line"><a href="#L1597">1597</a>end</span>
+<span id="L1598" class="line"><a href="#L1598">1598</a></span>
+<span id="L1599" class="line"><a href="#L1599">1599</a>-- 获得微信炫耀奖励</span>
+<span id="L1600" class="line"><a href="#L1600">1600</a>function CollectWordManager:getWxShowOffReward()</span>
+<span id="L1601" class="line"><a href="#L1601">1601</a>    local isFullLevel = self:getDataValue(&quot;fullLevel&quot;)</span>
+<span id="L1602" class="line"><a href="#L1602">1602</a>    local rewardList = {}</span>
+<span id="L1603" class="line"><a href="#L1603">1603</a>    if isFullLevel then</span>
+<span id="L1604" class="line"><a href="#L1604">1604</a>        rewardList = self:getConfigValue(&quot;showRewardItemFullLevelList&quot;) or {}</span>
+<span id="L1605" class="line"><a href="#L1605">1605</a>    else</span>
+<span id="L1606" class="line"><a href="#L1606">1606</a>        rewardList = self:getConfigValue(&quot;showRewardItemList&quot;) or {}</span>
+<span id="L1607" class="line"><a href="#L1607">1607</a>    end</span>
+<span id="L1608" class="line"><a href="#L1608">1608</a>    return rewardList[1]</span>
+<span id="L1609" class="line"><a href="#L1609">1609</a>end</span>
+<span id="L1610" class="line"><a href="#L1610">1610</a></span>
+<span id="L1611" class="line"><a href="#L1611">1611</a>-- 任务配置</span>
+<span id="L1612" class="line"><a href="#L1612">1612</a>function CollectWordManager:getTaskMetaById(taskId)</span>
+<span id="L1613" class="line"><a href="#L1613">1613</a>    local taskMetaList = self:getConfigValue(&quot;gatherWordTaskMetaList&quot;) or {}</span>
+<span id="L1614" class="line"><a href="#L1614">1614</a>    for i, v in ipairs(taskMetaList) do</span>
+<span id="L1615" class="line"><a href="#L1615">1615</a>        if v.taskId == taskId then</span>
+<span id="L1616" class="line"><a href="#L1616">1616</a>            return v</span>
+<span id="L1617" class="line"><a href="#L1617">1617</a>        end</span>
+<span id="L1618" class="line"><a href="#L1618">1618</a>    end</span>
+<span id="L1619" class="line"><a href="#L1619">1619</a>    return nil</span>
+<span id="L1620" class="line"><a href="#L1620">1620</a>end</span>
+<span id="L1621" class="line"><a href="#L1621">1621</a></span>
+<span id="L1622" class="line"><a href="#L1622">1622</a>-- 根据任务id判断是否已经领取了</span>
+<span id="L1623" class="line"><a href="#L1623">1623</a>function CollectWordManager:getTaskHasRewarded(taskId)</span>
+<span id="L1624" class="line"><a href="#L1624">1624</a>    if taskId == 0 then</span>
+<span id="L1625" class="line"><a href="#L1625">1625</a>        return self:getDataValue(&quot;taskProgressReward&quot;)</span>
+<span id="L1626" class="line"><a href="#L1626">1626</a>    end</span>
+<span id="L1627" class="line"><a href="#L1627">1627</a>    local taskRewardSet = self:getDataValue(&quot;taskRewardSet&quot;) or {}</span>
+<span id="L1628" class="line"><a href="#L1628">1628</a>    return table.exist(taskRewardSet, taskId)</span>
+<span id="L1629" class="line"><a href="#L1629">1629</a>end</span>
+<span id="L1630" class="line"><a href="#L1630">1630</a></span>
+<span id="L1631" class="line"><a href="#L1631">1631</a>-- 任务奖励是否可以领取</span>
+<span id="L1632" class="line"><a href="#L1632">1632</a>function CollectWordManager:isTaskCanRewardById(taskId)</span>
+<span id="L1633" class="line"><a href="#L1633">1633</a>    local taskMeta = self:getTaskMetaById(taskId)</span>
+<span id="L1634" class="line"><a href="#L1634">1634</a>    if not taskMeta then return false end</span>
+<span id="L1635" class="line"><a href="#L1635">1635</a>    if not self:getTaskHasRewarded(taskMeta.taskId) then</span>
+<span id="L1636" class="line"><a href="#L1636">1636</a>        local pro = self:getTaskProgressByType(taskMeta.taskType)</span>
+<span id="L1637" class="line"><a href="#L1637">1637</a>        if pro &gt;= taskMeta.taskTarget then</span>
+<span id="L1638" class="line"><a href="#L1638">1638</a>            return true</span>
+<span id="L1639" class="line"><a href="#L1639">1639</a>        end</span>
+<span id="L1640" class="line"><a href="#L1640">1640</a>    end</span>
+<span id="L1641" class="line"><a href="#L1641">1641</a>    return false</span>
+<span id="L1642" class="line"><a href="#L1642">1642</a>end</span>
+<span id="L1643" class="line"><a href="#L1643">1643</a></span>
+<span id="L1644" class="line"><a href="#L1644">1644</a>function CollectWordManager:handleTipDispose(tip)</span>
+<span id="L1645" class="line"><a href="#L1645">1645</a>    self._hasAutoTip = true</span>
+<span id="L1646" class="line"><a href="#L1646">1646</a>    self._autoTip = tip</span>
+<span id="L1647" class="line"><a href="#L1647">1647</a>    local oldDis = tip.dispose</span>
+<span id="L1648" class="line"><a href="#L1648">1648</a>    tip.dispose = function(this)</span>
+<span id="L1649" class="line"><a href="#L1649">1649</a>        oldDis(this)</span>
+<span id="L1650" class="line"><a href="#L1650">1650</a>        self._hasAutoTip = false</span>
+<span id="L1651" class="line"><a href="#L1651">1651</a>        self._autoTip = nil</span>
+<span id="L1652" class="line"><a href="#L1652">1652</a>        if self._mainVM then</span>
+<span id="L1653" class="line"><a href="#L1653">1653</a>            self._mainVM:resetAutoPopTime()</span>
+<span id="L1654" class="line"><a href="#L1654">1654</a>        end</span>
+<span id="L1655" class="line"><a href="#L1655">1655</a>    end</span>
+<span id="L1656" class="line"><a href="#L1656">1656</a>end</span>
+<span id="L1657" class="line"><a href="#L1657">1657</a></span>
+<span id="L1658" class="line"><a href="#L1658">1658</a>function CollectWordManager:clearTip()</span>
+<span id="L1659" class="line"><a href="#L1659">1659</a>    if self._hasAutoTip and (self._autoTip and not self._autoTip.isDisposed) then</span>
+<span id="L1660" class="line"><a href="#L1660">1660</a>        self._autoTip:close()</span>
+<span id="L1661" class="line"><a href="#L1661">1661</a>    end</span>
+<span id="L1662" class="line"><a href="#L1662">1662</a>end</span>
+<span id="L1663" class="line"><a href="#L1663">1663</a></span>
+<span id="L1664" class="line"><a href="#L1664">1664</a>function CollectWordManager:hasAutoTipInScreen()</span>
+<span id="L1665" class="line"><a href="#L1665">1665</a>    return self._hasAutoTip</span>
+<span id="L1666" class="line"><a href="#L1666">1666</a>end</span>
+<span id="L1667" class="line"><a href="#L1667">1667</a></span>
+<span id="L1668" class="line"><a href="#L1668">1668</a>-- 获得马上就要完成的任务</span>
+<span id="L1669" class="line"><a href="#L1669">1669</a>function CollectWordManager:getUnRechTaskByType(taskType)</span>
+<span id="L1670" class="line"><a href="#L1670">1670</a>    local taskMetaList = self:getConfigValue(&quot;gatherWordTaskMetaList&quot;) or {}</span>
+<span id="L1671" class="line"><a href="#L1671">1671</a>    for i, v in ipairs(taskMetaList) do</span>
+<span id="L1672" class="line"><a href="#L1672">1672</a>        if v.taskType == taskType then</span>
+<span id="L1673" class="line"><a href="#L1673">1673</a>            local pro = self:getTaskProgressByType(v.taskType)</span>
+<span id="L1674" class="line"><a href="#L1674">1674</a>            if pro &lt; v.taskTarget then</span>
+<span id="L1675" class="line"><a href="#L1675">1675</a>                return pro, v.taskTarget</span>
+<span id="L1676" class="line"><a href="#L1676">1676</a>            end</span>
+<span id="L1677" class="line"><a href="#L1677">1677</a>        end</span>
+<span id="L1678" class="line"><a href="#L1678">1678</a>    end</span>
+<span id="L1679" class="line"><a href="#L1679">1679</a>    return nil,nil</span>
+<span id="L1680" class="line"><a href="#L1680">1680</a>end</span>
+<span id="L1681" class="line"><a href="#L1681">1681</a></span>
+<span id="L1682" class="line"><a href="#L1682">1682</a>-- 是否可以抽奖</span>
+<span id="L1683" class="line"><a href="#L1683">1683</a>function CollectWordManager:canLotter()</span>
+<span id="L1684" class="line"><a href="#L1684">1684</a>    local needPro = tonumber(self:getConfigValue(&quot;taskProgress&quot;)) or 0</span>
+<span id="L1685" class="line"><a href="#L1685">1685</a>    local count = 0</span>
+<span id="L1686" class="line"><a href="#L1686">1686</a>    local taskMetaList = self:getConfigValue(&quot;gatherWordTaskMetaList&quot;) or {}</span>
+<span id="L1687" class="line"><a href="#L1687">1687</a>    for i, v in ipairs(taskMetaList) do</span>
+<span id="L1688" class="line"><a href="#L1688">1688</a>        local pro = self:getTaskProgressByType(v.taskType)</span>
+<span id="L1689" class="line"><a href="#L1689">1689</a>        if pro &gt;= v.taskTarget and self:getTaskHasRewarded(v.taskId) then</span>
+<span id="L1690" class="line"><a href="#L1690">1690</a>            count = count + 1</span>
+<span id="L1691" class="line"><a href="#L1691">1691</a>        end</span>
+<span id="L1692" class="line"><a href="#L1692">1692</a>    end</span>
+<span id="L1693" class="line"><a href="#L1693">1693</a>    if needPro &lt;= 0 then</span>
+<span id="L1694" class="line"><a href="#L1694">1694</a>        return false, count, 0</span>
+<span id="L1695" class="line"><a href="#L1695">1695</a>    end</span>
+<span id="L1696" class="line"><a href="#L1696">1696</a>    return count &gt;= needPro and (not self:getTaskHasRewarded(0)), count, needPro</span>
+<span id="L1697" class="line"><a href="#L1697">1697</a>end</span>
+<span id="L1698" class="line"><a href="#L1698">1698</a></span>
+<span id="L1699" class="line"><a href="#L1699">1699</a>-- 是否有任务可以领奖</span>
+<span id="L1700" class="line"><a href="#L1700">1700</a>function CollectWordManager:hasTaskCanReward()</span>
+<span id="L1701" class="line"><a href="#L1701">1701</a>    local taskMetaList = self:getConfigValue(&quot;gatherWordTaskMetaList&quot;) or {}</span>
+<span id="L1702" class="line"><a href="#L1702">1702</a>    for i, v in ipairs(taskMetaList) do</span>
+<span id="L1703" class="line"><a href="#L1703">1703</a>        if not self:getTaskHasRewarded(v.taskId) then</span>
+<span id="L1704" class="line"><a href="#L1704">1704</a>            local pro = self:getTaskProgressByType(v.taskType)</span>
+<span id="L1705" class="line"><a href="#L1705">1705</a>            if pro &gt;= v.taskTarget then</span>
+<span id="L1706" class="line"><a href="#L1706">1706</a>                return true</span>
+<span id="L1707" class="line"><a href="#L1707">1707</a>            end</span>
+<span id="L1708" class="line"><a href="#L1708">1708</a>        end</span>
+<span id="L1709" class="line"><a href="#L1709">1709</a>    end</span>
+<span id="L1710" class="line"><a href="#L1710">1710</a>    return false</span>
+<span id="L1711" class="line"><a href="#L1711">1711</a>end</span>
+<span id="L1712" class="line"><a href="#L1712">1712</a></span>
+<span id="L1713" class="line"><a href="#L1713">1713</a>-- 发送求加速给好友</span>
+<span id="L1714" class="line"><a href="#L1714">1714</a>function CollectWordManager:sendAskspeedUpToFriend()</span>
+<span id="L1715" class="line"><a href="#L1715">1715</a>    local d = deferred.new()</span>
+<span id="L1716" class="line"><a href="#L1716">1716</a>    local askHelpParam = {</span>
+<span id="L1717" class="line"><a href="#L1717">1717</a>        shareType = CollectWordConst.ShareType.RIPEN_FRUIT,</span>
+<span id="L1718" class="line"><a href="#L1718">1718</a>        itemId = self:getFruitId()</span>
+<span id="L1719" class="line"><a href="#L1719">1719</a>    }</span>
+<span id="L1720" class="line"><a href="#L1720">1720</a>    self:requestShareKey(askHelpParam):next(function(shareKey)</span>
+<span id="L1721" class="line"><a href="#L1721">1721</a>        local context = OpenShareContext.new(OpenShareConst.ShareType.WORD_SPEED, OpenShareConst.ShareTarget.MINI)</span>
+<span id="L1722" class="line"><a href="#L1722">1722</a>            :setActId(CollectWordConst.ACT_ID)</span>
+<span id="L1723" class="line"><a href="#L1723">1723</a>            :setTextParams(&quot;o(╥﹏╥)o帮帮我，你也可以领奖励！&quot;)</span>
+<span id="L1724" class="line"><a href="#L1724">1724</a>            :setMiniParams({</span>
+<span id="L1725" class="line"><a href="#L1725">1725</a>                imageUrl = _G.ccFullShareImgPath(&quot;fruittree/act/collectword/askSpeed.jpg&quot;)</span>
+<span id="L1726" class="line"><a href="#L1726">1726</a>            })</span>
+<span id="L1727" class="line"><a href="#L1727">1727</a>            :setAskHelpParams(shareKey, askHelpParam, CollectWordConst.SHARE_ID)</span>
+<span id="L1728" class="line"><a href="#L1728">1728</a>        _G.amfTransaction(TransactionEvent.SHARE, context)</span>
+<span id="L1729" class="line"><a href="#L1729">1729</a>        d:resolve()</span>
+<span id="L1730" class="line"><a href="#L1730">1730</a>    end, function()</span>
+<span id="L1731" class="line"><a href="#L1731">1731</a>        d:reject()</span>
+<span id="L1732" class="line"><a href="#L1732">1732</a>    end)</span>
+<span id="L1733" class="line"><a href="#L1733">1733</a>    return d</span>
+<span id="L1734" class="line"><a href="#L1734">1734</a>end</span>
+<span id="L1735" class="line"><a href="#L1735">1735</a></span>
+<span id="L1736" class="line"><a href="#L1736">1736</a>function CollectWordManager:getLotterResultReward()</span>
+<span id="L1737" class="line"><a href="#L1737">1737</a>    local activateItemList = self:getDataValue(&quot;activateItemList&quot;) or {}</span>
+<span id="L1738" class="line"><a href="#L1738">1738</a>    return activateItemList and activateItemList[1] or {itemId = CollectWordConst.TASK_SHOW_REAL_ID, num = 1}</span>
+<span id="L1739" class="line"><a href="#L1739">1739</a>end</span>
+<span id="L1740" class="line"><a href="#L1740">1740</a></span>
+<span id="L1741" class="line"><a href="#L1741">1741</a></span>
+<span id="L1742" class="line"><a href="#L1742">1742</a>return CollectWordManager</span></pre></main></html>

@@ -1,0 +1,18 @@
+field,producer_interface,consumer,meaning,source,line,runtime_value_obtained
+actInfos,getActInfos2024,ActInfosModel,Activity list converted to actId map,amf/middleware/activity/model/ActInfosModel.lua,54,false
+activityParticipationTags,getActInfos2024,ActivityParticipationMgr,Semicolon-separated actId_L1..L4_depth records,amf/middleware/activityparticipation/ActivityParticipationMgr.lua,59,false
+actInfos[].see,getActInfos2024,ActivityNode,False or nil blocks support when actInfo exists,amf/middleware/activity/node/ActivityNode.lua,114,false
+aiAutoPopInfo,aiAutoPopInfo,AIPopupModel,Map day number to JSON prediction payload,amf/feature/localactivity/aipopup/model/AIPopupModel.lua,75,false
+predictions,aiAutoPopInfo JSON,AIPopupManager,ActId to score map used for stage 3 and 4 descending ordering,amf/feature/localactivity/aipopup/AIPopupManager.lua,195,false
+prediction_id,aiAutoPopInfo JSON,AIPopupModel,Prediction identity stored without local generation,amf/feature/localactivity/aipopup/model/AIPopupModel.lua,65,false
+strategy,aiAutoPopInfo JSON,AIPopupModel,Server strategy string stored without interpreting model internals,amf/feature/localactivity/aipopup/model/AIPopupModel.lua,65,false
+target_date,aiAutoPopInfo JSON,AIPopupModel,Original payload date preserved; outer day key controls actual lookup,amf/feature/localactivity/aipopup/model/AIPopupModel.lua,65,false
+popupInfo.popupOrders,user optional data,PopupModel,Permanent configuration-key popup counts,amf/middleware/autopop/model/PopupModel.lua,35,false
+dailyPopupInfo.popupOrders,user optional data,PopupModel,Daily configuration-key popup counts,amf/middleware/autopop/model/PopupModel.lua,35,false
+popupInfoV2SceneMap,user optional data,ServerConfigMgr,Stage-specific quotas and priorities,amf/middleware/autopop/config/ServerConfigMgr.lua,18,false
+popTypeNumLimit,popupInfoV2SceneMap,ServerConfigMgr,Per category quota; -1 becomes 99; omitted category 0,amf/middleware/autopop/config/ServerConfigMgr.lua,23,false
+popTypeFullPriority,popupInfoV2SceneMap,ServerConfigMgr,Category full order,amf/middleware/autopop/config/ServerConfigMgr.lua,30,false
+popTypeSubPriority,popupInfoV2SceneMap,ServerConfigMgr,Exempt category order for repeated stage 2 or 3 to 4 limits,amf/middleware/autopop/config/ServerConfigMgr.lua,37,false
+dpTags,user response,DpUserTagModel,Launch-source only mapping cache with local update time,ubf/old/gamePlay/userTags/DpUserTagModel.lua,174,false
+last60DayPayAmount,payTag,UserTagManager,Local amount thresholds for legacy five and v2 seven tiers,ubf/old/gamePlay/userTags/UserTagManager.lua,728,false
+recentPassLevelData.dailyRecords,user response,UserTagManager,Backfill daily attempts; trim aggregate history,ubf/old/gamePlay/userTags/UserTagManager.lua,74,false

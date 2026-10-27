@@ -1,0 +1,28 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/mainscene/module/assetsbar/energy/localpush/LocalPush.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="0faf98e10e3e.lua" download>下载Lua原文</a></p><h1>amf/feature/mainscene/module/assetsbar/energy/localpush/LocalPush.lua</h1><p>SHA256 761a61ab1d8f40b31ade9b80418435230c7dc140606894101025fb388288a1f3</p><pre><span id="L1" class="line"><a href="#L1">1</a>local LocalPush = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local pushType = 20</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>function LocalPush:removeLocalPush()</span>
+<span id="L6" class="line"><a href="#L6">6</a>    _G.amfTransaction(TransactionEvent.LOCALPUSH, {</span>
+<span id="L7" class="line"><a href="#L7">7</a>        action = &quot;remove&quot;,</span>
+<span id="L8" class="line"><a href="#L8">8</a>        type = pushType,</span>
+<span id="L9" class="line"><a href="#L9">9</a>    })</span>
+<span id="L10" class="line"><a href="#L10">10</a>end</span>
+<span id="L11" class="line"><a href="#L11">11</a></span>
+<span id="L12" class="line"><a href="#L12">12</a>-- 检查添加推送</span>
+<span id="L13" class="line"><a href="#L13">13</a>function LocalPush:checkLocalPush(enablePush)</span>
+<span id="L14" class="line"><a href="#L14">14</a>    if not LocalPushConst then return end</span>
+<span id="L15" class="line"><a href="#L15">15</a>    self:removeLocalPush()</span>
+<span id="L16" class="line"><a href="#L16">16</a>    if not enablePush then return end</span>
+<span id="L17" class="line"><a href="#L17">17</a>    local fullEnergyTimeOff = _G.amfBean(&quot;UserEnergyManager&quot;):computeFullEnergyTime()</span>
+<span id="L18" class="line"><a href="#L18">18</a>    if fullEnergyTimeOff &gt; 0 then</span>
+<span id="L19" class="line"><a href="#L19">19</a>		local targetTime = TimeKit:timeInSec() + fullEnergyTimeOff</span>
+<span id="L20" class="line"><a href="#L20">20</a>        _G.amfTransaction(TransactionEvent.LOCALPUSH, {</span>
+<span id="L21" class="line"><a href="#L21">21</a>            action = &quot;add&quot;,</span>
+<span id="L22" class="line"><a href="#L22">22</a>            type = pushType,</span>
+<span id="L23" class="line"><a href="#L23">23</a>            timeStamp = targetTime,</span>
+<span id="L24" class="line"><a href="#L24">24</a>        })</span>
+<span id="L25" class="line"><a href="#L25">25</a>    end</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>return LocalPush</span></pre></main></html>

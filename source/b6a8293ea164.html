@@ -1,0 +1,282 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/merge/gift/GiftPanel.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="b6a8293ea164.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/merge/gift/GiftPanel.lua</h1><p>SHA256 8d4e1584fe8994d14f3af53306a7d5aa568ea94718153c19b44afd8e76092322</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Meta = require &quot;amf.feature.localactivity.merge.config.MergeConfig&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local MBuyLogic = require &#x27;amf.feature.localactivity.merge.gift.MBuyLogic&#x27;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local RewardFlyHelper = require &#x27;amf.feature.localactivity.processgiftautopopup.RewardFlyHelper.lua&#x27;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local AsyncRunner = require &quot;amf.script.sugar.AsyncRunner&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local GiftPanel = class(&quot;GiftPanel&quot;, AMFBasePanel)</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>local PanelType = {</span>
+<span id="L8" class="line"><a href="#L8">8</a>    STAGE_4_POP = 1,</span>
+<span id="L9" class="line"><a href="#L9">9</a>    MAIN_POP = 2,</span>
+<span id="L10" class="line"><a href="#L10">10</a>    TUJIAN_HALF = 3,</span>
+<span id="L11" class="line"><a href="#L11">11</a>    MAIN_POP2 = 4,</span>
+<span id="L12" class="line"><a href="#L12">12</a>}</span>
+<span id="L13" class="line"><a href="#L13">13</a></span>
+<span id="L14" class="line"><a href="#L14">14</a>local GiftLayout = {</span>
+<span id="L15" class="line"><a href="#L15">15</a>    HEIGHT = 199,</span>
+<span id="L16" class="line"><a href="#L16">16</a>    WIDTH = 518,</span>
+<span id="L17" class="line"><a href="#L17">17</a>    [1] = { {x = 518 / 2, y = 99.5} },</span>
+<span id="L18" class="line"><a href="#L18">18</a>    [2] = {</span>
+<span id="L19" class="line"><a href="#L19">19</a>        {x = 518 / 2-100, y = 99.5}, {x = 518 / 2 + 100, y = 99.5}</span>
+<span id="L20" class="line"><a href="#L20">20</a>    },</span>
+<span id="L21" class="line"><a href="#L21">21</a>    [4] = {</span>
+<span id="L22" class="line"><a href="#L22">22</a>        {x = 280, y = 139.5}, {x = 384, y = 139.5},</span>
+<span id="L23" class="line"><a href="#L23">23</a>        {x = 280, y = 59.5}, {x = 384, y = 59.5},</span>
+<span id="L24" class="line"><a href="#L24">24</a>    },</span>
+<span id="L25" class="line"><a href="#L25">25</a>}</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>local GiftLayoutWithGold = {</span>
+<span id="L28" class="line"><a href="#L28">28</a>    HEIGHT = 199,</span>
+<span id="L29" class="line"><a href="#L29">29</a>    WIDTH = 518,</span>
+<span id="L30" class="line"><a href="#L30">30</a>    [1] = { {x = 325, y = 99.5} },</span>
+<span id="L31" class="line"><a href="#L31">31</a>    [2] = {</span>
+<span id="L32" class="line"><a href="#L32">32</a>        {x = 280, y = 99.5}, {x = 384, y = 99.5}</span>
+<span id="L33" class="line"><a href="#L33">33</a>    },</span>
+<span id="L34" class="line"><a href="#L34">34</a>    [4] = {</span>
+<span id="L35" class="line"><a href="#L35">35</a>        {x = 280, y = 139.5}, {x = 384, y = 139.5},</span>
+<span id="L36" class="line"><a href="#L36">36</a>        {x = 280, y = 59.5}, {x = 384, y = 59.5},</span>
+<span id="L37" class="line"><a href="#L37">37</a>    },</span>
+<span id="L38" class="line"><a href="#L38">38</a>}</span>
+<span id="L39" class="line"><a href="#L39">39</a></span>
+<span id="L40" class="line"><a href="#L40">40</a>function GiftPanel:ctor()</span>
+<span id="L41" class="line"><a href="#L41">41</a>end</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>function GiftPanel:getUIInfo()</span>
+<span id="L44" class="line"><a href="#L44">44</a>    local path = &quot;amf.feature.localactivity.merge.gift.GiftPanel_UI&quot;</span>
+<span id="L45" class="line"><a href="#L45">45</a>    local skipList = {&quot;itemNode&quot;}</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>    return path, skipList</span>
+<span id="L48" class="line"><a href="#L48">48</a>end</span>
+<span id="L49" class="line"><a href="#L49">49</a></span>
+<span id="L50" class="line"><a href="#L50">50</a>function GiftPanel:getAssetsList()</span>
+<span id="L51" class="line"><a href="#L51">51</a>    return {</span>
+<span id="L52" class="line"><a href="#L52">52</a>		&quot;amf/store/layout/GiftGoldIcon.plist&quot;,</span>
+<span id="L53" class="line"><a href="#L53">53</a>		&quot;amf/store/spine/light_down_new.skel&quot;,</span>
+<span id="L54" class="line"><a href="#L54">54</a>		&quot;amf/store/spine/light_up.skel&quot;,</span>
+<span id="L55" class="line"><a href="#L55">55</a>        &quot;amf/activity/merge/materials/mergeItems.plist&quot;,</span>
+<span id="L56" class="line"><a href="#L56">56</a>        &quot;amf/activity/merge/materials/flyIcon.png&quot;,</span>
+<span id="L57" class="line"><a href="#L57">57</a>	}</span>
+<span id="L58" class="line"><a href="#L58">58</a>end</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>function GiftPanel:initUI(panelType, goodsId, title, desc, goodsMetaItems, buyPreFunc, noCheckBox, goodsObj)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    self.panelType = panelType</span>
+<span id="L62" class="line"><a href="#L62">62</a>    self.goodsId = goodsId</span>
+<span id="L63" class="line"><a href="#L63">63</a>    self.title = title</span>
+<span id="L64" class="line"><a href="#L64">64</a>    self.desc = desc</span>
+<span id="L65" class="line"><a href="#L65">65</a>    self.goodsMetaItems = goodsMetaItems</span>
+<span id="L66" class="line"><a href="#L66">66</a>    self.buyPreFunc = buyPreFunc</span>
+<span id="L67" class="line"><a href="#L67">67</a>    self.noCheckBox = noCheckBox</span>
+<span id="L68" class="line"><a href="#L68">68</a>    self.goodsObj = goodsObj</span>
+<span id="L69" class="line"><a href="#L69">69</a></span>
+<span id="L70" class="line"><a href="#L70">70</a>    self:initTitle()</span>
+<span id="L71" class="line"><a href="#L71">71</a>    self:initDesc()</span>
+<span id="L72" class="line"><a href="#L72">72</a>    self:initGift()</span>
+<span id="L73" class="line"><a href="#L73">73</a>    self:initButton()</span>
+<span id="L74" class="line"><a href="#L74">74</a>end</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>function GiftPanel:initTitle()</span>
+<span id="L77" class="line"><a href="#L77">77</a>    local str = self.title</span>
+<span id="L78" class="line"><a href="#L78">78</a></span>
+<span id="L79" class="line"><a href="#L79">79</a>    self.title1:setString(str)</span>
+<span id="L80" class="line"><a href="#L80">80</a>    self.title2:setString(str)</span>
+<span id="L81" class="line"><a href="#L81">81</a>end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>function GiftPanel:initDesc()</span>
+<span id="L84" class="line"><a href="#L84">84</a>    local str = self.desc</span>
+<span id="L85" class="line"><a href="#L85">85</a>    self.strDesc:setString(str)</span>
+<span id="L86" class="line"><a href="#L86">86</a>end</span>
+<span id="L87" class="line"><a href="#L87">87</a></span>
+<span id="L88" class="line"><a href="#L88">88</a>function GiftPanel:initGift()</span>
+<span id="L89" class="line"><a href="#L89">89</a></span>
+<span id="L90" class="line"><a href="#L90">90</a>    local goodsMetaItems = self.goodsMetaItems</span>
+<span id="L91" class="line"><a href="#L91">91</a></span>
+<span id="L92" class="line"><a href="#L92">92</a>    if self.panelType == PanelType.STAGE_4_POP or self.panelType == PanelType.TUJIAN_HALF then</span>
+<span id="L93" class="line"><a href="#L93">93</a>        local itemData = {}</span>
+<span id="L94" class="line"><a href="#L94">94</a>        local hasGold = false</span>
+<span id="L95" class="line"><a href="#L95">95</a>        for _, v in pairs(goodsMetaItems) do</span>
+<span id="L96" class="line"><a href="#L96">96</a>            if v.itemId ~= UPropId.GOLD then</span>
+<span id="L97" class="line"><a href="#L97">97</a>                table.insert(itemData, {</span>
+<span id="L98" class="line"><a href="#L98">98</a>                    itemId = v.itemId,</span>
+<span id="L99" class="line"><a href="#L99">99</a>                    num = v.num,</span>
+<span id="L100" class="line"><a href="#L100">100</a>                    hideNum = true,</span>
+<span id="L101" class="line"><a href="#L101">101</a>                })</span>
+<span id="L102" class="line"><a href="#L102">102</a>            else</span>
+<span id="L103" class="line"><a href="#L103">103</a>                local StoreGiftLayout = require &quot;amf.feature.store.view.gift.layout.GiftLayout&quot;</span>
+<span id="L104" class="line"><a href="#L104">104</a>                local icon = StoreGiftLayout:createGoldIcon(v.num)</span>
+<span id="L105" class="line"><a href="#L105">105</a>                icon:showGoldAni()</span>
+<span id="L106" class="line"><a href="#L106">106</a>                icon:setScale(0.9)</span>
+<span id="L107" class="line"><a href="#L107">107</a>                icon.reward = {itemId = UPropId.GOLD, num = v.num}</span>
+<span id="L108" class="line"><a href="#L108">108</a>                self.goldIcon = icon</span>
+<span id="L109" class="line"><a href="#L109">109</a>                self.goldNode:addChild(icon)</span>
+<span id="L110" class="line"><a href="#L110">110</a>                hasGold = true</span>
+<span id="L111" class="line"><a href="#L111">111</a>            end</span>
+<span id="L112" class="line"><a href="#L112">112</a>        end</span>
+<span id="L113" class="line"><a href="#L113">113</a>        self:createItemLayout(itemData, hasGold and GiftLayoutWithGold or GiftLayout)</span>
+<span id="L114" class="line"><a href="#L114">114</a>    else</span>
+<span id="L115" class="line"><a href="#L115">115</a>        -- 已经支持多种了。 看GiftLayout 这个的配置 124个的展示</span>
+<span id="L116" class="line"><a href="#L116">116</a>        local rewardNum = #goodsMetaItems</span>
+<span id="L117" class="line"><a href="#L117">117</a>        local giftLayoutConfig = GiftLayout[rewardNum] or GiftLayout[1]</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>        for i,v in ipairs(goodsMetaItems) do</span>
+<span id="L120" class="line"><a href="#L120">120</a>            local reward = table.clone(goodsMetaItems[i])</span>
+<span id="L121" class="line"><a href="#L121">121</a>            reward = {itemId = reward.itemId, num = reward.num}</span>
+<span id="L122" class="line"><a href="#L122">122</a>            if reward.itemId == Meta.DoubleBuffId then</span>
+<span id="L123" class="line"><a href="#L123">123</a>                reward.needNum = false</span>
+<span id="L124" class="line"><a href="#L124">124</a>            else</span>
+<span id="L125" class="line"><a href="#L125">125</a>                reward.needNum = true</span>
+<span id="L126" class="line"><a href="#L126">126</a>            end</span>
+<span id="L127" class="line"><a href="#L127">127</a></span>
+<span id="L128" class="line"><a href="#L128">128</a>            local posconfig = giftLayoutConfig[i] or giftLayoutConfig[1]</span>
+<span id="L129" class="line"><a href="#L129">129</a>            local icon</span>
+<span id="L130" class="line"><a href="#L130">130</a>            self:sendCommand(&quot;createIcon&quot;, reward, function(ret) icon = ret end)</span>
+<span id="L131" class="line"><a href="#L131">131</a>            icon:setPositionXY(posconfig.x, posconfig.y)</span>
+<span id="L132" class="line"><a href="#L132">132</a></span>
+<span id="L133" class="line"><a href="#L133">133</a>            if reward.needNum then</span>
+<span id="L134" class="line"><a href="#L134">134</a>                local numWidget, diffX, diffY = AMFCompHelper:createPropNum(reward)</span>
+<span id="L135" class="line"><a href="#L135">135</a>                if numWidget then</span>
+<span id="L136" class="line"><a href="#L136">136</a>                    icon:addChild(numWidget)</span>
+<span id="L137" class="line"><a href="#L137">137</a>                    local sz = icon:getContentSize()</span>
+<span id="L138" class="line"><a href="#L138">138</a>                    numWidget:setPositionXY(sz.width+diffX,diffY)</span>
+<span id="L139" class="line"><a href="#L139">139</a>                    icon.numWidget = numWidget</span>
+<span id="L140" class="line"><a href="#L140">140</a>                end</span>
+<span id="L141" class="line"><a href="#L141">141</a>            end</span>
+<span id="L142" class="line"><a href="#L142">142</a>            self.grpGifts:addChild(icon)</span>
+<span id="L143" class="line"><a href="#L143">143</a>        end</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>        </span>
+<span id="L146" class="line"><a href="#L146">146</a>    end</span>
+<span id="L147" class="line"><a href="#L147">147</a>end</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>function GiftPanel:createItemLayout(itemData, layoutConfig)</span>
+<span id="L150" class="line"><a href="#L150">150</a>    local rewardNum = #itemData</span>
+<span id="L151" class="line"><a href="#L151">151</a>    layoutConfig = layoutConfig or GiftLayout</span>
+<span id="L152" class="line"><a href="#L152">152</a>    local layout = layoutConfig[rewardNum] or layoutConfig[1]</span>
+<span id="L153" class="line"><a href="#L153">153</a>    self.items = {}</span>
+<span id="L154" class="line"><a href="#L154">154</a>    for k, v in pairs(itemData) do</span>
+<span id="L155" class="line"><a href="#L155">155</a>        local icon = self:createItem(v, rewardNum &gt; 2 and 0.6 or 0.8)</span>
+<span id="L156" class="line"><a href="#L156">156</a>        icon:setPositionXY(layout[k].x, layout[k].y)</span>
+<span id="L157" class="line"><a href="#L157">157</a>        self.grpGifts:addChild(icon)</span>
+<span id="L158" class="line"><a href="#L158">158</a>        table.insert(self.items, icon)</span>
+<span id="L159" class="line"><a href="#L159">159</a>    end</span>
+<span id="L160" class="line"><a href="#L160">160</a>end</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>function GiftPanel:createItem(reward, scale)</span>
+<span id="L163" class="line"><a href="#L163">163</a>    local itemNode = self.builder:createChild(&quot;itemNode&quot;)</span>
+<span id="L164" class="line"><a href="#L164">164</a>    itemNode:setScale(scale)</span>
+<span id="L165" class="line"><a href="#L165">165</a>    itemNode.mbMap.itemNum:setScale( 1 / scale )</span>
+<span id="L166" class="line"><a href="#L166">166</a>    if scale == 0.8 then</span>
+<span id="L167" class="line"><a href="#L167">167</a>        UICreateUtil:move(itemNode.mbMap.itemNum, -5, 0)</span>
+<span id="L168" class="line"><a href="#L168">168</a>    end</span>
+<span id="L169" class="line"><a href="#L169">169</a>    itemNode.reward = reward</span>
+<span id="L170" class="line"><a href="#L170">170</a></span>
+<span id="L171" class="line"><a href="#L171">171</a>    local icon</span>
+<span id="L172" class="line"><a href="#L172">172</a>    self:sendCommand(&quot;createIcon&quot;, reward, function(ret) icon = ret end)</span>
+<span id="L173" class="line"><a href="#L173">173</a>    LayoutUtil:centerAdd(itemNode, icon)</span>
+<span id="L174" class="line"><a href="#L174">174</a>    itemNode.mbMap.itemNum:setString(YH_REF_MAP.x .. reward.num)</span>
+<span id="L175" class="line"><a href="#L175">175</a>    if _G.amfBean(&quot;PropManager&quot;):isMergableProp(reward.itemId) or reward.itemId == Meta.DoubleBuffId then</span>
+<span id="L176" class="line"><a href="#L176">176</a>        itemNode.mbMap.itemNum:setVisible(false)</span>
+<span id="L177" class="line"><a href="#L177">177</a>    end</span>
+<span id="L178" class="line"><a href="#L178">178</a>    LayoutUtil:topUI(itemNode.mbMap.itemNum)</span>
+<span id="L179" class="line"><a href="#L179">179</a>    return itemNode</span>
+<span id="L180" class="line"><a href="#L180">180</a>end</span>
+<span id="L181" class="line"><a href="#L181">181</a></span>
+<span id="L182" class="line"><a href="#L182">182</a>function GiftPanel:initButton()</span>
+<span id="L183" class="line"><a href="#L183">183</a>    self.closeBtn:setTouchHandler(function()</span>
+<span id="L184" class="line"><a href="#L184">184</a>        if self.isDisposed then return end</span>
+<span id="L185" class="line"><a href="#L185">185</a>        self:sendCommand(&quot;onCloseBtnTapped&quot;)</span>
+<span id="L186" class="line"><a href="#L186">186</a>    end)</span>
+<span id="L187" class="line"><a href="#L187">187</a></span>
+<span id="L188" class="line"><a href="#L188">188</a>    local buyPreFunc = self.buyPreFunc</span>
+<span id="L189" class="line"><a href="#L189">189</a>    local buttonData = {</span>
+<span id="L190" class="line"><a href="#L190">190</a>        goodsId = self.goodsId,</span>
+<span id="L191" class="line"><a href="#L191">191</a>        buyNum = 1,</span>
+<span id="L192" class="line"><a href="#L192">192</a>        rmbNeedSuffix = true,</span>
+<span id="L193" class="line"><a href="#L193">193</a>        touchFunc = function()</span>
+<span id="L194" class="line"><a href="#L194">194</a>            if buyPreFunc then</span>
+<span id="L195" class="line"><a href="#L195">195</a>                safeRunCall(buyPreFunc, function()</span>
+<span id="L196" class="line"><a href="#L196">196</a>                    self:sendCommand(&quot;onButton&quot;)</span>
+<span id="L197" class="line"><a href="#L197">197</a>                end)</span>
+<span id="L198" class="line"><a href="#L198">198</a>            else</span>
+<span id="L199" class="line"><a href="#L199">199</a>                self:sendCommand(&quot;onButton&quot;)</span>
+<span id="L200" class="line"><a href="#L200">200</a>            end</span>
+<span id="L201" class="line"><a href="#L201">201</a>        end</span>
+<span id="L202" class="line"><a href="#L202">202</a>    }</span>
+<span id="L203" class="line"><a href="#L203">203</a>    local button</span>
+<span id="L204" class="line"><a href="#L204">204</a>    self:sendCommand(&quot;createBuyButton&quot;, buttonData, function(ret) button = ret end)</span>
+<span id="L205" class="line"><a href="#L205">205</a></span>
+<span id="L206" class="line"><a href="#L206">206</a>    UICreateUtil:replaceBy(self.buyButton, button)</span>
+<span id="L207" class="line"><a href="#L207">207</a>    self.buyButton = button</span>
+<span id="L208" class="line"><a href="#L208">208</a></span>
+<span id="L209" class="line"><a href="#L209">209</a>    local noCheckBox = self.noCheckBox</span>
+<span id="L210" class="line"><a href="#L210">210</a>    if not noCheckBox then</span>
+<span id="L211" class="line"><a href="#L211">211</a></span>
+<span id="L212" class="line"><a href="#L212">212</a>        local CheckBox = require &quot;amf.middleware.ui.kit.component.CheckBox&quot;</span>
+<span id="L213" class="line"><a href="#L213">213</a>        local checkBoxBuilder = CheckBox.Builder.new()</span>
+<span id="L214" class="line"><a href="#L214">214</a>        :setText(&#x27;今日不再弹出&#x27;)</span>
+<span id="L215" class="line"><a href="#L215">215</a>        :setTickVisible(false)</span>
+<span id="L216" class="line"><a href="#L216">216</a>        :setClickCallback(function(isCheck)</span>
+<span id="L217" class="line"><a href="#L217">217</a>            if self.panelType == PanelType.MAIN_POP or self.panelType == PanelType.MAIN_POP2 then</span>
+<span id="L218" class="line"><a href="#L218">218</a>                self:sendCommand(&quot;setIgnoredEnergyNotEnoughGiftToday&quot;, isCheck)</span>
+<span id="L219" class="line"><a href="#L219">219</a>            else</span>
+<span id="L220" class="line"><a href="#L220">220</a>                self:sendCommand(&quot;setIgnoredGiftToday&quot;, isCheck)</span>
+<span id="L221" class="line"><a href="#L221">221</a>            end</span>
+<span id="L222" class="line"><a href="#L222">222</a>            self.isChecked = isCheck</span>
+<span id="L223" class="line"><a href="#L223">223</a>        end)</span>
+<span id="L224" class="line"><a href="#L224">224</a>        local checkBox = checkBoxBuilder:build()</span>
+<span id="L225" class="line"><a href="#L225">225</a></span>
+<span id="L226" class="line"><a href="#L226">226</a>        self.ui:addChild(checkBox)</span>
+<span id="L227" class="line"><a href="#L227">227</a>        checkBox:setPositionXY(360, -942)</span>
+<span id="L228" class="line"><a href="#L228">228</a>        checkBox:setName(&quot;checkBox&quot;)</span>
+<span id="L229" class="line"><a href="#L229">229</a>        self.checkBox = checkBox</span>
+<span id="L230" class="line"><a href="#L230">230</a>    end</span>
+<span id="L231" class="line"><a href="#L231">231</a>end</span>
+<span id="L232" class="line"><a href="#L232">232</a></span>
+<span id="L233" class="line"><a href="#L233">233</a>function GiftPanel:flyRewards(callback, customFlyFunc)</span>
+<span id="L234" class="line"><a href="#L234">234</a>    if self.isDisposed then return end</span>
+<span id="L235" class="line"><a href="#L235">235</a></span>
+<span id="L236" class="line"><a href="#L236">236</a>    if customFlyFunc then</span>
+<span id="L237" class="line"><a href="#L237">237</a>        local items = self.goodsObj:getItems()</span>
+<span id="L238" class="line"><a href="#L238">238</a>        local rewardNum = #items</span>
+<span id="L239" class="line"><a href="#L239">239</a>        local giftLayoutConfig = GiftLayout[rewardNum] or GiftLayout[1]</span>
+<span id="L240" class="line"><a href="#L240">240</a></span>
+<span id="L241" class="line"><a href="#L241">241</a>        for i,v in ipairs(items) do</span>
+<span id="L242" class="line"><a href="#L242">242</a>            local flyEndCall = nil</span>
+<span id="L243" class="line"><a href="#L243">243</a>            if i==#items then</span>
+<span id="L244" class="line"><a href="#L244">244</a>                flyEndCall = callback</span>
+<span id="L245" class="line"><a href="#L245">245</a>            end</span>
+<span id="L246" class="line"><a href="#L246">246</a>            local posconfig = giftLayoutConfig[i] or giftLayoutConfig[1]</span>
+<span id="L247" class="line"><a href="#L247">247</a>            local scrPos = self.grpGifts:convertToWorldSpace(ccp(posconfig.x, posconfig.y))</span>
+<span id="L248" class="line"><a href="#L248">248</a>            if v.itemId == Meta.CollectionId  then</span>
+<span id="L249" class="line"><a href="#L249">249</a>                customFlyFunc(scrPos, flyEndCall, v.itemId )</span>
+<span id="L250" class="line"><a href="#L250">250</a>            else</span>
+<span id="L251" class="line"><a href="#L251">251</a>                local reward = table.clone(v)</span>
+<span id="L252" class="line"><a href="#L252">252</a>                RewardFlyHelper:rewardFlyFunc(false, reward, scrPos, nil, nil, flyEndCall)</span>
+<span id="L253" class="line"><a href="#L253">253</a>            end</span>
+<span id="L254" class="line"><a href="#L254">254</a>        end</span>
+<span id="L255" class="line"><a href="#L255">255</a>    else</span>
+<span id="L256" class="line"><a href="#L256">256</a>        local srcWorldPos = self.goldIcon:getPositionInWorldSpace()</span>
+<span id="L257" class="line"><a href="#L257">257</a>        local reward = table.clone(self.goldIcon.reward)</span>
+<span id="L258" class="line"><a href="#L258">258</a>        RewardFlyHelper:rewardFlyFunc(false, reward, srcWorldPos, nil, nil, callback)</span>
+<span id="L259" class="line"><a href="#L259">259</a></span>
+<span id="L260" class="line"><a href="#L260">260</a>        local icon</span>
+<span id="L261" class="line"><a href="#L261">261</a>        self:sendCommand(&quot;getActIcon&quot;, function(ret) icon = ret end)</span>
+<span id="L262" class="line"><a href="#L262">262</a></span>
+<span id="L263" class="line"><a href="#L263">263</a>        local endWorldPos = icon and icon:getPositionInWorldSpace()</span>
+<span id="L264" class="line"><a href="#L264">264</a>        local function createFakeIcon()</span>
+<span id="L265" class="line"><a href="#L265">265</a>            local icon</span>
+<span id="L266" class="line"><a href="#L266">266</a>            self:sendCommand(&quot;getFlyActIcon&quot;, function(ret) icon = ret end)</span>
+<span id="L267" class="line"><a href="#L267">267</a>            return icon</span>
+<span id="L268" class="line"><a href="#L268">268</a>        end</span>
+<span id="L269" class="line"><a href="#L269">269</a>        for k, v in pairs(self.items) do</span>
+<span id="L270" class="line"><a href="#L270">270</a>            local reward = table.clone(v.reward)</span>
+<span id="L271" class="line"><a href="#L271">271</a>            local srcWorldPos = v:getPositionInWorldSpace()</span>
+<span id="L272" class="line"><a href="#L272">272</a>            RewardFlyHelper:rewardFlyFunc(true, reward, srcWorldPos, endWorldPos, function()</span>
+<span id="L273" class="line"><a href="#L273">273</a>                local icon</span>
+<span id="L274" class="line"><a href="#L274">274</a>                self:sendCommand(&quot;createIcon&quot;, reward, function(ret) icon = ret end)</span>
+<span id="L275" class="line"><a href="#L275">275</a>                return icon</span>
+<span id="L276" class="line"><a href="#L276">276</a>            end, nil, CCSizeMake(30, 30), createFakeIcon)</span>
+<span id="L277" class="line"><a href="#L277">277</a>        end</span>
+<span id="L278" class="line"><a href="#L278">278</a>    end</span>
+<span id="L279" class="line"><a href="#L279">279</a>end</span>
+<span id="L280" class="line"><a href="#L280">280</a></span>
+<span id="L281" class="line"><a href="#L281">281</a></span>
+<span id="L282" class="line"><a href="#L282">282</a>return GiftPanel</span></pre></main></html>

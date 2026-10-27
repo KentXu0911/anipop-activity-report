@@ -1,0 +1,1197 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/notification/submsg/system/SubMsgBase.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="da42364481af.lua" download>下载Lua原文</a></p><h1>amf/middleware/notification/submsg/system/SubMsgBase.lua</h1><p>SHA256 fb9984475c30d38faf5a9af99c0160230dc61163ff5ec014471a1888c2e39a2b</p><pre><span id="L1" class="line"><a href="#L1">1</a>require &quot;amf.middleware.notification.submsg.config.SubMessageConst&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local SubMsgUIUtil = require &quot;amf.middleware.notification.submsg.util.SubMsgUIUtil&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local ISubMsg = require &quot;amf.middleware.notification.submsg.ISubMsgNode&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local Res = require &quot;amf.middleware.notification.submsg.config.Res&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local Group = require &quot;amf.middleware.notification.submsg.config.Group&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local SubMsgNode = require &quot;amf.middleware.notification.submsg.view.SubMsgNode&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>local SubMsgBase = class(&quot;SubMsgBase&quot;).implement(ISubMsg)</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>function SubMsgBase:ctor()</span>
+<span id="L11" class="line"><a href="#L11">11</a>    self.model = nil</span>
+<span id="L12" class="line"><a href="#L12">12</a>    self._assetsUtil = nil</span>
+<span id="L13" class="line"><a href="#L13">13</a>    self._iconManager = nil</span>
+<span id="L14" class="line"><a href="#L14">14</a>    self._optionalDataManager = nil</span>
+<span id="L15" class="line"><a href="#L15">15</a>    self._subMsgUtil = nil</span>
+<span id="L16" class="line"><a href="#L16">16</a>    self._levelAreaManager = nil</span>
+<span id="L17" class="line"><a href="#L17">17</a>    self._sdkLoginManager = nil</span>
+<span id="L18" class="line"><a href="#L18">18</a>    self._propManager = nil</span>
+<span id="L19" class="line"><a href="#L19">19</a>    self._heartBeatManager = nil</span>
+<span id="L20" class="line"><a href="#L20">20</a>    self._autoPopupMgr = nil</span>
+<span id="L21" class="line"><a href="#L21">21</a>    self._markManager = nil</span>
+<span id="L22" class="line"><a href="#L22">22</a>    self._promoteDailyMgr = nil</span>
+<span id="L23" class="line"><a href="#L23">23</a>    self._networkStatusManager = nil</span>
+<span id="L24" class="line"><a href="#L24">24</a>    self._nameMedalManager = nil</span>
+<span id="L25" class="line"><a href="#L25">25</a>end</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>function SubMsgBase:setNameMedalManager(nameMedalMgr)</span>
+<span id="L28" class="line"><a href="#L28">28</a>    self._nameMedalManager = nameMedalMgr</span>
+<span id="L29" class="line"><a href="#L29">29</a>end</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>function SubMsgBase:setPromoteDailyMgr(promoteDailyMgr)</span>
+<span id="L32" class="line"><a href="#L32">32</a>    self._promoteDailyMgr = promoteDailyMgr</span>
+<span id="L33" class="line"><a href="#L33">33</a>end</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>function SubMsgBase:setNetworkStatusManager(networkStatusManager)</span>
+<span id="L36" class="line"><a href="#L36">36</a>    self._networkStatusManager = networkStatusManager</span>
+<span id="L37" class="line"><a href="#L37">37</a>end</span>
+<span id="L38" class="line"><a href="#L38">38</a></span>
+<span id="L39" class="line"><a href="#L39">39</a>function SubMsgBase:setMarkManager(markManager)</span>
+<span id="L40" class="line"><a href="#L40">40</a>    self._markManager = markManager</span>
+<span id="L41" class="line"><a href="#L41">41</a>end</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>function SubMsgBase:setAutoPopupMgr(autoPopupMgr)</span>
+<span id="L44" class="line"><a href="#L44">44</a>    self._autoPopupMgr = autoPopupMgr</span>
+<span id="L45" class="line"><a href="#L45">45</a>end</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>function SubMsgBase:setHeartBeatManager(mgr)</span>
+<span id="L48" class="line"><a href="#L48">48</a>    self._heartBeatManager = mgr</span>
+<span id="L49" class="line"><a href="#L49">49</a>end</span>
+<span id="L50" class="line"><a href="#L50">50</a></span>
+<span id="L51" class="line"><a href="#L51">51</a>function SubMsgBase:setPropManager(propManager)</span>
+<span id="L52" class="line"><a href="#L52">52</a>    self._propManager = propManager</span>
+<span id="L53" class="line"><a href="#L53">53</a>end</span>
+<span id="L54" class="line"><a href="#L54">54</a></span>
+<span id="L55" class="line"><a href="#L55">55</a>function SubMsgBase:setSdkLoginManager(sdkLoginManager)</span>
+<span id="L56" class="line"><a href="#L56">56</a>    self._sdkLoginManager = sdkLoginManager</span>
+<span id="L57" class="line"><a href="#L57">57</a>end</span>
+<span id="L58" class="line"><a href="#L58">58</a></span>
+<span id="L59" class="line"><a href="#L59">59</a>function SubMsgBase:setLevelAreaManager(mgr)</span>
+<span id="L60" class="line"><a href="#L60">60</a>    self._levelAreaManager = mgr</span>
+<span id="L61" class="line"><a href="#L61">61</a>end</span>
+<span id="L62" class="line"><a href="#L62">62</a></span>
+<span id="L63" class="line"><a href="#L63">63</a>function SubMsgBase:setSubMsgUtil(util)</span>
+<span id="L64" class="line"><a href="#L64">64</a>    self._subMsgUtil = util</span>
+<span id="L65" class="line"><a href="#L65">65</a>end</span>
+<span id="L66" class="line"><a href="#L66">66</a></span>
+<span id="L67" class="line"><a href="#L67">67</a>function SubMsgBase:setOptionalDataManager(optionalDataManager)</span>
+<span id="L68" class="line"><a href="#L68">68</a>    self._optionalDataManager = optionalDataManager</span>
+<span id="L69" class="line"><a href="#L69">69</a>end</span>
+<span id="L70" class="line"><a href="#L70">70</a></span>
+<span id="L71" class="line"><a href="#L71">71</a>function SubMsgBase:setIconManager(iconManager)</span>
+<span id="L72" class="line"><a href="#L72">72</a>    self._iconManager = iconManager</span>
+<span id="L73" class="line"><a href="#L73">73</a>end</span>
+<span id="L74" class="line"><a href="#L74">74</a></span>
+<span id="L75" class="line"><a href="#L75">75</a>function SubMsgBase:setAssetsUtil(assetsUtil)</span>
+<span id="L76" class="line"><a href="#L76">76</a>    self._assetsUtil = assetsUtil</span>
+<span id="L77" class="line"><a href="#L77">77</a>end</span>
+<span id="L78" class="line"><a href="#L78">78</a>-- @override</span>
+<span id="L79" class="line"><a href="#L79">79</a>function SubMsgBase:isUIEnabled()</span>
+<span id="L80" class="line"><a href="#L80">80</a>    return self._isResReady</span>
+<span id="L81" class="line"><a href="#L81">81</a>end</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>function SubMsgBase:isEnabled()</span>
+<span id="L84" class="line"><a href="#L84">84</a>    return self.model and self:isLocalEnabled() and self:getSubValue(&quot;isFromServer&quot;)</span>
+<span id="L85" class="line"><a href="#L85">85</a>end</span>
+<span id="L86" class="line"><a href="#L86">86</a></span>
+<span id="L87" class="line"><a href="#L87">87</a>function SubMsgBase:isGroupEnabled()</span>
+<span id="L88" class="line"><a href="#L88">88</a>    return not Group:isOff()</span>
+<span id="L89" class="line"><a href="#L89">89</a>end</span>
+<span id="L90" class="line"><a href="#L90">90</a></span>
+<span id="L91" class="line"><a href="#L91">91</a>function SubMsgBase:isLevelEnabled()</span>
+<span id="L92" class="line"><a href="#L92">92</a>    return _G.getTopLevelId() &gt;= SubMessageConst.OPEN_LEVEL</span>
+<span id="L93" class="line"><a href="#L93">93</a>end</span>
+<span id="L94" class="line"><a href="#L94">94</a></span>
+<span id="L95" class="line"><a href="#L95">95</a>-- @override</span>
+<span id="L96" class="line"><a href="#L96">96</a>function SubMsgBase:isLocalEnabled()</span>
+<span id="L97" class="line"><a href="#L97">97</a>    return self:isGroupEnabled() and self:isLevelEnabled()</span>
+<span id="L98" class="line"><a href="#L98">98</a>end</span>
+<span id="L99" class="line"><a href="#L99">99</a></span>
+<span id="L100" class="line"><a href="#L100">100</a>function SubMsgBase:initialize()</span>
+<span id="L101" class="line"><a href="#L101">101</a>    -- 得先注册，不然事件都收不到</span>
+<span id="L102" class="line"><a href="#L102">102</a>    _G.amfEC:registerFeature(self)</span>
+<span id="L103" class="line"><a href="#L103">103</a>    -- 没开就不走逻辑了</span>
+<span id="L104" class="line"><a href="#L104">104</a>    if not self:isLocalEnabled() then</span>
+<span id="L105" class="line"><a href="#L105">105</a>        self._lastIsNotEnabled = true</span>
+<span id="L106" class="line"><a href="#L106">106</a>        return</span>
+<span id="L107" class="line"><a href="#L107">107</a>    end</span>
+<span id="L108" class="line"><a href="#L108">108</a>    self.model = require(&quot;amf.middleware.notification.submsg.model.Model&quot;):create()</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>    self:loadRes()</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>    -- 如果有本地数据，直接刷一次右下角的显示</span>
+<span id="L113" class="line"><a href="#L113">113</a>    self:doAfterLoadInfo()</span>
+<span id="L114" class="line"><a href="#L114">114</a>    -- 请求一次主info，虽然不影响显示</span>
+<span id="L115" class="line"><a href="#L115">115</a>    self:requestMainInfo():next(function()</span>
+<span id="L116" class="line"><a href="#L116">116</a>        self:doAfterLoadInfo()</span>
+<span id="L117" class="line"><a href="#L117">117</a>    end)</span>
+<span id="L118" class="line"><a href="#L118">118</a>end</span>
+<span id="L119" class="line"><a href="#L119">119</a></span>
+<span id="L120" class="line"><a href="#L120">120</a>function SubMsgBase:requestMainInfo()</span>
+<span id="L121" class="line"><a href="#L121">121</a>    local d = deferred.new()</span>
+<span id="L122" class="line"><a href="#L122">122</a>    self.model:requestMainInfo():next(function()</span>
+<span id="L123" class="line"><a href="#L123">123</a>        -- 将特殊的id添加进已领取列表,前端自己变,后边不改</span>
+<span id="L124" class="line"><a href="#L124">124</a>        local rewardedList = self:getSubValue(&quot;rewardedList&quot;)</span>
+<span id="L125" class="line"><a href="#L125">125</a>        local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L126" class="line"><a href="#L126">126</a>        for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L127" class="line"><a href="#L127">127</a>            local reward = self:getRewardById(v.id)</span>
+<span id="L128" class="line"><a href="#L128">128</a>            if table.isEmpty(reward) then</span>
+<span id="L129" class="line"><a href="#L129">129</a>                table.insert(rewardedList, v.id)</span>
+<span id="L130" class="line"><a href="#L130">130</a>            end</span>
+<span id="L131" class="line"><a href="#L131">131</a>        end </span>
+<span id="L132" class="line"><a href="#L132">132</a>        self:setSubValue(&quot;rewardedList&quot;, rewardedList)</span>
+<span id="L133" class="line"><a href="#L133">133</a>        d:resolve()</span>
+<span id="L134" class="line"><a href="#L134">134</a>    end, function()</span>
+<span id="L135" class="line"><a href="#L135">135</a>        d:reject()</span>
+<span id="L136" class="line"><a href="#L136">136</a>    end)</span>
+<span id="L137" class="line"><a href="#L137">137</a>    return d</span>
+<span id="L138" class="line"><a href="#L138">138</a>end</span>
+<span id="L139" class="line"><a href="#L139">139</a></span>
+<span id="L140" class="line"><a href="#L140">140</a>-- 场景2强弹</span>
+<span id="L141" class="line"><a href="#L141">141</a>function SubMsgBase:handleEnterStage2(evt)</span>
+<span id="L142" class="line"><a href="#L142">142</a>    if EnvUtil:isDYMiniGame() or EnvUtil:isALIPAYMiniGame() then</span>
+<span id="L143" class="line"><a href="#L143">143</a>        return</span>
+<span id="L144" class="line"><a href="#L144">144</a>    end</span>
+<span id="L145" class="line"><a href="#L145">145</a></span>
+<span id="L146" class="line"><a href="#L146">146</a>    if EnvUtil:isHuaweiMiniGame() then</span>
+<span id="L147" class="line"><a href="#L147">147</a>        return</span>
+<span id="L148" class="line"><a href="#L148">148</a>    end</span>
+<span id="L149" class="line"><a href="#L149">149</a></span>
+<span id="L150" class="line"><a href="#L150">150</a>    if EnvUtil:isUnionMiniGame() then</span>
+<span id="L151" class="line"><a href="#L151">151</a>        return</span>
+<span id="L152" class="line"><a href="#L152">152</a>    end</span>
+<span id="L153" class="line"><a href="#L153">153</a></span>
+<span id="L154" class="line"><a href="#L154">154</a>    if EnvUtil:isKuaiShouMiniGame() then</span>
+<span id="L155" class="line"><a href="#L155">155</a>        return</span>
+<span id="L156" class="line"><a href="#L156">156</a>    end</span>
+<span id="L157" class="line"><a href="#L157">157</a>    </span>
+<span id="L158" class="line"><a href="#L158">158</a>    if EnvUtil:isJdMiniGame() then</span>
+<span id="L159" class="line"><a href="#L159">159</a>        return</span>
+<span id="L160" class="line"><a href="#L160">160</a>    end</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>    if not self:isEnabled() then return end</span>
+<span id="L163" class="line"><a href="#L163">163</a>    -- 如果是从订阅进来的，那么打个进入点</span>
+<span id="L164" class="line"><a href="#L164">164</a>    if self._subMsgUtil:isEnterFromTmpl() then</span>
+<span id="L165" class="line"><a href="#L165">165</a>        self:dc(&quot;subscription&quot;, &quot;enter_game&quot;, {</span>
+<span id="L166" class="line"><a href="#L166">166</a>            t1 = self._subMsgUtil:getEnterKeyFromValue()</span>
+<span id="L167" class="line"><a href="#L167">167</a>        })</span>
+<span id="L168" class="line"><a href="#L168">168</a>    end</span>
+<span id="L169" class="line"><a href="#L169">169</a>    if not self:checkTodayCanCardEnterReward() then</span>
+<span id="L170" class="line"><a href="#L170">170</a>        return</span>
+<span id="L171" class="line"><a href="#L171">171</a>    end</span>
+<span id="L172" class="line"><a href="#L172">172</a>    local function onHandleOver()</span>
+<span id="L173" class="line"><a href="#L173">173</a>		AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.SUB_MSG)</span>
+<span id="L174" class="line"><a href="#L174">174</a>	end</span>
+<span id="L175" class="line"><a href="#L175">175</a></span>
+<span id="L176" class="line"><a href="#L176">176</a>	local function creator()</span>
+<span id="L177" class="line"><a href="#L177">177</a>		self:showDailyRewardPanel():next(function()</span>
+<span id="L178" class="line"><a href="#L178">178</a>			onHandleOver()</span>
+<span id="L179" class="line"><a href="#L179">179</a>		end)</span>
+<span id="L180" class="line"><a href="#L180">180</a>	end</span>
+<span id="L181" class="line"><a href="#L181">181</a>	self._autoPopupMgr:addPopupConfig(PopupCheckPoint.SUB_MSG, creator)</span>
+<span id="L182" class="line"><a href="#L182">182</a>end</span>
+<span id="L183" class="line"><a href="#L183">183</a></span>
+<span id="L184" class="line"><a href="#L184">184</a>-- 场景4强弹</span>
+<span id="L185" class="line"><a href="#L185">185</a>function SubMsgBase:handleEnterStage4(evt)</span>
+<span id="L186" class="line"><a href="#L186">186</a>    if not self:checkStage4CanPop() then return end</span>
+<span id="L187" class="line"><a href="#L187">187</a>    local function onHandleOver()</span>
+<span id="L188" class="line"><a href="#L188">188</a>		AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, PopupCheckPoint.SUB_MSG_STAGE4)</span>
+<span id="L189" class="line"><a href="#L189">189</a>	end</span>
+<span id="L190" class="line"><a href="#L190">190</a>	local function creator()</span>
+<span id="L191" class="line"><a href="#L191">191</a>		self:showMainPanel({</span>
+<span id="L192" class="line"><a href="#L192">192</a>			closeCallback = onHandleOver,</span>
+<span id="L193" class="line"><a href="#L193">193</a>			t1 = 2</span>
+<span id="L194" class="line"><a href="#L194">194</a>		})</span>
+<span id="L195" class="line"><a href="#L195">195</a>	end</span>
+<span id="L196" class="line"><a href="#L196">196</a>	self._autoPopupMgr:addPopupConfig(PopupCheckPoint.SUB_MSG_STAGE4, creator)</span>
+<span id="L197" class="line"><a href="#L197">197</a>end</span>
+<span id="L198" class="line"><a href="#L198">198</a></span>
+<span id="L199" class="line"><a href="#L199">199</a>-- 过关检查是否要开启</span>
+<span id="L200" class="line"><a href="#L200">200</a>function SubMsgBase:handlePassLevelEnd(evt)</span>
+<span id="L201" class="line"><a href="#L201">201</a>    -- 如果一开始不可用就检查</span>
+<span id="L202" class="line"><a href="#L202">202</a>    if not self._lastIsNotEnabled then return end</span>
+<span id="L203" class="line"><a href="#L203">203</a>    -- 如果本来就可用就不检查了</span>
+<span id="L204" class="line"><a href="#L204">204</a>    local data = evt:getData()</span>
+<span id="L205" class="line"><a href="#L205">205</a>    if not data.isWin then return end</span>
+<span id="L206" class="line"><a href="#L206">206</a>    if self:isLocalEnabled() then</span>
+<span id="L207" class="line"><a href="#L207">207</a>        self._lastIsNotEnabled = false</span>
+<span id="L208" class="line"><a href="#L208">208</a>        -- 重新初始化一次</span>
+<span id="L209" class="line"><a href="#L209">209</a>        self:initialize()</span>
+<span id="L210" class="line"><a href="#L210">210</a>    end</span>
+<span id="L211" class="line"><a href="#L211">211</a>end</span>
+<span id="L212" class="line"><a href="#L212">212</a></span>
+<span id="L213" class="line"><a href="#L213">213</a>-- @override</span>
+<span id="L214" class="line"><a href="#L214">214</a>function SubMsgBase:loadRes(silence)</span>
+<span id="L215" class="line"><a href="#L215">215</a>    local d = deferred.new()</span>
+<span id="L216" class="line"><a href="#L216">216</a>    setTimeOut(function()</span>
+<span id="L217" class="line"><a href="#L217">217</a>        self._isResReady = true</span>
+<span id="L218" class="line"><a href="#L218">218</a>        d:resolve()</span>
+<span id="L219" class="line"><a href="#L219">219</a>    end, 0)</span>
+<span id="L220" class="line"><a href="#L220">220</a>    return d</span>
+<span id="L221" class="line"><a href="#L221">221</a>end</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>function SubMsgBase:doAfterLoadInfo()</span>
+<span id="L224" class="line"><a href="#L224">224</a>    -- 资源判断</span>
+<span id="L225" class="line"><a href="#L225">225</a>    if not self:isEnabled() then return end</span>
+<span id="L226" class="line"><a href="#L226">226</a>    -- 刷新右下角iconPool</span>
+<span id="L227" class="line"><a href="#L227">227</a>    local IconMeta = require &quot;amf.feature.mainscene.module.icon.config.IconMeta&quot;</span>
+<span id="L228" class="line"><a href="#L228">228</a>    self._iconManager:updatePoolByType(IconMeta.PoolType.kRightCorner)</span>
+<span id="L229" class="line"><a href="#L229">229</a>    -- 刷新红点</span>
+<span id="L230" class="line"><a href="#L230">230</a>    self:updateIcon()</span>
+<span id="L231" class="line"><a href="#L231">231</a>    -- 开启心跳</span>
+<span id="L232" class="line"><a href="#L232">232</a>    self._heartBeatManager:addSourceType(HeartBeatConst.SourceType.SUB_MSG)</span>
+<span id="L233" class="line"><a href="#L233">233</a>end</span>
+<span id="L234" class="line"><a href="#L234">234</a></span>
+<span id="L235" class="line"><a href="#L235">235</a>-- @override</span>
+<span id="L236" class="line"><a href="#L236">236</a>function SubMsgBase:isCardEnterGame()</span>
+<span id="L237" class="line"><a href="#L237">237</a>    return false</span>
+<span id="L238" class="line"><a href="#L238">238</a>end</span>
+<span id="L239" class="line"><a href="#L239">239</a></span>
+<span id="L240" class="line"><a href="#L240">240</a>function SubMsgBase:showMainPanel(param)</span>
+<span id="L241" class="line"><a href="#L241">241</a>    param = param or {}</span>
+<span id="L242" class="line"><a href="#L242">242</a>    -- 强弹调用的</span>
+<span id="L243" class="line"><a href="#L243">243</a>    if param.t1 == 2 then</span>
+<span id="L244" class="line"><a href="#L244">244</a>        local stage4PopCount = self:getSubValue(&quot;stage4PopCount&quot;)</span>
+<span id="L245" class="line"><a href="#L245">245</a>        self:setSubValue(&quot;stage4PopCount&quot;, stage4PopCount + 1)</span>
+<span id="L246" class="line"><a href="#L246">246</a>        self:setSubValue(&quot;stage4LastPopTime&quot;, TimeKit:timeInSec())</span>
+<span id="L247" class="line"><a href="#L247">247</a>    end</span>
+<span id="L248" class="line"><a href="#L248">248</a>    local function showMain()</span>
+<span id="L249" class="line"><a href="#L249">249</a>        local SubMsgMainPanelVM = require_debug &quot;amf.middleware.notification.submsg.view.SubMsgMainPanelVM&quot;</span>
+<span id="L250" class="line"><a href="#L250">250</a>        local vm = SubMsgMainPanelVM:create(param)</span>
+<span id="L251" class="line"><a href="#L251">251</a>        vm:setLoadResFailCallback(function()</span>
+<span id="L252" class="line"><a href="#L252">252</a>            safeRunCall(param.closeCallback)</span>
+<span id="L253" class="line"><a href="#L253">253</a>        end)</span>
+<span id="L254" class="line"><a href="#L254">254</a>        vm:popout()</span>
+<span id="L255" class="line"><a href="#L255">255</a>    end</span>
+<span id="L256" class="line"><a href="#L256">256</a>    self:requestMainInfo()</span>
+<span id="L257" class="line"><a href="#L257">257</a>    :next(function()</span>
+<span id="L258" class="line"><a href="#L258">258</a>        showMain()</span>
+<span id="L259" class="line"><a href="#L259">259</a>    end, function(response)</span>
+<span id="L260" class="line"><a href="#L260">260</a>        if not response:isCancel() then</span>
+<span id="L261" class="line"><a href="#L261">261</a>            CommonTip:showErrorTip(response)</span>
+<span id="L262" class="line"><a href="#L262">262</a>        end</span>
+<span id="L263" class="line"><a href="#L263">263</a>    end)</span>
+<span id="L264" class="line"><a href="#L264">264</a>end</span>
+<span id="L265" class="line"><a href="#L265">265</a></span>
+<span id="L266" class="line"><a href="#L266">266</a>-- 根据模板id获得id</span>
+<span id="L267" class="line"><a href="#L267">267</a>function SubMsgBase:getIdByTmplId(tmplId)</span>
+<span id="L268" class="line"><a href="#L268">268</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L269" class="line"><a href="#L269">269</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L270" class="line"><a href="#L270">270</a>        if v.tmplId == tmplId then</span>
+<span id="L271" class="line"><a href="#L271">271</a>            return v.id</span>
+<span id="L272" class="line"><a href="#L272">272</a>        end</span>
+<span id="L273" class="line"><a href="#L273">273</a>    end</span>
+<span id="L274" class="line"><a href="#L274">274</a>    return 0</span>
+<span id="L275" class="line"><a href="#L275">275</a>end</span>
+<span id="L276" class="line"><a href="#L276">276</a></span>
+<span id="L277" class="line"><a href="#L277">277</a>function SubMsgBase:getTmplIdById(id)</span>
+<span id="L278" class="line"><a href="#L278">278</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L279" class="line"><a href="#L279">279</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L280" class="line"><a href="#L280">280</a>        if v.id == id then</span>
+<span id="L281" class="line"><a href="#L281">281</a>            return v.tmplId</span>
+<span id="L282" class="line"><a href="#L282">282</a>        end</span>
+<span id="L283" class="line"><a href="#L283">283</a>    end</span>
+<span id="L284" class="line"><a href="#L284">284</a>    return 0</span>
+<span id="L285" class="line"><a href="#L285">285</a>end</span>
+<span id="L286" class="line"><a href="#L286">286</a></span>
+<span id="L287" class="line"><a href="#L287">287</a>function SubMsgBase:getIdBySceneType(sceneType)</span>
+<span id="L288" class="line"><a href="#L288">288</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L289" class="line"><a href="#L289">289</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L290" class="line"><a href="#L290">290</a>        if v.sceneTypeEnum == sceneType then</span>
+<span id="L291" class="line"><a href="#L291">291</a>            return v.id</span>
+<span id="L292" class="line"><a href="#L292">292</a>        end</span>
+<span id="L293" class="line"><a href="#L293">293</a>    end</span>
+<span id="L294" class="line"><a href="#L294">294</a>    return 0</span>
+<span id="L295" class="line"><a href="#L295">295</a>end</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>function SubMsgBase:getSceneTypeById(id)</span>
+<span id="L298" class="line"><a href="#L298">298</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L299" class="line"><a href="#L299">299</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L300" class="line"><a href="#L300">300</a>        if v.id == id then</span>
+<span id="L301" class="line"><a href="#L301">301</a>            return v.sceneTypeEnum</span>
+<span id="L302" class="line"><a href="#L302">302</a>        end</span>
+<span id="L303" class="line"><a href="#L303">303</a>    end</span>
+<span id="L304" class="line"><a href="#L304">304</a>    return SubMessageConst.SceneType.ENERGY_RECOVER_FULL</span>
+<span id="L305" class="line"><a href="#L305">305</a>end</span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>function SubMsgBase:getTextByTmplId(tmplId)</span>
+<span id="L308" class="line"><a href="#L308">308</a>    local id = self:getIdByTmplId(tmplId)</span>
+<span id="L309" class="line"><a href="#L309">309</a>    return self:getTextById(id)</span>
+<span id="L310" class="line"><a href="#L310">310</a>end</span>
+<span id="L311" class="line"><a href="#L311">311</a></span>
+<span id="L312" class="line"><a href="#L312">312</a>-- 未领奖但是订阅了text</span>
+<span id="L313" class="line"><a href="#L313">313</a>function SubMsgBase:getNoRewardTextById(id)</span>
+<span id="L314" class="line"><a href="#L314">314</a>    return localize(&quot;SubMsg.text.noreward.&quot;..id)</span>
+<span id="L315" class="line"><a href="#L315">315</a>end</span>
+<span id="L316" class="line"><a href="#L316">316</a></span>
+<span id="L317" class="line"><a href="#L317">317</a>-- 已经订阅了文案</span>
+<span id="L318" class="line"><a href="#L318">318</a>function SubMsgBase:getRegedTextById(id)</span>
+<span id="L319" class="line"><a href="#L319">319</a>    return localize(&quot;SubMsg.text.reged.&quot;..id)</span>
+<span id="L320" class="line"><a href="#L320">320</a>end</span>
+<span id="L321" class="line"><a href="#L321">321</a></span>
+<span id="L322" class="line"><a href="#L322">322</a>function SubMsgBase:getTextById(id)</span>
+<span id="L323" class="line"><a href="#L323">323</a>    return localize(&quot;SubMsg.permisson.text.on1.&quot;..id)</span>
+<span id="L324" class="line"><a href="#L324">324</a>end</span>
+<span id="L325" class="line"><a href="#L325">325</a></span>
+<span id="L326" class="line"><a href="#L326">326</a>function SubMsgBase:getMetaInfoById(id)</span>
+<span id="L327" class="line"><a href="#L327">327</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L328" class="line"><a href="#L328">328</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L329" class="line"><a href="#L329">329</a>        if v.id == id then</span>
+<span id="L330" class="line"><a href="#L330">330</a>            return v</span>
+<span id="L331" class="line"><a href="#L331">331</a>        end</span>
+<span id="L332" class="line"><a href="#L332">332</a>    end</span>
+<span id="L333" class="line"><a href="#L333">333</a>    return nil</span>
+<span id="L334" class="line"><a href="#L334">334</a>end</span>
+<span id="L335" class="line"><a href="#L335">335</a></span>
+<span id="L336" class="line"><a href="#L336">336</a>function SubMsgBase:getServerMiniGameState()</span>
+<span id="L337" class="line"><a href="#L337">337</a>    local envVersion = MetaInfo.getEnvVersion and MetaInfo:getEnvVersion() or &quot;develop&quot;</span>
+<span id="L338" class="line"><a href="#L338">338</a>    return SubMessageConst.EnvVersionMap[envVersion]</span>
+<span id="L339" class="line"><a href="#L339">339</a>end</span>
+<span id="L340" class="line"><a href="#L340">340</a></span>
+<span id="L341" class="line"><a href="#L341">341</a>-- 尝试展示权限引导</span>
+<span id="L342" class="line"><a href="#L342">342</a>function SubMsgBase:tryShowPermissionGuide(tmplIds)</span>
+<span id="L343" class="line"><a href="#L343">343</a>    if not self._subMsgUtil:isMainSwitchOn() then</span>
+<span id="L344" class="line"><a href="#L344">344</a>        return</span>
+<span id="L345" class="line"><a href="#L345">345</a>    end</span>
+<span id="L346" class="line"><a href="#L346">346</a>    self._guideTimer = setTimeOut(function()</span>
+<span id="L347" class="line"><a href="#L347">347</a>        self._guideTimer = nil</span>
+<span id="L348" class="line"><a href="#L348">348</a>        local popList = {}</span>
+<span id="L349" class="line"><a href="#L349">349</a>        for i, v in ipairs(tmplIds) do</span>
+<span id="L350" class="line"><a href="#L350">350</a>            -- 都没有选这永久同意/拒绝，才能弹</span>
+<span id="L351" class="line"><a href="#L351">351</a>            if not self._subMsgUtil:isAlwaysAccept(v) and not self._subMsgUtil:isAlwaysReject(v) then</span>
+<span id="L352" class="line"><a href="#L352">352</a>                table.insert(popList, v)</span>
+<span id="L353" class="line"><a href="#L353">353</a>            end</span>
+<span id="L354" class="line"><a href="#L354">354</a>        end</span>
+<span id="L355" class="line"><a href="#L355">355</a>        if table.isEmpty(popList) then</span>
+<span id="L356" class="line"><a href="#L356">356</a>            return</span>
+<span id="L357" class="line"><a href="#L357">357</a>        end</span>
+<span id="L358" class="line"><a href="#L358">358</a>        local PermissionGuidePanelVM = require &quot;amf.middleware.notification.submsg.view.PermissionGuidePanelVM&quot;</span>
+<span id="L359" class="line"><a href="#L359">359</a>        self.permisionVm = PermissionGuidePanelVM:create({</span>
+<span id="L360" class="line"><a href="#L360">360</a>            text = #popList &gt; 1 and &quot;消息提醒&quot; or self:getTextByTmplId(popList[1])</span>
+<span id="L361" class="line"><a href="#L361">361</a>        })</span>
+<span id="L362" class="line"><a href="#L362">362</a>        self.permisionVm:setLoadResFailCallback(function()</span>
+<span id="L363" class="line"><a href="#L363">363</a>            self.permisionVm = nil</span>
+<span id="L364" class="line"><a href="#L364">364</a>        end)</span>
+<span id="L365" class="line"><a href="#L365">365</a>        if self.permisionVm then</span>
+<span id="L366" class="line"><a href="#L366">366</a>            self.permisionVm:popout()</span>
+<span id="L367" class="line"><a href="#L367">367</a>        end</span>
+<span id="L368" class="line"><a href="#L368">368</a>    end)</span>
+<span id="L369" class="line"><a href="#L369">369</a></span>
+<span id="L370" class="line"><a href="#L370">370</a>end</span>
+<span id="L371" class="line"><a href="#L371">371</a></span>
+<span id="L372" class="line"><a href="#L372">372</a>function SubMsgBase:tryClosePermissionGuide()</span>
+<span id="L373" class="line"><a href="#L373">373</a>    if self._guideTimer then</span>
+<span id="L374" class="line"><a href="#L374">374</a>        cancelTimeOut(self._guideTimer)</span>
+<span id="L375" class="line"><a href="#L375">375</a>        self._guideTimer = nil</span>
+<span id="L376" class="line"><a href="#L376">376</a>    end</span>
+<span id="L377" class="line"><a href="#L377">377</a>    if self.permisionVm then</span>
+<span id="L378" class="line"><a href="#L378">378</a>        self.permisionVm:close()</span>
+<span id="L379" class="line"><a href="#L379">379</a>        self.permisionVm = nil</span>
+<span id="L380" class="line"><a href="#L380">380</a>    end</span>
+<span id="L381" class="line"><a href="#L381">381</a>end</span>
+<span id="L382" class="line"><a href="#L382">382</a></span>
+<span id="L383" class="line"><a href="#L383">383</a>-- 注册并且检查领奖</span>
+<span id="L384" class="line"><a href="#L384">384</a>function SubMsgBase:registerSubMsgAndGetRewards(tmpInfoList, param)</span>
+<span id="L385" class="line"><a href="#L385">385</a>    local d = deferred.new()</span>
+<span id="L386" class="line"><a href="#L386">386</a>    local tmplIds = {}</span>
+<span id="L387" class="line"><a href="#L387">387</a>    for _, v in ipairs(tmpInfoList) do</span>
+<span id="L388" class="line"><a href="#L388">388</a>        table.insert(tmplIds, v.tmplId)</span>
+<span id="L389" class="line"><a href="#L389">389</a>    end</span>
+<span id="L390" class="line"><a href="#L390">390</a></span>
+<span id="L391" class="line"><a href="#L391">391</a>    -- unity编辑器不弹， 直接失败</span>
+<span id="L392" class="line"><a href="#L392">392</a>    if EnvUtil:isUnityEditor() then</span>
+<span id="L393" class="line"><a href="#L393">393</a>        return d:reject(SubMessageConst.RegErrCode.PERMISSION)</span>
+<span id="L394" class="line"><a href="#L394">394</a>    end</span>
+<span id="L395" class="line"><a href="#L395">395</a></span>
+<span id="L396" class="line"><a href="#L396">396</a>    self:tryShowPermissionGuide(tmplIds)</span>
+<span id="L397" class="line"><a href="#L397">397</a></span>
+<span id="L398" class="line"><a href="#L398">398</a>    self._subMsgUtil:requestSubMsg(tmplIds):next(function(resTb)</span>
+<span id="L399" class="line"><a href="#L399">399</a>        self:tryClosePermissionGuide()</span>
+<span id="L400" class="line"><a href="#L400">400</a>        local failList = {}</span>
+<span id="L401" class="line"><a href="#L401">401</a>        local succList = {}</span>
+<span id="L402" class="line"><a href="#L402">402</a>        for _, v in ipairs(tmplIds) do</span>
+<span id="L403" class="line"><a href="#L403">403</a>            if resTb[v] == SubMessageConst.TmplState.ACCEPT then</span>
+<span id="L404" class="line"><a href="#L404">404</a>                table.insert(succList, v)</span>
+<span id="L405" class="line"><a href="#L405">405</a>            else</span>
+<span id="L406" class="line"><a href="#L406">406</a>                table.insert(failList, v)</span>
+<span id="L407" class="line"><a href="#L407">407</a>            end</span>
+<span id="L408" class="line"><a href="#L408">408</a>        end</span>
+<span id="L409" class="line"><a href="#L409">409</a></span>
+<span id="L410" class="line"><a href="#L410">410</a>        -- 先检查一次状态,标记之前有没有选过总是保持</span>
+<span id="L411" class="line"><a href="#L411">411</a>        local lastMap = {}</span>
+<span id="L412" class="line"><a href="#L412">412</a>        for _, v in ipairs(failList) do</span>
+<span id="L413" class="line"><a href="#L413">413</a>            lastMap[v] = self._subMsgUtil:isAlwaysReject(v) or self._subMsgUtil:isAlwaysAccept(v)</span>
+<span id="L414" class="line"><a href="#L414">414</a>        end</span>
+<span id="L415" class="line"><a href="#L415">415</a>        -- 请求setting去对比检查</span>
+<span id="L416" class="line"><a href="#L416">416</a>        self._subMsgUtil:autoUpdateSettingInfo():next(function()</span>
+<span id="L417" class="line"><a href="#L417">417</a>            if #succList == 0 then</span>
+<span id="L418" class="line"><a href="#L418">418</a>                local isAlwaysReject = true</span>
+<span id="L419" class="line"><a href="#L419">419</a>                for _, v in ipairs(failList) do</span>
+<span id="L420" class="line"><a href="#L420">420</a>                    if not self._subMsgUtil:isAlwaysReject(v) or not lastMap[v] then</span>
+<span id="L421" class="line"><a href="#L421">421</a>                        isAlwaysReject = false</span>
+<span id="L422" class="line"><a href="#L422">422</a>                        break</span>
+<span id="L423" class="line"><a href="#L423">423</a>                    end</span>
+<span id="L424" class="line"><a href="#L424">424</a>                end</span>
+<span id="L425" class="line"><a href="#L425">425</a>                -- 转换成定义的id</span>
+<span id="L426" class="line"><a href="#L426">426</a>                local idList = {}</span>
+<span id="L427" class="line"><a href="#L427">427</a>                for _, tmplId in ipairs(failList) do</span>
+<span id="L428" class="line"><a href="#L428">428</a>                    table.insert(idList, self:getIdByTmplId(tmplId))</span>
+<span id="L429" class="line"><a href="#L429">429</a>                end</span>
+<span id="L430" class="line"><a href="#L430">430</a>                -- 打点</span>
+<span id="L431" class="line"><a href="#L431">431</a>                self:dc(&quot;subscription&quot;, &quot;main_panel_refuse&quot;, {</span>
+<span id="L432" class="line"><a href="#L432">432</a>                    panel_id = param.panelId,</span>
+<span id="L433" class="line"><a href="#L433">433</a>                    t1 = table.concat(idList, &quot;_&quot;)</span>
+<span id="L434" class="line"><a href="#L434">434</a>                })</span>
+<span id="L435" class="line"><a href="#L435">435</a>                -- 全部拒绝了，但是有不是永久拒绝的</span>
+<span id="L436" class="line"><a href="#L436">436</a>                d:reject(isAlwaysReject and SubMessageConst.RegErrCode.PERMISSION or SubMessageConst.RegErrCode.NONE)</span>
+<span id="L437" class="line"><a href="#L437">437</a>            else</span>
+<span id="L438" class="line"><a href="#L438">438</a>                self:doAfterReged(succList, failList, param)</span>
+<span id="L439" class="line"><a href="#L439">439</a>                self:checkGetRewards(d)</span>
+<span id="L440" class="line"><a href="#L440">440</a>            end</span>
+<span id="L441" class="line"><a href="#L441">441</a>        end)</span>
+<span id="L442" class="line"><a href="#L442">442</a>    end, function(errCode)</span>
+<span id="L443" class="line"><a href="#L443">443</a>        self:tryClosePermissionGuide()</span>
+<span id="L444" class="line"><a href="#L444">444</a>        d:reject(errCode)</span>
+<span id="L445" class="line"><a href="#L445">445</a>    end)</span>
+<span id="L446" class="line"><a href="#L446">446</a>    return d</span>
+<span id="L447" class="line"><a href="#L447">447</a>end</span>
+<span id="L448" class="line"><a href="#L448">448</a></span>
+<span id="L449" class="line"><a href="#L449">449</a>function SubMsgBase:doAfterReged(succList, failList, param)</span>
+<span id="L450" class="line"><a href="#L450">450</a>    -- 只要有成功的就刷新一次icon</span>
+<span id="L451" class="line"><a href="#L451">451</a>    self:updateIcon()</span>
+<span id="L452" class="line"><a href="#L452">452</a>    self:tryClosePermissionGuide()</span>
+<span id="L453" class="line"><a href="#L453">453</a></span>
+<span id="L454" class="line"><a href="#L454">454</a>    if self:getSubTempValue(&quot;canRecordRegTag&quot;) then</span>
+<span id="L455" class="line"><a href="#L455">455</a>        -- 记录有订阅成功的</span>
+<span id="L456" class="line"><a href="#L456">456</a>        self:setSubTempValue(&quot;hasRegSuccess&quot;, not table.isEmpty(succList))</span>
+<span id="L457" class="line"><a href="#L457">457</a>    end</span>
+<span id="L458" class="line"><a href="#L458">458</a>    -- 订阅完成后通知后端我订阅了</span>
+<span id="L459" class="line"><a href="#L459">459</a>    local notiIdList = {}</span>
+<span id="L460" class="line"><a href="#L460">460</a>    local historyList = self:getSubValue(&quot;historyRegList&quot;) or {}</span>
+<span id="L461" class="line"><a href="#L461">461</a>    for _, v in ipairs(succList) do</span>
+<span id="L462" class="line"><a href="#L462">462</a>        local id = self:getIdByTmplId(v)</span>
+<span id="L463" class="line"><a href="#L463">463</a>        table.insert(notiIdList, id)</span>
+<span id="L464" class="line"><a href="#L464">464</a>        -- 添加到订阅过列表中</span>
+<span id="L465" class="line"><a href="#L465">465</a>        if not table.exist(historyList, id) then</span>
+<span id="L466" class="line"><a href="#L466">466</a>            table.insert(historyList, id)</span>
+<span id="L467" class="line"><a href="#L467">467</a>            self:setSubValue(&quot;historyRegList&quot;, historyList)</span>
+<span id="L468" class="line"><a href="#L468">468</a></span>
+<span id="L469" class="line"><a href="#L469">469</a>            -- 增加每日领奖的结束时间, 只有微信会变，但是微信没开，其他都不变</span>
+<span id="L470" class="line"><a href="#L470">470</a>            if self:hasDailyReward() then</span>
+<span id="L471" class="line"><a href="#L471">471</a>                local dailyRewardEndTime = self:getSubValue(&quot;dailyRewardEndTime&quot;)</span>
+<span id="L472" class="line"><a href="#L472">472</a>                local oneRegAddDay = self:getSubValue(&quot;oneRegAddDay&quot;)</span>
+<span id="L473" class="line"><a href="#L473">473</a>                if dailyRewardEndTime &lt;= TimeKit:timeInSec() then</span>
+<span id="L474" class="line"><a href="#L474">474</a>                    dailyRewardEndTime = TimeKit:getTodayStart()</span>
+<span id="L475" class="line"><a href="#L475">475</a>                end</span>
+<span id="L476" class="line"><a href="#L476">476</a>                dailyRewardEndTime = dailyRewardEndTime + 24 * 3600 * oneRegAddDay</span>
+<span id="L477" class="line"><a href="#L477">477</a>                self:setSubValue(&quot;dailyRewardEndTime&quot;, dailyRewardEndTime)</span>
+<span id="L478" class="line"><a href="#L478">478</a>            end</span>
+<span id="L479" class="line"><a href="#L479">479</a>        end</span>
+<span id="L480" class="line"><a href="#L480">480</a></span>
+<span id="L481" class="line"><a href="#L481">481</a>        -- 添加到当前订阅列表中</span>
+<span id="L482" class="line"><a href="#L482">482</a>        local regList = self:getSubValue(&quot;regList&quot;) or {}</span>
+<span id="L483" class="line"><a href="#L483">483</a>        if not table.exist(regList, id) then</span>
+<span id="L484" class="line"><a href="#L484">484</a>            table.insert(regList, id)</span>
+<span id="L485" class="line"><a href="#L485">485</a>            self:setSubValue(&quot;regList&quot;, regList)</span>
+<span id="L486" class="line"><a href="#L486">486</a>        end</span>
+<span id="L487" class="line"><a href="#L487">487</a>    end</span>
+<span id="L488" class="line"><a href="#L488">488</a>    -- print(&quot;historyList ---&quot;, tts(self:getSubValue(&quot;historyRegList&quot;)))</span>
+<span id="L489" class="line"><a href="#L489">489</a>    -- print(&quot;regList ---&quot;, tts(self:getSubValue(&quot;regList&quot;)))</span>
+<span id="L490" class="line"><a href="#L490">490</a>    local tb = {}</span>
+<span id="L491" class="line"><a href="#L491">491</a>    if not table.isEmpty(notiIdList) then</span>
+<span id="L492" class="line"><a href="#L492">492</a>        for _, id in ipairs(notiIdList) do</span>
+<span id="L493" class="line"><a href="#L493">493</a>            local sceneType = self:getSceneTypeById(id)</span>
+<span id="L494" class="line"><a href="#L494">494</a>            if sceneType == SubMessageConst.SceneType.PROMOTEDAILY then</span>
+<span id="L495" class="line"><a href="#L495">495</a>                local medalCfg = self._promoteDailyMgr:getCurMonthNearestKeyMedal()</span>
+<span id="L496" class="line"><a href="#L496">496</a>                local TimeUtil = require &quot;amf.middleware.ui.util.TimeUtil&quot;</span>
+<span id="L497" class="line"><a href="#L497">497</a>                if medalCfg then</span>
+<span id="L498" class="line"><a href="#L498">498</a>                    table.insert(tb, {</span>
+<span id="L499" class="line"><a href="#L499">499</a>                        id = id, </span>
+<span id="L500" class="line"><a href="#L500">500</a>                        data = table.serialize({</span>
+<span id="L501" class="line"><a href="#L501">501</a>                            holiday = medalCfg.des,   -- 节日</span>
+<span id="L502" class="line"><a href="#L502">502</a>                            reward = self._nameMedalManager:getNameMedalName(medalCfg.medalId), -- 勋章名</span>
+<span id="L503" class="line"><a href="#L503">503</a>                            day = TimeUtil:getDayCountByYMD(medalCfg.year, medalCfg.month, medalCfg.day)</span>
+<span id="L504" class="line"><a href="#L504">504</a>                        })</span>
+<span id="L505" class="line"><a href="#L505">505</a>                    })</span>
+<span id="L506" class="line"><a href="#L506">506</a>                end</span>
+<span id="L507" class="line"><a href="#L507">507</a>            end</span>
+<span id="L508" class="line"><a href="#L508">508</a>        end</span>
+<span id="L509" class="line"><a href="#L509">509</a>        self.model:requestNotifyServer({</span>
+<span id="L510" class="line"><a href="#L510">510</a>            idList = notiIdList,</span>
+<span id="L511" class="line"><a href="#L511">511</a>            miniprogram_state = self:getServerMiniGameState(),</span>
+<span id="L512" class="line"><a href="#L512">512</a>            openId = self._sdkLoginManager:getOpenId(),</span>
+<span id="L513" class="line"><a href="#L513">513</a>            extra = table.serialize(tb)</span>
+<span id="L514" class="line"><a href="#L514">514</a>        })</span>
+<span id="L515" class="line"><a href="#L515">515</a>        -- 打点</span>
+<span id="L516" class="line"><a href="#L516">516</a>        self:dc(&quot;subscription&quot;, &quot;main_panel_success&quot;, {</span>
+<span id="L517" class="line"><a href="#L517">517</a>            panel_id = param.panelId,</span>
+<span id="L518" class="line"><a href="#L518">518</a>            t1 = table.concat(notiIdList, &quot;_&quot;)</span>
+<span id="L519" class="line"><a href="#L519">519</a>        })</span>
+<span id="L520" class="line"><a href="#L520">520</a>    end</span>
+<span id="L521" class="line"><a href="#L521">521</a>end</span>
+<span id="L522" class="line"><a href="#L522">522</a></span>
+<span id="L523" class="line"><a href="#L523">523</a>-- 是否有每日奖励 TODO  增加每日领奖的结束时间, 只有微信会变，但是微信没开，其他都不变</span>
+<span id="L524" class="line"><a href="#L524">524</a>function SubMsgBase:hasDailyReward()</span>
+<span id="L525" class="line"><a href="#L525">525</a>    if EnvUtil:isWXMiniGame() then</span>
+<span id="L526" class="line"><a href="#L526">526</a>        return true</span>
+<span id="L527" class="line"><a href="#L527">527</a>    end</span>
+<span id="L528" class="line"><a href="#L528">528</a>    return false</span>
+<span id="L529" class="line"><a href="#L529">529</a>end</span>
+<span id="L530" class="line"><a href="#L530">530</a></span>
+<span id="L531" class="line"><a href="#L531">531</a>-- 检查领奖</span>
+<span id="L532" class="line"><a href="#L532">532</a>function SubMsgBase:checkGetRewards(d)</span>
+<span id="L533" class="line"><a href="#L533">533</a>    -- 领取所有可领取的奖励</span>
+<span id="L534" class="line"><a href="#L534">534</a>    local needRewardList = {}</span>
+<span id="L535" class="line"><a href="#L535">535</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L536" class="line"><a href="#L536">536</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L537" class="line"><a href="#L537">537</a>        if self:isRegCanReward(v.id) then</span>
+<span id="L538" class="line"><a href="#L538">538</a>            table.insert(needRewardList, v.id)</span>
+<span id="L539" class="line"><a href="#L539">539</a>        end</span>
+<span id="L540" class="line"><a href="#L540">540</a>    end</span>
+<span id="L541" class="line"><a href="#L541">541</a>    if #needRewardList == 0 then</span>
+<span id="L542" class="line"><a href="#L542">542</a>        d:resolve()</span>
+<span id="L543" class="line"><a href="#L543">543</a>    else</span>
+<span id="L544" class="line"><a href="#L544">544</a>        self:requestGetReward({</span>
+<span id="L545" class="line"><a href="#L545">545</a>            idList = needRewardList</span>
+<span id="L546" class="line"><a href="#L546">546</a>        }):next(function(rewardList)</span>
+<span id="L547" class="line"><a href="#L547">547</a>            d:resolve(rewardList)</span>
+<span id="L548" class="line"><a href="#L548">548</a>        end, function(response)</span>
+<span id="L549" class="line"><a href="#L549">549</a>            d:resolve()</span>
+<span id="L550" class="line"><a href="#L550">550</a>        end)</span>
+<span id="L551" class="line"><a href="#L551">551</a>    end</span>
+<span id="L552" class="line"><a href="#L552">552</a>end</span>
+<span id="L553" class="line"><a href="#L553">553</a></span>
+<span id="L554" class="line"><a href="#L554">554</a>-- 每日奖励领取</span>
+<span id="L555" class="line"><a href="#L555">555</a>function SubMsgBase:requestCardEnterReward(param)</span>
+<span id="L556" class="line"><a href="#L556">556</a>    local d = deferred.new()</span>
+<span id="L557" class="line"><a href="#L557">557</a>    self.model:requestCardEnterReward(param):next(function(response)</span>
+<span id="L558" class="line"><a href="#L558">558</a>        local data = response:getData()</span>
+<span id="L559" class="line"><a href="#L559">559</a>        if not table.isEmpty(data.rewardList) then</span>
+<span id="L560" class="line"><a href="#L560">560</a>            GainPropData:create()</span>
+<span id="L561" class="line"><a href="#L561">561</a>                :setFeature(&quot;subscription&quot;)</span>
+<span id="L562" class="line"><a href="#L562">562</a>                :setSource(&quot;everyday_reward&quot;)</span>
+<span id="L563" class="line"><a href="#L563">563</a></span>
+<span id="L564" class="line"><a href="#L564">564</a>                :setProps(data.rewardList)</span>
+<span id="L565" class="line"><a href="#L565">565</a>                :execute()</span>
+<span id="L566" class="line"><a href="#L566">566</a>        end</span>
+<span id="L567" class="line"><a href="#L567">567</a>        d:resolve()</span>
+<span id="L568" class="line"><a href="#L568">568</a>    end, function(response)</span>
+<span id="L569" class="line"><a href="#L569">569</a>        if not response:isCancel() then</span>
+<span id="L570" class="line"><a href="#L570">570</a>            CommonTip:showErrorTip(response)</span>
+<span id="L571" class="line"><a href="#L571">571</a>        end</span>
+<span id="L572" class="line"><a href="#L572">572</a>        d:reject(response)</span>
+<span id="L573" class="line"><a href="#L573">573</a>    end)</span>
+<span id="L574" class="line"><a href="#L574">574</a>    return d</span>
+<span id="L575" class="line"><a href="#L575">575</a>end</span>
+<span id="L576" class="line"><a href="#L576">576</a></span>
+<span id="L577" class="line"><a href="#L577">577</a>-- 订阅奖励领取</span>
+<span id="L578" class="line"><a href="#L578">578</a>function SubMsgBase:requestGetReward(param)</span>
+<span id="L579" class="line"><a href="#L579">579</a>    local d = deferred.new()</span>
+<span id="L580" class="line"><a href="#L580">580</a>    self.model:requestGetReward(param):next(function(response)</span>
+<span id="L581" class="line"><a href="#L581">581</a>        local data = response:getData()</span>
+<span id="L582" class="line"><a href="#L582">582</a>        if not table.isEmpty(data.rewardList) then</span>
+<span id="L583" class="line"><a href="#L583">583</a>            -- 领取成功之后也刷新一次icon红点</span>
+<span id="L584" class="line"><a href="#L584">584</a>            self:updateIcon()</span>
+<span id="L585" class="line"><a href="#L585">585</a>            GainPropData:create()</span>
+<span id="L586" class="line"><a href="#L586">586</a>                :setFeature(&quot;subscription&quot;)</span>
+<span id="L587" class="line"><a href="#L587">587</a>                :setSource(&quot;main_panel_success&quot;)</span>
+<span id="L588" class="line"><a href="#L588">588</a></span>
+<span id="L589" class="line"><a href="#L589">589</a>                :setProps(data.rewardList)</span>
+<span id="L590" class="line"><a href="#L590">590</a>                :execute()</span>
+<span id="L591" class="line"><a href="#L591">591</a>        end</span>
+<span id="L592" class="line"><a href="#L592">592</a>        d:resolve(data.rewardList)</span>
+<span id="L593" class="line"><a href="#L593">593</a>    end, function(response)</span>
+<span id="L594" class="line"><a href="#L594">594</a>        if not response:isCancel() then</span>
+<span id="L595" class="line"><a href="#L595">595</a>            self:setSubTempValue(&quot;isHttpError&quot;, true)</span>
+<span id="L596" class="line"><a href="#L596">596</a>            CommonTip:showErrorTip(response)</span>
+<span id="L597" class="line"><a href="#L597">597</a>        end</span>
+<span id="L598" class="line"><a href="#L598">598</a>        d:reject(response)</span>
+<span id="L599" class="line"><a href="#L599">599</a>    end)</span>
+<span id="L600" class="line"><a href="#L600">600</a>    return d</span>
+<span id="L601" class="line"><a href="#L601">601</a>end</span>
+<span id="L602" class="line"><a href="#L602">602</a></span>
+<span id="L603" class="line"><a href="#L603">603</a>-- 获得订阅进入游戏可以领哪个奖励</span>
+<span id="L604" class="line"><a href="#L604">604</a>function SubMsgBase:getDailyRewardPool()</span>
+<span id="L605" class="line"><a href="#L605">605</a>    local loginRewardPoolMetaList = self:getSubValue(&quot;loginRewardPoolMetaList&quot;)</span>
+<span id="L606" class="line"><a href="#L606">606</a>    local passLevelId = self._levelAreaManager:getTopPassedLevel()</span>
+<span id="L607" class="line"><a href="#L607">607</a>    for _, v in ipairs(loginRewardPoolMetaList) do</span>
+<span id="L608" class="line"><a href="#L608">608</a>        if passLevelId &gt;= v.openPassLevelRangeTuple.left and (passLevelId &lt;= v.openPassLevelRangeTuple.right or v.openPassLevelRangeTuple.right == -1) then</span>
+<span id="L609" class="line"><a href="#L609">609</a>            return v.rewardPool</span>
+<span id="L610" class="line"><a href="#L610">610</a>        end</span>
+<span id="L611" class="line"><a href="#L611">611</a>    end</span>
+<span id="L612" class="line"><a href="#L612">612</a>    return nil</span>
+<span id="L613" class="line"><a href="#L613">613</a>end</span>
+<span id="L614" class="line"><a href="#L614">614</a></span>
+<span id="L615" class="line"><a href="#L615">615</a>-- 根据奖池获得无限精力</span>
+<span id="L616" class="line"><a href="#L616">616</a>function SubMsgBase:getDailyRewardEnergy(rewardList)</span>
+<span id="L617" class="line"><a href="#L617">617</a>    for _, v in ipairs(rewardList) do</span>
+<span id="L618" class="line"><a href="#L618">618</a>        if v.itemId == AMFPropId.INFINITE_ENERGY_BOTTLE_ONE_MINUTE then</span>
+<span id="L619" class="line"><a href="#L619">619</a>            return {itemId = v.itemId, num = v.num}</span>
+<span id="L620" class="line"><a href="#L620">620</a>        end</span>
+<span id="L621" class="line"><a href="#L621">621</a>    end</span>
+<span id="L622" class="line"><a href="#L622">622</a>    return nil</span>
+<span id="L623" class="line"><a href="#L623">623</a>end</span>
+<span id="L624" class="line"><a href="#L624">624</a></span>
+<span id="L625" class="line"><a href="#L625">625</a>-- 根据奖池获得随机奖励</span>
+<span id="L626" class="line"><a href="#L626">626</a>function SubMsgBase:getDailyRewardRandom(rewardList)</span>
+<span id="L627" class="line"><a href="#L627">627</a>    local tmpList = {}</span>
+<span id="L628" class="line"><a href="#L628">628</a>    for _, v in ipairs(rewardList) do</span>
+<span id="L629" class="line"><a href="#L629">629</a>        local weight = math.floor(tonumber(v.priority)/10)</span>
+<span id="L630" class="line"><a href="#L630">630</a>        for i = 1, weight, 1 do</span>
+<span id="L631" class="line"><a href="#L631">631</a>            table.insert(tmpList, {itemId = v.itemId, num = v.num})</span>
+<span id="L632" class="line"><a href="#L632">632</a>        end</span>
+<span id="L633" class="line"><a href="#L633">633</a>    end</span>
+<span id="L634" class="line"><a href="#L634">634</a>    tmpList = table.shuffle(tmpList)</span>
+<span id="L635" class="line"><a href="#L635">635</a>    return tmpList[1]</span>
+<span id="L636" class="line"><a href="#L636">636</a>end</span>
+<span id="L637" class="line"><a href="#L637">637</a></span>
+<span id="L638" class="line"><a href="#L638">638</a>-- 弹出每日登录奖励</span>
+<span id="L639" class="line"><a href="#L639">639</a>function SubMsgBase:showDailyRewardPanel()</span>
+<span id="L640" class="line"><a href="#L640">640</a>    local d = deferred.new()</span>
+<span id="L641" class="line"><a href="#L641">641</a>    local str = self._subMsgUtil:getEnterKeyFromValue()</span>
+<span id="L642" class="line"><a href="#L642">642</a>    if not str then</span>
+<span id="L643" class="line"><a href="#L643">643</a>        return d:resolve()</span>
+<span id="L644" class="line"><a href="#L644">644</a>    end</span>
+<span id="L645" class="line"><a href="#L645">645</a>    local dailyRewardPool = self:getDailyRewardPool()</span>
+<span id="L646" class="line"><a href="#L646">646</a>    local reward</span>
+<span id="L647" class="line"><a href="#L647">647</a>    if str == SubMessageConst.EnterKeyFrom.ENERGY_RECOVER_FULL then</span>
+<span id="L648" class="line"><a href="#L648">648</a>        reward = self:getDailyRewardEnergy(dailyRewardPool)</span>
+<span id="L649" class="line"><a href="#L649">649</a>    else</span>
+<span id="L650" class="line"><a href="#L650">650</a>        reward = self:getDailyRewardRandom(dailyRewardPool)</span>
+<span id="L651" class="line"><a href="#L651">651</a>    end</span>
+<span id="L652" class="line"><a href="#L652">652</a>    if not reward then</span>
+<span id="L653" class="line"><a href="#L653">653</a>        return d:resolve()</span>
+<span id="L654" class="line"><a href="#L654">654</a>    end</span>
+<span id="L655" class="line"><a href="#L655">655</a>    local SecondPanelAVM = require &quot;amf.middleware.ui.kit.panel.second.SecondPanelAVM&quot;</span>
+<span id="L656" class="line"><a href="#L656">656</a>    local endTime = self:getSubValue(&quot;dailyRewardEndTime&quot;)</span>
+<span id="L657" class="line"><a href="#L657">657</a>    local TimeUtil = require &quot;amf.middleware.ui.util.TimeUtil&quot;</span>
+<span id="L658" class="line"><a href="#L658">658</a>    local diffDay = TimeUtil:getDiffDays(endTime, TimeKit:timeInSec())</span>
+<span id="L659" class="line"><a href="#L659">659</a>    local des = &quot;&quot;</span>
+<span id="L660" class="line"><a href="#L660">660</a>    -- 最后一天</span>
+<span id="L661" class="line"><a href="#L661">661</a>    if diffDay - 1 &lt;= 0 then</span>
+<span id="L662" class="line"><a href="#L662">662</a>        des = &quot;这是今日首次通过【服务通知】内的消息登录游戏获得的奖励，已全部领取了哦&quot;</span>
+<span id="L663" class="line"><a href="#L663">663</a>    else</span>
+<span id="L664" class="line"><a href="#L664">664</a>        des = {</span>
+<span id="L665" class="line"><a href="#L665">665</a>            &quot;这是今日首次通过【服务通知】内的消息登录游戏获得的奖励，还可领取&quot;,</span>
+<span id="L666" class="line"><a href="#L666">666</a>            &quot;&lt;&lt;c=e96b33&gt;&quot;..(diffDay - 1)..&quot;天&gt;&quot;,</span>
+<span id="L667" class="line"><a href="#L667">667</a>            &quot;哦&quot;</span>
+<span id="L668" class="line"><a href="#L668">668</a>        }</span>
+<span id="L669" class="line"><a href="#L669">669</a>    end</span>
+<span id="L670" class="line"><a href="#L670">670</a>    -- 点击事件</span>
+<span id="L671" class="line"><a href="#L671">671</a>    reward.clickCall = function(del, sp)</span>
+<span id="L672" class="line"><a href="#L672">672</a>        self:showItemTip(reward, sp)</span>
+<span id="L673" class="line"><a href="#L673">673</a>    end</span>
+<span id="L674" class="line"><a href="#L674">674</a>    -- 延迟一帧再弹，不然home的时候不知道加哪去了</span>
+<span id="L675" class="line"><a href="#L675">675</a>    setTimeOut(function()</span>
+<span id="L676" class="line"><a href="#L676">676</a>        local titleStr = &quot;每日登录奖励&quot;</span>
+<span id="L677" class="line"><a href="#L677">677</a>        local vm</span>
+<span id="L678" class="line"><a href="#L678">678</a>        vm = SecondPanelAVM.Builder.new()</span>
+<span id="L679" class="line"><a href="#L679">679</a>            :setTitle(titleStr)</span>
+<span id="L680" class="line"><a href="#L680">680</a>            :setText(des)</span>
+<span id="L681" class="line"><a href="#L681">681</a>            :setFly(false)</span>
+<span id="L682" class="line"><a href="#L682">682</a>            :setRewards({ reward })</span>
+<span id="L683" class="line"><a href="#L683">683</a>            :setButtonsConfig({</span>
+<span id="L684" class="line"><a href="#L684">684</a>                {</span>
+<span id="L685" class="line"><a href="#L685">685</a>                    str = &quot;领取&quot;,</span>
+<span id="L686" class="line"><a href="#L686">686</a>                    widthMode = UIButtonConfig.Widths.kShort,</span>
+<span id="L687" class="line"><a href="#L687">687</a>                    colorMode = UIButtonConfig.ColorMode.green,</span>
+<span id="L688" class="line"><a href="#L688">688</a>                    touchFunc = function ()</span>
+<span id="L689" class="line"><a href="#L689">689</a>                        self:requestCardEnterReward({</span>
+<span id="L690" class="line"><a href="#L690">690</a>                            itemId = reward.itemId,</span>
+<span id="L691" class="line"><a href="#L691">691</a>                            num = reward.num</span>
+<span id="L692" class="line"><a href="#L692">692</a>                        }):next(function()</span>
+<span id="L693" class="line"><a href="#L693">693</a>                            -- 打点</span>
+<span id="L694" class="line"><a href="#L694">694</a>                            self:dc(&quot;subscription&quot;, &quot;everyday_reward&quot;, {</span>
+<span id="L695" class="line"><a href="#L695">695</a>                                t1 = str</span>
+<span id="L696" class="line"><a href="#L696">696</a>                            })</span>
+<span id="L697" class="line"><a href="#L697">697</a>                            -- 设置要飞</span>
+<span id="L698" class="line"><a href="#L698">698</a>                            vm:getUpdater():setFly(true):update()</span>
+<span id="L699" class="line"><a href="#L699">699</a>                            vm:close()</span>
+<span id="L700" class="line"><a href="#L700">700</a>                        end, function(resp)</span>
+<span id="L701" class="line"><a href="#L701">701</a>                            if not resp:isCancel() then</span>
+<span id="L702" class="line"><a href="#L702">702</a>                                vm:close()</span>
+<span id="L703" class="line"><a href="#L703">703</a>                            end</span>
+<span id="L704" class="line"><a href="#L704">704</a>                        end)</span>
+<span id="L705" class="line"><a href="#L705">705</a>                    end</span>
+<span id="L706" class="line"><a href="#L706">706</a>                },</span>
+<span id="L707" class="line"><a href="#L707">707</a>            })</span>
+<span id="L708" class="line"><a href="#L708">708</a>            :setCloseCallback(function()</span>
+<span id="L709" class="line"><a href="#L709">709</a>                self:tryRemoveRewardTip()</span>
+<span id="L710" class="line"><a href="#L710">710</a>                d:resolve()</span>
+<span id="L711" class="line"><a href="#L711">711</a>            end)</span>
+<span id="L712" class="line"><a href="#L712">712</a>            :build()</span>
+<span id="L713" class="line"><a href="#L713">713</a>        vm:popout()</span>
+<span id="L714" class="line"><a href="#L714">714</a>        SubMsgUIUtil:registerPassDay(vm)</span>
+<span id="L715" class="line"><a href="#L715">715</a>    end, 0)</span>
+<span id="L716" class="line"><a href="#L716">716</a></span>
+<span id="L717" class="line"><a href="#L717">717</a>    return d</span>
+<span id="L718" class="line"><a href="#L718">718</a>end</span>
+<span id="L719" class="line"><a href="#L719">719</a></span>
+<span id="L720" class="line"><a href="#L720">720</a>function SubMsgBase:onActEnterMainScene()</span>
+<span id="L721" class="line"><a href="#L721">721</a>    -- 进入主场景再刷新才有效</span>
+<span id="L722" class="line"><a href="#L722">722</a>    if self._needInitOnce then</span>
+<span id="L723" class="line"><a href="#L723">723</a>        self._needInitOnce = false</span>
+<span id="L724" class="line"><a href="#L724">724</a>        self:initialize()</span>
+<span id="L725" class="line"><a href="#L725">725</a>    end</span>
+<span id="L726" class="line"><a href="#L726">726</a>end</span>
+<span id="L727" class="line"><a href="#L727">727</a></span>
+<span id="L728" class="line"><a href="#L728">728</a>function SubMsgBase:onActPassDay()</span>
+<span id="L729" class="line"><a href="#L729">729</a>    SubMsgUIUtil:onPassDay()</span>
+<span id="L730" class="line"><a href="#L730">730</a>end</span>
+<span id="L731" class="line"><a href="#L731">731</a></span>
+<span id="L732" class="line"><a href="#L732">732</a>-- 是否已经领过将了</span>
+<span id="L733" class="line"><a href="#L733">733</a>function SubMsgBase:isRegRewarded(id)</span>
+<span id="L734" class="line"><a href="#L734">734</a>    local rewardedList = self:getSubValue(&quot;rewardedList&quot;) or {}</span>
+<span id="L735" class="line"><a href="#L735">735</a>    return table.exist(rewardedList, id)</span>
+<span id="L736" class="line"><a href="#L736">736</a>end</span>
+<span id="L737" class="line"><a href="#L737">737</a></span>
+<span id="L738" class="line"><a href="#L738">738</a>-- 是否可以领奖</span>
+<span id="L739" class="line"><a href="#L739">739</a>function SubMsgBase:isRegCanReward(id)</span>
+<span id="L740" class="line"><a href="#L740">740</a>    if self:isRegRewarded(id) then</span>
+<span id="L741" class="line"><a href="#L741">741</a>        return false</span>
+<span id="L742" class="line"><a href="#L742">742</a>    end</span>
+<span id="L743" class="line"><a href="#L743">743</a>    -- 订阅过</span>
+<span id="L744" class="line"><a href="#L744">744</a>    return self:isHistoryReged(id)</span>
+<span id="L745" class="line"><a href="#L745">745</a>end</span>
+<span id="L746" class="line"><a href="#L746">746</a></span>
+<span id="L747" class="line"><a href="#L747">747</a>-- 历史是否订阅过</span>
+<span id="L748" class="line"><a href="#L748">748</a>function SubMsgBase:isHistoryReged(id)</span>
+<span id="L749" class="line"><a href="#L749">749</a>    local historyRegList = self:getSubValue(&quot;historyRegList&quot;) or {}</span>
+<span id="L750" class="line"><a href="#L750">750</a>    return table.exist(historyRegList, id)</span>
+<span id="L751" class="line"><a href="#L751">751</a>end</span>
+<span id="L752" class="line"><a href="#L752">752</a></span>
+<span id="L753" class="line"><a href="#L753">753</a>-- 是否领取了全部奖励</span>
+<span id="L754" class="line"><a href="#L754">754</a>function SubMsgBase:isAllRegRewarded()</span>
+<span id="L755" class="line"><a href="#L755">755</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L756" class="line"><a href="#L756">756</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L757" class="line"><a href="#L757">757</a>        if not self:isRegRewarded(v.id) then</span>
+<span id="L758" class="line"><a href="#L758">758</a>            return false</span>
+<span id="L759" class="line"><a href="#L759">759</a>        end</span>
+<span id="L760" class="line"><a href="#L760">760</a>    end</span>
+<span id="L761" class="line"><a href="#L761">761</a>    return true</span>
+<span id="L762" class="line"><a href="#L762">762</a>end</span>
+<span id="L763" class="line"><a href="#L763">763</a></span>
+<span id="L764" class="line"><a href="#L764">764</a>-- 是否订阅了</span>
+<span id="L765" class="line"><a href="#L765">765</a>function SubMsgBase:isReged(id)</span>
+<span id="L766" class="line"><a href="#L766">766</a>    local regList = self:getSubValue(&quot;regList&quot;) or {}</span>
+<span id="L767" class="line"><a href="#L767">767</a>    return table.exist(regList, id)</span>
+<span id="L768" class="line"><a href="#L768">768</a>end</span>
+<span id="L769" class="line"><a href="#L769">769</a></span>
+<span id="L770" class="line"><a href="#L770">770</a>-- 获得订阅了但是没领奖的数量</span>
+<span id="L771" class="line"><a href="#L771">771</a>function SubMsgBase:getRegNotRewardCount()</span>
+<span id="L772" class="line"><a href="#L772">772</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L773" class="line"><a href="#L773">773</a>    local rewardedList = self:getSubValue(&quot;rewardedList&quot;) or {}</span>
+<span id="L774" class="line"><a href="#L774">774</a>    return #subscribeMetaList - #rewardedList</span>
+<span id="L775" class="line"><a href="#L775">775</a>end</span>
+<span id="L776" class="line"><a href="#L776">776</a></span>
+<span id="L777" class="line"><a href="#L777">777</a>-- 获得未订阅列表</span>
+<span id="L778" class="line"><a href="#L778">778</a>function SubMsgBase:getNotRegList()</span>
+<span id="L779" class="line"><a href="#L779">779</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L780" class="line"><a href="#L780">780</a>    local regList = self:getSubValue(&quot;regList&quot;) or {}</span>
+<span id="L781" class="line"><a href="#L781">781</a>    local list = {}</span>
+<span id="L782" class="line"><a href="#L782">782</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L783" class="line"><a href="#L783">783</a>        if not table.exist(regList, v.id) then</span>
+<span id="L784" class="line"><a href="#L784">784</a>            table.insert(list, v)</span>
+<span id="L785" class="line"><a href="#L785">785</a>        end</span>
+<span id="L786" class="line"><a href="#L786">786</a>    end</span>
+<span id="L787" class="line"><a href="#L787">787</a>    return list</span>
+<span id="L788" class="line"><a href="#L788">788</a>end</span>
+<span id="L789" class="line"><a href="#L789">789</a></span>
+<span id="L790" class="line"><a href="#L790">790</a>-- 刷新icon上的红点</span>
+<span id="L791" class="line"><a href="#L791">791</a>function SubMsgBase:updateIcon()</span>
+<span id="L792" class="line"><a href="#L792">792</a>    local icon = self._iconManager:getIconByIconKey(IconKey.kSubMsg)</span>
+<span id="L793" class="line"><a href="#L793">793</a>    if icon then</span>
+<span id="L794" class="line"><a href="#L794">794</a>        icon:updateState()</span>
+<span id="L795" class="line"><a href="#L795">795</a>    end</span>
+<span id="L796" class="line"><a href="#L796">796</a>end</span>
+<span id="L797" class="line"><a href="#L797">797</a></span>
+<span id="L798" class="line"><a href="#L798">798</a>-- 是否有可领取的订阅奖励</span>
+<span id="L799" class="line"><a href="#L799">799</a>function SubMsgBase:hasSubMsgRewards()</span>
+<span id="L800" class="line"><a href="#L800">800</a>    if not self:isEnabled() then return end</span>
+<span id="L801" class="line"><a href="#L801">801</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L802" class="line"><a href="#L802">802</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L803" class="line"><a href="#L803">803</a>        if self:isReged(v.id) and not self:isRegRewarded(v.id) then</span>
+<span id="L804" class="line"><a href="#L804">804</a>            return true</span>
+<span id="L805" class="line"><a href="#L805">805</a>        end</span>
+<span id="L806" class="line"><a href="#L806">806</a>    end</span>
+<span id="L807" class="line"><a href="#L807">807</a>    return false</span>
+<span id="L808" class="line"><a href="#L808">808</a>end</span>
+<span id="L809" class="line"><a href="#L809">809</a></span>
+<span id="L810" class="line"><a href="#L810">810</a>-- 获得可以订阅的数量&amp;&amp;没有领取奖励</span>
+<span id="L811" class="line"><a href="#L811">811</a>function SubMsgBase:getCanSubMsgCount()</span>
+<span id="L812" class="line"><a href="#L812">812</a>    if not self:isEnabled() then return 0 end</span>
+<span id="L813" class="line"><a href="#L813">813</a>    local count = 0</span>
+<span id="L814" class="line"><a href="#L814">814</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L815" class="line"><a href="#L815">815</a>    for _, v in ipairs(subscribeMetaList) do</span>
+<span id="L816" class="line"><a href="#L816">816</a>        if not self:isHistoryReged(v.id) then</span>
+<span id="L817" class="line"><a href="#L817">817</a>            count = count + 1</span>
+<span id="L818" class="line"><a href="#L818">818</a>        end</span>
+<span id="L819" class="line"><a href="#L819">819</a>    end</span>
+<span id="L820" class="line"><a href="#L820">820</a>    return count</span>
+<span id="L821" class="line"><a href="#L821">821</a>    -- if self:isAllRegRewarded() then return 0 end</span>
+<span id="L822" class="line"><a href="#L822">822</a>    -- return self:getRegNotRewardCount()</span>
+<span id="L823" class="line"><a href="#L823">823</a>end</span>
+<span id="L824" class="line"><a href="#L824">824</a></span>
+<span id="L825" class="line"><a href="#L825">825</a>function SubMsgBase:isSubmsgTypeEnabled(sceneType)</span>
+<span id="L826" class="line"><a href="#L826">826</a>    if sceneType == SubMessageConst.SceneType.ENERGY_RECOVER_FULL </span>
+<span id="L827" class="line"><a href="#L827">827</a>        or sceneType == SubMessageConst.SceneType.LEVEL_AREA_UNLOCK </span>
+<span id="L828" class="line"><a href="#L828">828</a>    then</span>
+<span id="L829" class="line"><a href="#L829">829</a>        return true</span>
+<span id="L830" class="line"><a href="#L830">830</a>    end</span>
+<span id="L831" class="line"><a href="#L831">831</a>    if sceneType == SubMessageConst.SceneType.MARK then</span>
+<span id="L832" class="line"><a href="#L832">832</a>        return self._markManager:isEnabled()</span>
+<span id="L833" class="line"><a href="#L833">833</a>    end</span>
+<span id="L834" class="line"><a href="#L834">834</a>    if sceneType == SubMessageConst.SceneType.PROMOTEDAILY then</span>
+<span id="L835" class="line"><a href="#L835">835</a>        return self._promoteDailyMgr:isEnabled() and self._promoteDailyMgr:getCurMonthNearestKeyMedal()</span>
+<span id="L836" class="line"><a href="#L836">836</a>    end</span>
+<span id="L837" class="line"><a href="#L837">837</a>    return false</span>
+<span id="L838" class="line"><a href="#L838">838</a>end</span>
+<span id="L839" class="line"><a href="#L839">839</a></span>
+<span id="L840" class="line"><a href="#L840">840</a>-- 获得主界面需要展示的数据</span>
+<span id="L841" class="line"><a href="#L841">841</a>function SubMsgBase:getMainShowDataList()</span>
+<span id="L842" class="line"><a href="#L842">842</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L843" class="line"><a href="#L843">843</a>    local dataList = {}</span>
+<span id="L844" class="line"><a href="#L844">844</a>    for i, v in ipairs(subscribeMetaList) do</span>
+<span id="L845" class="line"><a href="#L845">845</a>        local d = table.clone(v)</span>
+<span id="L846" class="line"><a href="#L846">846</a>        d.hasReg = self:isReged(v.id)</span>
+<span id="L847" class="line"><a href="#L847">847</a>        d.canReward = self:isRegCanReward(v.id)</span>
+<span id="L848" class="line"><a href="#L848">848</a>        d.rewarded = self:isRegRewarded(v.id)</span>
+<span id="L849" class="line"><a href="#L849">849</a>        d.reward = self:getRewardById(v.id)</span>
+<span id="L850" class="line"><a href="#L850">850</a>        d.text = self:getTextById(v.id)</span>
+<span id="L851" class="line"><a href="#L851">851</a>        d.hasReg = self:isReged(v.id) or self._subMsgUtil:isAlwaysAccept(v.tmplId)</span>
+<span id="L852" class="line"><a href="#L852">852</a>        d.regedText = self:getRegedTextById(v.id)</span>
+<span id="L853" class="line"><a href="#L853">853</a>        table.insert(dataList, d)</span>
+<span id="L854" class="line"><a href="#L854">854</a>    end</span>
+<span id="L855" class="line"><a href="#L855">855</a>    return dataList</span>
+<span id="L856" class="line"><a href="#L856">856</a>end</span>
+<span id="L857" class="line"><a href="#L857">857</a></span>
+<span id="L858" class="line"><a href="#L858">858</a>-- 根据id获取订阅奖励</span>
+<span id="L859" class="line"><a href="#L859">859</a>function SubMsgBase:getRewardById(id)</span>
+<span id="L860" class="line"><a href="#L860">860</a>    local subscribeRewardMetaList = self:getSubValue(&quot;subscribeRewardMetaList&quot;) or {}</span>
+<span id="L861" class="line"><a href="#L861">861</a>    local passLevelId = self._levelAreaManager:getTopPassedLevel()</span>
+<span id="L862" class="line"><a href="#L862">862</a>    for _, v in ipairs(subscribeRewardMetaList) do</span>
+<span id="L863" class="line"><a href="#L863">863</a>        if v.id == id and passLevelId &gt;= v.openPassLevelRangeTuple.left and (passLevelId &lt;= v.openPassLevelRangeTuple.right or v.openPassLevelRangeTuple.right == -1) then</span>
+<span id="L864" class="line"><a href="#L864">864</a>            return v.rewardList and v.rewardList[1] or {}</span>
+<span id="L865" class="line"><a href="#L865">865</a>        end</span>
+<span id="L866" class="line"><a href="#L866">866</a>    end</span>
+<span id="L867" class="line"><a href="#L867">867</a>    return {}</span>
+<span id="L868" class="line"><a href="#L868">868</a>end</span>
+<span id="L869" class="line"><a href="#L869">869</a></span>
+<span id="L870" class="line"><a href="#L870">870</a>function SubMsgBase:checkStage4CanPop()</span>
+<span id="L871" class="line"><a href="#L871">871</a>    return false</span>
+<span id="L872" class="line"><a href="#L872">872</a>    -- if not self:isEnabled() then return end</span>
+<span id="L873" class="line"><a href="#L873">873</a>    -- if not self:isUIEnabled() then return end</span>
+<span id="L874" class="line"><a href="#L874">874</a>    -- -- 限制等级强弹</span>
+<span id="L875" class="line"><a href="#L875">875</a>    -- if _G.getTopLevelId() &lt; SubMessageConst.POP_STAGE4_LEVEL then</span>
+<span id="L876" class="line"><a href="#L876">876</a>    --     return false</span>
+<span id="L877" class="line"><a href="#L877">877</a>    -- end</span>
+<span id="L878" class="line"><a href="#L878">878</a>    -- -- 有订阅的不弹</span>
+<span id="L879" class="line"><a href="#L879">879</a>    -- local historyRegList = self:getSubValue(&quot;historyRegList&quot;) or {}</span>
+<span id="L880" class="line"><a href="#L880">880</a>    -- if #historyRegList &gt; 0 then return false end</span>
+<span id="L881" class="line"><a href="#L881">881</a>    -- -- 弹了超过3次，不弹</span>
+<span id="L882" class="line"><a href="#L882">882</a>    -- local stage4PopCount = self:getSubValue(&quot;stage4PopCount&quot;)</span>
+<span id="L883" class="line"><a href="#L883">883</a>    -- if stage4PopCount &gt;= 3 then return false end</span>
+<span id="L884" class="line"><a href="#L884">884</a>    -- -- 上次弹出时间是今天不弹</span>
+<span id="L885" class="line"><a href="#L885">885</a>    -- local stage4LastPopTime = self:getSubValue(&quot;stage4LastPopTime&quot;)</span>
+<span id="L886" class="line"><a href="#L886">886</a>    -- local timeStart = TimeKit:getDayStartTimeByTS(stage4LastPopTime)</span>
+<span id="L887" class="line"><a href="#L887">887</a>    -- if timeStart == TimeKit:getTodayStart() then</span>
+<span id="L888" class="line"><a href="#L888">888</a>    --     return false</span>
+<span id="L889" class="line"><a href="#L889">889</a>    -- end</span>
+<span id="L890" class="line"><a href="#L890">890</a>    -- return true</span>
+<span id="L891" class="line"><a href="#L891">891</a>end</span>
+<span id="L892" class="line"><a href="#L892">892</a></span>
+<span id="L893" class="line"><a href="#L893">893</a>-- 是否可以创建订阅的节点，精力、区域解锁...</span>
+<span id="L894" class="line"><a href="#L894">894</a>function SubMsgBase:canShowSubMsgNode(sceneType)</span>
+<span id="L895" class="line"><a href="#L895">895</a>    if not self:isEnabled() then return false end</span>
+<span id="L896" class="line"><a href="#L896">896</a>    if not self:isUIEnabled() then return false end</span>
+<span id="L897" class="line"><a href="#L897">897</a>    local id = self:getIdBySceneType(sceneType)</span>
+<span id="L898" class="line"><a href="#L898">898</a>    if sceneType == SubMessageConst.SceneType.MARK then</span>
+<span id="L899" class="line"><a href="#L899">899</a>        if id == 0 or self:isHistoryReged(id) then</span>
+<span id="L900" class="line"><a href="#L900">900</a>            return false</span>
+<span id="L901" class="line"><a href="#L901">901</a>        end</span>
+<span id="L902" class="line"><a href="#L902">902</a>    elseif sceneType == SubMessageConst.SceneType.PROMOTEDAILY and not self._promoteDailyMgr:isEnabled() then</span>
+<span id="L903" class="line"><a href="#L903">903</a>        return false</span>
+<span id="L904" class="line"><a href="#L904">904</a>    end</span>
+<span id="L905" class="line"><a href="#L905">905</a>    return true</span>
+<span id="L906" class="line"><a href="#L906">906</a>end</span>
+<span id="L907" class="line"><a href="#L907">907</a></span>
+<span id="L908" class="line"><a href="#L908">908</a>function SubMsgBase:getSubNodeTextStruct(subMsgId)</span>
+<span id="L909" class="line"><a href="#L909">909</a>    -- 已经领过奖</span>
+<span id="L910" class="line"><a href="#L910">910</a>    local textStruct = LabelStruct.new()</span>
+<span id="L911" class="line"><a href="#L911">911</a>    local text = self:getTextById(subMsgId)</span>
+<span id="L912" class="line"><a href="#L912">912</a>    local reward = self:getRewardById(subMsgId)</span>
+<span id="L913" class="line"><a href="#L913">913</a>    if table.isEmpty(reward) then</span>
+<span id="L914" class="line"><a href="#L914">914</a>        reward = {itemId = 2, num = 1}</span>
+<span id="L915" class="line"><a href="#L915">915</a>    end</span>
+<span id="L916" class="line"><a href="#L916">916</a>    local state = SubMsgNode.State.NONE</span>
+<span id="L917" class="line"><a href="#L917">917</a>    local sceneType = self:getSceneTypeById(subMsgId)</span>
+<span id="L918" class="line"><a href="#L918">918</a>    local textCfg = SubMessageConst.SubMsgNodeText[sceneType]</span>
+<span id="L919" class="line"><a href="#L919">919</a>    if self:isReged(subMsgId) or self._subMsgUtil:isAlwaysAccept(self:getTmplIdById(subMsgId))</span>
+<span id="L920" class="line"><a href="#L920">920</a>    then</span>
+<span id="L921" class="line"><a href="#L921">921</a>        local str = self:getRegedTextById(subMsgId)</span>
+<span id="L922" class="line"><a href="#L922">922</a>        textStruct:setText({</span>
+<span id="L923" class="line"><a href="#L923">923</a>            &quot;&lt;&lt;c=&quot;..textCfg.color..&quot;&gt;&quot;..str..&quot;&gt;&quot;,</span>
+<span id="L924" class="line"><a href="#L924">924</a>        })</span>
+<span id="L925" class="line"><a href="#L925">925</a>        state = SubMsgNode.State.REWARDED_REG</span>
+<span id="L926" class="line"><a href="#L926">926</a>    elseif self:isRegRewarded(subMsgId) then</span>
+<span id="L927" class="line"><a href="#L927">927</a>        local str = self:getNoRewardTextById(subMsgId)</span>
+<span id="L928" class="line"><a href="#L928">928</a>        textStruct:setText({</span>
+<span id="L929" class="line"><a href="#L929">929</a>            &quot;&lt;&lt;c=&quot;..textCfg.color..&quot;&gt;&quot;..str..&quot;&gt;&quot;,</span>
+<span id="L930" class="line"><a href="#L930">930</a>        })</span>
+<span id="L931" class="line"><a href="#L931">931</a>        state = SubMsgNode.State.REWAREDED_NOREG</span>
+<span id="L932" class="line"><a href="#L932">932</a>    else</span>
+<span id="L933" class="line"><a href="#L933">933</a>        local icon = GameItemCreator:getPropIcon({itemId = reward.itemId, num = reward.num, needNum = false})</span>
+<span id="L934" class="line"><a href="#L934">934</a>        local NumberUtil = require &quot;amf.middleware.ui.util.NumberUtil&quot;</span>
+<span id="L935" class="line"><a href="#L935">935</a>        local extStr = NumberUtil:formatRewardNum(reward)</span>
+<span id="L936" class="line"><a href="#L936">936</a>        local txt = icon:getLeftTopText()</span>
+<span id="L937" class="line"><a href="#L937">937</a>        if txt and txt ~= &quot;&quot; then</span>
+<span id="L938" class="line"><a href="#L938">938</a>            icon:setLeftTopText(&quot;&quot;)</span>
+<span id="L939" class="line"><a href="#L939">939</a>            extStr = txt</span>
+<span id="L940" class="line"><a href="#L940">940</a>            icon:setItemType(_G.UEPropIcon_ItemType.None)</span>
+<span id="L941" class="line"><a href="#L941">941</a>        end</span>
+<span id="L942" class="line"><a href="#L942">942</a>        local firstActName = &quot;开启&quot;</span>
+<span id="L943" class="line"><a href="#L943">943</a>        textStruct:setText({</span>
+<span id="L944" class="line"><a href="#L944">944</a>            &quot;&lt;&lt;c=&quot;..textCfg.color..&quot;&gt;&quot;..firstActName..text..&quot;，&quot;..(sceneType == SubMessageConst.SceneType.MARK and &quot;得 &gt;&quot; or &quot;\n得&gt;&quot;),</span>
+<span id="L945" class="line"><a href="#L945">945</a>            &quot;&lt;&lt;node&gt;&gt;&quot;,</span>
+<span id="L946" class="line"><a href="#L946">946</a>            &quot;&lt;&lt;c=&quot;..textCfg.color..&quot;&gt;&quot;..extStr .. &quot;&gt;&quot;,</span>
+<span id="L947" class="line"><a href="#L947">947</a>            nodes = {</span>
+<span id="L948" class="line"><a href="#L948">948</a>                icon</span>
+<span id="L949" class="line"><a href="#L949">949</a>            }</span>
+<span id="L950" class="line"><a href="#L950">950</a>        })</span>
+<span id="L951" class="line"><a href="#L951">951</a>        state = SubMsgNode.State.NONE</span>
+<span id="L952" class="line"><a href="#L952">952</a>    end</span>
+<span id="L953" class="line"><a href="#L953">953</a>    textStruct:setHorizontalAlignment(kCCTextAlignmentLeft)</span>
+<span id="L954" class="line"><a href="#L954">954</a>    if textCfg.outlineSize and textCfg.outlineColor then</span>
+<span id="L955" class="line"><a href="#L955">955</a>        textStruct:setOutline(textCfg.outlineColor, textCfg.outlineSize)</span>
+<span id="L956" class="line"><a href="#L956">956</a>    end</span>
+<span id="L957" class="line"><a href="#L957">957</a>    if textCfg.fontSize then</span>
+<span id="L958" class="line"><a href="#L958">958</a>        textStruct:setFontSize(textCfg.fontSize)</span>
+<span id="L959" class="line"><a href="#L959">959</a>    end</span>
+<span id="L960" class="line"><a href="#L960">960</a>    return textStruct, state</span>
+<span id="L961" class="line"><a href="#L961">961</a>end</span>
+<span id="L962" class="line"><a href="#L962">962</a></span>
+<span id="L963" class="line"><a href="#L963">963</a>-- 自动注册</span>
+<span id="L964" class="line"><a href="#L964">964</a>function SubMsgBase:autoRegSubMsg(mustId, param)</span>
+<span id="L965" class="line"><a href="#L965">965</a>    param = param or {}</span>
+<span id="L966" class="line"><a href="#L966">966</a>    local subscribeMetaList = self:getSubValue(&quot;subscribeMetaList&quot;) or {}</span>
+<span id="L967" class="line"><a href="#L967">967</a>    local list = {}</span>
+<span id="L968" class="line"><a href="#L968">968</a>    local mustData = nil</span>
+<span id="L969" class="line"><a href="#L969">969</a>    for i, v in ipairs(subscribeMetaList) do</span>
+<span id="L970" class="line"><a href="#L970">970</a>        if self._subMsgUtil:isAlwaysAccept(v.tmplId) and not self:isReged(v.id) then</span>
+<span id="L971" class="line"><a href="#L971">971</a>            if mustId == v.id then</span>
+<span id="L972" class="line"><a href="#L972">972</a>                mustData = v</span>
+<span id="L973" class="line"><a href="#L973">973</a>            else</span>
+<span id="L974" class="line"><a href="#L974">974</a>                table.insert(list, v)</span>
+<span id="L975" class="line"><a href="#L975">975</a>            end</span>
+<span id="L976" class="line"><a href="#L976">976</a>        end</span>
+<span id="L977" class="line"><a href="#L977">977</a>    end</span>
+<span id="L978" class="line"><a href="#L978">978</a>    if mustData then</span>
+<span id="L979" class="line"><a href="#L979">979</a>        table.insert(list, 1, mustData)</span>
+<span id="L980" class="line"><a href="#L980">980</a>    end</span>
+<span id="L981" class="line"><a href="#L981">981</a>    list = table.headn(list, SubMessageConst.OneTimeRegCount)</span>
+<span id="L982" class="line"><a href="#L982">982</a>    if table.isEmpty(list) then return end</span>
+<span id="L983" class="line"><a href="#L983">983</a>    self:registerSubMsgAndGetRewards(list, {panelId = param.panelId})</span>
+<span id="L984" class="line"><a href="#L984">984</a>end</span>
+<span id="L985" class="line"><a href="#L985">985</a></span>
+<span id="L986" class="line"><a href="#L986">986</a>-- 创建订阅节点</span>
+<span id="L987" class="line"><a href="#L987">987</a>function SubMsgBase:createSubMsgNode(sceneType, basePanelVM, param)</span>
+<span id="L988" class="line"><a href="#L988">988</a>    local d = deferred.new()</span>
+<span id="L989" class="line"><a href="#L989">989</a>    local node</span>
+<span id="L990" class="line"><a href="#L990">990</a>    local subMsgId = self:getIdBySceneType(sceneType)</span>
+<span id="L991" class="line"><a href="#L991">991</a>    local textStruct, state = self:getSubNodeTextStruct(subMsgId)</span>
+<span id="L992" class="line"><a href="#L992">992</a>    local params = {</span>
+<span id="L993" class="line"><a href="#L993">993</a>        state = state,</span>
+<span id="L994" class="line"><a href="#L994">994</a>        textStruct = textStruct,</span>
+<span id="L995" class="line"><a href="#L995">995</a>        disposeCall = function()</span>
+<span id="L996" class="line"><a href="#L996">996</a>            -- 自动注册</span>
+<span id="L997" class="line"><a href="#L997">997</a>            self:autoRegSubMsg(subMsgId, param)</span>
+<span id="L998" class="line"><a href="#L998">998</a>        end,</span>
+<span id="L999" class="line"><a href="#L999">999</a>        clickCallback = function()</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>            local info = self:getMetaInfoById(subMsgId)</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>            if not info then return end</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>            -- if not self._networkStatusManager:isNetworkEnabled() then</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>            --     CommonTip:showErrorTip(-2)</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>            --     return</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>            -- end</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>            if basePanelVM then basePanelVM:lock() end</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>            -- 打点</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>            self:dc(&quot;subscription&quot;, &quot;main_panel_click&quot;, {</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>                panel_id = param.panelId,</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>                t1 = 2,</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>                t2 = info.id</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>            })</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a>            -- 标记可以记录有订阅成功</span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>            self:setSubTempValue(&quot;canRecordRegTag&quot;, true)</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>            self:registerSubMsgAndGetRewards({info}, param):next(function(rewardList)</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a>                if basePanelVM then basePanelVM:unlock() end</span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>                self:showRewardPanel(rewardList, function()</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>                    if node and not node.isDisposed then</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a>                        local textSt, state = self:getSubNodeTextStruct(subMsgId)</span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>                        node:setTextStruct(textSt)</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>                        node:setState(state)</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>                        node:update()</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>                    end</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a></span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>                    -- 弹出每日登录奖励提醒界面</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>                    if self:getSubTempValue(&quot;hasRegSuccess&quot;) then</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>                        self:setSubTempValue(&quot;hasRegSuccess&quot;, false)</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>                        self:showDailyRewardNoticePanel()</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>                    end</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>                end)</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>            end, function(errCode)</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>                if basePanelVM then basePanelVM:unlock() end</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>                self:tryShowPermissionPanel(errCode)</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a>            end)</span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>        end</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>    }</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>    if param.nodeCreator then</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>        node = param.nodeCreator:create(params)</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>        d:resolve(node)</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>    else</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>        local files = Res.Files.EXTNODE</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>        self._assetsUtil:loadMiniFiles(files):next(function()</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>            node = SubMsgNode:create(params)</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>            d:resolve(node)</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>        end)</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>    end</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>    return d</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>end</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a></span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>-- 尝试展示权限界面</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>function SubMsgBase:tryShowPermissionPanel(errCode)</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>    if EnvUtil:isDYMiniGame() or EnvUtil:isALIPAYMiniGame() then</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a>        return</span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>    end</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>    if EnvUtil:isHuaweiMiniGame() then</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>        return</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>    end</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>    if EnvUtil:isUnionMiniGame() then</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>        return</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>    end</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>    if EnvUtil:isKuaiShouMiniGame() then</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a>        return</span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>    end</span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>    if EnvUtil:isJdMiniGame() then</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>        return</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>    end</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a></span>
+<span id="L1068" class="line"><a href="#L1068">1068</a>    if errCode == SubMessageConst.RegErrCode.PERMISSION then</span>
+<span id="L1069" class="line"><a href="#L1069">1069</a>        local SubMsgHelpPanelVM = require &quot;amf.middleware.notification.submsg.view.SubMsgHelpPanelVM&quot;</span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>        local vm = SubMsgHelpPanelVM:create()</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>        vm:setLoadResFailCallback(function()</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>            -- do nothing</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a>        end)</span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>        vm:popout()</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>    end</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>end</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a></span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>-- 订阅领奖提醒界面</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a>function SubMsgBase:showDailyRewardNoticePanel(callback)</span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>    if not self:hasDailyReward() then</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>        safeRunCall(callback)</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>        return</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>    end</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a></span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>    if EnvUtil:isUnionOppoMiniGame() then</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>        safeRunCall(callback)</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>        return</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>    end</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a></span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>    local SubMsgDailyRewardNoticePanelVM = require_debug &quot;amf.middleware.notification.submsg.view.SubMsgDailyRewardNoticePanelVM&quot;</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a>    local vm = SubMsgDailyRewardNoticePanelVM:create(callback)</span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>    vm:setLoadResFailCallback(function()</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>        safeRunCall(callback)</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>    end)</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>    vm:popout()</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a>end</span>
+<span id="L1097" class="line"><a href="#L1097">1097</a></span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>-- 恭喜获得界面</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>function SubMsgBase:showRewardPanel(rewardList, callback)</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a>    if table.isEmpty(rewardList) then</span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>        safeRunCall(callback)</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a>        return</span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>    end</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a>    for _, v in ipairs(rewardList) do</span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>        v.clickCall = function(del, sp)</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>            self:showItemTip(v, sp)</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>        end</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a>    end</span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>    local ShowRewardsPanelVM = require &quot;amf.middleware.ui.kit.panel.reward.ShowRewardsPanelVM&quot;</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>    local vm</span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>    vm = ShowRewardsPanelVM.Builder.new()</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>        :setRewards(rewardList)</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a>        :setTitle(&quot;恭喜获得&quot;)</span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>        :setButtonText(&quot;领取&quot;)</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a>        :setCloseCallback(function()</span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>            self:tryRemoveRewardTip()</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a>            safeRunCall(callback)</span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>        end)</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>        :build()</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a>    vm:popout()</span>
+<span id="L1121" class="line"><a href="#L1121">1121</a>end</span>
+<span id="L1122" class="line"><a href="#L1122">1122</a></span>
+<span id="L1123" class="line"><a href="#L1123">1123</a>function SubMsgBase:showItemTip(reward, target)</span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>    local builder = UITip.Builder.new()</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>    builder:setTitle(self._propManager:getPropName(reward))</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a>    builder:setTarget(target)</span>
+<span id="L1127" class="line"><a href="#L1127">1127</a>    if self._propManager:isFlowerSkin(reward.itemId) then</span>
+<span id="L1128" class="line"><a href="#L1128">1128</a>        builder:setFlowerId(reward.itemId)</span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>    elseif self._propManager:isNameCardBg(reward.itemId) then</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>        builder:setFlowerId(reward.itemId)</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>    elseif self._propManager:isHeadFrame(reward.itemId) then</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a>        builder:setHeadFrameId(reward.itemId)</span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>    elseif self._propManager:isHeadImage(reward.itemId) then</span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>        builder:setHeadImageId(reward.itemId)</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a>    elseif self._propManager:isPlayerStatusProp(reward.itemId) then</span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>        builder:setPlayerStatusId(reward.itemId)</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>    end</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>    self._rewardTip = builder:build()</span>
+<span id="L1139" class="line"><a href="#L1139">1139</a>end</span>
+<span id="L1140" class="line"><a href="#L1140">1140</a></span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>function SubMsgBase:tryRemoveRewardTip()</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a>    if self._rewardTip and not self._rewardTip.isDisposed then</span>
+<span id="L1143" class="line"><a href="#L1143">1143</a>        self._rewardTip:close()</span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>        self._rewardTip = nil</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a>    end</span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>end</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a></span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>-- @override 今日是否可以领取从订阅进入的奖励</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>function SubMsgBase:checkTodayCanCardEnterReward()</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a>    if not self._subMsgUtil:isEnterFromTmpl() then</span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>        return false</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>    end</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a>    -- 今天是否还能领</span>
+<span id="L1154" class="line"><a href="#L1154">1154</a>    if not self.model:canGetTodayCardEnterReward() then</span>
+<span id="L1155" class="line"><a href="#L1155">1155</a>        return false</span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>    end</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a>    return true</span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>end</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a></span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>function SubMsgBase:dc(category, subCategory, extraData)</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a>    local params = {</span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>        category = category,</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a>        sub_category = subCategory,</span>
+<span id="L1164" class="line"><a href="#L1164">1164</a>    }</span>
+<span id="L1165" class="line"><a href="#L1165">1165</a>    for k,v in pairs(extraData or {}) do</span>
+<span id="L1166" class="line"><a href="#L1166">1166</a>        params[k] = v</span>
+<span id="L1167" class="line"><a href="#L1167">1167</a>    end</span>
+<span id="L1168" class="line"><a href="#L1168">1168</a>    -- UError(&quot;SubMsg dc:&quot;, tts(params))</span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>    DcUtil:UserTrack(params)</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a>end</span>
+<span id="L1171" class="line"><a href="#L1171">1171</a></span>
+<span id="L1172" class="line"><a href="#L1172">1172</a>function SubMsgBase:setSubValue(key, value)</span>
+<span id="L1173" class="line"><a href="#L1173">1173</a>    self.model:setValue(key, value)</span>
+<span id="L1174" class="line"><a href="#L1174">1174</a>end</span>
+<span id="L1175" class="line"><a href="#L1175">1175</a></span>
+<span id="L1176" class="line"><a href="#L1176">1176</a>function SubMsgBase:getSubValue(key)</span>
+<span id="L1177" class="line"><a href="#L1177">1177</a>    if key == &quot;subscribeMetaList&quot; then</span>
+<span id="L1178" class="line"><a href="#L1178">1178</a>        local list = {}</span>
+<span id="L1179" class="line"><a href="#L1179">1179</a>        for i, v in ipairs(self.model:getValue(key) or {}) do</span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>            if self:isSubmsgTypeEnabled(v.sceneTypeEnum) then</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a>                table.insert(list, v)</span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>            end</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a>        end</span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>        return list</span>
+<span id="L1185" class="line"><a href="#L1185">1185</a>    end</span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>    return self.model:getValue(key)</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a>end</span>
+<span id="L1188" class="line"><a href="#L1188">1188</a></span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>function SubMsgBase:setSubTempValue(key, value)</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a>    self.model:setTempData(key, value)</span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>end</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a></span>
+<span id="L1193" class="line"><a href="#L1193">1193</a>function SubMsgBase:getSubTempValue(key)</span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>    return self.model:getTempData(key)</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>end</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a></span>
+<span id="L1197" class="line"><a href="#L1197">1197</a>return SubMsgBase</span></pre></main></html>

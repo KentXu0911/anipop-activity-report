@@ -1,0 +1,212 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/yybwashingpackage/YYBWashingPackageManager.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="3f167eff5df5.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/yybwashingpackage/YYBWashingPackageManager.lua</h1><p>SHA256 81a73a43f6ab1281e24417f93a28c3442fa92140b33e2f77057df17e441fc6be</p><pre><span id="L1" class="line"><a href="#L1">1</a></span>
+<span id="L2" class="line"><a href="#L2">2</a>local YYBWashingPackageConfig = require &#x27;amf.feature.localactivity.yybwashingpackage.config.YYBWashingPackageConfig&#x27;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local YYBWashingPackageDC = require &#x27;amf.feature.localactivity.yybwashingpackage.dc.YYBWashingPackageDC&#x27;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local YYBWashingPackageModel = require &#x27;amf.feature.localactivity.yybwashingpackage.model.YYBWashingPackageModel&#x27;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local ActivityEventCenter = require &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>local privateNS = {}</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>local YYBWashingPackageManager = class(&quot;YYBWashingPackageManager&quot;)</span>
+<span id="L10" class="line"><a href="#L10">10</a></span>
+<span id="L11" class="line"><a href="#L11">11</a>local bShowLog = YYBWashingPackageConfig.bShowLog</span>
+<span id="L12" class="line"><a href="#L12">12</a>local function showLog( ... )</span>
+<span id="L13" class="line"><a href="#L13">13</a>    if EnvUtil:isDevelopMode() and bShowLog then</span>
+<span id="L14" class="line"><a href="#L14">14</a>        printx(12,&quot;***yyb洗包***&quot;, ...)</span>
+<span id="L15" class="line"><a href="#L15">15</a>    end</span>
+<span id="L16" class="line"><a href="#L16">16</a>end</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>function YYBWashingPackageManager:initialize()</span>
+<span id="L19" class="line"><a href="#L19">19</a>	self.maintenanceIsOpen = true</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>    self.dcUtil = YYBWashingPackageDC</span>
+<span id="L22" class="line"><a href="#L22">22</a></span>
+<span id="L23" class="line"><a href="#L23">23</a>	-- local maintenanceName = &#x27;yyb_flush&#x27;</span>
+<span id="L24" class="line"><a href="#L24">24</a>    -- local uid = UserManager:getInstance().user.uid or &#x27;12345&#x27;</span>
+<span id="L25" class="line"><a href="#L25">25</a>	-- self.maintenanceIsOpen = MaintenanceManager:getInstance():isEnabledInGroup( maintenanceName , &quot;ON&quot; , uid )</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>    ActivityEventCenter:register(ActivityEvent.ACT_INFOS_UPDATE, self.onActActInfoUpdate, self)</span>
+<span id="L28" class="line"><a href="#L28">28</a>end</span>
+<span id="L29" class="line"><a href="#L29">29</a></span>
+<span id="L30" class="line"><a href="#L30">30</a>function YYBWashingPackageManager:initModel()</span>
+<span id="L31" class="line"><a href="#L31">31</a>    --model要在user后初始化，所以放在了需要检测可以弹出面板的地方，都在user后</span>
+<span id="L32" class="line"><a href="#L32">32</a>    if not privateNS.model then</span>
+<span id="L33" class="line"><a href="#L33">33</a>        privateNS.model = YYBWashingPackageModel:create()</span>
+<span id="L34" class="line"><a href="#L34">34</a>    end</span>
+<span id="L35" class="line"><a href="#L35">35</a>end</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>function YYBWashingPackageManager:onActActInfoUpdate(event)</span>
+<span id="L38" class="line"><a href="#L38">38</a></span>
+<span id="L39" class="line"><a href="#L39">39</a>    if EnvUtil:isMiniGame() then return end</span>
+<span id="L40" class="line"><a href="#L40">40</a></span>
+<span id="L41" class="line"><a href="#L41">41</a>    local data = event:getData()</span>
+<span id="L42" class="line"><a href="#L42">42</a>    local actInfos = data.actInfos or {}</span>
+<span id="L43" class="line"><a href="#L43">43</a>    local fromServer = data.fromServer</span>
+<span id="L44" class="line"><a href="#L44">44</a></span>
+<span id="L45" class="line"><a href="#L45">45</a>    --test    </span>
+<span id="L46" class="line"><a href="#L46">46</a>    -- fromServer = true</span>
+<span id="L47" class="line"><a href="#L47">47</a>    -- local actInfo = {</span>
+<span id="L48" class="line"><a href="#L48">48</a>    --     actId = 9076,</span>
+<span id="L49" class="line"><a href="#L49">49</a>    --     beginTime = &quot;0&quot;,</span>
+<span id="L50" class="line"><a href="#L50">50</a>    --     clickNum = &quot;0&quot;,</span>
+<span id="L51" class="line"><a href="#L51">51</a>    --     extra = &#x27;{&quot;actEndTime&quot;:1795658400000,&quot;heVersion&quot;:&quot;1.151&quot;,&quot;endTime&quot;:0,&quot;heUpdateUrl&quot;:&quot;http://downloadapkmanimal.happyelements.cn/apk/154b5cd356f6e532db0a46ff4cc9c412.apk&quot;}&#x27;,</span>
+<span id="L52" class="line"><a href="#L52">52</a>    --     maxProgress = 0,</span>
+<span id="L53" class="line"><a href="#L53">53</a>    --     msgNum = 0,</span>
+<span id="L54" class="line"><a href="#L54">54</a>    --     progress = 0,</span>
+<span id="L55" class="line"><a href="#L55">55</a>    --     rank = 0,</span>
+<span id="L56" class="line"><a href="#L56">56</a>    --     reward = false,</span>
+<span id="L57" class="line"><a href="#L57">57</a>    --     rewardFlag = 0,</span>
+<span id="L58" class="line"><a href="#L58">58</a>    --     see = true,</span>
+<span id="L59" class="line"><a href="#L59">59</a>    --     specialBanActivity = false,</span>
+<span id="L60" class="line"><a href="#L60">60</a>    -- }</span>
+<span id="L61" class="line"><a href="#L61">61</a></span>
+<span id="L62" class="line"><a href="#L62">62</a>    if fromServer then</span>
+<span id="L63" class="line"><a href="#L63">63</a>        local actInfo = actInfos[tostring(YYBWashingPackageConfig.actId)]</span>
+<span id="L64" class="line"><a href="#L64">64</a>        if actInfo then</span>
+<span id="L65" class="line"><a href="#L65">65</a>            self:saveActInfo(actInfo)</span>
+<span id="L66" class="line"><a href="#L66">66</a>        else</span>
+<span id="L67" class="line"><a href="#L67">67</a>            --清活动</span>
+<span id="L68" class="line"><a href="#L68">68</a>            self:saveActInfo()</span>
+<span id="L69" class="line"><a href="#L69">69</a>        end</span>
+<span id="L70" class="line"><a href="#L70">70</a>    end</span>
+<span id="L71" class="line"><a href="#L71">71</a>end</span>
+<span id="L72" class="line"><a href="#L72">72</a></span>
+<span id="L73" class="line"><a href="#L73">73</a>function YYBWashingPackageManager:getActInfo()</span>
+<span id="L74" class="line"><a href="#L74">74</a>    self:initModel()</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>    local actInfo = privateNS.model:getSaveActInfo()</span>
+<span id="L77" class="line"><a href="#L77">77</a>    return actInfo</span>
+<span id="L78" class="line"><a href="#L78">78</a>end</span>
+<span id="L79" class="line"><a href="#L79">79</a></span>
+<span id="L80" class="line"><a href="#L80">80</a>function YYBWashingPackageManager:saveActInfo(actInfo)</span>
+<span id="L81" class="line"><a href="#L81">81</a>    self:initModel()</span>
+<span id="L82" class="line"><a href="#L82">82</a></span>
+<span id="L83" class="line"><a href="#L83">83</a>    privateNS.model:setSaveActInfo(actInfo)</span>
+<span id="L84" class="line"><a href="#L84">84</a>end</span>
+<span id="L85" class="line"><a href="#L85">85</a></span>
+<span id="L86" class="line"><a href="#L86">86</a>function YYBWashingPackageManager:isUnSupportPkg()</span>
+<span id="L87" class="line"><a href="#L87">87</a>    if EnvUtil:isPrePackage() then</span>
+<span id="L88" class="line"><a href="#L88">88</a>        return true</span>
+<span id="L89" class="line"><a href="#L89">89</a>    end</span>
+<span id="L90" class="line"><a href="#L90">90</a></span>
+<span id="L91" class="line"><a href="#L91">91</a>    local yybPlatFormList = {</span>
+<span id="L92" class="line"><a href="#L92">92</a>        PlatformNameEnum.kQQ,</span>
+<span id="L93" class="line"><a href="#L93">93</a>        PlatformNameEnum.kYYB_CENTER,</span>
+<span id="L94" class="line"><a href="#L94">94</a>        PlatformNameEnum.kYYB_MARKET,</span>
+<span id="L95" class="line"><a href="#L95">95</a>        PlatformNameEnum.kYYB_JINSHAN,</span>
+<span id="L96" class="line"><a href="#L96">96</a>        PlatformNameEnum.kYYB_BROWSER,</span>
+<span id="L97" class="line"><a href="#L97">97</a>        -- PlatformNameEnum.kYYB_ZONE,</span>
+<span id="L98" class="line"><a href="#L98">98</a>        PlatformNameEnum.kYYB_VIDEO,</span>
+<span id="L99" class="line"><a href="#L99">99</a>        PlatformNameEnum.kYYB_NEWS,</span>
+<span id="L100" class="line"><a href="#L100">100</a>        PlatformNameEnum.kYYB_QQ,</span>
+<span id="L101" class="line"><a href="#L101">101</a>        -- PlatformNameEnum.kYYB_PC,</span>
+<span id="L102" class="line"><a href="#L102">102</a>        PlatformNameEnum.kYYB_CORE,</span>
+<span id="L103" class="line"><a href="#L103">103</a>        PlatformNameEnum.kYYB_SHOP,</span>
+<span id="L104" class="line"><a href="#L104">104</a>        PlatformNameEnum.kYYB_TMS_CENTER,</span>
+<span id="L105" class="line"><a href="#L105">105</a>        PlatformNameEnum.kYYB_TMS_SHOP,</span>
+<span id="L106" class="line"><a href="#L106">106</a>        PlatformNameEnum.KYYB_MANAGER,</span>
+<span id="L107" class="line"><a href="#L107">107</a>        PlatformNameEnum.kYYB_TONGXIN,</span>
+<span id="L108" class="line"><a href="#L108">108</a>    }</span>
+<span id="L109" class="line"><a href="#L109">109</a></span>
+<span id="L110" class="line"><a href="#L110">110</a>    -- showLog( &quot;PlatformConfig.name&quot;, _G._PLATFORM_NAME )</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>    local isSupportPlatForm = false</span>
+<span id="L113" class="line"><a href="#L113">113</a>    for i,v in ipairs(yybPlatFormList) do</span>
+<span id="L114" class="line"><a href="#L114">114</a>        if PlatformConfig:isPlatform(v) then</span>
+<span id="L115" class="line"><a href="#L115">115</a>            isSupportPlatForm = true</span>
+<span id="L116" class="line"><a href="#L116">116</a>            break</span>
+<span id="L117" class="line"><a href="#L117">117</a>        end</span>
+<span id="L118" class="line"><a href="#L118">118</a>    end</span>
+<span id="L119" class="line"><a href="#L119">119</a></span>
+<span id="L120" class="line"><a href="#L120">120</a>    return not isSupportPlatForm</span>
+<span id="L121" class="line"><a href="#L121">121</a>end</span>
+<span id="L122" class="line"><a href="#L122">122</a></span>
+<span id="L123" class="line"><a href="#L123">123</a>function YYBWashingPackageManager:canOpenYYBUpdatePanel()</span>
+<span id="L124" class="line"><a href="#L124">124</a>	--提审、 actInfo，passLevel, platForm,</span>
+<span id="L125" class="line"><a href="#L125">125</a>    --版本号，平台 后端判断</span>
+<span id="L126" class="line"><a href="#L126">126</a>    --test</span>
+<span id="L127" class="line"><a href="#L127">127</a>    -- do return true end</span>
+<span id="L128" class="line"><a href="#L128">128</a>    if EnvUtil:isMiniGame() then return false end</span>
+<span id="L129" class="line"><a href="#L129">129</a>    showLog(&quot;canOpenYYBUpdatePanel 111111111&quot;)</span>
+<span id="L130" class="line"><a href="#L130">130</a>	if MaintenanceManager.getInstance():isInReview() then return false end</span>
+<span id="L131" class="line"><a href="#L131">131</a>    showLog(&quot;canOpenYYBUpdatePanel 222222222&quot;)</span>
+<span id="L132" class="line"><a href="#L132">132</a>	if self:isUnSupportPkg() then return false end</span>
+<span id="L133" class="line"><a href="#L133">133</a>    showLog(&quot;canOpenYYBUpdatePanel 333333333&quot;)</span>
+<span id="L134" class="line"><a href="#L134">134</a>	if not self:getActInfo() then return false end</span>
+<span id="L135" class="line"><a href="#L135">135</a>    showLog(&quot;canOpenYYBUpdatePanel 4444444444&quot;)</span>
+<span id="L136" class="line"><a href="#L136">136</a>    if not self:isEnabled() then return false end</span>
+<span id="L137" class="line"><a href="#L137">137</a>    showLog(&quot;canOpenYYBUpdatePanel 55555&quot;)</span>
+<span id="L138" class="line"><a href="#L138">138</a>	if not self.maintenanceIsOpen then return false end</span>
+<span id="L139" class="line"><a href="#L139">139</a>    showLog(&quot;canOpenYYBUpdatePanel 6666&quot;)</span>
+<span id="L140" class="line"><a href="#L140">140</a>	local passedLevel = _G.getTopPassedLevelId()</span>
+<span id="L141" class="line"><a href="#L141">141</a>    if passedLevel &lt; YYBWashingPackageConfig.openPassLevel then</span>
+<span id="L142" class="line"><a href="#L142">142</a>        return false</span>
+<span id="L143" class="line"><a href="#L143">143</a>    end</span>
+<span id="L144" class="line"><a href="#L144">144</a>    showLog(&quot;canOpenYYBUpdatePanel 777777&quot;)</span>
+<span id="L145" class="line"><a href="#L145">145</a>    return true</span>
+<span id="L146" class="line"><a href="#L146">146</a>end</span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>function YYBWashingPackageManager:isEnabled()</span>
+<span id="L149" class="line"><a href="#L149">149</a>    local endTime = self:getEndTime()</span>
+<span id="L150" class="line"><a href="#L150">150</a>    local curTime = TimeKit:timeInSec()</span>
+<span id="L151" class="line"><a href="#L151">151</a>    if curTime &gt; endTime then</span>
+<span id="L152" class="line"><a href="#L152">152</a>        return false</span>
+<span id="L153" class="line"><a href="#L153">153</a>    end</span>
+<span id="L154" class="line"><a href="#L154">154</a>    return true</span>
+<span id="L155" class="line"><a href="#L155">155</a>end</span>
+<span id="L156" class="line"><a href="#L156">156</a></span>
+<span id="L157" class="line"><a href="#L157">157</a>function YYBWashingPackageManager:getEndTime()</span>
+<span id="L158" class="line"><a href="#L158">158</a>    local actInfo = self:getActInfo()</span>
+<span id="L159" class="line"><a href="#L159">159</a>    if actInfo then</span>
+<span id="L160" class="line"><a href="#L160">160</a>        local extraConfig = table.deserialize(actInfo.extra)</span>
+<span id="L161" class="line"><a href="#L161">161</a>        local endTime = math.ceil2(tonumber(extraConfig.endTime)/1000)</span>
+<span id="L162" class="line"><a href="#L162">162</a>        local actEndTime = math.ceil2(tonumber(extraConfig.actEndTime)/1000)</span>
+<span id="L163" class="line"><a href="#L163">163</a>        if endTime == 0 then</span>
+<span id="L164" class="line"><a href="#L164">164</a>            return actEndTime</span>
+<span id="L165" class="line"><a href="#L165">165</a>        else</span>
+<span id="L166" class="line"><a href="#L166">166</a>            return endTime</span>
+<span id="L167" class="line"><a href="#L167">167</a>        end</span>
+<span id="L168" class="line"><a href="#L168">168</a>    end</span>
+<span id="L169" class="line"><a href="#L169">169</a>    return -1</span>
+<span id="L170" class="line"><a href="#L170">170</a>end</span>
+<span id="L171" class="line"><a href="#L171">171</a></span>
+<span id="L172" class="line"><a href="#L172">172</a>function YYBWashingPackageManager:openYYBUpdatePanel( userClick, endCallback, extra )</span>
+<span id="L173" class="line"><a href="#L173">173</a>    local YYBUpdatePanelVM = require &#x27;amf.feature.localactivity.yybwashingpackage.view.YYBUpdatePanelVM&#x27;</span>
+<span id="L174" class="line"><a href="#L174">174</a>	local panel = YYBUpdatePanelVM:create( {userClick = userClick, closeCallBack = endCallback, extra = extra} )</span>
+<span id="L175" class="line"><a href="#L175">175</a>	panel:popout()</span>
+<span id="L176" class="line"><a href="#L176">176</a></span>
+<span id="L177" class="line"><a href="#L177">177</a>    local endTime = self:getEndTime()</span>
+<span id="L178" class="line"><a href="#L178">178</a>    if endTime &gt; 0 then</span>
+<span id="L179" class="line"><a href="#L179">179</a>        local function passActEndCall()</span>
+<span id="L180" class="line"><a href="#L180">180</a>            CommonTip:showTip(&#x27;活动已结束&#x27;)</span>
+<span id="L181" class="line"><a href="#L181">181</a>        end</span>
+<span id="L182" class="line"><a href="#L182">182</a>        panel:setActEndTime( self:getEndTime()*1000, passActEndCall )</span>
+<span id="L183" class="line"><a href="#L183">183</a>    end</span>
+<span id="L184" class="line"><a href="#L184">184</a>end</span>
+<span id="L185" class="line"><a href="#L185">185</a></span>
+<span id="L186" class="line"><a href="#L186">186</a>function YYBWashingPackageManager:checkYYBAppIsInstall()</span>
+<span id="L187" class="line"><a href="#L187">187</a>	return self:canOpenUrl( YYBWashingPackageConfig.yybScheme )</span>
+<span id="L188" class="line"><a href="#L188">188</a>end</span>
+<span id="L189" class="line"><a href="#L189">189</a></span>
+<span id="L190" class="line"><a href="#L190">190</a>function YYBWashingPackageManager:openYYBApp()</span>
+<span id="L191" class="line"><a href="#L191">191</a>	self:openUrl( YYBWashingPackageConfig.yybScheme )</span>
+<span id="L192" class="line"><a href="#L192">192</a>end</span>
+<span id="L193" class="line"><a href="#L193">193</a></span>
+<span id="L194" class="line"><a href="#L194">194</a>function YYBWashingPackageManager:canOpenUrl( schemeName )</span>
+<span id="L195" class="line"><a href="#L195">195</a>	if __ANDROID then</span>
+<span id="L196" class="line"><a href="#L196">196</a>		local status, result = pcall(function() return luajava.bindClass(&quot;com.happyelements.android.utils.HttpUtil&quot;):canOpenUrl(schemeName) end)</span>
+<span id="L197" class="line"><a href="#L197">197</a>		return status and result</span>
+<span id="L198" class="line"><a href="#L198">198</a>	end</span>
+<span id="L199" class="line"><a href="#L199">199</a></span>
+<span id="L200" class="line"><a href="#L200">200</a>	return false </span>
+<span id="L201" class="line"><a href="#L201">201</a>end</span>
+<span id="L202" class="line"><a href="#L202">202</a></span>
+<span id="L203" class="line"><a href="#L203">203</a>function YYBWashingPackageManager:openUrl( schemeName )</span>
+<span id="L204" class="line"><a href="#L204">204</a>	if __ANDROID then</span>
+<span id="L205" class="line"><a href="#L205">205</a>		local status, result = pcall(function() return luajava.bindClass(&quot;com.happyelements.android.utils.HttpUtil&quot;):openUri(schemeName) end)</span>
+<span id="L206" class="line"><a href="#L206">206</a>		return status and result</span>
+<span id="L207" class="line"><a href="#L207">207</a>	end</span>
+<span id="L208" class="line"><a href="#L208">208</a></span>
+<span id="L209" class="line"><a href="#L209">209</a>	return false </span>
+<span id="L210" class="line"><a href="#L210">210</a>end</span>
+<span id="L211" class="line"><a href="#L211">211</a></span>
+<span id="L212" class="line"><a href="#L212">212</a>return YYBWashingPackageManager</span></pre></main></html>

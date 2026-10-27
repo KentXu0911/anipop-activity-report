@@ -1,0 +1,146 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/supermagicbird/config/SuperMagicBirdConst.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="9ef7615ebdc9.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/supermagicbird/config/SuperMagicBirdConst.lua</h1><p>SHA256 6793e6c4a7f73b898e5035b50ced06e175464778e90e5aa05c85fffdfe41fec8</p><pre><span id="L1" class="line"><a href="#L1">1</a>local Meta = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>Meta.bShowLog = true</span>
+<span id="L4" class="line"><a href="#L4">4</a>Meta.autoDownload = false</span>
+<span id="L5" class="line"><a href="#L5">5</a>Meta.downloadLabels = {}</span>
+<span id="L6" class="line"><a href="#L6">6</a>Meta.passTopNums = &quot;passTopNums&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>Meta.winStreakNums = &quot;winStreakNums&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>Meta.farmStarWinStreakNums = &quot;farmStarWinStreakNums&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>Meta.cycleId = &quot;cycleId&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a>Meta.periodId = &quot;periodId&quot;</span>
+<span id="L11" class="line"><a href="#L11">11</a>Meta.type = &quot;type&quot;</span>
+<span id="L12" class="line"><a href="#L12">12</a>Meta.reward = &quot;reward&quot;</span>
+<span id="L13" class="line"><a href="#L13">13</a>Meta.triggerTs = &quot;triggerTs&quot;</span>
+<span id="L14" class="line"><a href="#L14">14</a>Meta.group = &quot;group&quot;</span>
+<span id="L15" class="line"><a href="#L15">15</a>Meta.groupV2 = &quot;group2025&quot;</span>
+<span id="L16" class="line"><a href="#L16">16</a>Meta.offGroup = &quot;offGroup&quot;</span>
+<span id="L17" class="line"><a href="#L17">17</a>Meta.callback = &quot;callback&quot;</span>
+<span id="L18" class="line"><a href="#L18">18</a>Meta.normalRewardPool = &quot;normalRewardPool&quot;</span>
+<span id="L19" class="line"><a href="#L19">19</a>Meta.unlimitRewardPool = &quot;unlimitRewardPool&quot;</span>
+<span id="L20" class="line"><a href="#L20">20</a>Meta.periodInfo = &quot;periodInfo&quot;</span>
+<span id="L21" class="line"><a href="#L21">21</a>Meta.unlimitRewardInterval = &quot;unlimitRewardInterval&quot;</span>
+<span id="L22" class="line"><a href="#L22">22</a>Meta.minTriggerLevelNums = &quot;minTriggerLevelNums&quot;</span>
+<span id="L23" class="line"><a href="#L23">23</a>Meta.minTopLevelId = &quot;minTopLevelId&quot;</span>
+<span id="L24" class="line"><a href="#L24">24</a>Meta.maxTopLevelId = &quot;maxTopLevelId&quot;</span>
+<span id="L25" class="line"><a href="#L25">25</a>Meta.peakTopLevelId = &quot;peakTopLevelId&quot;</span>
+<span id="L26" class="line"><a href="#L26">26</a>Meta.triggerPassedLevel = &quot;triggerPassedLevel&quot;</span>
+<span id="L27" class="line"><a href="#L27">27</a>Meta.triggerDayFirstEnterTip = &quot;triggerDayFirstEnterTip&quot;</span>
+<span id="L28" class="line"><a href="#L28">28</a>Meta.reviveCardInfo = &quot;reviveCardInfo&quot;</span>
+<span id="L29" class="line"><a href="#L29">29</a></span>
+<span id="L30" class="line"><a href="#L30">30</a>Meta.ReviveCardDeliveryMode = {</span>
+<span id="L31" class="line"><a href="#L31">31</a>	kClickContinue = 1,</span>
+<span id="L32" class="line"><a href="#L32">32</a>	kTakeButton = 2,</span>
+<span id="L33" class="line"><a href="#L33">33</a>}</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>-- 复活卡确认面板曝光打点 t1：面板来源</span>
+<span id="L36" class="line"><a href="#L36">36</a>Meta.ReviveConfirmEnterType = {</span>
+<span id="L37" class="line"><a href="#L37">37</a>	kStartPanel = 1,</span>
+<span id="L38" class="line"><a href="#L38">38</a>	kAutoPop = 2,</span>
+<span id="L39" class="line"><a href="#L39">39</a>	kRetryPanel = 3,</span>
+<span id="L40" class="line"><a href="#L40">40</a>}</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>Meta.defaultFuuuConfigVersion = 66</span>
+<span id="L43" class="line"><a href="#L43">43</a>Meta.defaultFuuuConfigVersionV2 = 0</span>
+<span id="L44" class="line"><a href="#L44">44</a></span>
+<span id="L45" class="line"><a href="#L45">45</a>Meta.passLevelId = 300</span>
+<span id="L46" class="line"><a href="#L46">46</a></span>
+<span id="L47" class="line"><a href="#L47">47</a>-- 上次领奖进度条进度值</span>
+<span id="L48" class="line"><a href="#L48">48</a>Meta.lastRewardProgress = &quot;SuperMagicBird2024_lastRewardProgress&quot;</span>
+<span id="L49" class="line"><a href="#L49">49</a>-- 活动期强弹一次主面板</span>
+<span id="L50" class="line"><a href="#L50">50</a>Meta.hasActFirstTimeShowMainPanel = &quot;SuperMagicBird2024_hasActFirstTimeShowMainPanel&quot;</span>
+<span id="L51" class="line"><a href="#L51">51</a>-- 是否第一次显示激活动画</span>
+<span id="L52" class="line"><a href="#L52">52</a>Meta.hasShowBirdActivateAnim = &quot;SuperMagicBird2024Manager_hasShowBirdActivateAnim&quot;</span>
+<span id="L53" class="line"><a href="#L53">53</a>-- 激活后第一次打开主面板显示tip</span>
+<span id="L54" class="line"><a href="#L54">54</a>Meta.firstTimeShowBirdTip = &quot;SuperMagicBird2024Manager_firstTimeShowBirdTip&quot;</span>
+<span id="L55" class="line"><a href="#L55">55</a>Meta.isPassLevelWin = &quot;SuperMagicBird2024Manager_isPassLevelWin&quot;</span>
+<span id="L56" class="line"><a href="#L56">56</a>-- icon进度条上次进度</span>
+<span id="L57" class="line"><a href="#L57">57</a>Meta.lastTimeProgressValue = &quot;SuperMagicBird2024Manager_lastTimeProgressValue&quot;</span>
+<span id="L58" class="line"><a href="#L58">58</a></span>
+<span id="L59" class="line"><a href="#L59">59</a>Meta.todayHasShowBirdTip = &quot;SuperMagicBird2024Manager_todayHasShowBirdTip&quot;</span>
+<span id="L60" class="line"><a href="#L60">60</a>--</span>
+<span id="L61" class="line"><a href="#L61">61</a>Meta.todayHasShowIconTip = &quot;SuperMagicBird2024Manager_todayHasShowIconTip&quot;</span>
+<span id="L62" class="line"><a href="#L62">62</a>Meta.dcQualifyDaily = &quot;SuperMagicBird2024Manager_dcQualifyDaily&quot;</span>
+<span id="L63" class="line"><a href="#L63">63</a>Meta.dcJoinDaily = &quot;SuperMagicBird2024Manager_dcJoinDaily&quot;</span>
+<span id="L64" class="line"><a href="#L64">64</a></span>
+<span id="L65" class="line"><a href="#L65">65</a>--每周弹一次没新关，关活动。</span>
+<span id="L66" class="line"><a href="#L66">66</a>Meta.weekPopTopLevelNotEnoughKey = &quot;SuperMagicBird2024_weekPopTopLevelNotEnoughKey&quot;</span>
+<span id="L67" class="line"><a href="#L67">67</a></span>
+<span id="L68" class="line"><a href="#L68">68</a>Meta.godTip = &quot;恭喜达到最新关卡，【超级魔力鸟】活动结束！继续冲顶吧~&quot;</span>
+<span id="L69" class="line"><a href="#L69">69</a>Meta.godTip2 = &quot;恭喜满级！超级魔力鸟助力结束~&quot;</span>
+<span id="L70" class="line"><a href="#L70">70</a>Meta.godTip3 = &quot;有关卡可更新，快更新到最新版本并联网重进游戏，继续享受超级魔力鸟吧~&quot;</span>
+<span id="L71" class="line"><a href="#L71">71</a></span>
+<span id="L72" class="line"><a href="#L72">72</a>Meta.bottomMostLevelConfig = 1000</span>
+<span id="L73" class="line"><a href="#L73">73</a></span>
+<span id="L74" class="line"><a href="#L74">74</a>Meta.superMagicBirdItemId=10118</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>------------zhigang -----------</span>
+<span id="L77" class="line"><a href="#L77">77</a>Meta.MagicBirdActiveType = {</span>
+<span id="L78" class="line"><a href="#L78">78</a>	kNormal = 0,</span>
+<span id="L79" class="line"><a href="#L79">79</a>	kActive = 1,</span>
+<span id="L80" class="line"><a href="#L80">80</a>}</span>
+<span id="L81" class="line"><a href="#L81">81</a></span>
+<span id="L82" class="line"><a href="#L82">82</a>Meta.extraRewardLogForm = {</span>
+<span id="L83" class="line"><a href="#L83">83</a>	kNone = 0, --未知</span>
+<span id="L84" class="line"><a href="#L84">84</a>	kMemeHu = 1,--么么狐来源</span>
+<span id="L85" class="line"><a href="#L85">85</a>}</span>
+<span id="L86" class="line"><a href="#L86">86</a></span>
+<span id="L87" class="line"><a href="#L87">87</a>Meta.fuuuTypeList = {</span>
+<span id="L88" class="line"><a href="#L88">88</a>	kNone = -1,</span>
+<span id="L89" class="line"><a href="#L89">89</a>	kV0 = 0, --偏移</span>
+<span id="L90" class="line"><a href="#L90">90</a>	kV1 = 1,--难度</span>
+<span id="L91" class="line"><a href="#L91">91</a>	kV2 = 2,--步数</span>
+<span id="L92" class="line"><a href="#L92">92</a>	kV3 = 3, --偏移新</span>
+<span id="L93" class="line"><a href="#L93">93</a>	kV4 = 4, --偏移新2</span>
+<span id="L94" class="line"><a href="#L94">94</a>}</span>
+<span id="L95" class="line"><a href="#L95">95</a></span>
+<span id="L96" class="line"><a href="#L96">96</a>--难度调整版本</span>
+<span id="L97" class="line"><a href="#L97">97</a>Meta.fuuuVersion = {</span>
+<span id="L98" class="line"><a href="#L98">98</a>	kNone = 0,</span>
+<span id="L99" class="line"><a href="#L99">99</a>	kV1 = 1,</span>
+<span id="L100" class="line"><a href="#L100">100</a>	kV2 = 2,</span>
+<span id="L101" class="line"><a href="#L101">101</a>}</span>
+<span id="L102" class="line"><a href="#L102">102</a></span>
+<span id="L103" class="line"><a href="#L103">103</a>Meta.version = 6 --kV1的难度调整逻辑version</span>
+<span id="L104" class="line"><a href="#L104">104</a>Meta.versionV2 = 6 --kV2的难度调整逻辑version</span>
+<span id="L105" class="line"><a href="#L105">105</a></span>
+<span id="L106" class="line"><a href="#L106">106</a>Meta.LevelStateList = {</span>
+<span id="L107" class="line"><a href="#L107">107</a>	kNone = 0,</span>
+<span id="L108" class="line"><a href="#L108">108</a>	kTopLevel = 1,</span>
+<span id="L109" class="line"><a href="#L109">109</a>	kRefreshStar = 2,</span>
+<span id="L110" class="line"><a href="#L110">110</a>	kLevelLibrary = 3,</span>
+<span id="L111" class="line"><a href="#L111">111</a>}</span>
+<span id="L112" class="line"><a href="#L112">112</a></span>
+<span id="L113" class="line"><a href="#L113">113</a>Meta.keepWinReason = {</span>
+<span id="L114" class="line"><a href="#L114">114</a>	kNone = 1,</span>
+<span id="L115" class="line"><a href="#L115">115</a>	kCallBack = 2,</span>
+<span id="L116" class="line"><a href="#L116">116</a>	kCycleOld = 3,</span>
+<span id="L117" class="line"><a href="#L117">117</a>}</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>Meta.PeriodPopMainPanel1 = &quot;SuperMagicBird2024Manager_PeriodPopMainPanel1&quot;</span>
+<span id="L120" class="line"><a href="#L120">120</a>Meta.PeriodPopMainPanel2 = &quot;SuperMagicBird2024Manager_PeriodPopMainPanel2&quot;</span>
+<span id="L121" class="line"><a href="#L121">121</a>Meta.PeriodPopMainPanel3 = &quot;SuperMagicBird2024Manager_PeriodPopMainPanel3&quot;</span>
+<span id="L122" class="line"><a href="#L122">122</a></span>
+<span id="L123" class="line"><a href="#L123">123</a></span>
+<span id="L124" class="line"><a href="#L124">124</a>function Meta:getCurWeekLevelNotEnoughKey()</span>
+<span id="L125" class="line"><a href="#L125">125</a>	local timeSec = getWeekStartTimeByTS( TimeKit:timeInSec() )</span>
+<span id="L126" class="line"><a href="#L126">126</a>	return Meta.weekPopTopLevelNotEnoughKey..&#x27;_&#x27;..timeSec</span>
+<span id="L127" class="line"><a href="#L127">127</a>end</span>
+<span id="L128" class="line"><a href="#L128">128</a></span>
+<span id="L129" class="line"><a href="#L129">129</a>--引导标记</span>
+<span id="L130" class="line"><a href="#L130">130</a>Meta.GuideIds = {</span>
+<span id="L131" class="line"><a href="#L131">131</a>	kGuideProp = 10, --关卡内道具引导</span>
+<span id="L132" class="line"><a href="#L132">132</a>	KPopStartLevelGuide = 11, --主界面引导</span>
+<span id="L133" class="line"><a href="#L133">133</a>}</span>
+<span id="L134" class="line"><a href="#L134">134</a></span>
+<span id="L135" class="line"><a href="#L135">135</a>-- 超鸟目前已常驻化，periodId固定为5</span>
+<span id="L136" class="line"><a href="#L136">136</a>Meta.defaultPeriodId = 5</span>
+<span id="L137" class="line"><a href="#L137">137</a></span>
+<span id="L138" class="line"><a href="#L138">138</a>function Meta:showLog( ... )</span>
+<span id="L139" class="line"><a href="#L139">139</a>	UBFDeprecate(&quot;别调了，用_G.SmbLog替代&quot;)</span>
+<span id="L140" class="line"><a href="#L140">140</a>	if _G.SmbLog then</span>
+<span id="L141" class="line"><a href="#L141">141</a>		_G.SmbLog(&quot;***超鸟连胜fuuu判断V2***&quot;, ...)</span>
+<span id="L142" class="line"><a href="#L142">142</a>	end</span>
+<span id="L143" class="line"><a href="#L143">143</a>end</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a></span>
+<span id="L146" class="line"><a href="#L146">146</a>return Meta</span></pre></main></html>

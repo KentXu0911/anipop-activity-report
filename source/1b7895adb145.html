@@ -1,0 +1,474 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/giftpackage/module/singleicon/icebreaking/IceBreakingGiftModule.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="1b7895adb145.lua" download>下载Lua原文</a></p><h1>amf/feature/giftpackage/module/singleicon/icebreaking/IceBreakingGiftModule.lua</h1><p>SHA256 547a943c84949694d6f7a5b7a8e7fa257ce38182c75aec666fb50144a1379d38</p><pre><span id="L1" class="line"><a href="#L1">1</a></span>
+<span id="L2" class="line"><a href="#L2">2</a>local SingleIconGiftModule = require &quot;amf.feature.giftpackage.module.singleicon.SingleIconGiftModule&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local GiftEventCenter = require &quot;amf.feature.giftpackage.event.GiftEventCenter&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local PaymentTracer = require &#x27;amf.middleware.purchase.dc.trace.PaymentTracer&#x27;</span>
+<span id="L5" class="line"><a href="#L5">5</a></span>
+<span id="L6" class="line"><a href="#L6">6</a>---@class IceBreakingGiftModule : SingleIconGiftModule</span>
+<span id="L7" class="line"><a href="#L7">7</a>local IceBreakingGiftModule = class(&quot;IceBreakingGiftModule&quot;, SingleIconGiftModule)</span>
+<span id="L8" class="line"><a href="#L8">8</a>IceBreakingGiftModule._isAddEvent = false</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>function IceBreakingGiftModule:ctor()</span>
+<span id="L11" class="line"><a href="#L11">11</a>    ---@type CommonGiftData</span>
+<span id="L12" class="line"><a href="#L12">12</a>    self.packageData = nil</span>
+<span id="L13" class="line"><a href="#L13">13</a>    self.moduleExtra = nil</span>
+<span id="L14" class="line"><a href="#L14">14</a>    self._iconPath = &quot;amf/icebreaking/materials/icon.png&quot;</span>
+<span id="L15" class="line"><a href="#L15">15</a>end</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a>function IceBreakingGiftModule:awake()</span>
+<span id="L18" class="line"><a href="#L18">18</a>    self.iconKey = IconKey.kIceBreaking</span>
+<span id="L19" class="line"><a href="#L19">19</a>    printx(48, &quot;[gk] iconkey=&quot;, self.iconKey)</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>    if not IceBreakingGiftModule._isAddEvent then</span>
+<span id="L22" class="line"><a href="#L22">22</a>        IceBreakingGiftModule._isAddEvent = true</span>
+<span id="L23" class="line"><a href="#L23">23</a>        _G.amfEC:registerSystem(self)</span>
+<span id="L24" class="line"><a href="#L24">24</a>        if EnvUtil:isDevelopMode() then printx(48, &quot;[gk] registerSystem&quot;) end</span>
+<span id="L25" class="line"><a href="#L25">25</a>        GiftEventCenter:registerFeature(self)</span>
+<span id="L26" class="line"><a href="#L26">26</a>    end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>    ---@type PaymentTracer</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self._rmbTracer = nil</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self.dcFeature = &quot;time_discounts_break&quot;</span>
+<span id="L31" class="line"><a href="#L31">31</a>    self.dcSource = &quot;gift&quot;</span>
+<span id="L32" class="line"><a href="#L32">32</a>    self._isStage2Check = false</span>
+<span id="L33" class="line"><a href="#L33">33</a>end</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>function IceBreakingGiftModule:remove()</span>
+<span id="L36" class="line"><a href="#L36">36</a>    SingleIconGiftModule.remove(self)</span>
+<span id="L37" class="line"><a href="#L37">37</a>    GiftEventCenter:unregisterFeature(self)</span>
+<span id="L38" class="line"><a href="#L38">38</a>    _G.amfEC:unregisterSystem(self)</span>
+<span id="L39" class="line"><a href="#L39">39</a>    IceBreakingGiftModule._isAddEvent = false</span>
+<span id="L40" class="line"><a href="#L40">40</a>    releaseSpriteCache(self._iconPath)</span>
+<span id="L41" class="line"><a href="#L41">41</a>end</span>
+<span id="L42" class="line"><a href="#L42">42</a></span>
+<span id="L43" class="line"><a href="#L43">43</a>function IceBreakingGiftModule:getResMap()</span>
+<span id="L44" class="line"><a href="#L44">44</a>    return {</span>
+<span id="L45" class="line"><a href="#L45">45</a>        labels = {</span>
+<span id="L46" class="line"><a href="#L46">46</a>            &quot;gift_layout_gold.label&quot;,</span>
+<span id="L47" class="line"><a href="#L47">47</a>            &quot;gift_layout_plugin.label&quot;,</span>
+<span id="L48" class="line"><a href="#L48">48</a>        },</span>
+<span id="L49" class="line"><a href="#L49">49</a>        files = {</span>
+<span id="L50" class="line"><a href="#L50">50</a>            &quot;amf/icebreaking/texture/IceBreakingStoreView.plist&quot;,</span>
+<span id="L51" class="line"><a href="#L51">51</a>            -- &quot;amf/activity/sprintgiftpackage/spine/sale_anim.skel&quot;,</span>
+<span id="L52" class="line"><a href="#L52">52</a>        },</span>
+<span id="L53" class="line"><a href="#L53">53</a>    }</span>
+<span id="L54" class="line"><a href="#L54">54</a>end</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>function IceBreakingGiftModule:needUpdate()</span>
+<span id="L57" class="line"><a href="#L57">57</a>    -- local ret = true</span>
+<span id="L58" class="line"><a href="#L58">58</a>    -- if self.moduleExtra then</span>
+<span id="L59" class="line"><a href="#L59">59</a>    --     local status = self.moduleExtra.status or 0</span>
+<span id="L60" class="line"><a href="#L60">60</a>    --     ret = status == 1 and not self.packageData</span>
+<span id="L61" class="line"><a href="#L61">61</a>    -- end</span>
+<span id="L62" class="line"><a href="#L62">62</a>    -- return ret</span>
+<span id="L63" class="line"><a href="#L63">63</a>    return self:isEnabled() and not self.packageData</span>
+<span id="L64" class="line"><a href="#L64">64</a>end</span>
+<span id="L65" class="line"><a href="#L65">65</a></span>
+<span id="L66" class="line"><a href="#L66">66</a>function IceBreakingGiftModule:isEnabled()</span>
+<span id="L67" class="line"><a href="#L67">67</a>    local ret = true</span>
+<span id="L68" class="line"><a href="#L68">68</a>    -- 客户端在判断 status == 1 &amp;&amp; 当前时间 &gt;= nextCallPullTs</span>
+<span id="L69" class="line"><a href="#L69">69</a>    -- &amp;&amp; alreadyPassedLevel &gt;= needPassLevel 时，认为可以尝试请求该礼包模块信息</span>
+<span id="L70" class="line"><a href="#L70">70</a>    if self.moduleExtra then</span>
+<span id="L71" class="line"><a href="#L71">71</a>        local status = self.moduleExtra.status or 0</span>
+<span id="L72" class="line"><a href="#L72">72</a>        local nextCallPullTs = self.moduleExtra.nextCallPullTs or 0</span>
+<span id="L73" class="line"><a href="#L73">73</a>        local alreadyPassedLevel = self.moduleExtra.alreadyPassedLevel or 0</span>
+<span id="L74" class="line"><a href="#L74">74</a>        local needPassLevel = self.moduleExtra.needPassLevel or 0</span>
+<span id="L75" class="line"><a href="#L75">75</a>        if status == 1 and TimeKit:timeInMillis() &gt;= nextCallPullTs and alreadyPassedLevel &gt;= needPassLevel then</span>
+<span id="L76" class="line"><a href="#L76">76</a>            ret = true</span>
+<span id="L77" class="line"><a href="#L77">77</a>        else</span>
+<span id="L78" class="line"><a href="#L78">78</a>            ret = false</span>
+<span id="L79" class="line"><a href="#L79">79</a>        end</span>
+<span id="L80" class="line"><a href="#L80">80</a>    end</span>
+<span id="L81" class="line"><a href="#L81">81</a>    if EnvUtil:isDevelopMode() then printx(48, &quot;IceBreakingGiftModule:isEnable=&quot;,ret) end</span>
+<span id="L82" class="line"><a href="#L82">82</a>    return ret</span>
+<span id="L83" class="line"><a href="#L83">83</a>end</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>function IceBreakingGiftModule:requireExtraParams(stageInfo)</span>
+<span id="L86" class="line"><a href="#L86">86</a>    return SingleIconGiftModule.requireExtraParams(self, stageInfo)</span>
+<span id="L87" class="line"><a href="#L87">87</a>end</span>
+<span id="L88" class="line"><a href="#L88">88</a></span>
+<span id="L89" class="line"><a href="#L89">89</a>function IceBreakingGiftModule:onReceivePackages(packageList)</span>
+<span id="L90" class="line"><a href="#L90">90</a>    if not packageList then return end</span>
+<span id="L91" class="line"><a href="#L91">91</a>    if packageList[1] then</span>
+<span id="L92" class="line"><a href="#L92">92</a>        SingleIconGiftModule.onReceivePackages(self, packageList)</span>
+<span id="L93" class="line"><a href="#L93">93</a>    else</span>
+<span id="L94" class="line"><a href="#L94">94</a>        self.packageList = packageList or {}</span>
+<span id="L95" class="line"><a href="#L95">95</a>        self.packageData = self.packageList</span>
+<span id="L96" class="line"><a href="#L96">96</a>    end</span>
+<span id="L97" class="line"><a href="#L97">97</a>    if self.packageData then</span>
+<span id="L98" class="line"><a href="#L98">98</a>       self:parseModuleExtra(self.packageData:getExtraValue(&quot;moduleExtra&quot;))</span>
+<span id="L99" class="line"><a href="#L99">99</a>    end</span>
+<span id="L100" class="line"><a href="#L100">100</a>    if not self._isStage2Check then self:onActEnterStage2() end</span>
+<span id="L101" class="line"><a href="#L101">101</a>end</span>
+<span id="L102" class="line"><a href="#L102">102</a></span>
+<span id="L103" class="line"><a href="#L103">103</a>function IceBreakingGiftModule:doCreateGiftView(autoPopup)</span>
+<span id="L104" class="line"><a href="#L104">104</a>    autoPopup = autoPopup or false</span>
+<span id="L105" class="line"><a href="#L105">105</a>    local commonGiftData = self.packageData</span>
+<span id="L106" class="line"><a href="#L106">106</a>    if not commonGiftData then return end</span>
+<span id="L107" class="line"><a href="#L107">107</a>    local view = nil</span>
+<span id="L108" class="line"><a href="#L108">108</a>    --根据场景判断使用view</span>
+<span id="L109" class="line"><a href="#L109">109</a>    if commonGiftData.stageType == GiftPackageConst.StageType.STORE then</span>
+<span id="L110" class="line"><a href="#L110">110</a>        local ViewCls = force_require &quot;amf.feature.giftpackage.module.singleicon.icebreaking.view.IceBreakingStoreView&quot;</span>
+<span id="L111" class="line"><a href="#L111">111</a>        view = ViewCls:create(self, commonGiftData)</span>
+<span id="L112" class="line"><a href="#L112">112</a>    else</span>
+<span id="L113" class="line"><a href="#L113">113</a>        -- CommonTip:showTip(&quot;礼包面板&quot;)</span>
+<span id="L114" class="line"><a href="#L114">114</a>        local userClick = not autoPopup</span>
+<span id="L115" class="line"><a href="#L115">115</a>        self:_initRmbTracer(userClick)</span>
+<span id="L116" class="line"><a href="#L116">116</a></span>
+<span id="L117" class="line"><a href="#L117">117</a>        local VM = require &quot;amf.feature.giftpackage.module.singleicon.icebreaking.view.IceBreakingGiftViewVM&quot;</span>
+<span id="L118" class="line"><a href="#L118">118</a>        local vm = VM:create(commonGiftData, self, autoPopup)</span>
+<span id="L119" class="line"><a href="#L119">119</a>        return vm</span>
+<span id="L120" class="line"><a href="#L120">120</a>    end</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>    return view</span>
+<span id="L123" class="line"><a href="#L123">123</a>end</span>
+<span id="L124" class="line"><a href="#L124">124</a></span>
+<span id="L125" class="line"><a href="#L125">125</a>function IceBreakingGiftModule:getIconResMap()</span>
+<span id="L126" class="line"><a href="#L126">126</a>    retainSpriteCache(self._iconPath)</span>
+<span id="L127" class="line"><a href="#L127">127</a>    return {</span>
+<span id="L128" class="line"><a href="#L128">128</a>        --change</span>
+<span id="L129" class="line"><a href="#L129">129</a>        labels = {},</span>
+<span id="L130" class="line"><a href="#L130">130</a>        files = {</span>
+<span id="L131" class="line"><a href="#L131">131</a>            self._iconPath,</span>
+<span id="L132" class="line"><a href="#L132">132</a>        },</span>
+<span id="L133" class="line"><a href="#L133">133</a>    }</span>
+<span id="L134" class="line"><a href="#L134">134</a>end</span>
+<span id="L135" class="line"><a href="#L135">135</a></span>
+<span id="L136" class="line"><a href="#L136">136</a>function IceBreakingGiftModule:createLegacyIcon()</span>
+<span id="L137" class="line"><a href="#L137">137</a>    if not self.packageData then return end</span>
+<span id="L138" class="line"><a href="#L138">138</a>    ---@type BaseIcon</span>
+<span id="L139" class="line"><a href="#L139">139</a>    local icon = require(&quot;amf.feature.giftpackage.module.singleicon.icebreaking.view.IceBreakingGiftIcon&quot;):create()</span>
+<span id="L140" class="line"><a href="#L140">140</a>    local discount = self.packageData:getDiscount()</span>
+<span id="L141" class="line"><a href="#L141">141</a>    if discount &lt; 10 then icon:setDiscount(discount) end</span>
+<span id="L142" class="line"><a href="#L142">142</a>    self:setIconTouch(icon)</span>
+<span id="L143" class="line"><a href="#L143">143</a>    -- icon.onTouch = function()</span>
+<span id="L144" class="line"><a href="#L144">144</a>    --     CommonTip:showTip(&quot;弹出面板~&quot;)</span>
+<span id="L145" class="line"><a href="#L145">145</a>    -- end</span>
+<span id="L146" class="line"><a href="#L146">146</a></span>
+<span id="L147" class="line"><a href="#L147">147</a></span>
+<span id="L148" class="line"><a href="#L148">148</a>    local endTime = self.packageData:getEndTime()</span>
+<span id="L149" class="line"><a href="#L149">149</a>    if endTime &gt; 0 then</span>
+<span id="L150" class="line"><a href="#L150">150</a>        icon:startCountdownVer1({{</span>
+<span id="L151" class="line"><a href="#L151">151</a>            type = &quot;activity&quot;,</span>
+<span id="L152" class="line"><a href="#L152">152</a>            endTimeInSec = endTime,</span>
+<span id="L153" class="line"><a href="#L153">153</a>            startTimeInSec = 0,</span>
+<span id="L154" class="line"><a href="#L154">154</a>            reachText = &quot;00:00:00&quot;,</span>
+<span id="L155" class="line"><a href="#L155">155</a>            endCallback = function ()</span>
+<span id="L156" class="line"><a href="#L156">156</a>                self:onDeprecated()</span>
+<span id="L157" class="line"><a href="#L157">157</a>            end</span>
+<span id="L158" class="line"><a href="#L158">158</a>        }})</span>
+<span id="L159" class="line"><a href="#L159">159</a>    end</span>
+<span id="L160" class="line"><a href="#L160">160</a>    return icon</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>end</span>
+<span id="L163" class="line"><a href="#L163">163</a></span>
+<span id="L164" class="line"><a href="#L164">164</a>function IceBreakingGiftModule:doCreateSingleIcon()</span>
+<span id="L165" class="line"><a href="#L165">165</a>    return self:createLegacyIcon()</span>
+<span id="L166" class="line"><a href="#L166">166</a>end</span>
+<span id="L167" class="line"><a href="#L167">167</a></span>
+<span id="L168" class="line"><a href="#L168">168</a>--region extra data</span>
+<span id="L169" class="line"><a href="#L169">169</a>function IceBreakingGiftModule:getPeriodId()</span>
+<span id="L170" class="line"><a href="#L170">170</a>    if not self.moduleExtra then return 0 end</span>
+<span id="L171" class="line"><a href="#L171">171</a>    local periodId = (self.moduleExtra or {}).periodId</span>
+<span id="L172" class="line"><a href="#L172">172</a>    return periodId or 0</span>
+<span id="L173" class="line"><a href="#L173">173</a>end</span>
+<span id="L174" class="line"><a href="#L174">174</a></span>
+<span id="L175" class="line"><a href="#L175">175</a>function IceBreakingGiftModule:getGiftTriggerTimes()</span>
+<span id="L176" class="line"><a href="#L176">176</a>    if not self.moduleExtra then return 0 end</span>
+<span id="L177" class="line"><a href="#L177">177</a>    local triggerTimes = (self.moduleExtra or {}).triggerTimes</span>
+<span id="L178" class="line"><a href="#L178">178</a>    return triggerTimes or 0</span>
+<span id="L179" class="line"><a href="#L179">179</a>end</span>
+<span id="L180" class="line"><a href="#L180">180</a></span>
+<span id="L181" class="line"><a href="#L181">181</a>function IceBreakingGiftModule:isShowTitle1()</span>
+<span id="L182" class="line"><a href="#L182">182</a>    return not self:isShowDiscount()</span>
+<span id="L183" class="line"><a href="#L183">183</a>end</span>
+<span id="L184" class="line"><a href="#L184">184</a></span>
+<span id="L185" class="line"><a href="#L185">185</a>function IceBreakingGiftModule:isShowDiscount()</span>
+<span id="L186" class="line"><a href="#L186">186</a>    if not self.moduleExtra then return false end</span>
+<span id="L187" class="line"><a href="#L187">187</a>    local ret = false</span>
+<span id="L188" class="line"><a href="#L188">188</a>    local groupName = (self.moduleExtra or {}).groupName</span>
+<span id="L189" class="line"><a href="#L189">189</a>    if groupName and groupName == &quot;title_chaozhi&quot; then ret = true end</span>
+<span id="L190" class="line"><a href="#L190">190</a>    return ret</span>
+<span id="L191" class="line"><a href="#L191">191</a>end</span>
+<span id="L192" class="line"><a href="#L192">192</a></span>
+<span id="L193" class="line"><a href="#L193">193</a>--endregion</span>
+<span id="L194" class="line"><a href="#L194">194</a></span>
+<span id="L195" class="line"><a href="#L195">195</a>-- 创建折扣icon 复用SprintGiftPackageManager</span>
+<span id="L196" class="line"><a href="#L196">196</a>function IceBreakingGiftModule:createDiscountIcon(parentNode, isIdle, posX, posY, scale)</span>
+<span id="L197" class="line"><a href="#L197">197</a>    -- do return false end</span>
+<span id="L198" class="line"><a href="#L198">198</a>    local isShow = self:isShowDiscount()</span>
+<span id="L199" class="line"><a href="#L199">199</a>    if not isShow then return nil end</span>
+<span id="L200" class="line"><a href="#L200">200</a>    ---@type SprintGiftPackageManager</span>
+<span id="L201" class="line"><a href="#L201">201</a>    local mgr = _G.amfBean(&quot;SprintGiftPackageManager&quot;)</span>
+<span id="L202" class="line"><a href="#L202">202</a>    if not mgr then</span>
+<span id="L203" class="line"><a href="#L203">203</a>        printx(48, &quot;SprintGiftPackageManager is not found!Error!&quot;)</span>
+<span id="L204" class="line"><a href="#L204">204</a>        return nil</span>
+<span id="L205" class="line"><a href="#L205">205</a>    end</span>
+<span id="L206" class="line"><a href="#L206">206</a>    scale = scale or 1</span>
+<span id="L207" class="line"><a href="#L207">207</a>    if not self.packageData then return nil end</span>
+<span id="L208" class="line"><a href="#L208">208</a>    local price = self.packageData:getPrice()</span>
+<span id="L209" class="line"><a href="#L209">209</a></span>
+<span id="L210" class="line"><a href="#L210">210</a>    local discountIcon = mgr:createDiscountIcon()</span>
+<span id="L211" class="line"><a href="#L211">211</a>    if posX and posY then discountIcon:setPositionXY(posX, posY) end</span>
+<span id="L212" class="line"><a href="#L212">212</a>    discountIcon:setScale(scale)</span>
+<span id="L213" class="line"><a href="#L213">213</a>    local discountNum = price == 3 and 5000 or 3000</span>
+<span id="L214" class="line"><a href="#L214">214</a>    if isIdle then</span>
+<span id="L215" class="line"><a href="#L215">215</a>        discountIcon:playIdleAnim(discountNum)</span>
+<span id="L216" class="line"><a href="#L216">216</a>    else</span>
+<span id="L217" class="line"><a href="#L217">217</a>        discountIcon:playEnterAnim(discountNum)</span>
+<span id="L218" class="line"><a href="#L218">218</a>    end</span>
+<span id="L219" class="line"><a href="#L219">219</a>    parentNode:addChild(discountIcon)</span>
+<span id="L220" class="line"><a href="#L220">220</a>    return discountIcon</span>
+<span id="L221" class="line"><a href="#L221">221</a>end</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>--region 强弹</span>
+<span id="L224" class="line"><a href="#L224">224</a></span>
+<span id="L225" class="line"><a href="#L225">225</a></span>
+<span id="L226" class="line"><a href="#L226">226</a></span>
+<span id="L227" class="line"><a href="#L227">227</a>---本地缓存数据</span>
+<span id="L228" class="line"><a href="#L228">228</a>function IceBreakingGiftModule:getFlagFromLocalByKey(key, needTime)</span>
+<span id="L229" class="line"><a href="#L229">229</a>    if needTime then</span>
+<span id="L230" class="line"><a href="#L230">230</a>        local today = time2day(TimeKit:timeInSec())</span>
+<span id="L231" class="line"><a href="#L231">231</a>        key = key .. today</span>
+<span id="L232" class="line"><a href="#L232">232</a>    end</span>
+<span id="L233" class="line"><a href="#L233">233</a></span>
+<span id="L234" class="line"><a href="#L234">234</a>    return LocalDB:getBool(key, false)</span>
+<span id="L235" class="line"><a href="#L235">235</a>end</span>
+<span id="L236" class="line"><a href="#L236">236</a></span>
+<span id="L237" class="line"><a href="#L237">237</a>function IceBreakingGiftModule:setFlagToLocalByKey(key, needTime, value)</span>
+<span id="L238" class="line"><a href="#L238">238</a>    value = value or true</span>
+<span id="L239" class="line"><a href="#L239">239</a>    if needTime then</span>
+<span id="L240" class="line"><a href="#L240">240</a>        local today = time2day(TimeKit:timeInSec())</span>
+<span id="L241" class="line"><a href="#L241">241</a>        key = key .. today</span>
+<span id="L242" class="line"><a href="#L242">242</a>    end</span>
+<span id="L243" class="line"><a href="#L243">243</a>    LocalDB:setBool(key, value, true)</span>
+<span id="L244" class="line"><a href="#L244">244</a>end</span>
+<span id="L245" class="line"><a href="#L245">245</a></span>
+<span id="L246" class="line"><a href="#L246">246</a>function IceBreakingGiftModule:_getLocalOpenedKey()</span>
+<span id="L247" class="line"><a href="#L247">247</a>    if not self.packageData then return &quot;xx&quot; end</span>
+<span id="L248" class="line"><a href="#L248">248</a>    return &quot;IceBreakingOpened&quot; .. tostring(self:getPeriodId()) .. tostring(self:getGiftTriggerTimes())</span>
+<span id="L249" class="line"><a href="#L249">249</a>end</span>
+<span id="L250" class="line"><a href="#L250">250</a></span>
+<span id="L251" class="line"><a href="#L251">251</a>function IceBreakingGiftModule:_isUserNotOpened()</span>
+<span id="L252" class="line"><a href="#L252">252</a>    -- do return true end --debug</span>
+<span id="L253" class="line"><a href="#L253">253</a>    --强弹 玩家是否点击过</span>
+<span id="L254" class="line"><a href="#L254">254</a>    local isUserClicked = self:getFlagFromLocalByKey(self:_getLocalOpenedKey(), false)</span>
+<span id="L255" class="line"><a href="#L255">255</a>    if EnvUtil:isDevelopMode() then printx(48, &quot;IceBreakingGiftModule:isUserClicked=&quot;, isUserClicked) end</span>
+<span id="L256" class="line"><a href="#L256">256</a>    return not isUserClicked</span>
+<span id="L257" class="line"><a href="#L257">257</a>end</span>
+<span id="L258" class="line"><a href="#L258">258</a></span>
+<span id="L259" class="line"><a href="#L259">259</a>function IceBreakingGiftModule:setUserOpened()</span>
+<span id="L260" class="line"><a href="#L260">260</a>    self:setFlagToLocalByKey(self:_getLocalOpenedKey(), false, true)</span>
+<span id="L261" class="line"><a href="#L261">261</a>end</span>
+<span id="L262" class="line"><a href="#L262">262</a></span>
+<span id="L263" class="line"><a href="#L263">263</a>function IceBreakingGiftModule:onActEnterStage2()</span>
+<span id="L264" class="line"><a href="#L264">264</a>    -- printx(48, &quot;[gk] onActEnterStage2&quot;)</span>
+<span id="L265" class="line"><a href="#L265">265</a>    if not self.packageData then return end</span>
+<span id="L266" class="line"><a href="#L266">266</a></span>
+<span id="L267" class="line"><a href="#L267">267</a>    self._isStage2Check = true</span>
+<span id="L268" class="line"><a href="#L268">268</a>    local canAutoPopup = self:_isUserNotOpened()</span>
+<span id="L269" class="line"><a href="#L269">269</a>    if canAutoPopup then</span>
+<span id="L270" class="line"><a href="#L270">270</a>        -- &gt;6级 强弹，优先级小于签到高于其他</span>
+<span id="L271" class="line"><a href="#L271">271</a>        local userLevel = _G.amfBean(&quot;UserManager&quot;):getTopLevelId()</span>
+<span id="L272" class="line"><a href="#L272">272</a>        canAutoPopup = userLevel &gt; 6</span>
+<span id="L273" class="line"><a href="#L273">273</a>    end</span>
+<span id="L274" class="line"><a href="#L274">274</a>    if not canAutoPopup then return end</span>
+<span id="L275" class="line"><a href="#L275">275</a>    self:tryAutoPopup()</span>
+<span id="L276" class="line"><a href="#L276">276</a>end</span>
+<span id="L277" class="line"><a href="#L277">277</a></span>
+<span id="L278" class="line"><a href="#L278">278</a>function IceBreakingGiftModule:onActEnterStage4()</span>
+<span id="L279" class="line"><a href="#L279">279</a>    if not self.packageData then return end</span>
+<span id="L280" class="line"><a href="#L280">280</a>    local canAutoPopup = self:_isUserNotOpened()</span>
+<span id="L281" class="line"><a href="#L281">281</a>    if canAutoPopup then</span>
+<span id="L282" class="line"><a href="#L282">282</a>        -- ==6级 强弹优先级最高</span>
+<span id="L283" class="line"><a href="#L283">283</a>        local userLevel = _G.amfBean(&quot;UserManager&quot;):getTopLevelId()</span>
+<span id="L284" class="line"><a href="#L284">284</a>        canAutoPopup = userLevel &gt; 5</span>
+<span id="L285" class="line"><a href="#L285">285</a>    end</span>
+<span id="L286" class="line"><a href="#L286">286</a>    if not canAutoPopup then return end</span>
+<span id="L287" class="line"><a href="#L287">287</a>    self:tryAutoPopup()</span>
+<span id="L288" class="line"><a href="#L288">288</a>end</span>
+<span id="L289" class="line"><a href="#L289">289</a></span>
+<span id="L290" class="line"><a href="#L290">290</a>function IceBreakingGiftModule:tryAutoPopup()</span>
+<span id="L291" class="line"><a href="#L291">291</a>    if not self.packageData then return end</span>
+<span id="L292" class="line"><a href="#L292">292</a>    if self.packageData.stageType == GiftPackageConst.StageType.STORE then</span>
+<span id="L293" class="line"><a href="#L293">293</a>        return</span>
+<span id="L294" class="line"><a href="#L294">294</a>    end</span>
+<span id="L295" class="line"><a href="#L295">295</a></span>
+<span id="L296" class="line"><a href="#L296">296</a>    local popupKey = self:getGiftTriggerTimes() == 2 and PopupCheckPoint.ICE_BREAKING_GIFT_POP_T2 or PopupCheckPoint.ICE_BREAKING_GIFT_POP</span>
+<span id="L297" class="line"><a href="#L297">297</a>    local function onHandleOver()</span>
+<span id="L298" class="line"><a href="#L298">298</a>        AutoPopEventCenter:dispatch(AutoPopEvent.SINGLE_POP_OVER, popupKey)</span>
+<span id="L299" class="line"><a href="#L299">299</a>    end</span>
+<span id="L300" class="line"><a href="#L300">300</a></span>
+<span id="L301" class="line"><a href="#L301">301</a>    local creator = function ()</span>
+<span id="L302" class="line"><a href="#L302">302</a>        if not self:_isUserNotOpened() then</span>
+<span id="L303" class="line"><a href="#L303">303</a>            safeRunCall(onHandleOver)</span>
+<span id="L304" class="line"><a href="#L304">304</a>            return</span>
+<span id="L305" class="line"><a href="#L305">305</a>        end</span>
+<span id="L306" class="line"><a href="#L306">306</a>        ---@type UeAMFBasePanelVM</span>
+<span id="L307" class="line"><a href="#L307">307</a>        local vm = self:doCreateGiftView(true)</span>
+<span id="L308" class="line"><a href="#L308">308</a>        if not vm then</span>
+<span id="L309" class="line"><a href="#L309">309</a>            safeRunCall(onHandleOver)</span>
+<span id="L310" class="line"><a href="#L310">310</a>            return</span>
+<span id="L311" class="line"><a href="#L311">311</a>        end</span>
+<span id="L312" class="line"><a href="#L312">312</a>        if vm.setCloseCallback then</span>
+<span id="L313" class="line"><a href="#L313">313</a>            vm:setCloseCallback(onHandleOver)</span>
+<span id="L314" class="line"><a href="#L314">314</a>        else</span>
+<span id="L315" class="line"><a href="#L315">315</a>            printx(48, &quot;[gk] IceBreakingGiftModule why logcenter vm.setCloseCallback is nil?&quot;)</span>
+<span id="L316" class="line"><a href="#L316">316</a>            safeRunCall(onHandleOver)</span>
+<span id="L317" class="line"><a href="#L317">317</a>        end</span>
+<span id="L318" class="line"><a href="#L318">318</a></span>
+<span id="L319" class="line"><a href="#L319">319</a>        if vm.setLoadResFailCallback then vm:setLoadResFailCallback(onHandleOver) end</span>
+<span id="L320" class="line"><a href="#L320">320</a>        vm:popout()</span>
+<span id="L321" class="line"><a href="#L321">321</a>    end</span>
+<span id="L322" class="line"><a href="#L322">322</a></span>
+<span id="L323" class="line"><a href="#L323">323</a>    -- _G.amfBean(&quot;AutoPopupMgr&quot;):addPopupConfig(popupKey, creator)</span>
+<span id="L324" class="line"><a href="#L324">324</a>    local autoPopupMgr = _G.amfBean(&quot;AutoPopupMgr&quot;)</span>
+<span id="L325" class="line"><a href="#L325">325</a>    autoPopupMgr:addPopupConfig(popupKey, creator)</span>
+<span id="L326" class="line"><a href="#L326">326</a>    if not autoPopupMgr:isRunnning() then</span>
+<span id="L327" class="line"><a href="#L327">327</a>        autoPopupMgr:triggerStage2AutoPopup()</span>
+<span id="L328" class="line"><a href="#L328">328</a>    end</span>
+<span id="L329" class="line"><a href="#L329">329</a>end</span>
+<span id="L330" class="line"><a href="#L330">330</a></span>
+<span id="L331" class="line"><a href="#L331">331</a></span>
+<span id="L332" class="line"><a href="#L332">332</a>function IceBreakingGiftModule:onActPlayLevelEnd(evt)</span>
+<span id="L333" class="line"><a href="#L333">333</a>    --过关</span>
+<span id="L334" class="line"><a href="#L334">334</a>    if not evt then return end</span>
+<span id="L335" class="line"><a href="#L335">335</a>    local data = evt.data</span>
+<span id="L336" class="line"><a href="#L336">336</a>    if data and data.isWin and self.moduleExtra then</span>
+<span id="L337" class="line"><a href="#L337">337</a>        self.moduleExtra.alreadyPassedLevel = (self.moduleExtra.alreadyPassedLevel or 0) + 1</span>
+<span id="L338" class="line"><a href="#L338">338</a>    end</span>
+<span id="L339" class="line"><a href="#L339">339</a>end</span>
+<span id="L340" class="line"><a href="#L340">340</a>--endregion</span>
+<span id="L341" class="line"><a href="#L341">341</a></span>
+<span id="L342" class="line"><a href="#L342">342</a>--region store-购买成功</span>
+<span id="L343" class="line"><a href="#L343">343</a></span>
+<span id="L344" class="line"><a href="#L344">344</a></span>
+<span id="L345" class="line"><a href="#L345">345</a></span>
+<span id="L346" class="line"><a href="#L346">346</a>function IceBreakingGiftModule:onBuySuccess(storeGiftView)</span>
+<span id="L347" class="line"><a href="#L347">347</a>    self:onBuySuccessRemoveView(storeGiftView)</span>
+<span id="L348" class="line"><a href="#L348">348</a>end</span>
+<span id="L349" class="line"><a href="#L349">349</a></span>
+<span id="L350" class="line"><a href="#L350">350</a>--- 判断购买成功是否删除</span>
+<span id="L351" class="line"><a href="#L351">351</a>---@param storeGiftView StoreBaseGiftView</span>
+<span id="L352" class="line"><a href="#L352">352</a>function IceBreakingGiftModule:onBuySuccessRemoveView(storeGiftView)</span>
+<span id="L353" class="line"><a href="#L353">353</a>    if not storeGiftView or not storeGiftView.giftData then return end</span>
+<span id="L354" class="line"><a href="#L354">354</a>    local giftData = storeGiftView.giftData</span>
+<span id="L355" class="line"><a href="#L355">355</a>    if giftData:isLimited() then</span>
+<span id="L356" class="line"><a href="#L356">356</a>        storeGiftView:removeSelf()</span>
+<span id="L357" class="line"><a href="#L357">357</a>        self:removeIcon()</span>
+<span id="L358" class="line"><a href="#L358">358</a>    end</span>
+<span id="L359" class="line"><a href="#L359">359</a>end</span>
+<span id="L360" class="line"><a href="#L360">360</a></span>
+<span id="L361" class="line"><a href="#L361">361</a>--endregion</span>
+<span id="L362" class="line"><a href="#L362">362</a></span>
+<span id="L363" class="line"><a href="#L363">363</a></span>
+<span id="L364" class="line"><a href="#L364">364</a>--region 打点相关</span>
+<span id="L365" class="line"><a href="#L365">365</a></span>
+<span id="L366" class="line"><a href="#L366">366</a>function IceBreakingGiftModule:_initRmbTracer(userClick)</span>
+<span id="L367" class="line"><a href="#L367">367</a>    self._rmbTracer = PaymentTracer.createRMBPayTracer(</span>
+<span id="L368" class="line"><a href="#L368">368</a>        self.dcFeature,</span>
+<span id="L369" class="line"><a href="#L369">369</a>        self.dcSource,</span>
+<span id="L370" class="line"><a href="#L370">370</a>        self.packageData:getGoodsId(),</span>
+<span id="L371" class="line"><a href="#L371">371</a>        userClick and DCPayProgressPayPanelShowType.kUserClick or DCPayProgressPayPanelShowType.kAutoPopout</span>
+<span id="L372" class="line"><a href="#L372">372</a>    )</span>
+<span id="L373" class="line"><a href="#L373">373</a>    return self._rmbTracer</span>
+<span id="L374" class="line"><a href="#L374">374</a>end</span>
+<span id="L375" class="line"><a href="#L375">375</a></span>
+<span id="L376" class="line"><a href="#L376">376</a>function IceBreakingGiftModule:dcShow()</span>
+<span id="L377" class="line"><a href="#L377">377</a>    if not self._rmbTracer then return end</span>
+<span id="L378" class="line"><a href="#L378">378</a>    self._rmbTracer:show()</span>
+<span id="L379" class="line"><a href="#L379">379</a>end</span>
+<span id="L380" class="line"><a href="#L380">380</a></span>
+<span id="L381" class="line"><a href="#L381">381</a>function IceBreakingGiftModule:requestBuy(succCallback, failCallback)</span>
+<span id="L382" class="line"><a href="#L382">382</a>    if not _G.amfBean(&quot;NetworkStatusManager&quot;):isNetworkEnabled() then</span>
+<span id="L383" class="line"><a href="#L383">383</a>        CommonTip:showTip(&quot;网络异常，请检查网络~&quot;)</span>
+<span id="L384" class="line"><a href="#L384">384</a>        safeRunCall(failCallback)</span>
+<span id="L385" class="line"><a href="#L385">385</a>        return</span>
+<span id="L386" class="line"><a href="#L386">386</a>    end</span>
+<span id="L387" class="line"><a href="#L387">387</a>    local package = self.packageData</span>
+<span id="L388" class="line"><a href="#L388">388</a>    if not package then</span>
+<span id="L389" class="line"><a href="#L389">389</a>        safeRunCall(failCallback)</span>
+<span id="L390" class="line"><a href="#L390">390</a>        return</span>
+<span id="L391" class="line"><a href="#L391">391</a>    end</span>
+<span id="L392" class="line"><a href="#L392">392</a></span>
+<span id="L393" class="line"><a href="#L393">393</a>    local goodsId = package:getGoodsId()</span>
+<span id="L394" class="line"><a href="#L394">394</a></span>
+<span id="L395" class="line"><a href="#L395">395</a>    local function onSuccess(evt)</span>
+<span id="L396" class="line"><a href="#L396">396</a>        self._rmbTracer:paySuccess()</span>
+<span id="L397" class="line"><a href="#L397">397</a>        self:removeIcon()</span>
+<span id="L398" class="line"><a href="#L398">398</a>        safeRunCall(succCallback)</span>
+<span id="L399" class="line"><a href="#L399">399</a></span>
+<span id="L400" class="line"><a href="#L400">400</a>        local showRewards = package:getItems()</span>
+<span id="L401" class="line"><a href="#L401">401</a>        local ShowRewardsPanelVM = require &quot;amf.middleware.ui.kit.panel.reward.ShowRewardsPanelVM&quot;</span>
+<span id="L402" class="line"><a href="#L402">402</a>        local vm = ShowRewardsPanelVM.Builder.new()</span>
+<span id="L403" class="line"><a href="#L403">403</a>            :setTitle(&quot;恭喜获得&quot;)</span>
+<span id="L404" class="line"><a href="#L404">404</a>            :setRewards(showRewards)</span>
+<span id="L405" class="line"><a href="#L405">405</a>            :setCloseCallback(function ()</span>
+<span id="L406" class="line"><a href="#L406">406</a></span>
+<span id="L407" class="line"><a href="#L407">407</a>            end)</span>
+<span id="L408" class="line"><a href="#L408">408</a>            :setButtonText(&quot;收下&quot;)</span>
+<span id="L409" class="line"><a href="#L409">409</a>            :build()</span>
+<span id="L410" class="line"><a href="#L410">410</a>        vm:popout()</span>
+<span id="L411" class="line"><a href="#L411">411</a>    end</span>
+<span id="L412" class="line"><a href="#L412">412</a></span>
+<span id="L413" class="line"><a href="#L413">413</a>    local function onFail(evt)</span>
+<span id="L414" class="line"><a href="#L414">414</a>        self._rmbTracer:payFail()</span>
+<span id="L415" class="line"><a href="#L415">415</a>        safeRunCall(failCallback)</span>
+<span id="L416" class="line"><a href="#L416">416</a>    end</span>
+<span id="L417" class="line"><a href="#L417">417</a></span>
+<span id="L418" class="line"><a href="#L418">418</a>    local function onCancel()</span>
+<span id="L419" class="line"><a href="#L419">419</a>        self._rmbTracer:payCancel()</span>
+<span id="L420" class="line"><a href="#L420">420</a>        safeRunCall(failCallback)</span>
+<span id="L421" class="line"><a href="#L421">421</a>    end</span>
+<span id="L422" class="line"><a href="#L422">422</a></span>
+<span id="L423" class="line"><a href="#L423">423</a>    self.newGift_stage = &quot;bigVineScene&quot;</span>
+<span id="L424" class="line"><a href="#L424">424</a>    self.moduleName = &quot;discountBreakIce&quot;</span>
+<span id="L425" class="line"><a href="#L425">425</a></span>
+<span id="L426" class="line"><a href="#L426">426</a>    local buyContext = BuyContext.new(goodsId, MoneyType.kRmb)</span>
+<span id="L427" class="line"><a href="#L427">427</a>        :setFeatureAndSource(self.dcFeature, self.dcSource)</span>
+<span id="L428" class="line"><a href="#L428">428</a>        :setBuyCount(1)</span>
+<span id="L429" class="line"><a href="#L429">429</a>        :setCallback(onSuccess, onFail, onCancel)</span>
+<span id="L430" class="line"><a href="#L430">430</a>        :setUnifiedBuy(true, self.newGift_stage, self.moduleName)</span>
+<span id="L431" class="line"><a href="#L431">431</a>    _G.amfTransaction(TransactionEvent.PAY, buyContext)</span>
+<span id="L432" class="line"><a href="#L432">432</a>    self._rmbTracer:click()</span>
+<span id="L433" class="line"><a href="#L433">433</a>end</span>
+<span id="L434" class="line"><a href="#L434">434</a></span>
+<span id="L435" class="line"><a href="#L435">435</a></span>
+<span id="L436" class="line"><a href="#L436">436</a>--endregion</span>
+<span id="L437" class="line"><a href="#L437">437</a></span>
+<span id="L438" class="line"><a href="#L438">438</a></span>
+<span id="L439" class="line"><a href="#L439">439</a>--region 音效</span>
+<span id="L440" class="line"><a href="#L440">440</a></span>
+<span id="L441" class="line"><a href="#L441">441</a>IceBreakingGiftModule.Sound = {</span>
+<span id="L442" class="line"><a href="#L442">442</a>    ENTER_PANEL = 1, --进入面板</span>
+<span id="L443" class="line"><a href="#L443">443</a>    BOTTOMUI = 2, --嗖声音,无折扣不播放</span>
+<span id="L444" class="line"><a href="#L444">444</a>    SMASH = 3, --砸字</span>
+<span id="L445" class="line"><a href="#L445">445</a></span>
+<span id="L446" class="line"><a href="#L446">446</a>}</span>
+<span id="L447" class="line"><a href="#L447">447</a>function IceBreakingGiftModule:playEffect(type)</span>
+<span id="L448" class="line"><a href="#L448">448</a>    local file = string.format(&quot;amf/icebreaking/sound/ib_%d.mp3&quot;, type)</span>
+<span id="L449" class="line"><a href="#L449">449</a>    GamePlayMusicPlayer.getInstance():playEffect(file, nil, false)</span>
+<span id="L450" class="line"><a href="#L450">450</a>end</span>
+<span id="L451" class="line"><a href="#L451">451</a></span>
+<span id="L452" class="line"><a href="#L452">452</a>--endregion</span>
+<span id="L453" class="line"><a href="#L453">453</a></span>
+<span id="L454" class="line"><a href="#L454">454</a>-- home尝试更新 onSystemEnterForeground</span>
+<span id="L455" class="line"><a href="#L455">455</a>function IceBreakingGiftModule:onSystemEnterForeground()</span>
+<span id="L456" class="line"><a href="#L456">456</a>    -- printx(48, &quot;[gk]IceBreakingGiftModule:onSystemEnterForeground&quot;)</span>
+<span id="L457" class="line"><a href="#L457">457</a>    if self:needUpdate() then</span>
+<span id="L458" class="line"><a href="#L458">458</a>        GiftEventCenter:dispatch(GiftEvent.STAGE_UPDATE, {</span>
+<span id="L459" class="line"><a href="#L459">459</a>			stageType = GiftPackageConst.StageType.VINE_SCENE,</span>
+<span id="L460" class="line"><a href="#L460">460</a>		})</span>
+<span id="L461" class="line"><a href="#L461">461</a>    end</span>
+<span id="L462" class="line"><a href="#L462">462</a>end</span>
+<span id="L463" class="line"><a href="#L463">463</a></span>
+<span id="L464" class="line"><a href="#L464">464</a></span>
+<span id="L465" class="line"><a href="#L465">465</a>function IceBreakingGiftModule:parseModuleExtra(value)</span>
+<span id="L466" class="line"><a href="#L466">466</a>    self.moduleExtra = table.deserialize(value or &quot;&quot;) or {}</span>
+<span id="L467" class="line"><a href="#L467">467</a>    local status = self.moduleExtra.status or 0</span>
+<span id="L468" class="line"><a href="#L468">468</a>    if EnvUtil:isDevelopMode() then printx(48, &quot;IceBreakingGiftModule:parseModuleExtra status=&quot;,status) end</span>
+<span id="L469" class="line"><a href="#L469">469</a>    if status == 0 then</span>
+<span id="L470" class="line"><a href="#L470">470</a>        self:remove()</span>
+<span id="L471" class="line"><a href="#L471">471</a>    end</span>
+<span id="L472" class="line"><a href="#L472">472</a>end</span>
+<span id="L473" class="line"><a href="#L473">473</a></span>
+<span id="L474" class="line"><a href="#L474">474</a>return IceBreakingGiftModule</span></pre></main></html>

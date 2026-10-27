@@ -1,0 +1,1348 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/dailyreward/promotedaily/view/MainPanelVM.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="eeab8e23ee5c.lua" download>下载Lua原文</a></p><h1>amf/feature/dailyreward/promotedaily/view/MainPanelVM.lua</h1><p>SHA256 1227d8830582f57efa1dd106b6a02dfa857255c1bdc0579c966e0e0bd75c2c7e</p><pre><span id="L1" class="line"><a href="#L1">1</a>local MainPanelConfig = require &quot;amf.feature.dailyreward.promotedaily.config.MainPanelConfig&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local PromoteDailyEventCenter = require &quot;amf.feature.dailyreward.promotedaily.event.PromoteDailyEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local MedalShowPanelVM = require &quot;amf.feature.dailyreward.promotedaily.view.MedalShowPanelVM&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local deferred = require &quot;amf.script.sugar.deferred&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>local TimeUtil = require &quot;amf.middleware.ui.util.TimeUtil&quot;</span>
+<span id="L6" class="line"><a href="#L6">6</a>local Utils = require &quot;amf.feature.dailyreward.promotedaily.util.Utils&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local ScreenShotEventCenter = require &quot;amf.testtrack.dc.screenshot.event.ScreenShotEventCenter&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>local MainPanelVM = class(&quot;PromoteDailyMainPanelVM&quot;, AMFBasePanelVM)</span>
+<span id="L9" class="line"><a href="#L9">9</a></span>
+<span id="L10" class="line"><a href="#L10">10</a>local EVENT_BINDINGS = {</span>
+<span id="L11" class="line"><a href="#L11">11</a>    {PromoteDailyEvent.OPEN_HELP_PANEL, &quot;openHelpPanel&quot;},</span>
+<span id="L12" class="line"><a href="#L12">12</a>    {PromoteDailyEvent.OPEN_7DAY_PANEL, &quot;open7DayPanel&quot;},</span>
+<span id="L13" class="line"><a href="#L13">13</a>    {PromoteDailyEvent.GET_7DAY_REWARD, &quot;on7DayRewardTapped&quot;},</span>
+<span id="L14" class="line"><a href="#L14">14</a>    {PromoteDailyEvent.OPEN_MONTH_ALLREWARD_PANEL, &quot;openMonthAllRewardPanel&quot;},</span>
+<span id="L15" class="line"><a href="#L15">15</a>    {PromoteDailyEvent.CLICK_TO_RECOVER, &quot;onClickToRecover&quot;},</span>
+<span id="L16" class="line"><a href="#L16">16</a>    {PromoteDailyEvent.CLICK_TO_LEVEL, &quot;onGoToLevel&quot;},</span>
+<span id="L17" class="line"><a href="#L17">17</a>    {PromoteDailyEvent.SHOW_MEDAL_PANEL, &quot;clickToShowMedalPanel&quot;},</span>
+<span id="L18" class="line"><a href="#L18">18</a>    {PromoteDailyEvent.EVENT_SIGN_SUCCESS, &quot;onSignSuccess&quot;},</span>
+<span id="L19" class="line"><a href="#L19">19</a>    {PromoteDailyEvent.CLICK_TO_MAKEUP, &quot;onClickToMakeUp&quot;},</span>
+<span id="L20" class="line"><a href="#L20">20</a>    {PromoteDailyEvent.ADD_OUTCLICK_LAYER, &quot;onAddOutClickLayer&quot;},</span>
+<span id="L21" class="line"><a href="#L21">21</a>    {PromoteDailyEvent.RM_OUTCLICK_LAYER, &quot;onRemoveOutClickLayer&quot;},</span>
+<span id="L22" class="line"><a href="#L22">22</a>    {PromoteDailyEvent.MAIN_CLICK_DC, &quot;onMainClickDC&quot;},</span>
+<span id="L23" class="line"><a href="#L23">23</a>    {PromoteDailyEvent.OPEN_HIGH_LIGHT_PANEL, &quot;onOpenHighLightPanel&quot;},</span>
+<span id="L24" class="line"><a href="#L24">24</a>    {PromoteDailyEvent.OPEN_BUY_SHIELD_PANEL, &quot;openBuyShieldPanel&quot;},</span>
+<span id="L25" class="line"><a href="#L25">25</a>    {PromoteDailyEvent.OPEN_TASK_PREVIEW_PANEL, &quot;openTaskPreviewPanel&quot;},</span>
+<span id="L26" class="line"><a href="#L26">26</a>    {PromoteDailyEvent.OPEN_LITTLETIP_PANEL, &quot;openLittleTipPanel&quot;},</span>
+<span id="L27" class="line"><a href="#L27">27</a>    {PromoteDailyEvent.GET_NEW_TASKREWARD, &quot;on7DayRewardTapped&quot;},</span>
+<span id="L28" class="line"><a href="#L28">28</a>    {PromoteDailyEvent.UPDATE_SHILED_NODE, &quot;onRefreshShieldNode&quot;},</span>
+<span id="L29" class="line"><a href="#L29">29</a>    {PromoteDailyEvent.REPAIR_ACT_UPDATE, &quot;onRepairActUpdate&quot;},</span>
+<span id="L30" class="line"><a href="#L30">30</a>}</span>
+<span id="L31" class="line"><a href="#L31">31</a></span>
+<span id="L32" class="line"><a href="#L32">32</a>function MainPanelVM:_createPanel(delegate)</span>
+<span id="L33" class="line"><a href="#L33">33</a>    local MVVMEmptyPanel = require_debug &quot;amf.feature.dailyreward.promotedaily.view.MainPanel&quot;</span>
+<span id="L34" class="line"><a href="#L34">34</a>    local panel = MVVMEmptyPanel:create(MainPanelVM, delegate)</span>
+<span id="L35" class="line"><a href="#L35">35</a>    return panel</span>
+<span id="L36" class="line"><a href="#L36">36</a>end</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>function MainPanelVM:init(delegate)</span>
+<span id="L39" class="line"><a href="#L39">39</a>    delegate = delegate or {} </span>
+<span id="L40" class="line"><a href="#L40">40</a>    self:setCloseCallback(delegate.closeCallback)</span>
+<span id="L41" class="line"><a href="#L41">41</a>    self._promoteDailyMgr = _G.amfBean(&quot;PromoteDailyMgr&quot;)</span>
+<span id="L42" class="line"><a href="#L42">42</a>    self._subMsgMgr = _G.amfBean(&quot;SubMsgManager&quot;)</span>
+<span id="L43" class="line"><a href="#L43">43</a>    self._assetsUtil = _G.amfBean(&quot;AssetsUtil&quot;)</span>
+<span id="L44" class="line"><a href="#L44">44</a>    self._retainResMap = {}</span>
+<span id="L45" class="line"><a href="#L45">45</a>    self._yearResLoadMap = {}</span>
+<span id="L46" class="line"><a href="#L46">46</a>    self._navigationGeneration = 0</span>
+<span id="L47" class="line"><a href="#L47">47</a>    self:resetInfo()</span>
+<span id="L48" class="line"><a href="#L48">48</a>    self:registerEvent()</span>
+<span id="L49" class="line"><a href="#L49">49</a></span>
+<span id="L50" class="line"><a href="#L50">50</a>    -- 点进来就标记已经引导</span>
+<span id="L51" class="line"><a href="#L51">51</a>    if not self._promoteDailyMgr:hasGuideIndex(PromoteDailyConst.GuideId.ID2) then</span>
+<span id="L52" class="line"><a href="#L52">52</a>        self._promoteDailyMgr:addGuideIndex(PromoteDailyConst.GuideId.ID2)</span>
+<span id="L53" class="line"><a href="#L53">53</a>    end</span>
+<span id="L54" class="line"><a href="#L54">54</a></span>
+<span id="L55" class="line"><a href="#L55">55</a>    self.panelId = UICreateUtil:getPanelId(&quot;PromoteDailyMain&quot;)</span>
+<span id="L56" class="line"><a href="#L56">56</a>    -- 打点</span>
+<span id="L57" class="line"><a href="#L57">57</a>    local t1 = delegate.t1 or 2</span>
+<span id="L58" class="line"><a href="#L58">58</a>    local t2 = self._promoteDailyMgr:getContinousPassDayCount()</span>
+<span id="L59" class="line"><a href="#L59">59</a>    local t3 = 2</span>
+<span id="L60" class="line"><a href="#L60">60</a>    if self._promoteDailyMgr:getTaskCanReward() then</span>
+<span id="L61" class="line"><a href="#L61">61</a>        t3 = 1</span>
+<span id="L62" class="line"><a href="#L62">62</a>    elseif self._promoteDailyMgr:getTaskRewarded() then</span>
+<span id="L63" class="line"><a href="#L63">63</a>        t3 = 3</span>
+<span id="L64" class="line"><a href="#L64">64</a>    end</span>
+<span id="L65" class="line"><a href="#L65">65</a>    local t4 = self._promoteDailyMgr:getTodaySignState() == PromoteDailyConst.SignState.NONE and 2 or 1</span>
+<span id="L66" class="line"><a href="#L66">66</a>    local param = {</span>
+<span id="L67" class="line"><a href="#L67">67</a>        panel_id = self.panelId,</span>
+<span id="L68" class="line"><a href="#L68">68</a>        t1 = t1,</span>
+<span id="L69" class="line"><a href="#L69">69</a>        t2 = t2,</span>
+<span id="L70" class="line"><a href="#L70">70</a>        t3 = t3,</span>
+<span id="L71" class="line"><a href="#L71">71</a>        t4 = t4</span>
+<span id="L72" class="line"><a href="#L72">72</a>    }</span>
+<span id="L73" class="line"><a href="#L73">73</a>    self:handleMainDcParam(param)</span>
+<span id="L74" class="line"><a href="#L74">74</a>    self._promoteDailyMgr:dc(PromoteDailyConst.FEATURE, &quot;main_panel_show&quot;, param)</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>    self:_initCanPlayNewToOldAnim()</span>
+<span id="L77" class="line"><a href="#L77">77</a>    self:_initShiledState()</span>
+<span id="L78" class="line"><a href="#L78">78</a>end</span>
+<span id="L79" class="line"><a href="#L79">79</a></span>
+<span id="L80" class="line"><a href="#L80">80</a>function MainPanelVM:_initShiledState()</span>
+<span id="L81" class="line"><a href="#L81">81</a>    -- 记录被保护的数据列表，动画用</span>
+<span id="L82" class="line"><a href="#L82">82</a>    self._shieldDateList = {}</span>
+<span id="L83" class="line"><a href="#L83">83</a>    local useList = self._promoteDailyMgr:getShieldRecordList(true)</span>
+<span id="L84" class="line"><a href="#L84">84</a>    if #useList &gt; 0 then</span>
+<span id="L85" class="line"><a href="#L85">85</a>        self._shieldDateList = self._promoteDailyMgr:getShiledDateInfoByLimit(#useList &gt; 2 and 2 or #useList)</span>
+<span id="L86" class="line"><a href="#L86">86</a>        -- 获取使用的盾牌最早的获得时间</span>
+<span id="L87" class="line"><a href="#L87">87</a>        local minOwnDayNum</span>
+<span id="L88" class="line"><a href="#L88">88</a>        for i, v in ipairs(useList) do</span>
+<span id="L89" class="line"><a href="#L89">89</a>            local dayNum = TimeUtil:getDayIdxSince1970(v.showTime)</span>
+<span id="L90" class="line"><a href="#L90">90</a>            minOwnDayNum = minOwnDayNum and math.min(minOwnDayNum, dayNum) or dayNum</span>
+<span id="L91" class="line"><a href="#L91">91</a>        end</span>
+<span id="L92" class="line"><a href="#L92">92</a>        -- 如果比获取时间早就丢弃</span>
+<span id="L93" class="line"><a href="#L93">93</a>        for i = #self._shieldDateList, 1, -1 do</span>
+<span id="L94" class="line"><a href="#L94">94</a>            local data = self._shieldDateList[i]</span>
+<span id="L95" class="line"><a href="#L95">95</a>            local dayNum = data.dayNum</span>
+<span id="L96" class="line"><a href="#L96">96</a>            if minOwnDayNum and dayNum &lt; minOwnDayNum then</span>
+<span id="L97" class="line"><a href="#L97">97</a>                table.remove(self._shieldDateList, i)</span>
+<span id="L98" class="line"><a href="#L98">98</a>            end</span>
+<span id="L99" class="line"><a href="#L99">99</a>        end</span>
+<span id="L100" class="line"><a href="#L100">100</a>        -- 这里判断有没有播过</span>
+<span id="L101" class="line"><a href="#L101">101</a>        for i = #self._shieldDateList, 1, -1 do</span>
+<span id="L102" class="line"><a href="#L102">102</a>            local data = self._shieldDateList[i]</span>
+<span id="L103" class="line"><a href="#L103">103</a>            local dayNum = data.dayNum</span>
+<span id="L104" class="line"><a href="#L104">104</a>            if self._promoteDailyMgr:isUseShieldShowed(dayNum) then</span>
+<span id="L105" class="line"><a href="#L105">105</a>                table.remove(self._shieldDateList, i)</span>
+<span id="L106" class="line"><a href="#L106">106</a>            end</span>
+<span id="L107" class="line"><a href="#L107">107</a>        end</span>
+<span id="L108" class="line"><a href="#L108">108</a></span>
+<span id="L109" class="line"><a href="#L109">109</a>        if #self._shieldDateList &gt; 0 then</span>
+<span id="L110" class="line"><a href="#L110">110</a>            self._initAddCount = #self._shieldDateList</span>
+<span id="L111" class="line"><a href="#L111">111</a>            self._promoteDailyMgr:addShieldNum(#self._shieldDateList)</span>
+<span id="L112" class="line"><a href="#L112">112</a>        end</span>
+<span id="L113" class="line"><a href="#L113">113</a>    end</span>
+<span id="L114" class="line"><a href="#L114">114</a>    local ownList = self._promoteDailyMgr:getShieldRecordList(false)</span>
+<span id="L115" class="line"><a href="#L115">115</a>    -- 先把数据改了，后边会再刷回来</span>
+<span id="L116" class="line"><a href="#L116">116</a>    if #ownList &gt; 0 then</span>
+<span id="L117" class="line"><a href="#L117">117</a>        -- 有获得也有使用，直接把第一次赠送标记加上</span>
+<span id="L118" class="line"><a href="#L118">118</a>        if #useList &gt; 0 then</span>
+<span id="L119" class="line"><a href="#L119">119</a>            self._promoteDailyMgr:addGuideIndex(PromoteDailyConst.GuideId.FIRST_OWN_SHIELD)</span>
+<span id="L120" class="line"><a href="#L120">120</a>        end</span>
+<span id="L121" class="line"><a href="#L121">121</a>        self._initMinusCount = #ownList</span>
+<span id="L122" class="line"><a href="#L122">122</a>        -- 如果获得了盾牌,先减去</span>
+<span id="L123" class="line"><a href="#L123">123</a>        self._promoteDailyMgr:addShieldNum(-#ownList)</span>
+<span id="L124" class="line"><a href="#L124">124</a>        self._promoteDailyMgr:setIconTipPopCount(0)</span>
+<span id="L125" class="line"><a href="#L125">125</a>        local title = &quot;&quot;</span>
+<span id="L126" class="line"><a href="#L126">126</a>        for i, v in ipairs(ownList) do</span>
+<span id="L127" class="line"><a href="#L127">127</a>            local dayNum = TimeUtil:getDayIdxSince1970(v.showTime)</span>
+<span id="L128" class="line"><a href="#L128">128</a>            local date = Utils:getYMDByDayCount(dayNum)</span>
+<span id="L129" class="line"><a href="#L129">129</a>            if title == &quot;&quot; then</span>
+<span id="L130" class="line"><a href="#L130">130</a>                title = date.month</span>
+<span id="L131" class="line"><a href="#L131">131</a>            else</span>
+<span id="L132" class="line"><a href="#L132">132</a>                if title ~= date.month then</span>
+<span id="L133" class="line"><a href="#L133">133</a>                    title = title .. &quot;、&quot; .. date.month</span>
+<span id="L134" class="line"><a href="#L134">134</a>                end</span>
+<span id="L135" class="line"><a href="#L135">135</a>            end</span>
+<span id="L136" class="line"><a href="#L136">136</a>        end</span>
+<span id="L137" class="line"><a href="#L137">137</a>        title = title .. &quot;月免费赠送&quot;</span>
+<span id="L138" class="line"><a href="#L138">138</a>        if not self._promoteDailyMgr:hasGuideIndex(PromoteDailyConst.GuideId.FIRST_OWN_SHIELD) then</span>
+<span id="L139" class="line"><a href="#L139">139</a>            self._promoteDailyMgr:addGuideIndex(PromoteDailyConst.GuideId.FIRST_OWN_SHIELD)</span>
+<span id="L140" class="line"><a href="#L140">140</a>            title = &quot;免费赠送&quot;</span>
+<span id="L141" class="line"><a href="#L141">141</a>        end</span>
+<span id="L142" class="line"><a href="#L142">142</a>        self.getShieldTitle = title     </span>
+<span id="L143" class="line"><a href="#L143">143</a>    end</span>
+<span id="L144" class="line"><a href="#L144">144</a>end</span>
+<span id="L145" class="line"><a href="#L145">145</a></span>
+<span id="L146" class="line"><a href="#L146">146</a>function MainPanelVM:_nextNavigationGeneration()</span>
+<span id="L147" class="line"><a href="#L147">147</a>    self._navigationGeneration = self._navigationGeneration + 1</span>
+<span id="L148" class="line"><a href="#L148">148</a>    return self._navigationGeneration</span>
+<span id="L149" class="line"><a href="#L149">149</a>end</span>
+<span id="L150" class="line"><a href="#L150">150</a></span>
+<span id="L151" class="line"><a href="#L151">151</a>function MainPanelVM:_isNavigationCurrent(generation)</span>
+<span id="L152" class="line"><a href="#L152">152</a>    return not self.isDisposed and generation == self._navigationGeneration</span>
+<span id="L153" class="line"><a href="#L153">153</a>end</span>
+<span id="L154" class="line"><a href="#L154">154</a></span>
+<span id="L155" class="line"><a href="#L155">155</a>function MainPanelVM:_finishSupersededNavigation(navigation)</span>
+<span id="L156" class="line"><a href="#L156">156</a>    navigation:resolve({superseded = true})</span>
+<span id="L157" class="line"><a href="#L157">157</a>end</span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>function MainPanelVM:handleMainDcParam(param)</span>
+<span id="L160" class="line"><a href="#L160">160</a>    param.t3 = -1</span>
+<span id="L161" class="line"><a href="#L161">161</a>    if self._promoteDailyMgr:getDataValue(&quot;chooseTaskOK&quot;) then</span>
+<span id="L162" class="line"><a href="#L162">162</a>        local curTargetData = self._promoteDailyMgr:getCurTaskTargetData() or {}</span>
+<span id="L163" class="line"><a href="#L163">163</a>        param.t3 = curTargetData.target</span>
+<span id="L164" class="line"><a href="#L164">164</a>        local newTaskCanReward = self._promoteDailyMgr:hasTargetTaskCanReward()</span>
+<span id="L165" class="line"><a href="#L165">165</a>        param.t4 = 2</span>
+<span id="L166" class="line"><a href="#L166">166</a>        if newTaskCanReward then</span>
+<span id="L167" class="line"><a href="#L167">167</a>            param.t4 = 1</span>
+<span id="L168" class="line"><a href="#L168">168</a>        end</span>
+<span id="L169" class="line"><a href="#L169">169</a>    end</span>
+<span id="L170" class="line"><a href="#L170">170</a>    param.t5 = self._promoteDailyMgr:getTodaySignState() ~= PromoteDailyConst.SignState.NONE and 1 or 2</span>
+<span id="L171" class="line"><a href="#L171">171</a>    param.t6 = self._promoteDailyMgr:getTotalHandPropNum()</span>
+<span id="L172" class="line"><a href="#L172">172</a>    param.t7 = self._promoteDailyMgr:getShieldNum()</span>
+<span id="L173" class="line"><a href="#L173">173</a>    -- t8：是否处于重燃活动中（1 正常状态 / 2 在重燃活动中）</span>
+<span id="L174" class="line"><a href="#L174">174</a>    param.t8 = self._promoteDailyMgr:isRepairActInProgress() and 2 or 1</span>
+<span id="L175" class="line"><a href="#L175">175</a>end</span>
+<span id="L176" class="line"><a href="#L176">176</a></span>
+<span id="L177" class="line"><a href="#L177">177</a>function MainPanelVM:resetInfo()</span>
+<span id="L178" class="line"><a href="#L178">178</a>    self._year = self._promoteDailyMgr:getYear()</span>
+<span id="L179" class="line"><a href="#L179">179</a>    self._month = self._promoteDailyMgr:getMonth()</span>
+<span id="L180" class="line"><a href="#L180">180</a>    self._day = self._promoteDailyMgr:getDay()</span>
+<span id="L181" class="line"><a href="#L181">181</a>end</span>
+<span id="L182" class="line"><a href="#L182">182</a></span>
+<span id="L183" class="line"><a href="#L183">183</a>function MainPanelVM:firstLoadCompleted()</span>
+<span id="L184" class="line"><a href="#L184">184</a>    local uiContext, contextErr = MainPanelConfig:resolveMonthContext(self._year, self._month)</span>
+<span id="L185" class="line"><a href="#L185">185</a>    assert(uiContext, contextErr)</span>
+<span id="L186" class="line"><a href="#L186">186</a>    self:callViewFunc(&quot;initButton&quot;)</span>
+<span id="L187" class="line"><a href="#L187">187</a>    self:callViewFunc(&quot;initUI&quot;, {</span>
+<span id="L188" class="line"><a href="#L188">188</a>        year = self._year,</span>
+<span id="L189" class="line"><a href="#L189">189</a>        month = self._month,</span>
+<span id="L190" class="line"><a href="#L190">190</a>        day = self._day,</span>
+<span id="L191" class="line"><a href="#L191">191</a>        uiContext = uiContext,</span>
+<span id="L192" class="line"><a href="#L192">192</a>    })</span>
+<span id="L193" class="line"><a href="#L193">193</a>    self:callViewFunc(&quot;initHangTag&quot;)</span>
+<span id="L194" class="line"><a href="#L194">194</a>    self:callViewFunc(&quot;initShield&quot;)</span>
+<span id="L195" class="line"><a href="#L195">195</a>    local initialYearKey = tostring(self._year)</span>
+<span id="L196" class="line"><a href="#L196">196</a>    local initialYearRes = MainPanelConfig:getYearResList(self._year)</span>
+<span id="L197" class="line"><a href="#L197">197</a>    local transferred = self:callViewFunc(&quot;transferAutoYearResOwnership&quot;, initialYearRes) or {}</span>
+<span id="L198" class="line"><a href="#L198">198</a>    if #transferred &gt; 0 then</span>
+<span id="L199" class="line"><a href="#L199">199</a>        self._retainResMap[initialYearKey] = transferred</span>
+<span id="L200" class="line"><a href="#L200">200</a>    end</span>
+<span id="L201" class="line"><a href="#L201">201</a>    self._activeResYear = self._year</span>
+<span id="L202" class="line"><a href="#L202">202</a>    self:_updateView()</span>
+<span id="L203" class="line"><a href="#L203">203</a>end</span>
+<span id="L204" class="line"><a href="#L204">204</a></span>
+<span id="L205" class="line"><a href="#L205">205</a>-- function MainPanelVM:secondLoadCompleted()</span>
+<span id="L206" class="line"><a href="#L206">206</a>    </span>
+<span id="L207" class="line"><a href="#L207">207</a>-- end</span>
+<span id="L208" class="line"><a href="#L208">208</a></span>
+<span id="L209" class="line"><a href="#L209">209</a>-- 配置和数据是否可用</span>
+<span id="L210" class="line"><a href="#L210">210</a>function MainPanelVM:_isConfigAndDataEnabled(year, month)</span>
+<span id="L211" class="line"><a href="#L211">211</a>    local cfg = MainPanelConfig:isMonthSupported(year, month)</span>
+<span id="L212" class="line"><a href="#L212">212</a>    local data = self._promoteDailyMgr:getMonthDataByYM(year, month)</span>
+<span id="L213" class="line"><a href="#L213">213</a>    return cfg and data</span>
+<span id="L214" class="line"><a href="#L214">214</a>end</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>-- 更新箭头</span>
+<span id="L217" class="line"><a href="#L217">217</a>function MainPanelVM:_updateArrow()</span>
+<span id="L218" class="line"><a href="#L218">218</a>    local tarYear, tarMonth = Utils:getLeftYM(self._year, self._month)</span>
+<span id="L219" class="line"><a href="#L219">219</a>    if not self:_isConfigAndDataEnabled(tarYear, tarMonth) then</span>
+<span id="L220" class="line"><a href="#L220">220</a>        self:callViewFunc(&quot;setLeftArrowVisible&quot;, false)</span>
+<span id="L221" class="line"><a href="#L221">221</a>    else</span>
+<span id="L222" class="line"><a href="#L222">222</a>        self:callViewFunc(&quot;setLeftArrowVisible&quot;, true)</span>
+<span id="L223" class="line"><a href="#L223">223</a>    end</span>
+<span id="L224" class="line"><a href="#L224">224</a>    tarYear, tarMonth = Utils:getRightYM(self._year, self._month)</span>
+<span id="L225" class="line"><a href="#L225">225</a>    if not self:_isConfigAndDataEnabled(tarYear, tarMonth) then</span>
+<span id="L226" class="line"><a href="#L226">226</a>        self:callViewFunc(&quot;setRightArrowVisible&quot;, false)</span>
+<span id="L227" class="line"><a href="#L227">227</a>    else</span>
+<span id="L228" class="line"><a href="#L228">228</a>        self:callViewFunc(&quot;setRightArrowVisible&quot;, true)</span>
+<span id="L229" class="line"><a href="#L229">229</a>    end</span>
+<span id="L230" class="line"><a href="#L230">230</a>end</span>
+<span id="L231" class="line"><a href="#L231">231</a></span>
+<span id="L232" class="line"><a href="#L232">232</a>function MainPanelVM:_updateView(calendarDir)</span>
+<span id="L233" class="line"><a href="#L233">233</a>    if self.isDisposed then return deferred.success() end</span>
+<span id="L234" class="line"><a href="#L234">234</a>    local uiContext, contextErr = MainPanelConfig:resolveMonthContext(self._year, self._month)</span>
+<span id="L235" class="line"><a href="#L235">235</a>    if not uiContext then return deferred.error(contextErr) end</span>
+<span id="L236" class="line"><a href="#L236">236</a>    if self._viewTransition then</span>
+<span id="L237" class="line"><a href="#L237">237</a>        self._viewTransition:reject(&quot;promotedaily transition superseded&quot;)</span>
+<span id="L238" class="line"><a href="#L238">238</a>        self._viewTransition = nil</span>
+<span id="L239" class="line"><a href="#L239">239</a>    end</span>
+<span id="L240" class="line"><a href="#L240">240</a>    local transition = deferred.new()</span>
+<span id="L241" class="line"><a href="#L241">241</a>    self._viewTransition = transition</span>
+<span id="L242" class="line"><a href="#L242">242</a>    self:_updateArrow()</span>
+<span id="L243" class="line"><a href="#L243">243</a>    local param = {</span>
+<span id="L244" class="line"><a href="#L244">244</a>        year = self._year,</span>
+<span id="L245" class="line"><a href="#L245">245</a>        month = self._month,</span>
+<span id="L246" class="line"><a href="#L246">246</a>        day = self._day,</span>
+<span id="L247" class="line"><a href="#L247">247</a>        uiContext = uiContext,</span>
+<span id="L248" class="line"><a href="#L248">248</a>        direction = calendarDir,</span>
+<span id="L249" class="line"><a href="#L249">249</a>    }</span>
+<span id="L250" class="line"><a href="#L250">250</a>    local retiringYear = self._retiringResYear</span>
+<span id="L251" class="line"><a href="#L251">251</a>    self:callViewFuncWithCallback(&quot;updateWithTransition&quot;, function()</span>
+<span id="L252" class="line"><a href="#L252">252</a>        if self.isDisposed then return transition:reject(&quot;promotedaily main panel disposed&quot;) end</span>
+<span id="L253" class="line"><a href="#L253">253</a>        if self._viewTransition ~= transition then</span>
+<span id="L254" class="line"><a href="#L254">254</a>            return transition:reject(&quot;promotedaily transition superseded&quot;)</span>
+<span id="L255" class="line"><a href="#L255">255</a>        end</span>
+<span id="L256" class="line"><a href="#L256">256</a>        self._viewTransition = nil</span>
+<span id="L257" class="line"><a href="#L257">257</a>        if retiringYear and retiringYear == self._retiringResYear and retiringYear ~= self._activeResYear then</span>
+<span id="L258" class="line"><a href="#L258">258</a>            self:_releaseYearRes(retiringYear)</span>
+<span id="L259" class="line"><a href="#L259">259</a>            self._retiringResYear = nil</span>
+<span id="L260" class="line"><a href="#L260">260</a>        end</span>
+<span id="L261" class="line"><a href="#L261">261</a>        transition:resolve()</span>
+<span id="L262" class="line"><a href="#L262">262</a>    end, param)</span>
+<span id="L263" class="line"><a href="#L263">263</a>    self:_updateBackToCur()</span>
+<span id="L264" class="line"><a href="#L264">264</a>    self:_updateNewRecord()</span>
+<span id="L265" class="line"><a href="#L265">265</a>    self:_updateNewUIs()</span>
+<span id="L266" class="line"><a href="#L266">266</a>    return transition</span>
+<span id="L267" class="line"><a href="#L267">267</a>end</span>
+<span id="L268" class="line"><a href="#L268">268</a></span>
+<span id="L269" class="line"><a href="#L269">269</a>function MainPanelVM:_releaseYearRes(year)</span>
+<span id="L270" class="line"><a href="#L270">270</a>    local yearKey = tostring(year)</span>
+<span id="L271" class="line"><a href="#L271">271</a>    local resList = self._retainResMap[yearKey]</span>
+<span id="L272" class="line"><a href="#L272">272</a>    if not resList then return end</span>
+<span id="L273" class="line"><a href="#L273">273</a>    self._promoteDailyMgr:releaseRes(resList)</span>
+<span id="L274" class="line"><a href="#L274">274</a>    self._retainResMap[yearKey] = nil</span>
+<span id="L275" class="line"><a href="#L275">275</a>end</span>
+<span id="L276" class="line"><a href="#L276">276</a></span>
+<span id="L277" class="line"><a href="#L277">277</a>function MainPanelVM:_releaseUnusedYearRes(year)</span>
+<span id="L278" class="line"><a href="#L278">278</a>    if year == self._activeResYear or year == self._retiringResYear or year == self._pendingNavigationYear then return end</span>
+<span id="L279" class="line"><a href="#L279">279</a>    self:_releaseYearRes(year)</span>
+<span id="L280" class="line"><a href="#L280">280</a>end</span>
+<span id="L281" class="line"><a href="#L281">281</a></span>
+<span id="L282" class="line"><a href="#L282">282</a>function MainPanelVM:_finishPendingYearTransition()</span>
+<span id="L283" class="line"><a href="#L283">283</a>    self:callViewFunc(&quot;finishPendingVisualTransition&quot;)</span>
+<span id="L284" class="line"><a href="#L284">284</a>    if self._retiringResYear and self._retiringResYear ~= self._activeResYear then</span>
+<span id="L285" class="line"><a href="#L285">285</a>        self:_releaseYearRes(self._retiringResYear)</span>
+<span id="L286" class="line"><a href="#L286">286</a>    end</span>
+<span id="L287" class="line"><a href="#L287">287</a>    self._retiringResYear = nil</span>
+<span id="L288" class="line"><a href="#L288">288</a>end</span>
+<span id="L289" class="line"><a href="#L289">289</a></span>
+<span id="L290" class="line"><a href="#L290">290</a>function MainPanelVM:_activateYearRes(year)</span>
+<span id="L291" class="line"><a href="#L291">291</a>    if self._activeResYear == year then return end</span>
+<span id="L292" class="line"><a href="#L292">292</a>    self:_finishPendingYearTransition()</span>
+<span id="L293" class="line"><a href="#L293">293</a>    self._retiringResYear = self._activeResYear</span>
+<span id="L294" class="line"><a href="#L294">294</a>    self._activeResYear = year</span>
+<span id="L295" class="line"><a href="#L295">295</a>end</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>function MainPanelVM:_updateNewUIs()</span>
+<span id="L298" class="line"><a href="#L298">298</a>    if self:isUseNewUI() then</span>
+<span id="L299" class="line"><a href="#L299">299</a>        self:callViewFunc(&quot;updateNewUIsVisible&quot;, true)</span>
+<span id="L300" class="line"><a href="#L300">300</a>        self:callViewFunc(&quot;updateHangTag&quot;)</span>
+<span id="L301" class="line"><a href="#L301">301</a>        self:callViewFunc(&quot;updateShield&quot;)</span>
+<span id="L302" class="line"><a href="#L302">302</a>    else</span>
+<span id="L303" class="line"><a href="#L303">303</a>        self:callViewFunc(&quot;updateNewUIsVisible&quot;, false)</span>
+<span id="L304" class="line"><a href="#L304">304</a>    end</span>
+<span id="L305" class="line"><a href="#L305">305</a>end</span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>function MainPanelVM:_updateBackToCur()</span>
+<span id="L308" class="line"><a href="#L308">308</a>    if self._promoteDailyMgr:getYear() == self._year and self._promoteDailyMgr:getMonth() == self._month then</span>
+<span id="L309" class="line"><a href="#L309">309</a>        self:callViewFunc(&quot;setBackToCurBtnVisible&quot;, false)</span>
+<span id="L310" class="line"><a href="#L310">310</a>    else</span>
+<span id="L311" class="line"><a href="#L311">311</a>        self:callViewFunc(&quot;setBackToCurBtnVisible&quot;, true)</span>
+<span id="L312" class="line"><a href="#L312">312</a>    end</span>
+<span id="L313" class="line"><a href="#L313">313</a>end</span>
+<span id="L314" class="line"><a href="#L314">314</a></span>
+<span id="L315" class="line"><a href="#L315">315</a>function MainPanelVM:_updateNewRecord()</span>
+<span id="L316" class="line"><a href="#L316">316</a>    -- 活动期间不展示「新记录」标签</span>
+<span id="L317" class="line"><a href="#L317">317</a>    if self._promoteDailyMgr:isRepairActInProgress() then</span>
+<span id="L318" class="line"><a href="#L318">318</a>        self:callViewFunc(&quot;updateBtnRecord&quot;, &quot;&quot;)</span>
+<span id="L319" class="line"><a href="#L319">319</a>        return</span>
+<span id="L320" class="line"><a href="#L320">320</a>    end</span>
+<span id="L321" class="line"><a href="#L321">321</a>    local newRecord = self._promoteDailyMgr:getNewRecordState()</span>
+<span id="L322" class="line"><a href="#L322">322</a>    local hasNewShow = self._promoteDailyMgr:getLocalValue(&quot;btnRecordNewTagShow&quot;)</span>
+<span id="L323" class="line"><a href="#L323">323</a>    if newRecord then</span>
+<span id="L324" class="line"><a href="#L324">324</a>        self:callViewFunc(&quot;updateBtnRecord&quot;, &quot;新记录&quot;, 0.8)</span>
+<span id="L325" class="line"><a href="#L325">325</a>    elseif hasNewShow then</span>
+<span id="L326" class="line"><a href="#L326">326</a>        self:callViewFunc(&quot;updateBtnRecord&quot;, &quot;新&quot;, 1)</span>
+<span id="L327" class="line"><a href="#L327">327</a>    else</span>
+<span id="L328" class="line"><a href="#L328">328</a>        self:callViewFunc(&quot;updateBtnRecord&quot;, &quot;&quot;)</span>
+<span id="L329" class="line"><a href="#L329">329</a>    end</span>
+<span id="L330" class="line"><a href="#L330">330</a>end</span>
+<span id="L331" class="line"><a href="#L331">331</a></span>
+<span id="L332" class="line"><a href="#L332">332</a>function MainPanelVM:_tryShowKeyDayMedalPanel()</span>
+<span id="L333" class="line"><a href="#L333">333</a>    -- 如果今天未签到，并且是纪念日，强弹出纪念日界面</span>
+<span id="L334" class="line"><a href="#L334">334</a>    local td = deferred.new()</span>
+<span id="L335" class="line"><a href="#L335">335</a>    local medalCfg, idx = self._promoteDailyMgr:getFutureKeyDayByLimit()</span>
+<span id="L336" class="line"><a href="#L336">336</a>    if not medalCfg then</span>
+<span id="L337" class="line"><a href="#L337">337</a>        return td:resolve()</span>
+<span id="L338" class="line"><a href="#L338">338</a>    end</span>
+<span id="L339" class="line"><a href="#L339">339</a>    -- 不是今天</span>
+<span id="L340" class="line"><a href="#L340">340</a>    if idx &gt; 0 then</span>
+<span id="L341" class="line"><a href="#L341">341</a>        -- 是否弹过</span>
+<span id="L342" class="line"><a href="#L342">342</a>        local hasPop = self._promoteDailyMgr:getLocalValue(&quot;mainPopMedalAlarm_&quot;..medalCfg.medalId)</span>
+<span id="L343" class="line"><a href="#L343">343</a>        if hasPop then</span>
+<span id="L344" class="line"><a href="#L344">344</a>            return td:resolve()</span>
+<span id="L345" class="line"><a href="#L345">345</a>        end</span>
+<span id="L346" class="line"><a href="#L346">346</a>        -- 是否添加了推送，添加了就不弹了</span>
+<span id="L347" class="line"><a href="#L347">347</a>        if EnvUtil:isApp() then</span>
+<span id="L348" class="line"><a href="#L348">348</a>            if self._promoteDailyMgr:hasRegPush(medalCfg.medalId) then</span>
+<span id="L349" class="line"><a href="#L349">349</a>                return td:resolve()</span>
+<span id="L350" class="line"><a href="#L350">350</a>            end</span>
+<span id="L351" class="line"><a href="#L351">351</a>        elseif EnvUtil:isMiniGame() then</span>
+<span id="L352" class="line"><a href="#L352">352</a>            if not self._subMsgMgr or not self._subMsgMgr:canShowSubMsgNode(SubMessageConst.SceneType.PROMOTEDAILY) then</span>
+<span id="L353" class="line"><a href="#L353">353</a>                return td:resolve()</span>
+<span id="L354" class="line"><a href="#L354">354</a>            end</span>
+<span id="L355" class="line"><a href="#L355">355</a>        end</span>
+<span id="L356" class="line"><a href="#L356">356</a>        self._promoteDailyMgr:setLocalValue(&quot;mainPopMedalAlarm_&quot;..medalCfg.medalId, true)</span>
+<span id="L357" class="line"><a href="#L357">357</a>        PromoteDailyEventCenter:dispatch(PromoteDailyEvent.SHOW_MEDAL_PANEL, {</span>
+<span id="L358" class="line"><a href="#L358">358</a>            medalId = medalCfg.medalId,</span>
+<span id="L359" class="line"><a href="#L359">359</a>            dayNum = self._promoteDailyMgr:getTodayNum() + idx,</span>
+<span id="L360" class="line"><a href="#L360">360</a>            closeCallback = function()</span>
+<span id="L361" class="line"><a href="#L361">361</a>                td:resolve()</span>
+<span id="L362" class="line"><a href="#L362">362</a>            end</span>
+<span id="L363" class="line"><a href="#L363">363</a>        })</span>
+<span id="L364" class="line"><a href="#L364">364</a>    else</span>
+<span id="L365" class="line"><a href="#L365">365</a>        local todaySigned = self._promoteDailyMgr:getTodaySignState() ~= PromoteDailyConst.SignState.NONE</span>
+<span id="L366" class="line"><a href="#L366">366</a>        local keyDayCfg = self._promoteDailyMgr:hasKeyDayMedal(self._promoteDailyMgr:getYear(), self._promoteDailyMgr:getMonth(), self._promoteDailyMgr:getDay())</span>
+<span id="L367" class="line"><a href="#L367">367</a>        -- 今天</span>
+<span id="L368" class="line"><a href="#L368">368</a>        if todaySigned then</span>
+<span id="L369" class="line"><a href="#L369">369</a>            return td:resolve()</span>
+<span id="L370" class="line"><a href="#L370">370</a>        end</span>
+<span id="L371" class="line"><a href="#L371">371</a>        self:_showMedalPanel({</span>
+<span id="L372" class="line"><a href="#L372">372</a>            showType = MedalShowPanelVM.ShowType.LEVEL,</span>
+<span id="L373" class="line"><a href="#L373">373</a>            medalId = keyDayCfg.medalId,</span>
+<span id="L374" class="line"><a href="#L374">374</a>            closeCallback = function()</span>
+<span id="L375" class="line"><a href="#L375">375</a>                td:resolve()</span>
+<span id="L376" class="line"><a href="#L376">376</a>            end</span>
+<span id="L377" class="line"><a href="#L377">377</a>        })</span>
+<span id="L378" class="line"><a href="#L378">378</a>    end      </span>
+<span id="L379" class="line"><a href="#L379">379</a>    return td</span>
+<span id="L380" class="line"><a href="#L380">380</a>end</span>
+<span id="L381" class="line"><a href="#L381">381</a></span>
+<span id="L382" class="line"><a href="#L382">382</a>function MainPanelVM:_tryGetAllRewards()</span>
+<span id="L383" class="line"><a href="#L383">383</a>    local hasReward = false</span>
+<span id="L384" class="line"><a href="#L384">384</a>    local d = deferred.new()</span>
+<span id="L385" class="line"><a href="#L385">385</a>    deferred.success()</span>
+<span id="L386" class="line"><a href="#L386">386</a>    :next(function()</span>
+<span id="L387" class="line"><a href="#L387">387</a>        if self.isDisposed then return d:resolve() end</span>
+<span id="L388" class="line"><a href="#L388">388</a>        local td = deferred.new()</span>
+<span id="L389" class="line"><a href="#L389">389</a>        -- 检查所有可以领取的奖励 包含今天, 奖励存起来</span>
+<span id="L390" class="line"><a href="#L390">390</a>        self._promoteDailyMgr:tryGetAllRewards(true):next(function(randomReward)</span>
+<span id="L391" class="line"><a href="#L391">391</a>            if self.isDisposed then return td:resolve() end</span>
+<span id="L392" class="line"><a href="#L392">392</a>            randomReward = randomReward or {}</span>
+<span id="L393" class="line"><a href="#L393">393</a>            if table.isEmpty(randomReward) then</span>
+<span id="L394" class="line"><a href="#L394">394</a>                return td:resolve()</span>
+<span id="L395" class="line"><a href="#L395">395</a>            end</span>
+<span id="L396" class="line"><a href="#L396">396</a>            hasReward = true</span>
+<span id="L397" class="line"><a href="#L397">397</a>            -- 高光时刻新字</span>
+<span id="L398" class="line"><a href="#L398">398</a>            self._promoteDailyMgr:setLocalValue(&quot;btnRecordNewTagShow&quot;, true)</span>
+<span id="L399" class="line"><a href="#L399">399</a>            local medalId = Utils:getMedalFromShopRewards(randomReward)</span>
+<span id="L400" class="line"><a href="#L400">400</a>            if medalId and medalId &gt; 0 then</span>
+<span id="L401" class="line"><a href="#L401">401</a>                self:_showMedalPanel({</span>
+<span id="L402" class="line"><a href="#L402">402</a>                    medalId = medalId,</span>
+<span id="L403" class="line"><a href="#L403">403</a>                    showType = MedalShowPanelVM.ShowType.REWARD,</span>
+<span id="L404" class="line"><a href="#L404">404</a>                    closeCallback = function()</span>
+<span id="L405" class="line"><a href="#L405">405</a>                        self:openHighLightPanel({</span>
+<span id="L406" class="line"><a href="#L406">406</a>                            t1 = 2,</span>
+<span id="L407" class="line"><a href="#L407">407</a>                            closeCallback = function()</span>
+<span id="L408" class="line"><a href="#L408">408</a>                                td:resolve()</span>
+<span id="L409" class="line"><a href="#L409">409</a>                            end</span>
+<span id="L410" class="line"><a href="#L410">410</a>                        })</span>
+<span id="L411" class="line"><a href="#L411">411</a>                    end</span>
+<span id="L412" class="line"><a href="#L412">412</a>                })</span>
+<span id="L413" class="line"><a href="#L413">413</a>            else</span>
+<span id="L414" class="line"><a href="#L414">414</a>                self._promoteDailyMgr:showShopRewardsPanel(randomReward):next(function()</span>
+<span id="L415" class="line"><a href="#L415">415</a>                    td:resolve()</span>
+<span id="L416" class="line"><a href="#L416">416</a>                end)</span>
+<span id="L417" class="line"><a href="#L417">417</a>            end</span>
+<span id="L418" class="line"><a href="#L418">418</a>        end)</span>
+<span id="L419" class="line"><a href="#L419">419</a>        return td</span>
+<span id="L420" class="line"><a href="#L420">420</a>    end)</span>
+<span id="L421" class="line"><a href="#L421">421</a>    :next(function()</span>
+<span id="L422" class="line"><a href="#L422">422</a>        if self.isDisposed then return d:resolve() end</span>
+<span id="L423" class="line"><a href="#L423">423</a>        local td = deferred.new()</span>
+<span id="L424" class="line"><a href="#L424">424</a>        self._promoteDailyMgr:tryGetTaskReward():next(function(data)</span>
+<span id="L425" class="line"><a href="#L425">425</a>            if self.isDisposed then return td:resolve() end</span>
+<span id="L426" class="line"><a href="#L426">426</a>            if data and data.rewards then</span>
+<span id="L427" class="line"><a href="#L427">427</a>                hasReward = true</span>
+<span id="L428" class="line"><a href="#L428">428</a>                self._promoteDailyMgr:showArriveDailyPanel({</span>
+<span id="L429" class="line"><a href="#L429">429</a>                    pageIndex = 2,</span>
+<span id="L430" class="line"><a href="#L430">430</a>                    rewards = data.rewards,</span>
+<span id="L431" class="line"><a href="#L431">431</a>                    bOldTask = data.bOldTask,</span>
+<span id="L432" class="line"><a href="#L432">432</a>                    boxWorldPos = self:callViewFunc(&quot;getBottomBoxWorldPos&quot;),</span>
+<span id="L433" class="line"><a href="#L433">433</a>                }, function()</span>
+<span id="L434" class="line"><a href="#L434">434</a>                    self._promoteDailyMgr:showSelectTargetPanel():next(function()</span>
+<span id="L435" class="line"><a href="#L435">435</a>                        td:resolve()</span>
+<span id="L436" class="line"><a href="#L436">436</a>                    end)</span>
+<span id="L437" class="line"><a href="#L437">437</a>                end)</span>
+<span id="L438" class="line"><a href="#L438">438</a>            else</span>
+<span id="L439" class="line"><a href="#L439">439</a>                td:resolve()</span>
+<span id="L440" class="line"><a href="#L440">440</a>            end</span>
+<span id="L441" class="line"><a href="#L441">441</a>        end)</span>
+<span id="L442" class="line"><a href="#L442">442</a>        return td</span>
+<span id="L443" class="line"><a href="#L443">443</a>    end)</span>
+<span id="L444" class="line"><a href="#L444">444</a>    :next(function()</span>
+<span id="L445" class="line"><a href="#L445">445</a>        if self.isDisposed then return d:resolve() end</span>
+<span id="L446" class="line"><a href="#L446">446</a>        if hasReward then</span>
+<span id="L447" class="line"><a href="#L447">447</a>            self:callViewFunc(&quot;updateBottomNode&quot;, {</span>
+<span id="L448" class="line"><a href="#L448">448</a>                forceSelfRefresh = true</span>
+<span id="L449" class="line"><a href="#L449">449</a>            })</span>
+<span id="L450" class="line"><a href="#L450">450</a>            -- 先刷新一下</span>
+<span id="L451" class="line"><a href="#L451">451</a>            local uiContext, contextErr = MainPanelConfig:resolveMonthContext(self._year, self._month)</span>
+<span id="L452" class="line"><a href="#L452">452</a>            assert(uiContext, contextErr)</span>
+<span id="L453" class="line"><a href="#L453">453</a>            self:callViewFunc(&quot;updateCalendarNode&quot;, {</span>
+<span id="L454" class="line"><a href="#L454">454</a>                year = self._year,</span>
+<span id="L455" class="line"><a href="#L455">455</a>                month = self._month,</span>
+<span id="L456" class="line"><a href="#L456">456</a>                day = self._day,</span>
+<span id="L457" class="line"><a href="#L457">457</a>                uiContext = uiContext,</span>
+<span id="L458" class="line"><a href="#L458">458</a>                isForceUpdate = true</span>
+<span id="L459" class="line"><a href="#L459">459</a>            })</span>
+<span id="L460" class="line"><a href="#L460">460</a>        end</span>
+<span id="L461" class="line"><a href="#L461">461</a>        d:resolve()</span>
+<span id="L462" class="line"><a href="#L462">462</a>    end)</span>
+<span id="L463" class="line"><a href="#L463">463</a>    return d</span>
+<span id="L464" class="line"><a href="#L464">464</a>end</span>
+<span id="L465" class="line"><a href="#L465">465</a></span>
+<span id="L466" class="line"><a href="#L466">466</a>function MainPanelVM:forceCardToUnSigned()</span>
+<span id="L467" class="line"><a href="#L467">467</a>    for i, v in ipairs(self._shieldDateList) do</span>
+<span id="L468" class="line"><a href="#L468">468</a>        self:callViewFunc(&quot;setCardUnSigned&quot;, v.year, v.month, v.day)</span>
+<span id="L469" class="line"><a href="#L469">469</a>    end</span>
+<span id="L470" class="line"><a href="#L470">470</a>end</span>
+<span id="L471" class="line"><a href="#L471">471</a></span>
+<span id="L472" class="line"><a href="#L472">472</a>function MainPanelVM:_tryGuide()</span>
+<span id="L473" class="line"><a href="#L473">473</a>    local td = deferred.new()</span>
+<span id="L474" class="line"><a href="#L474">474</a>    -- 1. 引导</span>
+<span id="L475" class="line"><a href="#L475">475</a>    -- 第一次开启应该是没有PromoteDailyConst.GuideId.ID1</span>
+<span id="L476" class="line"><a href="#L476">476</a>    if self._promoteDailyMgr:hasGuideIndex(PromoteDailyConst.GuideId.ID1) then</span>
+<span id="L477" class="line"><a href="#L477">477</a>        if not self._promoteDailyMgr:hasGuideIndex(PromoteDailyConst.GuideId.IDNEW_1) then</span>
+<span id="L478" class="line"><a href="#L478">478</a>            -- 记录引导过了</span>
+<span id="L479" class="line"><a href="#L479">479</a>            self._promoteDailyMgr:addGuideIndex(PromoteDailyConst.GuideId.IDNEW_1)</span>
+<span id="L480" class="line"><a href="#L480">480</a>            self:_showGuide1(function()</span>
+<span id="L481" class="line"><a href="#L481">481</a>                self:callViewFuncWithCallback(&quot;showGuide2&quot;, function()</span>
+<span id="L482" class="line"><a href="#L482">482</a>                    self:callViewFuncWithCallback(&quot;showGuide3&quot;, function()</span>
+<span id="L483" class="line"><a href="#L483">483</a>                        self:callViewFuncWithCallback(&quot;showGuide4&quot;, function()</span>
+<span id="L484" class="line"><a href="#L484">484</a>                            td:resolve()</span>
+<span id="L485" class="line"><a href="#L485">485</a>                        end)</span>
+<span id="L486" class="line"><a href="#L486">486</a>                    end)</span>
+<span id="L487" class="line"><a href="#L487">487</a>                end)</span>
+<span id="L488" class="line"><a href="#L488">488</a>            end)</span>
+<span id="L489" class="line"><a href="#L489">489</a>        else</span>
+<span id="L490" class="line"><a href="#L490">490</a>            td:resolve()</span>
+<span id="L491" class="line"><a href="#L491">491</a>        end</span>
+<span id="L492" class="line"><a href="#L492">492</a>    else</span>
+<span id="L493" class="line"><a href="#L493">493</a>        if not self._promoteDailyMgr:hasGuideIndex(PromoteDailyConst.GuideId.IDOLD_1) then</span>
+<span id="L494" class="line"><a href="#L494">494</a>            local contentList = {</span>
+<span id="L495" class="line"><a href="#L495">495</a>                {ttf = &quot;每日一关&quot;},</span>
+<span id="L496" class="line"><a href="#L496">496</a>                {ttf = &quot;～祝你每日开心翻番！&quot;},</span>
+<span id="L497" class="line"><a href="#L497">497</a>            }</span>
+<span id="L498" class="line"><a href="#L498">498</a>            self:callViewFuncWithCallback(&quot;showGuide2&quot;, function()</span>
+<span id="L499" class="line"><a href="#L499">499</a>                -- 记录引导过了</span>
+<span id="L500" class="line"><a href="#L500">500</a>                self._promoteDailyMgr:addGuideIndex(PromoteDailyConst.GuideId.IDOLD_1)</span>
+<span id="L501" class="line"><a href="#L501">501</a>                self:callViewFuncWithCallback(&quot;showGuide3&quot;, function()</span>
+<span id="L502" class="line"><a href="#L502">502</a>                    self:callViewFuncWithCallback(&quot;showGuide4&quot;, function()</span>
+<span id="L503" class="line"><a href="#L503">503</a>                        td:resolve()</span>
+<span id="L504" class="line"><a href="#L504">504</a>                    end)</span>
+<span id="L505" class="line"><a href="#L505">505</a>                end)</span>
+<span id="L506" class="line"><a href="#L506">506</a>            end, contentList)</span>
+<span id="L507" class="line"><a href="#L507">507</a>        else</span>
+<span id="L508" class="line"><a href="#L508">508</a>            td:resolve()</span>
+<span id="L509" class="line"><a href="#L509">509</a>        end</span>
+<span id="L510" class="line"><a href="#L510">510</a>    end</span>
+<span id="L511" class="line"><a href="#L511">511</a>    return td</span>
+<span id="L512" class="line"><a href="#L512">512</a>end</span>
+<span id="L513" class="line"><a href="#L513">513</a></span>
+<span id="L514" class="line"><a href="#L514">514</a>function MainPanelVM:_showGuide1(callback)</span>
+<span id="L515" class="line"><a href="#L515">515</a>    local LevelUpGuidePanelVM = require &quot;amf.feature.dailyreward.promotedaily.view.LevelUpGuidePanelVM&quot;</span>
+<span id="L516" class="line"><a href="#L516">516</a>    local vm = LevelUpGuidePanelVM:create({</span>
+<span id="L517" class="line"><a href="#L517">517</a>        closeCallback = callback</span>
+<span id="L518" class="line"><a href="#L518">518</a>    })</span>
+<span id="L519" class="line"><a href="#L519">519</a>    vm:popout()</span>
+<span id="L520" class="line"><a href="#L520">520</a>    self._promoteDailyMgr:addToMgr(vm)</span>
+<span id="L521" class="line"><a href="#L521">521</a>end</span>
+<span id="L522" class="line"><a href="#L522">522</a></span>
+<span id="L523" class="line"><a href="#L523">523</a>-- 尝试弹说明</span>
+<span id="L524" class="line"><a href="#L524">524</a>function MainPanelVM:_tryPopNewIntro()</span>
+<span id="L525" class="line"><a href="#L525">525</a>    -- 2. 说明</span>
+<span id="L526" class="line"><a href="#L526">526</a>    local td = deferred.new()</span>
+<span id="L527" class="line"><a href="#L527">527</a>    if not self._promoteDailyMgr:hasGuideIndex(PromoteDailyConst.GuideId.INTRO_NEW) then</span>
+<span id="L528" class="line"><a href="#L528">528</a>        -- 记录引导过了</span>
+<span id="L529" class="line"><a href="#L529">529</a>        self._promoteDailyMgr:addGuideIndex(PromoteDailyConst.GuideId.INTRO_NEW)</span>
+<span id="L530" class="line"><a href="#L530">530</a>        self._promoteDailyMgr:showActIntroPanel(1, function()</span>
+<span id="L531" class="line"><a href="#L531">531</a>            td:resolve()</span>
+<span id="L532" class="line"><a href="#L532">532</a>        end)</span>
+<span id="L533" class="line"><a href="#L533">533</a>    else</span>
+<span id="L534" class="line"><a href="#L534">534</a>        td:resolve()</span>
+<span id="L535" class="line"><a href="#L535">535</a>    end</span>
+<span id="L536" class="line"><a href="#L536">536</a>    return td</span>
+<span id="L537" class="line"><a href="#L537">537</a>end</span>
+<span id="L538" class="line"><a href="#L538">538</a></span>
+<span id="L539" class="line"><a href="#L539">539</a>-- 尝试展示获得盾牌</span>
+<span id="L540" class="line"><a href="#L540">540</a>function MainPanelVM:_tryShowGetShiled()</span>
+<span id="L541" class="line"><a href="#L541">541</a>    local td = deferred.new()</span>
+<span id="L542" class="line"><a href="#L542">542</a>    local ownList = self._promoteDailyMgr:getShieldRecordList(false)</span>
+<span id="L543" class="line"><a href="#L543">543</a>    local count = #ownList</span>
+<span id="L544" class="line"><a href="#L544">544</a>    if count == 0 then</span>
+<span id="L545" class="line"><a href="#L545">545</a>        return td:resolve()</span>
+<span id="L546" class="line"><a href="#L546">546</a>    end</span>
+<span id="L547" class="line"><a href="#L547">547</a>    self:callViewFuncWithCallback(&quot;getShiledPos&quot;, function(targetWorldPos)</span>
+<span id="L548" class="line"><a href="#L548">548</a>        local rewards = {</span>
+<span id="L549" class="line"><a href="#L549">549</a>            {</span>
+<span id="L550" class="line"><a href="#L550">550</a>                itemId = PromoteDailyConst.SHIELD_ID,</span>
+<span id="L551" class="line"><a href="#L551">551</a>                num = count,</span>
+<span id="L552" class="line"><a href="#L552">552</a>                flyFunc = function(reward, worldPos, bubbleScale, myCallback)</span>
+<span id="L553" class="line"><a href="#L553">553</a>                    local rewardCopy = table.clone(reward)</span>
+<span id="L554" class="line"><a href="#L554">554</a>                    rewardCopy.targetPos = ccp(targetWorldPos.x + 50, targetWorldPos.y - 50)</span>
+<span id="L555" class="line"><a href="#L555">555</a>                    safeRunCall(myCallback)</span>
+<span id="L556" class="line"><a href="#L556">556</a>                    local flyContext = FlyItemContext.new({rewardCopy}, worldPos):setFinishCallback(function()</span>
+<span id="L557" class="line"><a href="#L557">557</a>                        -- 刷新shiled</span>
+<span id="L558" class="line"><a href="#L558">558</a>                        self:callViewFunc(&quot;updateShield&quot;)</span>
+<span id="L559" class="line"><a href="#L559">559</a>                    end)</span>
+<span id="L560" class="line"><a href="#L560">560</a>                    _G.amfTransaction(TransactionEvent.FLY_ITEMS, flyContext)</span>
+<span id="L561" class="line"><a href="#L561">561</a>                end</span>
+<span id="L562" class="line"><a href="#L562">562</a>            }</span>
+<span id="L563" class="line"><a href="#L563">563</a>        }</span>
+<span id="L564" class="line"><a href="#L564">564</a>        </span>
+<span id="L565" class="line"><a href="#L565">565</a>        local param = {</span>
+<span id="L566" class="line"><a href="#L566">566</a>            title = self.getShieldTitle,</span>
+<span id="L567" class="line"><a href="#L567">567</a>            subTitle = &quot;太阳盾牌可保护连过天数！&quot;,</span>
+<span id="L568" class="line"><a href="#L568">568</a>            buttonText = &quot;装备&quot;</span>
+<span id="L569" class="line"><a href="#L569">569</a>        }</span>
+<span id="L570" class="line"><a href="#L570">570</a>        -- 修改数量</span>
+<span id="L571" class="line"><a href="#L571">571</a>        self._initMinusCount = 0</span>
+<span id="L572" class="line"><a href="#L572">572</a>        self._promoteDailyMgr:addShieldNum(#ownList)</span>
+<span id="L573" class="line"><a href="#L573">573</a>        self._promoteDailyMgr:showNormalRewardsPanel(rewards, param):next(function()</span>
+<span id="L574" class="line"><a href="#L574">574</a>            td:resolve()</span>
+<span id="L575" class="line"><a href="#L575">575</a>        end)</span>
+<span id="L576" class="line"><a href="#L576">576</a>    end)</span>
+<span id="L577" class="line"><a href="#L577">577</a>    return td</span>
+<span id="L578" class="line"><a href="#L578">578</a>end</span>
+<span id="L579" class="line"><a href="#L579">579</a></span>
+<span id="L580" class="line"><a href="#L580">580</a>-- 尝试使用shiled</span>
+<span id="L581" class="line"><a href="#L581">581</a>function MainPanelVM:_tryShowUseShiled()</span>
+<span id="L582" class="line"><a href="#L582">582</a>    local td = deferred.new()</span>
+<span id="L583" class="line"><a href="#L583">583</a>    if #self._shieldDateList == 0 then</span>
+<span id="L584" class="line"><a href="#L584">584</a>        return td:resolve()</span>
+<span id="L585" class="line"><a href="#L585">585</a>    end</span>
+<span id="L586" class="line"><a href="#L586">586</a>    -- 把card上的日期先干掉</span>
+<span id="L587" class="line"><a href="#L587">587</a>    for i, v in ipairs(self._shieldDateList) do</span>
+<span id="L588" class="line"><a href="#L588">588</a>        self:callViewFunc(&quot;setCardLabelVisible&quot;, v.year, v.month, v.day, false)</span>
+<span id="L589" class="line"><a href="#L589">589</a>    end</span>
+<span id="L590" class="line"><a href="#L590">590</a>    self._initAddCount = 0</span>
+<span id="L591" class="line"><a href="#L591">591</a>    self._promoteDailyMgr:addShieldNum(-#self._shieldDateList)</span>
+<span id="L592" class="line"><a href="#L592">592</a>    local idx = 0</span>
+<span id="L593" class="line"><a href="#L593">593</a>    local function _start()</span>
+<span id="L594" class="line"><a href="#L594">594</a>        idx = idx + 1</span>
+<span id="L595" class="line"><a href="#L595">595</a>        local data = self._shieldDateList[idx]</span>
+<span id="L596" class="line"><a href="#L596">596</a>        if not data then</span>
+<span id="L597" class="line"><a href="#L597">597</a>            self:callViewFunc(&quot;updateShield&quot;)</span>
+<span id="L598" class="line"><a href="#L598">598</a>            if self._year == self._promoteDailyMgr:getYear() and self._month == self._promoteDailyMgr:getMonth() then</span>
+<span id="L599" class="line"><a href="#L599">599</a>                td:resolve()</span>
+<span id="L600" class="line"><a href="#L600">600</a>            else</span>
+<span id="L601" class="line"><a href="#L601">601</a>                self:onBackToCurBtnTapped():next(function()</span>
+<span id="L602" class="line"><a href="#L602">602</a>                    td:resolve()</span>
+<span id="L603" class="line"><a href="#L603">603</a>                end, function()</span>
+<span id="L604" class="line"><a href="#L604">604</a>                    td:resolve()</span>
+<span id="L605" class="line"><a href="#L605">605</a>                end)</span>
+<span id="L606" class="line"><a href="#L606">606</a>            end</span>
+<span id="L607" class="line"><a href="#L607">607</a>            return td</span>
+<span id="L608" class="line"><a href="#L608">608</a>        end</span>
+<span id="L609" class="line"><a href="#L609">609</a>        local lastShowYear, lastShowMonth = self._year, self._month</span>
+<span id="L610" class="line"><a href="#L610">610</a>        local lastDayNum = Utils:getDayNumByYMD(lastShowYear, lastShowMonth, 1)</span>
+<span id="L611" class="line"><a href="#L611">611</a>        local nowDayNum = Utils:getDayNumByYMD(data.year, data.month, 1)</span>
+<span id="L612" class="line"><a href="#L612">612</a>        local direction</span>
+<span id="L613" class="line"><a href="#L613">613</a>        if nowDayNum &lt; lastDayNum then</span>
+<span id="L614" class="line"><a href="#L614">614</a>            direction = MainPanelConfig.CalendarAni.RIGHT</span>
+<span id="L615" class="line"><a href="#L615">615</a>        elseif nowDayNum &gt; lastDayNum then</span>
+<span id="L616" class="line"><a href="#L616">616</a>            direction = MainPanelConfig.CalendarAni.LEFT</span>
+<span id="L617" class="line"><a href="#L617">617</a>        end</span>
+<span id="L618" class="line"><a href="#L618">618</a>        local function showShield(duringTransition)</span>
+<span id="L619" class="line"><a href="#L619">619</a>            local function startFly()</span>
+<span id="L620" class="line"><a href="#L620">620</a>                if self.isDisposed then return end</span>
+<span id="L621" class="line"><a href="#L621">621</a>                self:callViewFuncWithCallback(&quot;flyShieldTo&quot;, function()</span>
+<span id="L622" class="line"><a href="#L622">622</a>                    self:callViewFunc(&quot;setCardLabelVisible&quot;, data.year, data.month, data.day, true)</span>
+<span id="L623" class="line"><a href="#L623">623</a>                    local nextData = self._shieldDateList[idx + 1]</span>
+<span id="L624" class="line"><a href="#L624">624</a>                    local startNextOnArrival = nextData ~= nil</span>
+<span id="L625" class="line"><a href="#L625">625</a>                    self:callViewFuncWithCallback(&quot;onSignSuccess&quot;, function()</span>
+<span id="L626" class="line"><a href="#L626">626</a>                        self._promoteDailyMgr:setUseShieldShowed(data.dayNum)</span>
+<span id="L627" class="line"><a href="#L627">627</a>                        if not startNextOnArrival then</span>
+<span id="L628" class="line"><a href="#L628">628</a>                            TimerUtil.addAlarm(function()</span>
+<span id="L629" class="line"><a href="#L629">629</a>                                if self.isDisposed then return end</span>
+<span id="L630" class="line"><a href="#L630">630</a>                                _start()</span>
+<span id="L631" class="line"><a href="#L631">631</a>                            end, 5/30)</span>
+<span id="L632" class="line"><a href="#L632">632</a>                        end</span>
+<span id="L633" class="line"><a href="#L633">633</a>                    end, data.year, data.month, data.day, false)</span>
+<span id="L634" class="line"><a href="#L634">634</a>                    if startNextOnArrival then</span>
+<span id="L635" class="line"><a href="#L635">635</a>                        TimerUtil.addAlarm(function()</span>
+<span id="L636" class="line"><a href="#L636">636</a>                            if self.isDisposed then return end</span>
+<span id="L637" class="line"><a href="#L637">637</a>                            _start()</span>
+<span id="L638" class="line"><a href="#L638">638</a>                        end, 5/30)</span>
+<span id="L639" class="line"><a href="#L639">639</a>                    end</span>
+<span id="L640" class="line"><a href="#L640">640</a>                end, data.year, data.month, data.day, duringTransition)</span>
+<span id="L641" class="line"><a href="#L641">641</a>            end</span>
+<span id="L642" class="line"><a href="#L642">642</a>            if duringTransition then</span>
+<span id="L643" class="line"><a href="#L643">643</a>                startFly()</span>
+<span id="L644" class="line"><a href="#L644">644</a>            else</span>
+<span id="L645" class="line"><a href="#L645">645</a>                TimerUtil.addAlarm(startFly, 1/30)</span>
+<span id="L646" class="line"><a href="#L646">646</a>            end</span>
+<span id="L647" class="line"><a href="#L647">647</a>        end</span>
+<span id="L648" class="line"><a href="#L648">648</a>        if direction then</span>
+<span id="L649" class="line"><a href="#L649">649</a>            self:_navigateTo(data.year, data.month, data.day, direction, function()</span>
+<span id="L650" class="line"><a href="#L650">650</a>                showShield(true)</span>
+<span id="L651" class="line"><a href="#L651">651</a>            end):next(function() end, function()</span>
+<span id="L652" class="line"><a href="#L652">652</a>                td:resolve()</span>
+<span id="L653" class="line"><a href="#L653">653</a>            end)</span>
+<span id="L654" class="line"><a href="#L654">654</a>        else</span>
+<span id="L655" class="line"><a href="#L655">655</a>            self._day = data.day</span>
+<span id="L656" class="line"><a href="#L656">656</a>            showShield()</span>
+<span id="L657" class="line"><a href="#L657">657</a>        end</span>
+<span id="L658" class="line"><a href="#L658">658</a>    end</span>
+<span id="L659" class="line"><a href="#L659">659</a>    self:_showUseShiledPanel(#self._shieldDateList):next(function(retList)</span>
+<span id="L660" class="line"><a href="#L660">660</a>        if self.isDisposed then return td:resolve() end</span>
+<span id="L661" class="line"><a href="#L661">661</a>        self:callViewFuncWithCallback(&quot;addShieldSpineToUI&quot;, function()</span>
+<span id="L662" class="line"><a href="#L662">662</a>            _start()</span>
+<span id="L663" class="line"><a href="#L663">663</a>        end, retList)</span>
+<span id="L664" class="line"><a href="#L664">664</a>    end, function()</span>
+<span id="L665" class="line"><a href="#L665">665</a>        td:resolve()</span>
+<span id="L666" class="line"><a href="#L666">666</a>    end)</span>
+<span id="L667" class="line"><a href="#L667">667</a>    </span>
+<span id="L668" class="line"><a href="#L668">668</a>    return td</span>
+<span id="L669" class="line"><a href="#L669">669</a>end</span>
+<span id="L670" class="line"><a href="#L670">670</a></span>
+<span id="L671" class="line"><a href="#L671">671</a>function MainPanelVM:_showUseShiledPanel(count)</span>
+<span id="L672" class="line"><a href="#L672">672</a>    local d = deferred.new()</span>
+<span id="L673" class="line"><a href="#L673">673</a>    local UseShiledPanelVM = require &quot;amf.feature.dailyreward.promotedaily.view.UseShiledPanelVM&quot;</span>
+<span id="L674" class="line"><a href="#L674">674</a>    local vm = UseShiledPanelVM:create({</span>
+<span id="L675" class="line"><a href="#L675">675</a>        callback = function(retList)</span>
+<span id="L676" class="line"><a href="#L676">676</a>            d:resolve(retList)</span>
+<span id="L677" class="line"><a href="#L677">677</a>        end,</span>
+<span id="L678" class="line"><a href="#L678">678</a>        shieldCount = count,</span>
+<span id="L679" class="line"><a href="#L679">679</a>    })</span>
+<span id="L680" class="line"><a href="#L680">680</a>    vm:popout(nil, true)</span>
+<span id="L681" class="line"><a href="#L681">681</a>    self._promoteDailyMgr:addToMgr(vm)</span>
+<span id="L682" class="line"><a href="#L682">682</a>    return d</span>
+<span id="L683" class="line"><a href="#L683">683</a>end</span>
+<span id="L684" class="line"><a href="#L684">684</a></span>
+<span id="L685" class="line"><a href="#L685">685</a>function MainPanelVM:_tryPlayRefreshTask()</span>
+<span id="L686" class="line"><a href="#L686">686</a>    local d = deferred.new()</span>
+<span id="L687" class="line"><a href="#L687">687</a>    if not self._promoteDailyMgr:getDataValue(&quot;chooseTaskOK&quot;) then</span>
+<span id="L688" class="line"><a href="#L688">688</a>        if self.needNewToOldAni then</span>
+<span id="L689" class="line"><a href="#L689">689</a>            self.needNewToOldAni = false</span>
+<span id="L690" class="line"><a href="#L690">690</a>            self:callViewFuncWithCallback(&quot;refreshBottomTask&quot;, function()</span>
+<span id="L691" class="line"><a href="#L691">691</a>                d:resolve()</span>
+<span id="L692" class="line"><a href="#L692">692</a>            end, true, true)</span>
+<span id="L693" class="line"><a href="#L693">693</a>        else</span>
+<span id="L694" class="line"><a href="#L694">694</a>            self:callViewFunc(&quot;updateBottomNode&quot;)</span>
+<span id="L695" class="line"><a href="#L695">695</a>            d:resolve()</span>
+<span id="L696" class="line"><a href="#L696">696</a>        end</span>
+<span id="L697" class="line"><a href="#L697">697</a>        return d</span>
+<span id="L698" class="line"><a href="#L698">698</a>    else</span>
+<span id="L699" class="line"><a href="#L699">699</a>        if not self._promoteDailyMgr:getTempValue(&quot;needFreshTaskUI&quot;) then</span>
+<span id="L700" class="line"><a href="#L700">700</a>            return d:resolve()</span>
+<span id="L701" class="line"><a href="#L701">701</a>        end</span>
+<span id="L702" class="line"><a href="#L702">702</a>        self._promoteDailyMgr:setTempValue(&quot;needFreshTaskUI&quot;, false)</span>
+<span id="L703" class="line"><a href="#L703">703</a>        local onlyTask = self._promoteDailyMgr:getTempValue(&quot;onlyFreshTaskUI&quot;)</span>
+<span id="L704" class="line"><a href="#L704">704</a>        self:callViewFuncWithCallback(&quot;refreshBottomTask&quot;, function()</span>
+<span id="L705" class="line"><a href="#L705">705</a>            d:resolve()</span>
+<span id="L706" class="line"><a href="#L706">706</a>        end, onlyTask)</span>
+<span id="L707" class="line"><a href="#L707">707</a>        self._promoteDailyMgr:setTempValue(&quot;onlyFreshTaskUI&quot;, false)</span>
+<span id="L708" class="line"><a href="#L708">708</a>    end</span>
+<span id="L709" class="line"><a href="#L709">709</a></span>
+<span id="L710" class="line"><a href="#L710">710</a>    return d</span>
+<span id="L711" class="line"><a href="#L711">711</a>end</span>
+<span id="L712" class="line"><a href="#L712">712</a></span>
+<span id="L713" class="line"><a href="#L713">713</a>function MainPanelVM:_startTalk(param)</span>
+<span id="L714" class="line"><a href="#L714">714</a>    local td = deferred.new()</span>
+<span id="L715" class="line"><a href="#L715">715</a>    self:callViewFuncWithCallback(&quot;startTalk&quot;, function()</span>
+<span id="L716" class="line"><a href="#L716">716</a>        td:resolve()</span>
+<span id="L717" class="line"><a href="#L717">717</a>    end, param)</span>
+<span id="L718" class="line"><a href="#L718">718</a>    return td</span>
+<span id="L719" class="line"><a href="#L719">719</a>end</span>
+<span id="L720" class="line"><a href="#L720">720</a></span>
+<span id="L721" class="line"><a href="#L721">721</a>function MainPanelVM:onEnterPanelRun()</span>
+<span id="L722" class="line"><a href="#L722">722</a>    self:lock()</span>
+<span id="L723" class="line"><a href="#L723">723</a>    if self.needNewToOldAni then</span>
+<span id="L724" class="line"><a href="#L724">724</a>        self:callViewFunc(&quot;updateBottomNode&quot;, {</span>
+<span id="L725" class="line"><a href="#L725">725</a>            usePath = &quot;amf.feature.dailyreward.promotedaily.view.comps.nodes.BottomNodeV2&quot;,</span>
+<span id="L726" class="line"><a href="#L726">726</a>            forceRefresh = true,</span>
+<span id="L727" class="line"><a href="#L727">727</a>        })</span>
+<span id="L728" class="line"><a href="#L728">728</a>    end</span>
+<span id="L729" class="line"><a href="#L729">729</a>    deferred.success()</span>
+<span id="L730" class="line"><a href="#L730">730</a>    :next(function()</span>
+<span id="L731" class="line"><a href="#L731">731</a>        self:forceCardToUnSigned()</span>
+<span id="L732" class="line"><a href="#L732">732</a>        return deferred.success()</span>
+<span id="L733" class="line"><a href="#L733">733</a>    end)</span>
+<span id="L734" class="line"><a href="#L734">734</a>    :next(function()</span>
+<span id="L735" class="line"><a href="#L735">735</a>        if self.isDisposed then return end</span>
+<span id="L736" class="line"><a href="#L736">736</a>        local td = deferred.new()</span>
+<span id="L737" class="line"><a href="#L737">737</a>        TimerUtil.addAlarm(function()</span>
+<span id="L738" class="line"><a href="#L738">738</a>            if self.isDisposed then return end</span>
+<span id="L739" class="line"><a href="#L739">739</a>            td:resolve()</span>
+<span id="L740" class="line"><a href="#L740">740</a>        end, 1/30)</span>
+<span id="L741" class="line"><a href="#L741">741</a>        return td</span>
+<span id="L742" class="line"><a href="#L742">742</a>    end)</span>
+<span id="L743" class="line"><a href="#L743">743</a>    :next(function()</span>
+<span id="L744" class="line"><a href="#L744">744</a>        if self.isDisposed then return end</span>
+<span id="L745" class="line"><a href="#L745">745</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;guide&quot;)</span>
+<span id="L746" class="line"><a href="#L746">746</a>        -- 1. 引导</span>
+<span id="L747" class="line"><a href="#L747">747</a>        return self:_tryGuide()</span>
+<span id="L748" class="line"><a href="#L748">748</a>    end)</span>
+<span id="L749" class="line"><a href="#L749">749</a>    :next(function()</span>
+<span id="L750" class="line"><a href="#L750">750</a>        if self.isDisposed then return end</span>
+<span id="L751" class="line"><a href="#L751">751</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;intro&quot;)</span>
+<span id="L752" class="line"><a href="#L752">752</a>        -- 2. 强弹说明</span>
+<span id="L753" class="line"><a href="#L753">753</a>        return self:_tryPopNewIntro()</span>
+<span id="L754" class="line"><a href="#L754">754</a>    end)</span>
+<span id="L755" class="line"><a href="#L755">755</a>    :next(function()</span>
+<span id="L756" class="line"><a href="#L756">756</a>        if self.isDisposed then return end</span>
+<span id="L757" class="line"><a href="#L757">757</a>        -- 5. 盾牌使用（每日首次1次）</span>
+<span id="L758" class="line"><a href="#L758">758</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;useShield&quot;)</span>
+<span id="L759" class="line"><a href="#L759">759</a>        return self:_tryShowUseShiled()</span>
+<span id="L760" class="line"><a href="#L760">760</a>    end)</span>
+<span id="L761" class="line"><a href="#L761">761</a>    :next(function()</span>
+<span id="L762" class="line"><a href="#L762">762</a>        if self.isDisposed then return end</span>
+<span id="L763" class="line"><a href="#L763">763</a>        -- 4. 盾牌首次赠送与每月赠送；</span>
+<span id="L764" class="line"><a href="#L764">764</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;getShield&quot;)</span>
+<span id="L765" class="line"><a href="#L765">765</a>        return self:_tryShowGetShiled()</span>
+<span id="L766" class="line"><a href="#L766">766</a>    end)</span>
+<span id="L767" class="line"><a href="#L767">767</a>    :next(function()</span>
+<span id="L768" class="line"><a href="#L768">768</a>        if self.isDisposed then return end</span>
+<span id="L769" class="line"><a href="#L769">769</a>        -- 3. 补领奖</span>
+<span id="L770" class="line"><a href="#L770">770</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;allRewards&quot;)</span>
+<span id="L771" class="line"><a href="#L771">771</a>        local td = deferred.new()</span>
+<span id="L772" class="line"><a href="#L772">772</a>        self:_tryGetAllRewards():next(function()</span>
+<span id="L773" class="line"><a href="#L773">773</a>            td:resolve()</span>
+<span id="L774" class="line"><a href="#L774">774</a>        end)</span>
+<span id="L775" class="line"><a href="#L775">775</a>        return td</span>
+<span id="L776" class="line"><a href="#L776">776</a>    end)</span>
+<span id="L777" class="line"><a href="#L777">777</a>    :next(function()</span>
+<span id="L778" class="line"><a href="#L778">778</a>        if self.isDisposed then return end</span>
+<span id="L779" class="line"><a href="#L779">779</a>        -- 7. 求助成功补过小手；</span>
+<span id="L780" class="line"><a href="#L780">780</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;helpReward&quot;)</span>
+<span id="L781" class="line"><a href="#L781">781</a>        return self._promoteDailyMgr:tryGetHandPropReward()</span>
+<span id="L782" class="line"><a href="#L782">782</a>    end)</span>
+<span id="L783" class="line"><a href="#L783">783</a>    :next(function()</span>
+<span id="L784" class="line"><a href="#L784">784</a>        if self.isDisposed then return end</span>
+<span id="L785" class="line"><a href="#L785">785</a>        -- 9. 目标刷新（中断或闪退选择）</span>
+<span id="L786" class="line"><a href="#L786">786</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;refreshTask&quot;)</span>
+<span id="L787" class="line"><a href="#L787">787</a>        return self:_tryPlayRefreshTask()</span>
+<span id="L788" class="line"><a href="#L788">788</a>    end)</span>
+<span id="L789" class="line"><a href="#L789">789</a>    :next(function()</span>
+<span id="L790" class="line"><a href="#L790">790</a>        -- 10. 当日未过关-放大动画（每日首次1次）；</span>
+<span id="L791" class="line"><a href="#L791">791</a>        if self.isDisposed then return end</span>
+<span id="L792" class="line"><a href="#L792">792</a>        -- 今天如果没签到，播一下牌子的放大动画</span>
+<span id="L793" class="line"><a href="#L793">793</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;curDay anim&quot;)</span>
+<span id="L794" class="line"><a href="#L794">794</a>        return self:_tryPlayCurDayNotSignAnim()</span>
+<span id="L795" class="line"><a href="#L795">795</a>    end)</span>
+<span id="L796" class="line"><a href="#L796">796</a>    :next(function()</span>
+<span id="L797" class="line"><a href="#L797">797</a>        if self.isDisposed then return end</span>
+<span id="L798" class="line"><a href="#L798">798</a>        -- 6. 纪念日提醒弹窗；</span>
+<span id="L799" class="line"><a href="#L799">799</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;keyDay Notice&quot;)</span>
+<span id="L800" class="line"><a href="#L800">800</a>        return self:_tryShowKeyDayMedalPanel()</span>
+<span id="L801" class="line"><a href="#L801">801</a>    end)</span>
+<span id="L802" class="line"><a href="#L802">802</a>    :next(function()</span>
+<span id="L803" class="line"><a href="#L803">803</a>        if self.isDisposed then return end</span>
+<span id="L804" class="line"><a href="#L804">804</a>        local td = deferred.new()</span>
+<span id="L805" class="line"><a href="#L805">805</a>        local key = &quot;popFullSignDate_&quot;.. self._year..&quot;_&quot;..self._month</span>
+<span id="L806" class="line"><a href="#L806">806</a>        local isPoped = self._promoteDailyMgr:getLocalValue(key)</span>
+<span id="L807" class="line"><a href="#L807">807</a>        if self._promoteDailyMgr:isFullSign(self._year, self._month) and not isPoped then</span>
+<span id="L808" class="line"><a href="#L808">808</a>            self._promoteDailyMgr:setLocalValue(key, true)</span>
+<span id="L809" class="line"><a href="#L809">809</a>            self._promoteDailyMgr:showFullSignPanel({</span>
+<span id="L810" class="line"><a href="#L810">810</a>                year = self._year,</span>
+<span id="L811" class="line"><a href="#L811">811</a>                month = self._month,</span>
+<span id="L812" class="line"><a href="#L812">812</a>                closeCallback = function()</span>
+<span id="L813" class="line"><a href="#L813">813</a>                    td:resolve()</span>
+<span id="L814" class="line"><a href="#L814">814</a>                end</span>
+<span id="L815" class="line"><a href="#L815">815</a>            })</span>
+<span id="L816" class="line"><a href="#L816">816</a>        else</span>
+<span id="L817" class="line"><a href="#L817">817</a>            td:resolve()</span>
+<span id="L818" class="line"><a href="#L818">818</a>        end</span>
+<span id="L819" class="line"><a href="#L819">819</a>        return td</span>
+<span id="L820" class="line"><a href="#L820">820</a>    end)</span>
+<span id="L821" class="line"><a href="#L821">821</a>    :next(function()</span>
+<span id="L822" class="line"><a href="#L822">822</a>        if self.isDisposed then return end</span>
+<span id="L823" class="line"><a href="#L823">823</a>        -- 12. tips展示；小鸡tip</span>
+<span id="L824" class="line"><a href="#L824">824</a>        self._promoteDailyMgr:log( &quot;MainPanelV2VM:onEnterPanelRun ----&quot;, &quot;chicken Tip&quot;)</span>
+<span id="L825" class="line"><a href="#L825">825</a>        local useShield = false</span>
+<span id="L826" class="line"><a href="#L826">826</a>        -- 使用了盾，并且shieldNum ~= 0,并且盾的使用是在连过内</span>
+<span id="L827" class="line"><a href="#L827">827</a>        if #self._shieldDateList &gt; 0 and self._promoteDailyMgr:getShieldNum() ~= 0 then</span>
+<span id="L828" class="line"><a href="#L828">828</a>            for i, v in ipairs(self._shieldDateList) do</span>
+<span id="L829" class="line"><a href="#L829">829</a>                if self._promoteDailyMgr:isContinousPassDay(v.year, v.month, v.day) then</span>
+<span id="L830" class="line"><a href="#L830">830</a>                    useShield = true</span>
+<span id="L831" class="line"><a href="#L831">831</a>                    break</span>
+<span id="L832" class="line"><a href="#L832">832</a>                end</span>
+<span id="L833" class="line"><a href="#L833">833</a>            end</span>
+<span id="L834" class="line"><a href="#L834">834</a>        end</span>
+<span id="L835" class="line"><a href="#L835">835</a>        self:_startTalk({</span>
+<span id="L836" class="line"><a href="#L836">836</a>            useShield = useShield</span>
+<span id="L837" class="line"><a href="#L837">837</a>        })</span>
+<span id="L838" class="line"><a href="#L838">838</a>        return deferred.success()</span>
+<span id="L839" class="line"><a href="#L839">839</a>    end)</span>
+<span id="L840" class="line"><a href="#L840">840</a>    :next(function()</span>
+<span id="L841" class="line"><a href="#L841">841</a>        if self.isDisposed then return end</span>
+<span id="L842" class="line"><a href="#L842">842</a>        -- 设置盾牌展示过了</span>
+<span id="L843" class="line"><a href="#L843">843</a>        self._promoteDailyMgr:setShiledRecordListShowed()</span>
+<span id="L844" class="line"><a href="#L844">844</a>        self._shieldDateList = {}</span>
+<span id="L845" class="line"><a href="#L845">845</a>        self:_updateView()</span>
+<span id="L846" class="line"><a href="#L846">846</a>        self:unlock()</span>
+<span id="L847" class="line"><a href="#L847">847</a>    end)</span>
+<span id="L848" class="line"><a href="#L848">848</a>end</span>
+<span id="L849" class="line"><a href="#L849">849</a></span>
+<span id="L850" class="line"><a href="#L850">850</a>-- 别处调用展示勋章界面</span>
+<span id="L851" class="line"><a href="#L851">851</a>function MainPanelVM:clickToShowMedalPanel(evt)</span>
+<span id="L852" class="line"><a href="#L852">852</a>    local data = evt:getData()</span>
+<span id="L853" class="line"><a href="#L853">853</a>    if not data.showType then</span>
+<span id="L854" class="line"><a href="#L854">854</a>        local showType = MedalShowPanelVM.ShowType.OK</span>
+<span id="L855" class="line"><a href="#L855">855</a>        if EnvUtil:isApp() or EnvUtil:isWindows() then</span>
+<span id="L856" class="line"><a href="#L856">856</a>            showType = MedalShowPanelVM.ShowType.ALARM</span>
+<span id="L857" class="line"><a href="#L857">857</a>        elseif self._subMsgMgr and self._subMsgMgr:isEnabled() and data.dayNum then</span>
+<span id="L858" class="line"><a href="#L858">858</a>            local tb = Utils:getYMDByDayCount(data.dayNum)</span>
+<span id="L859" class="line"><a href="#L859">859</a>            local medalCfg = self._promoteDailyMgr:getCurMonthNearestKeyMedal()</span>
+<span id="L860" class="line"><a href="#L860">860</a>            -- 检查是否是最近的纪念日，如果是就去看添加提醒，如果不是就不处理</span>
+<span id="L861" class="line"><a href="#L861">861</a>            if medalCfg and medalCfg.year == tb.year and medalCfg.month == tb.month and medalCfg.day == tb.day then</span>
+<span id="L862" class="line"><a href="#L862">862</a>                showType = MedalShowPanelVM.ShowType.NOTIFY</span>
+<span id="L863" class="line"><a href="#L863">863</a>            end</span>
+<span id="L864" class="line"><a href="#L864">864</a>        end</span>
+<span id="L865" class="line"><a href="#L865">865</a>        data.showType = showType</span>
+<span id="L866" class="line"><a href="#L866">866</a>    end</span>
+<span id="L867" class="line"><a href="#L867">867</a>    self:_showMedalPanel(data)</span>
+<span id="L868" class="line"><a href="#L868">868</a>end</span>
+<span id="L869" class="line"><a href="#L869">869</a></span>
+<span id="L870" class="line"><a href="#L870">870</a>function MainPanelVM:_showMedalPanel(param)</span>
+<span id="L871" class="line"><a href="#L871">871</a>    self._promoteDailyMgr:showMedalShowPanel(param)</span>
+<span id="L872" class="line"><a href="#L872">872</a>end</span>
+<span id="L873" class="line"><a href="#L873">873</a></span>
+<span id="L874" class="line"><a href="#L874">874</a>function MainPanelVM:recycle()</span>
+<span id="L875" class="line"><a href="#L875">875</a>    if self._viewTransition then</span>
+<span id="L876" class="line"><a href="#L876">876</a>        self._viewTransition:reject(&quot;promotedaily main panel recycled&quot;)</span>
+<span id="L877" class="line"><a href="#L877">877</a>        self._viewTransition = nil</span>
+<span id="L878" class="line"><a href="#L878">878</a>    end</span>
+<span id="L879" class="line"><a href="#L879">879</a>    self:_nextNavigationGeneration()</span>
+<span id="L880" class="line"><a href="#L880">880</a>    PromoteDailyEventCenter:dispatch(PromoteDailyEvent.UPDATE_ICON)</span>
+<span id="L881" class="line"><a href="#L881">881</a>    self:unregisterEvent()</span>
+<span id="L882" class="line"><a href="#L882">882</a>    local UIEventCenter = require &quot;amf.middleware.ui.event.UIEventCenter&quot;</span>
+<span id="L883" class="line"><a href="#L883">883</a>    UIEventCenter:dispatch(UIEvent.Remove.AUTO_TIP)</span>
+<span id="L884" class="line"><a href="#L884">884</a>    -- 万一没播完动画，得还原回去</span>
+<span id="L885" class="line"><a href="#L885">885</a>    if self._initMinusCount and self._initMinusCount &gt; 0 then</span>
+<span id="L886" class="line"><a href="#L886">886</a>        self._promoteDailyMgr:addShieldNum(self._initMinusCount)</span>
+<span id="L887" class="line"><a href="#L887">887</a>        self._initMinusCount = 0</span>
+<span id="L888" class="line"><a href="#L888">888</a>    end</span>
+<span id="L889" class="line"><a href="#L889">889</a>    if self._initAddCount and self._initAddCount &gt; 0 then</span>
+<span id="L890" class="line"><a href="#L890">890</a>        self._promoteDailyMgr:addShieldNum(-self._initAddCount)</span>
+<span id="L891" class="line"><a href="#L891">891</a>        self._initAddCount = 0</span>
+<span id="L892" class="line"><a href="#L892">892</a>    end</span>
+<span id="L893" class="line"><a href="#L893">893</a>    if self._yearResLoadMap then</span>
+<span id="L894" class="line"><a href="#L894">894</a>        local loadingMap = self._yearResLoadMap</span>
+<span id="L895" class="line"><a href="#L895">895</a>        self._yearResLoadMap = {}</span>
+<span id="L896" class="line"><a href="#L896">896</a>        for _, loading in pairs(loadingMap) do</span>
+<span id="L897" class="line"><a href="#L897">897</a>            loading:reject(&quot;promotedaily main panel recycled&quot;)</span>
+<span id="L898" class="line"><a href="#L898">898</a>        end</span>
+<span id="L899" class="line"><a href="#L899">899</a>    end</span>
+<span id="L900" class="line"><a href="#L900">900</a>    if not table.isEmpty(self._retainResMap) then</span>
+<span id="L901" class="line"><a href="#L901">901</a>        for _, resList in pairs(self._retainResMap) do</span>
+<span id="L902" class="line"><a href="#L902">902</a>            self._promoteDailyMgr:releaseRes(resList)</span>
+<span id="L903" class="line"><a href="#L903">903</a>        end</span>
+<span id="L904" class="line"><a href="#L904">904</a>        self._retainResMap = {}</span>
+<span id="L905" class="line"><a href="#L905">905</a>    end</span>
+<span id="L906" class="line"><a href="#L906">906</a>    AMFBasePanelVM.recycle(self)</span>
+<span id="L907" class="line"><a href="#L907">907</a>end</span>
+<span id="L908" class="line"><a href="#L908">908</a></span>
+<span id="L909" class="line"><a href="#L909">909</a>function MainPanelVM:registerEvent()</span>
+<span id="L910" class="line"><a href="#L910">910</a>    for _, binding in ipairs(EVENT_BINDINGS) do</span>
+<span id="L911" class="line"><a href="#L911">911</a>        PromoteDailyEventCenter:register(binding[1], self[binding[2]], self)</span>
+<span id="L912" class="line"><a href="#L912">912</a>    end</span>
+<span id="L913" class="line"><a href="#L913">913</a>    ScreenShotEventCenter:register(ScreenShotEvent.SCREENSHOT_DC, self.onScreenShotDc, self)</span>
+<span id="L914" class="line"><a href="#L914">914</a>end</span>
+<span id="L915" class="line"><a href="#L915">915</a></span>
+<span id="L916" class="line"><a href="#L916">916</a>function MainPanelVM:unregisterEvent()</span>
+<span id="L917" class="line"><a href="#L917">917</a>    for _, binding in ipairs(EVENT_BINDINGS) do</span>
+<span id="L918" class="line"><a href="#L918">918</a>        PromoteDailyEventCenter:unregister(binding[1], self[binding[2]])</span>
+<span id="L919" class="line"><a href="#L919">919</a>    end</span>
+<span id="L920" class="line"><a href="#L920">920</a>    ScreenShotEventCenter:unregister(ScreenShotEvent.SCREENSHOT_DC, self.onScreenShotDc)</span>
+<span id="L921" class="line"><a href="#L921">921</a>end</span>
+<span id="L922" class="line"><a href="#L922">922</a></span>
+<span id="L923" class="line"><a href="#L923">923</a>function MainPanelVM:onScreenShotDc(evt)</span>
+<span id="L924" class="line"><a href="#L924">924</a>	if self.isDisposed then return end</span>
+<span id="L925" class="line"><a href="#L925">925</a>    local data = evt:getData()</span>
+<span id="L926" class="line"><a href="#L926">926</a>    data.extParam.t1 = 5</span>
+<span id="L927" class="line"><a href="#L927">927</a>end</span>
+<span id="L928" class="line"><a href="#L928">928</a></span>
+<span id="L929" class="line"><a href="#L929">929</a>-- 重燃活动数据刷新（含补拉主信息成功）：吊牌 / 任务区域 / 新记录一起重算</span>
+<span id="L930" class="line"><a href="#L930">930</a>function MainPanelVM:onRepairActUpdate()</span>
+<span id="L931" class="line"><a href="#L931">931</a>    if self.isDisposed then return end</span>
+<span id="L932" class="line"><a href="#L932">932</a>    self:_updateNewUIs()</span>
+<span id="L933" class="line"><a href="#L933">933</a>    self:_updateNewRecord()</span>
+<span id="L934" class="line"><a href="#L934">934</a>    self:callViewFunc(&quot;updateBottomNode&quot;)</span>
+<span id="L935" class="line"><a href="#L935">935</a>end</span>
+<span id="L936" class="line"><a href="#L936">936</a></span>
+<span id="L937" class="line"><a href="#L937">937</a>-- bubble额外的点击层</span>
+<span id="L938" class="line"><a href="#L938">938</a>function MainPanelVM:onAddOutClickLayer(evt)</span>
+<span id="L939" class="line"><a href="#L939">939</a>    local data = evt:getData()</span>
+<span id="L940" class="line"><a href="#L940">940</a>    self:callViewFunc(&quot;addOutClickLayer&quot;, data.clickCall, data.hitTestFunc)</span>
+<span id="L941" class="line"><a href="#L941">941</a>end</span>
+<span id="L942" class="line"><a href="#L942">942</a></span>
+<span id="L943" class="line"><a href="#L943">943</a>function MainPanelVM:onRemoveOutClickLayer()</span>
+<span id="L944" class="line"><a href="#L944">944</a>    self:callViewFunc(&quot;removeOutClickLayer&quot;)</span>
+<span id="L945" class="line"><a href="#L945">945</a>end</span>
+<span id="L946" class="line"><a href="#L946">946</a></span>
+<span id="L947" class="line"><a href="#L947">947</a>-- 主面板点击打点</span>
+<span id="L948" class="line"><a href="#L948">948</a>function MainPanelVM:onMainClickDC(evt)</span>
+<span id="L949" class="line"><a href="#L949">949</a>    local data = evt:getData()</span>
+<span id="L950" class="line"><a href="#L950">950</a>    self._promoteDailyMgr:dc(PromoteDailyConst.FEATURE, &quot;main_panel_click&quot;, {</span>
+<span id="L951" class="line"><a href="#L951">951</a>        panel_id = self.panelId,</span>
+<span id="L952" class="line"><a href="#L952">952</a>        t1 = data.t1</span>
+<span id="L953" class="line"><a href="#L953">953</a>    })</span>
+<span id="L954" class="line"><a href="#L954">954</a>end</span>
+<span id="L955" class="line"><a href="#L955">955</a></span>
+<span id="L956" class="line"><a href="#L956">956</a>function MainPanelVM:_initCanPlayNewToOldAnim()</span>
+<span id="L957" class="line"><a href="#L957">957</a>    -- 是否从新的任务刷成老的任务</span>
+<span id="L958" class="line"><a href="#L958">958</a>    local oldState = self._promoteDailyMgr:getLocalValue(&quot;lastChooseIsOK&quot;)</span>
+<span id="L959" class="line"><a href="#L959">959</a>    -- 上次是不是新的,默认是</span>
+<span id="L960" class="line"><a href="#L960">960</a>    if oldState == nil then </span>
+<span id="L961" class="line"><a href="#L961">961</a>        oldState = true</span>
+<span id="L962" class="line"><a href="#L962">962</a>    end</span>
+<span id="L963" class="line"><a href="#L963">963</a>    local curOk = self._promoteDailyMgr:getDataValue(&quot;chooseTaskOK&quot;) -- 当前是不是新的</span>
+<span id="L964" class="line"><a href="#L964">964</a>    local chooseData = self._promoteDailyMgr:getDataValue(&quot;chooseProgressTaskData&quot;) or {}</span>
+<span id="L965" class="line"><a href="#L965">965</a>    local hasNewTaskData = chooseData.nowProgress ~= nil</span>
+<span id="L966" class="line"><a href="#L966">966</a>    self.needNewToOldAni = false</span>
+<span id="L967" class="line"><a href="#L967">967</a>    if oldState and not curOk and hasNewTaskData then</span>
+<span id="L968" class="line"><a href="#L968">968</a>        self.needNewToOldAni = true</span>
+<span id="L969" class="line"><a href="#L969">969</a>    end</span>
+<span id="L970" class="line"><a href="#L970">970</a>    -- self._promoteDailyMgr:log(&quot;self._needNewToOldAnim ----&quot;, self.needNewToOldAni, oldState ,curOk, hasNewTaskData)</span>
+<span id="L971" class="line"><a href="#L971">971</a>    self._promoteDailyMgr:setLocalValue(&quot;lastChooseIsOK&quot;, curOk)</span>
+<span id="L972" class="line"><a href="#L972">972</a>end</span>
+<span id="L973" class="line"><a href="#L973">973</a></span>
+<span id="L974" class="line"><a href="#L974">974</a>function MainPanelVM:isUseNewUI()</span>
+<span id="L975" class="line"><a href="#L975">975</a>    return MainPanelConfig:isNewUI(self._year, self._month)</span>
+<span id="L976" class="line"><a href="#L976">976</a>end</span>
+<span id="L977" class="line"><a href="#L977">977</a></span>
+<span id="L978" class="line"><a href="#L978">978</a>-- 补翻二次确认面板</span>
+<span id="L979" class="line"><a href="#L979">979</a>function MainPanelVM:onClickToMakeUp(evt)</span>
+<span id="L980" class="line"><a href="#L980">980</a>    local data = evt:getData() or {}</span>
+<span id="L981" class="line"><a href="#L981">981</a>    self._promoteDailyMgr:openAskForHandPanel(nil, data)</span>
+<span id="L982" class="line"><a href="#L982">982</a></span>
+<span id="L983" class="line"><a href="#L983">983</a>    if data.from == &quot;cardTip&quot; then</span>
+<span id="L984" class="line"><a href="#L984">984</a>        -- 打点点击去补翻</span>
+<span id="L985" class="line"><a href="#L985">985</a>        self:onMainClickDC(AMFEvent.new(&quot;&quot;, { t1 = 1 }))</span>
+<span id="L986" class="line"><a href="#L986">986</a>    end</span>
+<span id="L987" class="line"><a href="#L987">987</a>end</span>
+<span id="L988" class="line"><a href="#L988">988</a></span>
+<span id="L989" class="line"><a href="#L989">989</a>-- 翻牌成功了</span>
+<span id="L990" class="line"><a href="#L990">990</a>function MainPanelVM:onSignSuccess(evt)</span>
+<span id="L991" class="line"><a href="#L991">991</a>    local data = evt:getData()</span>
+<span id="L992" class="line"><a href="#L992">992</a>    self:lock()</span>
+<span id="L993" class="line"><a href="#L993">993</a>    deferred.success()</span>
+<span id="L994" class="line"><a href="#L994">994</a>    :next(function()</span>
+<span id="L995" class="line"><a href="#L995">995</a>        local td = deferred.new()</span>
+<span id="L996" class="line"><a href="#L996">996</a>        if data.year and data.month and data.day then</span>
+<span id="L997" class="line"><a href="#L997">997</a>            -- self:callViewFunc(&quot;setCardLabelVisible&quot;, data.year, data.month, data.day, false)</span>
+<span id="L998" class="line"><a href="#L998">998</a>            self:callViewFuncWithCallback(&quot;onSignSuccess&quot;, function()</span>
+<span id="L999" class="line"><a href="#L999">999</a>                -- self:callViewFunc(&quot;setCardLabelVisible&quot;, data.year, data.month, data.day, true)</span>
+<span id="L1000" class="line"><a href="#L1000">1000</a>                self:_updateView()</span>
+<span id="L1001" class="line"><a href="#L1001">1001</a>                td:resolve()</span>
+<span id="L1002" class="line"><a href="#L1002">1002</a>            end, data.year, data.month, data.day)</span>
+<span id="L1003" class="line"><a href="#L1003">1003</a>        else</span>
+<span id="L1004" class="line"><a href="#L1004">1004</a>            td:resolve()</span>
+<span id="L1005" class="line"><a href="#L1005">1005</a>        end</span>
+<span id="L1006" class="line"><a href="#L1006">1006</a>        return td</span>
+<span id="L1007" class="line"><a href="#L1007">1007</a>    end)</span>
+<span id="L1008" class="line"><a href="#L1008">1008</a>    :next(function()</span>
+<span id="L1009" class="line"><a href="#L1009">1009</a>        local td = deferred.new()</span>
+<span id="L1010" class="line"><a href="#L1010">1010</a>        if self._promoteDailyMgr:checkCanRewardMonthMedal(self._year, self._month) then</span>
+<span id="L1011" class="line"><a href="#L1011">1011</a>            local lastDay = self._promoteDailyMgr:getLastDayByYM(self._year, self._month)</span>
+<span id="L1012" class="line"><a href="#L1012">1012</a>            local day = Utils:getDayNumByYMD(self._year, self._month, lastDay)</span>
+<span id="L1013" class="line"><a href="#L1013">1013</a>            self._promoteDailyMgr:requestReward({rewardType = 2, day = day}):next(function(randomReward)</span>
+<span id="L1014" class="line"><a href="#L1014">1014</a>                self._promoteDailyMgr:showShopRewardsPanel(randomReward):next(function()</span>
+<span id="L1015" class="line"><a href="#L1015">1015</a>                    td:resolve()</span>
+<span id="L1016" class="line"><a href="#L1016">1016</a>                end, function()</span>
+<span id="L1017" class="line"><a href="#L1017">1017</a>                    td:resolve()</span>
+<span id="L1018" class="line"><a href="#L1018">1018</a>                end)</span>
+<span id="L1019" class="line"><a href="#L1019">1019</a>            end, function()</span>
+<span id="L1020" class="line"><a href="#L1020">1020</a>                td:resolve()</span>
+<span id="L1021" class="line"><a href="#L1021">1021</a>            end)</span>
+<span id="L1022" class="line"><a href="#L1022">1022</a>        else</span>
+<span id="L1023" class="line"><a href="#L1023">1023</a>            td:resolve()</span>
+<span id="L1024" class="line"><a href="#L1024">1024</a>        end</span>
+<span id="L1025" class="line"><a href="#L1025">1025</a>        return td</span>
+<span id="L1026" class="line"><a href="#L1026">1026</a>    end)</span>
+<span id="L1027" class="line"><a href="#L1027">1027</a>    :next(function()</span>
+<span id="L1028" class="line"><a href="#L1028">1028</a>        local td = deferred.new()</span>
+<span id="L1029" class="line"><a href="#L1029">1029</a>        if self._promoteDailyMgr:isFullSign(self._year, self._month) then</span>
+<span id="L1030" class="line"><a href="#L1030">1030</a>            local key = &quot;popFullSignDate_&quot;.. self._year..&quot;_&quot;..self._month</span>
+<span id="L1031" class="line"><a href="#L1031">1031</a>            self._promoteDailyMgr:setLocalValue(key, true)</span>
+<span id="L1032" class="line"><a href="#L1032">1032</a>            self._promoteDailyMgr:showFullSignPanel({</span>
+<span id="L1033" class="line"><a href="#L1033">1033</a>                year = self._year,</span>
+<span id="L1034" class="line"><a href="#L1034">1034</a>                month = self._month,</span>
+<span id="L1035" class="line"><a href="#L1035">1035</a>                closeCallback = function()</span>
+<span id="L1036" class="line"><a href="#L1036">1036</a>                    td:resolve()</span>
+<span id="L1037" class="line"><a href="#L1037">1037</a>                end</span>
+<span id="L1038" class="line"><a href="#L1038">1038</a>            })</span>
+<span id="L1039" class="line"><a href="#L1039">1039</a>        else</span>
+<span id="L1040" class="line"><a href="#L1040">1040</a>            td:resolve()</span>
+<span id="L1041" class="line"><a href="#L1041">1041</a>        end</span>
+<span id="L1042" class="line"><a href="#L1042">1042</a>        return td</span>
+<span id="L1043" class="line"><a href="#L1043">1043</a>    end)</span>
+<span id="L1044" class="line"><a href="#L1044">1044</a>    :next(function()</span>
+<span id="L1045" class="line"><a href="#L1045">1045</a>        self:_updateView()</span>
+<span id="L1046" class="line"><a href="#L1046">1046</a>        self:unlock()</span>
+<span id="L1047" class="line"><a href="#L1047">1047</a>    end)</span>
+<span id="L1048" class="line"><a href="#L1048">1048</a>end</span>
+<span id="L1049" class="line"><a href="#L1049">1049</a></span>
+<span id="L1050" class="line"><a href="#L1050">1050</a>function MainPanelVM:_tryPlayCurDayNotSignAnim()</span>
+<span id="L1051" class="line"><a href="#L1051">1051</a>    local d = deferred.new()</span>
+<span id="L1052" class="line"><a href="#L1052">1052</a>    local todaySigned = self._promoteDailyMgr:getTodaySignState() ~= PromoteDailyConst.SignState.NONE</span>
+<span id="L1053" class="line"><a href="#L1053">1053</a>    if todaySigned then</span>
+<span id="L1054" class="line"><a href="#L1054">1054</a>        return d:resolve()</span>
+<span id="L1055" class="line"><a href="#L1055">1055</a>    end</span>
+<span id="L1056" class="line"><a href="#L1056">1056</a>    self:callViewFunc(&quot;playCurDayNotSignAnim&quot;)</span>
+<span id="L1057" class="line"><a href="#L1057">1057</a>    TimerUtil.addAlarm(function()</span>
+<span id="L1058" class="line"><a href="#L1058">1058</a>        d:resolve()</span>
+<span id="L1059" class="line"><a href="#L1059">1059</a>    end, 10/30)</span>
+<span id="L1060" class="line"><a href="#L1060">1060</a>    return d</span>
+<span id="L1061" class="line"><a href="#L1061">1061</a>end</span>
+<span id="L1062" class="line"><a href="#L1062">1062</a></span>
+<span id="L1063" class="line"><a href="#L1063">1063</a>-- 去闯关</span>
+<span id="L1064" class="line"><a href="#L1064">1064</a>function MainPanelVM:onGoToLevel(evt)</span>
+<span id="L1065" class="line"><a href="#L1065">1065</a>    PromoteDailyEventCenter:dispatch(PromoteDailyEvent.CLOSE_ALL)</span>
+<span id="L1066" class="line"><a href="#L1066">1066</a>    _G.amfTransaction(TransactionEvent.PLAY_LEVEL, PlayLevelContext.new())</span>
+<span id="L1067" class="line"><a href="#L1067">1067</a>    -- 主面板点击打点</span>
+<span id="L1068" class="line"><a href="#L1068">1068</a>    local data = evt and evt:getData() or {}</span>
+<span id="L1069" class="line"><a href="#L1069">1069</a>    if data.from == &quot;cardTip&quot; then</span>
+<span id="L1070" class="line"><a href="#L1070">1070</a>        self:onMainClickDC(AMFEvent.new(&quot;&quot;, { t1 = data.t1 }))</span>
+<span id="L1071" class="line"><a href="#L1071">1071</a>    end</span>
+<span id="L1072" class="line"><a href="#L1072">1072</a>end</span>
+<span id="L1073" class="line"><a href="#L1073">1073</a></span>
+<span id="L1074" class="line"><a href="#L1074">1074</a>-- 打开帮助界面</span>
+<span id="L1075" class="line"><a href="#L1075">1075</a>function MainPanelVM:openHelpPanel(evt)</span>
+<span id="L1076" class="line"><a href="#L1076">1076</a>    local data = evt:getData() or {}</span>
+<span id="L1077" class="line"><a href="#L1077">1077</a>    self._promoteDailyMgr:showActIntroPanel(1, data.closeCallback)</span>
+<span id="L1078" class="line"><a href="#L1078">1078</a>end</span>
+<span id="L1079" class="line"><a href="#L1079">1079</a></span>
+<span id="L1080" class="line"><a href="#L1080">1080</a>-- 打开七天奖励界面</span>
+<span id="L1081" class="line"><a href="#L1081">1081</a>function MainPanelVM:open7DayPanel(evt)</span>
+<span id="L1082" class="line"><a href="#L1082">1082</a>    local data = evt:getData() or {}</span>
+<span id="L1083" class="line"><a href="#L1083">1083</a>    data.year = data.year or self._year</span>
+<span id="L1084" class="line"><a href="#L1084">1084</a>    data.month = data.month or self._month</span>
+<span id="L1085" class="line"><a href="#L1085">1085</a>    if table.isEmpty(data.extReward) then</span>
+<span id="L1086" class="line"><a href="#L1086">1086</a>        local NormalRewardPoolPanelVM = require &quot;amf.feature.dailyreward.promotedaily.view.NormalRewardPoolPanelVM&quot;</span>
+<span id="L1087" class="line"><a href="#L1087">1087</a>        local vm = NormalRewardPoolPanelVM:create(data)</span>
+<span id="L1088" class="line"><a href="#L1088">1088</a>        vm:setLoadResFailCallback(function()</span>
+<span id="L1089" class="line"><a href="#L1089">1089</a>        end)</span>
+<span id="L1090" class="line"><a href="#L1090">1090</a>        vm:popout()</span>
+<span id="L1091" class="line"><a href="#L1091">1091</a>        self._promoteDailyMgr:addToMgr(vm)</span>
+<span id="L1092" class="line"><a href="#L1092">1092</a>    else</span>
+<span id="L1093" class="line"><a href="#L1093">1093</a>        local RewardPoolPanelVM = require &quot;amf.feature.dailyreward.promotedaily.view.RewardPoolPanelVM&quot;</span>
+<span id="L1094" class="line"><a href="#L1094">1094</a>        local vm = RewardPoolPanelVM:create(data)</span>
+<span id="L1095" class="line"><a href="#L1095">1095</a>        vm:setLoadResFailCallback(function()</span>
+<span id="L1096" class="line"><a href="#L1096">1096</a>        end)</span>
+<span id="L1097" class="line"><a href="#L1097">1097</a>        vm:popout()</span>
+<span id="L1098" class="line"><a href="#L1098">1098</a>        self._promoteDailyMgr:addToMgr(vm)</span>
+<span id="L1099" class="line"><a href="#L1099">1099</a>    end</span>
+<span id="L1100" class="line"><a href="#L1100">1100</a></span>
+<span id="L1101" class="line"><a href="#L1101">1101</a>    -- 主面板点击打点</span>
+<span id="L1102" class="line"><a href="#L1102">1102</a>    self:onMainClickDC(AMFEvent.new(&quot;&quot;, { t1 = 4 }))</span>
+<span id="L1103" class="line"><a href="#L1103">1103</a>end</span>
+<span id="L1104" class="line"><a href="#L1104">1104</a></span>
+<span id="L1105" class="line"><a href="#L1105">1105</a>-- 领取七天奖励</span>
+<span id="L1106" class="line"><a href="#L1106">1106</a>function MainPanelVM:on7DayRewardTapped(evt)</span>
+<span id="L1107" class="line"><a href="#L1107">1107</a>    self:lock()</span>
+<span id="L1108" class="line"><a href="#L1108">1108</a>    deferred.success()</span>
+<span id="L1109" class="line"><a href="#L1109">1109</a>    :next(function()</span>
+<span id="L1110" class="line"><a href="#L1110">1110</a>        if self.isDisposed then return end</span>
+<span id="L1111" class="line"><a href="#L1111">1111</a>        local td = deferred.new()</span>
+<span id="L1112" class="line"><a href="#L1112">1112</a>        self._promoteDailyMgr:tryGetTaskReward():next(function(data)</span>
+<span id="L1113" class="line"><a href="#L1113">1113</a>            if data and data.rewards then</span>
+<span id="L1114" class="line"><a href="#L1114">1114</a>                self._promoteDailyMgr:showArriveDailyPanel({</span>
+<span id="L1115" class="line"><a href="#L1115">1115</a>                    pageIndex = 2,</span>
+<span id="L1116" class="line"><a href="#L1116">1116</a>                    rewards = data.rewards,</span>
+<span id="L1117" class="line"><a href="#L1117">1117</a>                    bOldTask = data.bOldTask,</span>
+<span id="L1118" class="line"><a href="#L1118">1118</a>                    boxWorldPos = self:callViewFunc(&quot;getBottomBoxWorldPos&quot;),</span>
+<span id="L1119" class="line"><a href="#L1119">1119</a>                }, function()</span>
+<span id="L1120" class="line"><a href="#L1120">1120</a>                    self._promoteDailyMgr:showSelectTargetPanel():next(function()</span>
+<span id="L1121" class="line"><a href="#L1121">1121</a>                        td:resolve()</span>
+<span id="L1122" class="line"><a href="#L1122">1122</a>                    end)</span>
+<span id="L1123" class="line"><a href="#L1123">1123</a>                end)</span>
+<span id="L1124" class="line"><a href="#L1124">1124</a>            else</span>
+<span id="L1125" class="line"><a href="#L1125">1125</a>                td:resolve()</span>
+<span id="L1126" class="line"><a href="#L1126">1126</a>            end</span>
+<span id="L1127" class="line"><a href="#L1127">1127</a>        end)</span>
+<span id="L1128" class="line"><a href="#L1128">1128</a>        return td</span>
+<span id="L1129" class="line"><a href="#L1129">1129</a>    end)</span>
+<span id="L1130" class="line"><a href="#L1130">1130</a>    :next(function()</span>
+<span id="L1131" class="line"><a href="#L1131">1131</a>        return self:_tryPlayRefreshTask()</span>
+<span id="L1132" class="line"><a href="#L1132">1132</a>    end)</span>
+<span id="L1133" class="line"><a href="#L1133">1133</a>    :next(function()</span>
+<span id="L1134" class="line"><a href="#L1134">1134</a>        if self.isDisposed then return end</span>
+<span id="L1135" class="line"><a href="#L1135">1135</a>        self:_updateView()</span>
+<span id="L1136" class="line"><a href="#L1136">1136</a>        self:unlock()</span>
+<span id="L1137" class="line"><a href="#L1137">1137</a>    end)</span>
+<span id="L1138" class="line"><a href="#L1138">1138</a>end</span>
+<span id="L1139" class="line"><a href="#L1139">1139</a></span>
+<span id="L1140" class="line"><a href="#L1140">1140</a>-- 打开月奖励界面</span>
+<span id="L1141" class="line"><a href="#L1141">1141</a>function MainPanelVM:openMonthAllRewardPanel(evt)</span>
+<span id="L1142" class="line"><a href="#L1142">1142</a>    local data = evt:getData()</span>
+<span id="L1143" class="line"><a href="#L1143">1143</a>    local AllRewardPanelVM = require &quot;amf.feature.dailyreward.promotedaily.view.AllRewardPanelVM&quot;</span>
+<span id="L1144" class="line"><a href="#L1144">1144</a>    local vm = AllRewardPanelVM:create(data)</span>
+<span id="L1145" class="line"><a href="#L1145">1145</a>    vm:setLoadResFailCallback(function()</span>
+<span id="L1146" class="line"><a href="#L1146">1146</a>    end)</span>
+<span id="L1147" class="line"><a href="#L1147">1147</a>    vm:popout()</span>
+<span id="L1148" class="line"><a href="#L1148">1148</a>    self._promoteDailyMgr:addToMgr(vm)</span>
+<span id="L1149" class="line"><a href="#L1149">1149</a>end</span>
+<span id="L1150" class="line"><a href="#L1150">1150</a></span>
+<span id="L1151" class="line"><a href="#L1151">1151</a>-- 点击高光记录</span>
+<span id="L1152" class="line"><a href="#L1152">1152</a>function MainPanelVM:onRecordBtnTapped()</span>
+<span id="L1153" class="line"><a href="#L1153">1153</a>    -- 已经点过就不显示新字了</span>
+<span id="L1154" class="line"><a href="#L1154">1154</a>    self._promoteDailyMgr:setLocalValue(&quot;btnRecordNewTagShow&quot;, false)</span>
+<span id="L1155" class="line"><a href="#L1155">1155</a>    -- 刷新红点</span>
+<span id="L1156" class="line"><a href="#L1156">1156</a>    self:callViewFunc(&quot;updateBtnRecord&quot;)</span>
+<span id="L1157" class="line"><a href="#L1157">1157</a>    self:openHighLightPanel({t1 = 1})</span>
+<span id="L1158" class="line"><a href="#L1158">1158</a>end</span>
+<span id="L1159" class="line"><a href="#L1159">1159</a></span>
+<span id="L1160" class="line"><a href="#L1160">1160</a>function MainPanelVM:onOpenHighLightPanel(evt)</span>
+<span id="L1161" class="line"><a href="#L1161">1161</a>    local param = evt:getData()</span>
+<span id="L1162" class="line"><a href="#L1162">1162</a>    self:openHighLightPanel(param)</span>
+<span id="L1163" class="line"><a href="#L1163">1163</a>end</span>
+<span id="L1164" class="line"><a href="#L1164">1164</a></span>
+<span id="L1165" class="line"><a href="#L1165">1165</a>function MainPanelVM:openHighLightPanel(param)</span>
+<span id="L1166" class="line"><a href="#L1166">1166</a>    local param = param or {}</span>
+<span id="L1167" class="line"><a href="#L1167">1167</a>    local HighLighPanelVM = require &quot;amf.feature.dailyreward.promotedaily.view.HighLightPanelVM&quot;</span>
+<span id="L1168" class="line"><a href="#L1168">1168</a>    local vm = HighLighPanelVM:create(param)</span>
+<span id="L1169" class="line"><a href="#L1169">1169</a>    vm:setLoadResFailCallback(function()</span>
+<span id="L1170" class="line"><a href="#L1170">1170</a>    end)</span>
+<span id="L1171" class="line"><a href="#L1171">1171</a>    vm:popout()</span>
+<span id="L1172" class="line"><a href="#L1172">1172</a>    self._promoteDailyMgr:addToMgr(vm)</span>
+<span id="L1173" class="line"><a href="#L1173">1173</a>end</span>
+<span id="L1174" class="line"><a href="#L1174">1174</a></span>
+<span id="L1175" class="line"><a href="#L1175">1175</a>-- 点击了去补翻</span>
+<span id="L1176" class="line"><a href="#L1176">1176</a>function MainPanelVM:onClickToRecover(evt)</span>
+<span id="L1177" class="line"><a href="#L1177">1177</a>    local data = evt:getData()</span>
+<span id="L1178" class="line"><a href="#L1178">1178</a>    if data.year and data.month then</span>
+<span id="L1179" class="line"><a href="#L1179">1179</a>        local lastDayNum = Utils:getDayNumByYMD(self._year, self._month, 1)</span>
+<span id="L1180" class="line"><a href="#L1180">1180</a>        local targetDayNum = Utils:getDayNumByYMD(data.year, data.month, 1)</span>
+<span id="L1181" class="line"><a href="#L1181">1181</a>        local direction</span>
+<span id="L1182" class="line"><a href="#L1182">1182</a>        if targetDayNum &lt; lastDayNum then</span>
+<span id="L1183" class="line"><a href="#L1183">1183</a>            direction = MainPanelConfig.CalendarAni.RIGHT</span>
+<span id="L1184" class="line"><a href="#L1184">1184</a>        elseif targetDayNum &gt; lastDayNum then</span>
+<span id="L1185" class="line"><a href="#L1185">1185</a>            direction = MainPanelConfig.CalendarAni.LEFT</span>
+<span id="L1186" class="line"><a href="#L1186">1186</a>        end</span>
+<span id="L1187" class="line"><a href="#L1187">1187</a>        self:lock()</span>
+<span id="L1188" class="line"><a href="#L1188">1188</a>        self:_navigateTo(data.year, data.month, data.day or self._day, direction):next(function()</span>
+<span id="L1189" class="line"><a href="#L1189">1189</a>            self:unlock()</span>
+<span id="L1190" class="line"><a href="#L1190">1190</a>            -- 打点</span>
+<span id="L1191" class="line"><a href="#L1191">1191</a>            if data.from == &quot;monthMedal&quot; or data.from == &quot;headFrame&quot; then</span>
+<span id="L1192" class="line"><a href="#L1192">1192</a>                self._promoteDailyMgr:dc(PromoteDailyConst.FEATURE, &quot;highlight_click&quot;, {</span>
+<span id="L1193" class="line"><a href="#L1193">1193</a>                    t1 = data.from == &quot;monthMedal&quot; and 2 or 1,</span>
+<span id="L1194" class="line"><a href="#L1194">1194</a>                    t2 = self._promoteDailyMgr:getHeadFrameId(data.year, data.month)</span>
+<span id="L1195" class="line"><a href="#L1195">1195</a>                })</span>
+<span id="L1196" class="line"><a href="#L1196">1196</a>            end</span>
+<span id="L1197" class="line"><a href="#L1197">1197</a>        end, function()</span>
+<span id="L1198" class="line"><a href="#L1198">1198</a>            self:unlock()</span>
+<span id="L1199" class="line"><a href="#L1199">1199</a>        end)</span>
+<span id="L1200" class="line"><a href="#L1200">1200</a>    end</span>
+<span id="L1201" class="line"><a href="#L1201">1201</a>end</span>
+<span id="L1202" class="line"><a href="#L1202">1202</a></span>
+<span id="L1203" class="line"><a href="#L1203">1203</a>function MainPanelVM:tryLoadYearRes(year)</span>
+<span id="L1204" class="line"><a href="#L1204">1204</a>    local yearKey = tostring(year)</span>
+<span id="L1205" class="line"><a href="#L1205">1205</a>    local yearList = MainPanelConfig:getYearResList(year)</span>
+<span id="L1206" class="line"><a href="#L1206">1206</a>    if #yearList == 0 then</span>
+<span id="L1207" class="line"><a href="#L1207">1207</a>        return deferred.success()</span>
+<span id="L1208" class="line"><a href="#L1208">1208</a>    end</span>
+<span id="L1209" class="line"><a href="#L1209">1209</a>    if self._retainResMap[yearKey] then</span>
+<span id="L1210" class="line"><a href="#L1210">1210</a>        return deferred.success()</span>
+<span id="L1211" class="line"><a href="#L1211">1211</a>    end</span>
+<span id="L1212" class="line"><a href="#L1212">1212</a>    if self._yearResLoadMap[yearKey] then</span>
+<span id="L1213" class="line"><a href="#L1213">1213</a>        return self._yearResLoadMap[yearKey]</span>
+<span id="L1214" class="line"><a href="#L1214">1214</a>    end</span>
+<span id="L1215" class="line"><a href="#L1215">1215</a></span>
+<span id="L1216" class="line"><a href="#L1216">1216</a>    local d = deferred.new()</span>
+<span id="L1217" class="line"><a href="#L1217">1217</a>    self._yearResLoadMap[yearKey] = d</span>
+<span id="L1218" class="line"><a href="#L1218">1218</a>    local function _loadOver()</span>
+<span id="L1219" class="line"><a href="#L1219">1219</a>        if self._yearResLoadMap[yearKey] ~= d then return end</span>
+<span id="L1220" class="line"><a href="#L1220">1220</a>        self._yearResLoadMap[yearKey] = nil</span>
+<span id="L1221" class="line"><a href="#L1221">1221</a>        if self.isDisposed then</span>
+<span id="L1222" class="line"><a href="#L1222">1222</a>            return d:reject(&quot;promotedaily main panel disposed&quot;)</span>
+<span id="L1223" class="line"><a href="#L1223">1223</a>        end</span>
+<span id="L1224" class="line"><a href="#L1224">1224</a>        if not self._retainResMap[yearKey] then</span>
+<span id="L1225" class="line"><a href="#L1225">1225</a>            self._promoteDailyMgr:retainResOnce(yearList)</span>
+<span id="L1226" class="line"><a href="#L1226">1226</a>            self._retainResMap[yearKey] = yearList</span>
+<span id="L1227" class="line"><a href="#L1227">1227</a>        end</span>
+<span id="L1228" class="line"><a href="#L1228">1228</a>        d:resolve()</span>
+<span id="L1229" class="line"><a href="#L1229">1229</a>    end</span>
+<span id="L1230" class="line"><a href="#L1230">1230</a>    local function _loadFail(err)</span>
+<span id="L1231" class="line"><a href="#L1231">1231</a>        if self._yearResLoadMap[yearKey] ~= d then return end</span>
+<span id="L1232" class="line"><a href="#L1232">1232</a>        self._yearResLoadMap[yearKey] = nil</span>
+<span id="L1233" class="line"><a href="#L1233">1233</a>        d:reject(err)</span>
+<span id="L1234" class="line"><a href="#L1234">1234</a>    end</span>
+<span id="L1235" class="line"><a href="#L1235">1235</a>    if EnvUtil:isMiniGame() then</span>
+<span id="L1236" class="line"><a href="#L1236">1236</a>        self._assetsUtil:loadMiniFiles(yearList, false):next(function()</span>
+<span id="L1237" class="line"><a href="#L1237">1237</a>            _loadOver()</span>
+<span id="L1238" class="line"><a href="#L1238">1238</a>        end, _loadFail)</span>
+<span id="L1239" class="line"><a href="#L1239">1239</a>    else</span>
+<span id="L1240" class="line"><a href="#L1240">1240</a>        _loadOver()</span>
+<span id="L1241" class="line"><a href="#L1241">1241</a>    end</span>
+<span id="L1242" class="line"><a href="#L1242">1242</a>    return d</span>
+<span id="L1243" class="line"><a href="#L1243">1243</a>end</span>
+<span id="L1244" class="line"><a href="#L1244">1244</a></span>
+<span id="L1245" class="line"><a href="#L1245">1245</a>function MainPanelVM:_navigateTo(targetYear, targetMonth, targetDay, direction, transitionStarted)</span>
+<span id="L1246" class="line"><a href="#L1246">1246</a>    if not self:_isConfigAndDataEnabled(targetYear, targetMonth) then</span>
+<span id="L1247" class="line"><a href="#L1247">1247</a>        return deferred.error(&quot;promotedaily target month disabled&quot;)</span>
+<span id="L1248" class="line"><a href="#L1248">1248</a>    end</span>
+<span id="L1249" class="line"><a href="#L1249">1249</a>    local navigation = deferred.new()</span>
+<span id="L1250" class="line"><a href="#L1250">1250</a>    local generation = self:_nextNavigationGeneration()</span>
+<span id="L1251" class="line"><a href="#L1251">1251</a>    if targetYear ~= self._activeResYear and self._retiringResYear then</span>
+<span id="L1252" class="line"><a href="#L1252">1252</a>        self:_finishPendingYearTransition()</span>
+<span id="L1253" class="line"><a href="#L1253">1253</a>    end</span>
+<span id="L1254" class="line"><a href="#L1254">1254</a>    self._pendingNavigationYear = targetYear</span>
+<span id="L1255" class="line"><a href="#L1255">1255</a>    self._pendingNavigationMonth = targetMonth</span>
+<span id="L1256" class="line"><a href="#L1256">1256</a>    self:tryLoadYearRes(targetYear):next(function()</span>
+<span id="L1257" class="line"><a href="#L1257">1257</a>        if not self:_isNavigationCurrent(generation) then</span>
+<span id="L1258" class="line"><a href="#L1258">1258</a>            self:_releaseUnusedYearRes(targetYear)</span>
+<span id="L1259" class="line"><a href="#L1259">1259</a>            return self:_finishSupersededNavigation(navigation)</span>
+<span id="L1260" class="line"><a href="#L1260">1260</a>        end</span>
+<span id="L1261" class="line"><a href="#L1261">1261</a>        self:_activateYearRes(targetYear)</span>
+<span id="L1262" class="line"><a href="#L1262">1262</a>        self._year = targetYear</span>
+<span id="L1263" class="line"><a href="#L1263">1263</a>        self._month = targetMonth</span>
+<span id="L1264" class="line"><a href="#L1264">1264</a>        self._day = targetDay or self._day</span>
+<span id="L1265" class="line"><a href="#L1265">1265</a>        self._pendingNavigationYear = nil</span>
+<span id="L1266" class="line"><a href="#L1266">1266</a>        self._pendingNavigationMonth = nil</span>
+<span id="L1267" class="line"><a href="#L1267">1267</a>        local viewTransition = self:_updateView(direction)</span>
+<span id="L1268" class="line"><a href="#L1268">1268</a>        safeRunCall(transitionStarted)</span>
+<span id="L1269" class="line"><a href="#L1269">1269</a>        viewTransition:next(function()</span>
+<span id="L1270" class="line"><a href="#L1270">1270</a>            navigation:resolve()</span>
+<span id="L1271" class="line"><a href="#L1271">1271</a>        end, function(err)</span>
+<span id="L1272" class="line"><a href="#L1272">1272</a>            if not self:_isNavigationCurrent(generation) then</span>
+<span id="L1273" class="line"><a href="#L1273">1273</a>                return self:_finishSupersededNavigation(navigation)</span>
+<span id="L1274" class="line"><a href="#L1274">1274</a>            end</span>
+<span id="L1275" class="line"><a href="#L1275">1275</a>            navigation:reject(err)</span>
+<span id="L1276" class="line"><a href="#L1276">1276</a>        end)</span>
+<span id="L1277" class="line"><a href="#L1277">1277</a>    end, function(err)</span>
+<span id="L1278" class="line"><a href="#L1278">1278</a>        self:_releaseUnusedYearRes(targetYear)</span>
+<span id="L1279" class="line"><a href="#L1279">1279</a>        if self:_isNavigationCurrent(generation) then</span>
+<span id="L1280" class="line"><a href="#L1280">1280</a>            self._pendingNavigationYear = nil</span>
+<span id="L1281" class="line"><a href="#L1281">1281</a>            self._pendingNavigationMonth = nil</span>
+<span id="L1282" class="line"><a href="#L1282">1282</a>        end</span>
+<span id="L1283" class="line"><a href="#L1283">1283</a>        navigation:reject(err)</span>
+<span id="L1284" class="line"><a href="#L1284">1284</a>    end)</span>
+<span id="L1285" class="line"><a href="#L1285">1285</a>    return navigation</span>
+<span id="L1286" class="line"><a href="#L1286">1286</a>end</span>
+<span id="L1287" class="line"><a href="#L1287">1287</a></span>
+<span id="L1288" class="line"><a href="#L1288">1288</a>-- 左箭头</span>
+<span id="L1289" class="line"><a href="#L1289">1289</a>function MainPanelVM:onLeftBtnTapped()</span>
+<span id="L1290" class="line"><a href="#L1290">1290</a>    local year = self._pendingNavigationYear or self._year</span>
+<span id="L1291" class="line"><a href="#L1291">1291</a>    local month = self._pendingNavigationMonth or self._month</span>
+<span id="L1292" class="line"><a href="#L1292">1292</a>    local targetYear, targetMonth = Utils:getLeftYM(year, month)</span>
+<span id="L1293" class="line"><a href="#L1293">1293</a>    return self:_navigateTo(targetYear, targetMonth, self._day, MainPanelConfig.CalendarAni.RIGHT)</span>
+<span id="L1294" class="line"><a href="#L1294">1294</a>end</span>
+<span id="L1295" class="line"><a href="#L1295">1295</a></span>
+<span id="L1296" class="line"><a href="#L1296">1296</a>-- 右箭头</span>
+<span id="L1297" class="line"><a href="#L1297">1297</a>function MainPanelVM:onRightBtnTapped()</span>
+<span id="L1298" class="line"><a href="#L1298">1298</a>    local year = self._pendingNavigationYear or self._year</span>
+<span id="L1299" class="line"><a href="#L1299">1299</a>    local month = self._pendingNavigationMonth or self._month</span>
+<span id="L1300" class="line"><a href="#L1300">1300</a>    local targetYear, targetMonth = Utils:getRightYM(year, month)</span>
+<span id="L1301" class="line"><a href="#L1301">1301</a>    return self:_navigateTo(targetYear, targetMonth, self._day, MainPanelConfig.CalendarAni.LEFT)</span>
+<span id="L1302" class="line"><a href="#L1302">1302</a>end</span>
+<span id="L1303" class="line"><a href="#L1303">1303</a></span>
+<span id="L1304" class="line"><a href="#L1304">1304</a>-- 回到当前月份</span>
+<span id="L1305" class="line"><a href="#L1305">1305</a>function MainPanelVM:onBackToCurBtnTapped()</span>
+<span id="L1306" class="line"><a href="#L1306">1306</a>    local targetYear = self._promoteDailyMgr:getYear()</span>
+<span id="L1307" class="line"><a href="#L1307">1307</a>    local targetMonth = self._promoteDailyMgr:getMonth()</span>
+<span id="L1308" class="line"><a href="#L1308">1308</a>    local sourceYear = self._pendingNavigationYear or self._year</span>
+<span id="L1309" class="line"><a href="#L1309">1309</a>    local sourceMonth = self._pendingNavigationMonth or self._month</span>
+<span id="L1310" class="line"><a href="#L1310">1310</a>    local lastDayNum = Utils:getDayNumByYMD(sourceYear, sourceMonth, 1)</span>
+<span id="L1311" class="line"><a href="#L1311">1311</a>    local targetDayNum = Utils:getDayNumByYMD(targetYear, targetMonth, 1)</span>
+<span id="L1312" class="line"><a href="#L1312">1312</a>    local direction</span>
+<span id="L1313" class="line"><a href="#L1313">1313</a>    if targetDayNum &lt; lastDayNum then</span>
+<span id="L1314" class="line"><a href="#L1314">1314</a>        direction = MainPanelConfig.CalendarAni.RIGHT</span>
+<span id="L1315" class="line"><a href="#L1315">1315</a>    elseif targetDayNum &gt; lastDayNum then</span>
+<span id="L1316" class="line"><a href="#L1316">1316</a>        direction = MainPanelConfig.CalendarAni.LEFT</span>
+<span id="L1317" class="line"><a href="#L1317">1317</a>    end</span>
+<span id="L1318" class="line"><a href="#L1318">1318</a>    return self:_navigateTo(targetYear, targetMonth, self._promoteDailyMgr:getDay(), direction)</span>
+<span id="L1319" class="line"><a href="#L1319">1319</a>end</span>
+<span id="L1320" class="line"><a href="#L1320">1320</a></span>
+<span id="L1321" class="line"><a href="#L1321">1321</a>function MainPanelVM:onRefreshShieldNode()</span>
+<span id="L1322" class="line"><a href="#L1322">1322</a>    if self.isDisposed then return end</span>
+<span id="L1323" class="line"><a href="#L1323">1323</a>    self:callViewFunc(&quot;updateShield&quot;)</span>
+<span id="L1324" class="line"><a href="#L1324">1324</a>end</span>
+<span id="L1325" class="line"><a href="#L1325">1325</a></span>
+<span id="L1326" class="line"><a href="#L1326">1326</a>function MainPanelVM:openBuyShieldPanel()</span>
+<span id="L1327" class="line"><a href="#L1327">1327</a>    self._promoteDailyMgr:openShieldPanel()</span>
+<span id="L1328" class="line"><a href="#L1328">1328</a>end</span>
+<span id="L1329" class="line"><a href="#L1329">1329</a></span>
+<span id="L1330" class="line"><a href="#L1330">1330</a>function MainPanelVM:openTaskPreviewPanel()</span>
+<span id="L1331" class="line"><a href="#L1331">1331</a>    self._promoteDailyMgr:showTargetPanel()</span>
+<span id="L1332" class="line"><a href="#L1332">1332</a>    -- 主面板点击打点</span>
+<span id="L1333" class="line"><a href="#L1333">1333</a>    self:onMainClickDC(AMFEvent.new(&quot;&quot;, { t1 = 4 }))</span>
+<span id="L1334" class="line"><a href="#L1334">1334</a>end</span>
+<span id="L1335" class="line"><a href="#L1335">1335</a></span>
+<span id="L1336" class="line"><a href="#L1336">1336</a>function MainPanelVM:openLittleTipPanel()</span>
+<span id="L1337" class="line"><a href="#L1337">1337</a>    self._promoteDailyMgr:openProtectTipPanel()</span>
+<span id="L1338" class="line"><a href="#L1338">1338</a>end</span>
+<span id="L1339" class="line"><a href="#L1339">1339</a></span>
+<span id="L1340" class="line"><a href="#L1340">1340</a>function MainPanelVM:test()</span>
+<span id="L1341" class="line"><a href="#L1341">1341</a>    local vm = MainPanelVM:create()</span>
+<span id="L1342" class="line"><a href="#L1342">1342</a>    vm:setLoadResFailCallback(function()</span>
+<span id="L1343" class="line"><a href="#L1343">1343</a>        print(&quot;MainPanelVM 下载资源失败&quot;)</span>
+<span id="L1344" class="line"><a href="#L1344">1344</a>    end)</span>
+<span id="L1345" class="line"><a href="#L1345">1345</a>    vm:popout()</span>
+<span id="L1346" class="line"><a href="#L1346">1346</a>end</span>
+<span id="L1347" class="line"><a href="#L1347">1347</a></span>
+<span id="L1348" class="line"><a href="#L1348">1348</a>return MainPanelVM</span></pre></main></html>

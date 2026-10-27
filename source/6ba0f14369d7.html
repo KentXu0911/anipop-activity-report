@@ -1,0 +1,39 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/pet/config/PetDecoPropConfig.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="6ba0f14369d7.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/pet/config/PetDecoPropConfig.lua</h1><p>SHA256 8c5a17bf3eebf6277fff80d6931d800bb8e039c0c3a8fe392704058a719a93d9</p><pre><span id="L1" class="line"><a href="#L1">1</a>local PetDecoPropConfig = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>PetDecoPropConfig.atlas = &quot;amf/activity/pet/texture/LinkageDeco.plist&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>PetDecoPropConfig.frame = {</span>
+<span id="L5" class="line"><a href="#L5">5</a>    [53736] = &quot;LinkageDeco/53736.png&quot;,</span>
+<span id="L6" class="line"><a href="#L6">6</a>    [53742] = &quot;LinkageDeco/53742.png&quot;,</span>
+<span id="L7" class="line"><a href="#L7">7</a>}</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>function PetDecoPropConfig.enumerateValid()</span>
+<span id="L10" class="line"><a href="#L10">10</a>    local result = {}</span>
+<span id="L11" class="line"><a href="#L11">11</a>    for itemId, iconKey in pairs(PetDecoPropConfig.frame) do</span>
+<span id="L12" class="line"><a href="#L12">12</a>        if type(itemId) == &quot;number&quot; and itemId &gt; 0 and type(iconKey) == &quot;string&quot; and iconKey ~= &quot;&quot; then</span>
+<span id="L13" class="line"><a href="#L13">13</a>            result[#result + 1] = {</span>
+<span id="L14" class="line"><a href="#L14">14</a>                itemId = itemId,</span>
+<span id="L15" class="line"><a href="#L15">15</a>                iconKey = iconKey,</span>
+<span id="L16" class="line"><a href="#L16">16</a>                atlas = PetDecoPropConfig.atlas,</span>
+<span id="L17" class="line"><a href="#L17">17</a>            }</span>
+<span id="L18" class="line"><a href="#L18">18</a>        end</span>
+<span id="L19" class="line"><a href="#L19">19</a>    end</span>
+<span id="L20" class="line"><a href="#L20">20</a>    table.sort(result, function(a, b)</span>
+<span id="L21" class="line"><a href="#L21">21</a>        return a.itemId &lt; b.itemId</span>
+<span id="L22" class="line"><a href="#L22">22</a>    end)</span>
+<span id="L23" class="line"><a href="#L23">23</a>    return result</span>
+<span id="L24" class="line"><a href="#L24">24</a>end</span>
+<span id="L25" class="line"><a href="#L25">25</a></span>
+<span id="L26" class="line"><a href="#L26">26</a>function PetDecoPropConfig.isValid(itemId)</span>
+<span id="L27" class="line"><a href="#L27">27</a>    return PetDecoPropConfig.frame[tonumber(itemId)] ~= nil</span>
+<span id="L28" class="line"><a href="#L28">28</a>end</span>
+<span id="L29" class="line"><a href="#L29">29</a></span>
+<span id="L30" class="line"><a href="#L30">30</a>function PetDecoPropConfig.getStaticIcon(itemId)</span>
+<span id="L31" class="line"><a href="#L31">31</a>    local iconKey = PetDecoPropConfig.frame[tonumber(itemId)]</span>
+<span id="L32" class="line"><a href="#L32">32</a>    if not iconKey then return nil end</span>
+<span id="L33" class="line"><a href="#L33">33</a>    return {</span>
+<span id="L34" class="line"><a href="#L34">34</a>        iconKey = iconKey,</span>
+<span id="L35" class="line"><a href="#L35">35</a>        atlas = PetDecoPropConfig.atlas,</span>
+<span id="L36" class="line"><a href="#L36">36</a>    }</span>
+<span id="L37" class="line"><a href="#L37">37</a>end</span>
+<span id="L38" class="line"><a href="#L38">38</a></span>
+<span id="L39" class="line"><a href="#L39">39</a>return PetDecoPropConfig</span></pre></main></html>

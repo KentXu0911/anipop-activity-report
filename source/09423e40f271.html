@@ -1,0 +1,103 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/middleware/levelarea/unlock/module/UnlockConfigCheck.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="09423e40f271.lua" download>下载Lua原文</a></p><h1>amf/middleware/levelarea/unlock/module/UnlockConfigCheck.lua</h1><p>SHA256 7936df6c6edcd5e0f1d8244cc875f6b9656b6023181a8b6ec1dcf99bb0307b51</p><pre><span id="L1" class="line"><a href="#L1">1</a>local UnlockConfigCheck = class(&quot;UnlockConfigCheck&quot;)</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>function UnlockConfigCheck:create( mainAreaConfigParser, hideAreaConfigParser, levelUnlockConfigParser, topAreaInfoLogic )</span>
+<span id="L4" class="line"><a href="#L4">4</a>	local instance = UnlockConfigCheck.new()</span>
+<span id="L5" class="line"><a href="#L5">5</a>	instance:init( mainAreaConfigParser, hideAreaConfigParser, levelUnlockConfigParser, topAreaInfoLogic )</span>
+<span id="L6" class="line"><a href="#L6">6</a>	return instance</span>
+<span id="L7" class="line"><a href="#L7">7</a>end</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>function UnlockConfigCheck:init( mainAreaConfigParser, hideAreaConfigParser, levelUnlockConfigParser, topAreaInfoLogic )</span>
+<span id="L10" class="line"><a href="#L10">10</a>	self.mainAreaConfigParser = mainAreaConfigParser</span>
+<span id="L11" class="line"><a href="#L11">11</a>    self.hideAreaConfigParser = hideAreaConfigParser</span>
+<span id="L12" class="line"><a href="#L12">12</a>	self.levelUnlockConfigParser = levelUnlockConfigParser</span>
+<span id="L13" class="line"><a href="#L13">13</a>	self.topAreaInfoLogic = topAreaInfoLogic</span>
+<span id="L14" class="line"><a href="#L14">14</a>end</span>
+<span id="L15" class="line"><a href="#L15">15</a></span>
+<span id="L16" class="line"><a href="#L16">16</a>--上次发新关时间</span>
+<span id="L17" class="line"><a href="#L17">17</a>function UnlockConfigCheck:getLastOpenNewLevelTime()</span>
+<span id="L18" class="line"><a href="#L18">18</a>    local curMaxNormalLevel = self.topAreaInfoLogic:getLocalTopLevel(false)</span>
+<span id="L19" class="line"><a href="#L19">19</a>    local lastOpenAreaId = math.floor((curMaxNormalLevel-1)/15) + 40000 + 1</span>
+<span id="L20" class="line"><a href="#L20">20</a>    return self.levelUnlockConfigParser:getAreaOpenTime(lastOpenAreaId), lastOpenAreaId</span>
+<span id="L21" class="line"><a href="#L21">21</a>end</span>
+<span id="L22" class="line"><a href="#L22">22</a></span>
+<span id="L23" class="line"><a href="#L23">23</a>--下次发新关时间</span>
+<span id="L24" class="line"><a href="#L24">24</a>function UnlockConfigCheck:getNextOpenNewLevelTime()</span>
+<span id="L25" class="line"><a href="#L25">25</a>    local curMaxNormalLevel = self.topAreaInfoLogic:getLocalTopLevel(false)</span>
+<span id="L26" class="line"><a href="#L26">26</a>    local waitingOpenAreaId = math.floor((curMaxNormalLevel+1)/15) + 40000 + 1</span>
+<span id="L27" class="line"><a href="#L27">27</a>    return self.levelUnlockConfigParser:getAreaOpenTime(waitingOpenAreaId), waitingOpenAreaId</span>
+<span id="L28" class="line"><a href="#L28">28</a>end</span>
+<span id="L29" class="line"><a href="#L29">29</a></span>
+<span id="L30" class="line"><a href="#L30">30</a>--获取当前开启的区域数</span>
+<span id="L31" class="line"><a href="#L31">31</a>function UnlockConfigCheck:getLastOpenNewAreaNum() </span>
+<span id="L32" class="line"><a href="#L32">32</a>    local newLevelOpenTime, countDownAreaId = self:getLastOpenNewLevelTime()</span>
+<span id="L33" class="line"><a href="#L33">33</a>    local _, areaNum = self.levelUnlockConfigParser:getMinAreaIdInAreaBound(countDownAreaId) --上次发的新关信息</span>
+<span id="L34" class="line"><a href="#L34">34</a>    return areaNum</span>
+<span id="L35" class="line"><a href="#L35">35</a>end</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>--获取即将开启的区域数</span>
+<span id="L38" class="line"><a href="#L38">38</a>function UnlockConfigCheck:getNextOpenNewAreaNum() </span>
+<span id="L39" class="line"><a href="#L39">39</a>    local newLevelOpenTime, countDownAreaId = self:getNextOpenNewLevelTime()</span>
+<span id="L40" class="line"><a href="#L40">40</a>    local _, areaNum = self.levelUnlockConfigParser:getMinAreaIdInAreaBound(countDownAreaId) --上次发的新关信息</span>
+<span id="L41" class="line"><a href="#L41">41</a>    return areaNum</span>
+<span id="L42" class="line"><a href="#L42">42</a>end</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>function UnlockConfigCheck:isInNewLevelTime(deltaTime)</span>
+<span id="L45" class="line"><a href="#L45">45</a>    local curMaxNormalLevel = self.topAreaInfoLogic:getLocalTopLevel(false)</span>
+<span id="L46" class="line"><a href="#L46">46</a>    local areaId = self.mainAreaConfigParser:getAreaIDByLevelID(curMaxNormalLevel)</span>
+<span id="L47" class="line"><a href="#L47">47</a>    if not areaId then return false end</span>
+<span id="L48" class="line"><a href="#L48">48</a>    local areaOpenTime = self.levelUnlockConfigParser:getAreaOpenTime(areaId)</span>
+<span id="L49" class="line"><a href="#L49">49</a>    if not areaOpenTime then return false end</span>
+<span id="L50" class="line"><a href="#L50">50</a>    if not deltaTime then</span>
+<span id="L51" class="line"><a href="#L51">51</a>        deltaTime = 14400 -- 4 * 60 * 60</span>
+<span id="L52" class="line"><a href="#L52">52</a>    end</span>
+<span id="L53" class="line"><a href="#L53">53</a>    local now = TimeKit:timeInSec()</span>
+<span id="L54" class="line"><a href="#L54">54</a>    if now &lt;= areaOpenTime + deltaTime and now &gt;= areaOpenTime then</span>
+<span id="L55" class="line"><a href="#L55">55</a>        return true</span>
+<span id="L56" class="line"><a href="#L56">56</a>    end</span>
+<span id="L57" class="line"><a href="#L57">57</a>    return false</span>
+<span id="L58" class="line"><a href="#L58">58</a>end</span>
+<span id="L59" class="line"><a href="#L59">59</a></span>
+<span id="L60" class="line"><a href="#L60">60</a>function UnlockConfigCheck:isTopNewMainLevel(levelId)</span>
+<span id="L61" class="line"><a href="#L61">61</a>    local curMaxNormalLevel = self.topAreaInfoLogic:getLocalTopLevel(false)</span>
+<span id="L62" class="line"><a href="#L62">62</a>    local maxLevelAreaId = self.mainAreaConfigParser:getAreaIDByLevelID(curMaxNormalLevel)</span>
+<span id="L63" class="line"><a href="#L63">63</a>    local maxAreaConfig = self.levelUnlockConfigParser:getAreaUnlockConfigByAreaId(maxLevelAreaId)</span>
+<span id="L64" class="line"><a href="#L64">64</a>    local nowAreaId = self.mainAreaConfigParser:getAreaIDByLevelID(levelId)</span>
+<span id="L65" class="line"><a href="#L65">65</a>    if maxAreaConfig.areaIDs and table.includes(maxAreaConfig.areaIDs, nowAreaId) then</span>
+<span id="L66" class="line"><a href="#L66">66</a>        return true</span>
+<span id="L67" class="line"><a href="#L67">67</a>    end</span>
+<span id="L68" class="line"><a href="#L68">68</a>    return false</span>
+<span id="L69" class="line"><a href="#L69">69</a>end</span>
+<span id="L70" class="line"><a href="#L70">70</a></span>
+<span id="L71" class="line"><a href="#L71">71</a>function UnlockConfigCheck:isTopNewMainOrHideLevel(levelId, levelScene)</span>
+<span id="L72" class="line"><a href="#L72">72</a>    local curMaxNormalLevel = self.topAreaInfoLogic:getLocalTopLevel(false)</span>
+<span id="L73" class="line"><a href="#L73">73</a>    local maxLevelAreaId = self.mainAreaConfigParser:getAreaIDByLevelID(curMaxNormalLevel)</span>
+<span id="L74" class="line"><a href="#L74">74</a>    local maxAreaConfig = self.levelUnlockConfigParser:getAreaUnlockConfigByAreaId(maxLevelAreaId)</span>
+<span id="L75" class="line"><a href="#L75">75</a>    if not maxAreaConfig or not maxAreaConfig.areaIDs then return end</span>
+<span id="L76" class="line"><a href="#L76">76</a></span>
+<span id="L77" class="line"><a href="#L77">77</a>    if UBFLevelSceneFunc:isMainLevel(levelScene) then</span>
+<span id="L78" class="line"><a href="#L78">78</a>        local nowAreaId = self.mainAreaConfigParser:getAreaIDByLevelID(levelId)</span>
+<span id="L79" class="line"><a href="#L79">79</a>        if table.includes(maxAreaConfig.areaIDs, nowAreaId) then</span>
+<span id="L80" class="line"><a href="#L80">80</a>            return true</span>
+<span id="L81" class="line"><a href="#L81">81</a>        end</span>
+<span id="L82" class="line"><a href="#L82">82</a>    elseif UBFLevelSceneFunc:isHideLevel(levelScene) then</span>
+<span id="L83" class="line"><a href="#L83">83</a>        local hideAreaConfig = self.hideAreaConfigParser:getHiddenAreaByHiddenLevelId(levelId)</span>
+<span id="L84" class="line"><a href="#L84">84</a>        for _, areaId in ipairs(maxAreaConfig.areaIDs) do</span>
+<span id="L85" class="line"><a href="#L85">85</a>            local levelAreaData = self.mainAreaConfigParser:getLevelAreaById(areaId)</span>
+<span id="L86" class="line"><a href="#L86">86</a>            if levelAreaData then</span>
+<span id="L87" class="line"><a href="#L87">87</a>                if hideAreaConfig then</span>
+<span id="L88" class="line"><a href="#L88">88</a>                    if hideAreaConfig.startNormalLevel == levelAreaData.minLevel then</span>
+<span id="L89" class="line"><a href="#L89">89</a>                        return true</span>
+<span id="L90" class="line"><a href="#L90">90</a>                    end</span>
+<span id="L91" class="line"><a href="#L91">91</a>                else</span>
+<span id="L92" class="line"><a href="#L92">92</a>                    if EnvUtil:isDevelopMode() then</span>
+<span id="L93" class="line"><a href="#L93">93</a>                        CommonTip:showTip(&#x27;hide_area_config 缺失配置 levelId=&#x27;, levelId)</span>
+<span id="L94" class="line"><a href="#L94">94</a>                    end</span>
+<span id="L95" class="line"><a href="#L95">95</a>                end</span>
+<span id="L96" class="line"><a href="#L96">96</a>            end</span>
+<span id="L97" class="line"><a href="#L97">97</a>        end</span>
+<span id="L98" class="line"><a href="#L98">98</a>    end</span>
+<span id="L99" class="line"><a href="#L99">99</a>    return false</span>
+<span id="L100" class="line"><a href="#L100">100</a>end</span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a></span>
+<span id="L103" class="line"><a href="#L103">103</a>return UnlockConfigCheck</span></pre></main></html>

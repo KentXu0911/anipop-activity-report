@@ -1,0 +1,184 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/collectcard/view/AlbumPanelVM.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="39be27e7bf05.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/collectcard/view/AlbumPanelVM.lua</h1><p>SHA256 a3d3a7c4d12795a5e8bdfa7f4a6940994eefbc8a9b245feca1bd49de19ab5128</p><pre><span id="L1" class="line"><a href="#L1">1</a>local CollectCardEventCenter = require &quot;amf.feature.localactivity.collectcard.event.CollectCardEventCenter&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>local AlbumPanelVM = class(&quot;AlbumPanelVM&quot;, AMFBasePanelVM)</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>local Builder = newBuilder(AlbumPanelVM)</span>
+<span id="L6" class="line"><a href="#L6">6</a></span>
+<span id="L7" class="line"><a href="#L7">7</a>function Builder:setAlbumDataList(albumDataList)</span>
+<span id="L8" class="line"><a href="#L8">8</a>    self.albumDataList = albumDataList</span>
+<span id="L9" class="line"><a href="#L9">9</a>    return self</span>
+<span id="L10" class="line"><a href="#L10">10</a>end</span>
+<span id="L11" class="line"><a href="#L11">11</a></span>
+<span id="L12" class="line"><a href="#L12">12</a>function Builder:setAlbumId(albumId)</span>
+<span id="L13" class="line"><a href="#L13">13</a>    self.albumId = albumId</span>
+<span id="L14" class="line"><a href="#L14">14</a>    return self</span>
+<span id="L15" class="line"><a href="#L15">15</a>end</span>
+<span id="L16" class="line"><a href="#L16">16</a></span>
+<span id="L17" class="line"><a href="#L17">17</a>function Builder:setManager(collectCardManager)</span>
+<span id="L18" class="line"><a href="#L18">18</a>    self.collectCardManager = collectCardManager</span>
+<span id="L19" class="line"><a href="#L19">19</a>    return self</span>
+<span id="L20" class="line"><a href="#L20">20</a>end</span>
+<span id="L21" class="line"><a href="#L21">21</a></span>
+<span id="L22" class="line"><a href="#L22">22</a>function AlbumPanelVM:_createPanel(...)</span>
+<span id="L23" class="line"><a href="#L23">23</a>    local AlbumPanel = require_debug &quot;amf.feature.localactivity.collectcard.view.AlbumPanel&quot;</span>
+<span id="L24" class="line"><a href="#L24">24</a>    return AlbumPanel:create(AlbumPanelVM, ...)</span>
+<span id="L25" class="line"><a href="#L25">25</a>end</span>
+<span id="L26" class="line"><a href="#L26">26</a></span>
+<span id="L27" class="line"><a href="#L27">27</a>function AlbumPanelVM:init(delegate)</span>
+<span id="L28" class="line"><a href="#L28">28</a>    self.albumId = delegate.albumId or 1</span>
+<span id="L29" class="line"><a href="#L29">29</a>    self.albumDataList = delegate.albumDataList</span>
+<span id="L30" class="line"><a href="#L30">30</a>    self.collectCardManager = delegate.collectCardManager</span>
+<span id="L31" class="line"><a href="#L31">31</a>    self.panelId = UICreateUtil:getPanelId(&quot;AlbumPanelVM&quot;)</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>    self.maxPage = #self.albumDataList</span>
+<span id="L34" class="line"><a href="#L34">34</a>    CollectCardEventCenter:register(CollectCardEvent.CARD_NUM_UPDATE, self.onCardNumUpdate, self)</span>
+<span id="L35" class="line"><a href="#L35">35</a>end</span>
+<span id="L36" class="line"><a href="#L36">36</a></span>
+<span id="L37" class="line"><a href="#L37">37</a>function AlbumPanelVM:secondLoadCompleted()</span>
+<span id="L38" class="line"><a href="#L38">38</a>    self:callViewFunc(&quot;initUI&quot;)</span>
+<span id="L39" class="line"><a href="#L39">39</a>    self:refreshCurrentPage()</span>
+<span id="L40" class="line"><a href="#L40">40</a>end</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>function AlbumPanelVM:playFeedback(isTurnPage)</span>
+<span id="L43" class="line"><a href="#L43">43</a>    local const = self.collectCardManager:getConst()</span>
+<span id="L44" class="line"><a href="#L44">44</a>    self.collectCardManager:playEffect(isTurnPage and const.Sound.TURN_PAGE or const.Sound.CLICK_COMMON_01)</span>
+<span id="L45" class="line"><a href="#L45">45</a>    self.collectCardManager:playHaptics(const.Haptics.BUTTON_NORMAL)</span>
+<span id="L46" class="line"><a href="#L46">46</a>end</span>
+<span id="L47" class="line"><a href="#L47">47</a></span>
+<span id="L48" class="line"><a href="#L48">48</a>function AlbumPanelVM:turnPage(delta)</span>
+<span id="L49" class="line"><a href="#L49">49</a>    local targetAlbumId = self.albumId + delta</span>
+<span id="L50" class="line"><a href="#L50">50</a>    if targetAlbumId &gt;= 1 and targetAlbumId &lt;= self.maxPage then</span>
+<span id="L51" class="line"><a href="#L51">51</a>        self:playFeedback(true)</span>
+<span id="L52" class="line"><a href="#L52">52</a></span>
+<span id="L53" class="line"><a href="#L53">53</a>        self.albumId = targetAlbumId</span>
+<span id="L54" class="line"><a href="#L54">54</a>        self:refreshCurrentPage()</span>
+<span id="L55" class="line"><a href="#L55">55</a></span>
+<span id="L56" class="line"><a href="#L56">56</a>        local currentAlbumData = self.albumDataList[self.albumId]</span>
+<span id="L57" class="line"><a href="#L57">57</a>        self.collectCardManager:dcActPlug():dcAlbumPanelShow(2, self.albumId, currentAlbumData:getCollectedCount(), self.panelId)</span>
+<span id="L58" class="line"><a href="#L58">58</a>    end</span>
+<span id="L59" class="line"><a href="#L59">59</a>end</span>
+<span id="L60" class="line"><a href="#L60">60</a></span>
+<span id="L61" class="line"><a href="#L61">61</a>function AlbumPanelVM:getCardsData(cardIds)</span>
+<span id="L62" class="line"><a href="#L62">62</a>    local cardsData = {}</span>
+<span id="L63" class="line"><a href="#L63">63</a>    for i, cardId in ipairs(cardIds) do</span>
+<span id="L64" class="line"><a href="#L64">64</a>        local cardData = self.collectCardManager:getCardDataById(cardId)</span>
+<span id="L65" class="line"><a href="#L65">65</a>        if cardData then</span>
+<span id="L66" class="line"><a href="#L66">66</a>            table.insert(cardsData, cardData)</span>
+<span id="L67" class="line"><a href="#L67">67</a>        end</span>
+<span id="L68" class="line"><a href="#L68">68</a>    end</span>
+<span id="L69" class="line"><a href="#L69">69</a>    return cardsData</span>
+<span id="L70" class="line"><a href="#L70">70</a>end</span>
+<span id="L71" class="line"><a href="#L71">71</a></span>
+<span id="L72" class="line"><a href="#L72">72</a>function AlbumPanelVM:getCurrentRewardsData(albumId)</span>
+<span id="L73" class="line"><a href="#L73">73</a>    local roundId = self.collectCardManager:getModel():getRoundId()</span>
+<span id="L74" class="line"><a href="#L74">74</a>    local rewardConfigList = self.collectCardManager:getModel():getConfigByKey(&quot;cardAlbumRewardConfigList&quot;, {})</span>
+<span id="L75" class="line"><a href="#L75">75</a></span>
+<span id="L76" class="line"><a href="#L76">76</a>    for i, cfg in ipairs(rewardConfigList) do</span>
+<span id="L77" class="line"><a href="#L77">77</a>        if cfg.albumId == albumId then</span>
+<span id="L78" class="line"><a href="#L78">78</a>            local min, max = string.match(cfg.roundRange or &quot;&quot;, &quot;^(%d+)~(%d+)$&quot;)</span>
+<span id="L79" class="line"><a href="#L79">79</a>            if min and max then</span>
+<span id="L80" class="line"><a href="#L80">80</a>                if roundId &gt;= tonumber(min) and roundId &lt;= tonumber(max) then</span>
+<span id="L81" class="line"><a href="#L81">81</a>                    return cfg.rewards or {}</span>
+<span id="L82" class="line"><a href="#L82">82</a>                end</span>
+<span id="L83" class="line"><a href="#L83">83</a>            elseif tonumber(cfg.roundRange) and roundId == tonumber(cfg.roundRange) then</span>
+<span id="L84" class="line"><a href="#L84">84</a>                return cfg.rewards or {}</span>
+<span id="L85" class="line"><a href="#L85">85</a>            end</span>
+<span id="L86" class="line"><a href="#L86">86</a>        end</span>
+<span id="L87" class="line"><a href="#L87">87</a>    end</span>
+<span id="L88" class="line"><a href="#L88">88</a>    return {}</span>
+<span id="L89" class="line"><a href="#L89">89</a>end</span>
+<span id="L90" class="line"><a href="#L90">90</a></span>
+<span id="L91" class="line"><a href="#L91">91</a>function AlbumPanelVM:refreshCurrentPage()</span>
+<span id="L92" class="line"><a href="#L92">92</a>    local currentAlbumData = self.albumDataList[self.albumId]</span>
+<span id="L93" class="line"><a href="#L93">93</a></span>
+<span id="L94" class="line"><a href="#L94">94</a>    local cardsData = self:getCardsData(currentAlbumData:getCardIds())</span>
+<span id="L95" class="line"><a href="#L95">95</a>    local currentRewards = self:getCurrentRewardsData(self.albumId)</span>
+<span id="L96" class="line"><a href="#L96">96</a>    local themeConfig = self.collectCardManager:getThemeConfig(self.albumId)</span>
+<span id="L97" class="line"><a href="#L97">97</a></span>
+<span id="L98" class="line"><a href="#L98">98</a>    self.showIsNewFlags = {}</span>
+<span id="L99" class="line"><a href="#L99">99</a>    for i, cardData in ipairs(cardsData) do</span>
+<span id="L100" class="line"><a href="#L100">100</a>        local isNew = self.collectCardManager:isNewCard(cardData:getCardId())</span>
+<span id="L101" class="line"><a href="#L101">101</a>        if isNew then</span>
+<span id="L102" class="line"><a href="#L102">102</a>            self.showIsNewFlags[cardData:getCardId()] = true</span>
+<span id="L103" class="line"><a href="#L103">103</a>            self.collectCardManager:setCardViewed(cardData:getCardId(), true)</span>
+<span id="L104" class="line"><a href="#L104">104</a>        end</span>
+<span id="L105" class="line"><a href="#L105">105</a>    end</span>
+<span id="L106" class="line"><a href="#L106">106</a></span>
+<span id="L107" class="line"><a href="#L107">107</a>    self:callViewFunc(&quot;updatePageInfo&quot;, self.albumId, self.maxPage)</span>
+<span id="L108" class="line"><a href="#L108">108</a>    self:callViewFunc(&quot;updateThemeColor&quot;, themeConfig)</span>
+<span id="L109" class="line"><a href="#L109">109</a>    self:callViewFunc(&quot;updateCards&quot;, cardsData, self.showIsNewFlags)</span>
+<span id="L110" class="line"><a href="#L110">110</a>    self:callViewFunc(&quot;updateRewards&quot;, currentRewards, currentAlbumData:getHasGotReward())</span>
+<span id="L111" class="line"><a href="#L111">111</a>    self:callViewFunc(&quot;updateAlbumCell&quot;, currentAlbumData)</span>
+<span id="L112" class="line"><a href="#L112">112</a>end</span>
+<span id="L113" class="line"><a href="#L113">113</a></span>
+<span id="L114" class="line"><a href="#L114">114</a>function AlbumPanelVM:onCardNumUpdate()</span>
+<span id="L115" class="line"><a href="#L115">115</a>    if self.isDisposed then return end</span>
+<span id="L116" class="line"><a href="#L116">116</a>    self:refreshCurrentPage()</span>
+<span id="L117" class="line"><a href="#L117">117</a>end</span>
+<span id="L118" class="line"><a href="#L118">118</a></span>
+<span id="L119" class="line"><a href="#L119">119</a>function AlbumPanelVM:onCardClicked(cardNode)</span>
+<span id="L120" class="line"><a href="#L120">120</a>    self:playFeedback()</span>
+<span id="L121" class="line"><a href="#L121">121</a></span>
+<span id="L122" class="line"><a href="#L122">122</a>    local cardData = cardNode:getData()</span>
+<span id="L123" class="line"><a href="#L123">123</a>    if not self.collectCardManager:isCollectCardSwapEnabled()</span>
+<span id="L124" class="line"><a href="#L124">124</a>        and cardData:getGotNum() &lt;= 0</span>
+<span id="L125" class="line"><a href="#L125">125</a>    then</span>
+<span id="L126" class="line"><a href="#L126">126</a>        UITip.Builder.new()</span>
+<span id="L127" class="line"><a href="#L127">127</a>            :setTarget(cardNode, CCSizeMake(0, 270))</span>
+<span id="L128" class="line"><a href="#L128">128</a>            :setTitle(&quot;你可以从活动奖励中获得这张卡片。&quot;)</span>
+<span id="L129" class="line"><a href="#L129">129</a>            :build()</span>
+<span id="L130" class="line"><a href="#L130">130</a>        return</span>
+<span id="L131" class="line"><a href="#L131">131</a>    end</span>
+<span id="L132" class="line"><a href="#L132">132</a></span>
+<span id="L133" class="line"><a href="#L133">133</a>    local worldPos = cardNode:getPositionInWorldSpace()</span>
+<span id="L134" class="line"><a href="#L134">134</a>    local isNew = self.showIsNewFlags[cardData:getCardId()] or false</span>
+<span id="L135" class="line"><a href="#L135">135</a>    if isNew then</span>
+<span id="L136" class="line"><a href="#L136">136</a>        self.showIsNewFlags[cardData:getCardId()] = false</span>
+<span id="L137" class="line"><a href="#L137">137</a>        if cardNode.setNewLabelVisible then cardNode:setNewLabelVisible(false) end</span>
+<span id="L138" class="line"><a href="#L138">138</a>    end</span>
+<span id="L139" class="line"><a href="#L139">139</a></span>
+<span id="L140" class="line"><a href="#L140">140</a>    local CardDisplayPanelVM = require &quot;amf.feature.localactivity.collectcard.view.CardDisplayPanelVM&quot;</span>
+<span id="L141" class="line"><a href="#L141">141</a>    local vm = CardDisplayPanelVM.Builder.new()</span>
+<span id="L142" class="line"><a href="#L142">142</a>        :setCardData(cardData)</span>
+<span id="L143" class="line"><a href="#L143">143</a>        :setWorldPos(worldPos)</span>
+<span id="L144" class="line"><a href="#L144">144</a>        :setIsNew(isNew)</span>
+<span id="L145" class="line"><a href="#L145">145</a>        :setCollectCardManager(self.collectCardManager)</span>
+<span id="L146" class="line"><a href="#L146">146</a>        :build()</span>
+<span id="L147" class="line"><a href="#L147">147</a>    vm:popout()</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>    self.collectCardManager:callPanelFunc(&quot;managePanelVM&quot;, vm)</span>
+<span id="L150" class="line"><a href="#L150">150</a>end</span>
+<span id="L151" class="line"><a href="#L151">151</a></span>
+<span id="L152" class="line"><a href="#L152">152</a>function AlbumPanelVM:onRareDecoClicked()</span>
+<span id="L153" class="line"><a href="#L153">153</a>    self:playFeedback()</span>
+<span id="L154" class="line"><a href="#L154">154</a>    self.collectCardManager:openJuebanPanel()</span>
+<span id="L155" class="line"><a href="#L155">155</a>end</span>
+<span id="L156" class="line"><a href="#L156">156</a></span>
+<span id="L157" class="line"><a href="#L157">157</a>function AlbumPanelVM:onEnterPanelRun()</span>
+<span id="L158" class="line"><a href="#L158">158</a>    local currentAlbumData = self.albumDataList[self.albumId]</span>
+<span id="L159" class="line"><a href="#L159">159</a>    self.collectCardManager:dcActPlug():dcAlbumPanelShow(1, self.albumId, currentAlbumData:getCollectedCount(), self.panelId)</span>
+<span id="L160" class="line"><a href="#L160">160</a>end</span>
+<span id="L161" class="line"><a href="#L161">161</a></span>
+<span id="L162" class="line"><a href="#L162">162</a>function AlbumPanelVM:onCloseBtnTapped()</span>
+<span id="L163" class="line"><a href="#L163">163</a>    self:playFeedback()</span>
+<span id="L164" class="line"><a href="#L164">164</a></span>
+<span id="L165" class="line"><a href="#L165">165</a>    AMFBasePanelVM.onCloseBtnTapped(self)</span>
+<span id="L166" class="line"><a href="#L166">166</a>end</span>
+<span id="L167" class="line"><a href="#L167">167</a></span>
+<span id="L168" class="line"><a href="#L168">168</a>function AlbumPanelVM:onRewardClicked(target, index)</span>
+<span id="L169" class="line"><a href="#L169">169</a>    self:playFeedback()</span>
+<span id="L170" class="line"><a href="#L170">170</a></span>
+<span id="L171" class="line"><a href="#L171">171</a>    local rewardsData = self:getCurrentRewardsData(self.albumId)</span>
+<span id="L172" class="line"><a href="#L172">172</a>    UITip.Builder.new()</span>
+<span id="L173" class="line"><a href="#L173">173</a>        :setTarget(target)</span>
+<span id="L174" class="line"><a href="#L174">174</a>        :setTitle(_G.amfBean(&quot;PropManager&quot;):getPropName(rewardsData[index]))</span>
+<span id="L175" class="line"><a href="#L175">175</a>        :setAutoCloseTime(3)    </span>
+<span id="L176" class="line"><a href="#L176">176</a>        :build()</span>
+<span id="L177" class="line"><a href="#L177">177</a>end</span>
+<span id="L178" class="line"><a href="#L178">178</a></span>
+<span id="L179" class="line"><a href="#L179">179</a>function AlbumPanelVM:recycle()</span>
+<span id="L180" class="line"><a href="#L180">180</a>    AMFBasePanelVM.recycle(self)</span>
+<span id="L181" class="line"><a href="#L181">181</a>    CollectCardEventCenter:unregister(CollectCardEvent.CARD_NUM_UPDATE, self.onCardNumUpdate, self)</span>
+<span id="L182" class="line"><a href="#L182">182</a>end</span>
+<span id="L183" class="line"><a href="#L183">183</a></span>
+<span id="L184" class="line"><a href="#L184">184</a>return AlbumPanelVM</span></pre></main></html>

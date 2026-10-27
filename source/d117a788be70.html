@@ -1,0 +1,340 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/debug/unittest/cases/feature/localactivity/gemmining/test_map_progress.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="d117a788be70.lua" download>下载Lua原文</a></p><h1>amf/debug/unittest/cases/feature/localactivity/gemmining/test_map_progress.lua</h1><p>SHA256 6dd90ae89766104e3740c54121221af5c47c8285895ea5d9ca15134a87d80e4a</p><pre><span id="L1" class="line"><a href="#L1">1</a>local test = require &quot;amf.debug.unittest.suite&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local assert = require &quot;amf.debug.unittest.assert&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local mock = require &quot;amf.debug.unittest.mock&quot;</span>
+<span id="L4" class="line"><a href="#L4">4</a>local spy = require &quot;amf.debug.unittest.spy&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a></span>
+<span id="L6" class="line"><a href="#L6">6</a>local MANAGER_MODULE = &quot;amf.feature.localactivity.gemmining.GemMiningManager&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>local LOCAL_SERVER_MODULE = &quot;amf.feature.localactivity.gemmining.GemMiningLocalServer&quot;</span>
+<span id="L8" class="line"><a href="#L8">8</a>local META_MODULE = &quot;amf.feature.localactivity.gemmining.meta.Meta&quot;</span>
+<span id="L9" class="line"><a href="#L9">9</a>local CLASS_UTILS_MODULE = &quot;amf.script.tool.clazz.ClassUtils&quot;</span>
+<span id="L10" class="line"><a href="#L10">10</a>local PAYMENT_TRACER_MODULE = &quot;amf.middleware.purchase.dc.trace.PaymentTracer&quot;</span>
+<span id="L11" class="line"><a href="#L11">11</a>local EVENT_CENTER_MODULE = &quot;amf.middleware.activity.event.ActivityEventCenter&quot;</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>local function cloneTable(source)</span>
+<span id="L14" class="line"><a href="#L14">14</a>    local result = {}</span>
+<span id="L15" class="line"><a href="#L15">15</a>    for key, value in pairs(source or {}) do</span>
+<span id="L16" class="line"><a href="#L16">16</a>        result[key] = type(value) == &quot;table&quot; and cloneTable(value) or value</span>
+<span id="L17" class="line"><a href="#L17">17</a>    end</span>
+<span id="L18" class="line"><a href="#L18">18</a>    return result</span>
+<span id="L19" class="line"><a href="#L19">19</a>end</span>
+<span id="L20" class="line"><a href="#L20">20</a></span>
+<span id="L21" class="line"><a href="#L21">21</a>local function installGlobals()</span>
+<span id="L22" class="line"><a href="#L22">22</a>    mock.global(&quot;class&quot;, function()</span>
+<span id="L23" class="line"><a href="#L23">23</a>        local cls = {}</span>
+<span id="L24" class="line"><a href="#L24">24</a>        cls.__index = cls</span>
+<span id="L25" class="line"><a href="#L25">25</a>        function cls.new()</span>
+<span id="L26" class="line"><a href="#L26">26</a>            return setmetatable({}, cls)</span>
+<span id="L27" class="line"><a href="#L27">27</a>        end</span>
+<span id="L28" class="line"><a href="#L28">28</a>        return cls</span>
+<span id="L29" class="line"><a href="#L29">29</a>    end)</span>
+<span id="L30" class="line"><a href="#L30">30</a>    mock.global(&quot;AMFDataRef&quot;, {})</span>
+<span id="L31" class="line"><a href="#L31">31</a>    mock.global(&quot;table&quot;, setmetatable({</span>
+<span id="L32" class="line"><a href="#L32">32</a>        clone = cloneTable,</span>
+<span id="L33" class="line"><a href="#L33">33</a>        isEmpty = function(value)</span>
+<span id="L34" class="line"><a href="#L34">34</a>            return type(value) ~= &quot;table&quot; or next(value) == nil</span>
+<span id="L35" class="line"><a href="#L35">35</a>        end,</span>
+<span id="L36" class="line"><a href="#L36">36</a>        serialize = function(value)</span>
+<span id="L37" class="line"><a href="#L37">37</a>            return cloneTable(value)</span>
+<span id="L38" class="line"><a href="#L38">38</a>        end,</span>
+<span id="L39" class="line"><a href="#L39">39</a>    }, {</span>
+<span id="L40" class="line"><a href="#L40">40</a>        __index = table,</span>
+<span id="L41" class="line"><a href="#L41">41</a>    }))</span>
+<span id="L42" class="line"><a href="#L42">42</a>end</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>local function loadLocalServer(storage)</span>
+<span id="L45" class="line"><a href="#L45">45</a>    installGlobals()</span>
+<span id="L46" class="line"><a href="#L46">46</a>    mock.module(META_MODULE, {})</span>
+<span id="L47" class="line"><a href="#L47">47</a>    mock.unload(LOCAL_SERVER_MODULE)</span>
+<span id="L48" class="line"><a href="#L48">48</a></span>
+<span id="L49" class="line"><a href="#L49">49</a>    local LocalServer = require(LOCAL_SERVER_MODULE)</span>
+<span id="L50" class="line"><a href="#L50">50</a>    return setmetatable({</span>
+<span id="L51" class="line"><a href="#L51">51</a>        getDataByKey = function(_, key, defaultValue)</span>
+<span id="L52" class="line"><a href="#L52">52</a>            local value = storage[key]</span>
+<span id="L53" class="line"><a href="#L53">53</a>            if value == nil then return defaultValue end</span>
+<span id="L54" class="line"><a href="#L54">54</a>            return type(value) == &quot;table&quot; and cloneTable(value) or value</span>
+<span id="L55" class="line"><a href="#L55">55</a>        end,</span>
+<span id="L56" class="line"><a href="#L56">56</a>        setDataByKey = function(_, key, value)</span>
+<span id="L57" class="line"><a href="#L57">57</a>            storage[key] = type(value) == &quot;table&quot; and cloneTable(value) or value</span>
+<span id="L58" class="line"><a href="#L58">58</a>        end,</span>
+<span id="L59" class="line"><a href="#L59">59</a>    }, {</span>
+<span id="L60" class="line"><a href="#L60">60</a>        __index = LocalServer,</span>
+<span id="L61" class="line"><a href="#L61">61</a>    })</span>
+<span id="L62" class="line"><a href="#L62">62</a>end</span>
+<span id="L63" class="line"><a href="#L63">63</a></span>
+<span id="L64" class="line"><a href="#L64">64</a>local function loadManager(localData)</span>
+<span id="L65" class="line"><a href="#L65">65</a>    installGlobals()</span>
+<span id="L66" class="line"><a href="#L66">66</a>    mock.module(LOCAL_SERVER_MODULE, {</span>
+<span id="L67" class="line"><a href="#L67">67</a>        create = function()</span>
+<span id="L68" class="line"><a href="#L68">68</a>            return localData</span>
+<span id="L69" class="line"><a href="#L69">69</a>        end,</span>
+<span id="L70" class="line"><a href="#L70">70</a>    })</span>
+<span id="L71" class="line"><a href="#L71">71</a>    mock.module(CLASS_UTILS_MODULE, {</span>
+<span id="L72" class="line"><a href="#L72">72</a>        makeSingleton = function() end,</span>
+<span id="L73" class="line"><a href="#L73">73</a>    })</span>
+<span id="L74" class="line"><a href="#L74">74</a>    mock.module(PAYMENT_TRACER_MODULE, {})</span>
+<span id="L75" class="line"><a href="#L75">75</a>    mock.module(EVENT_CENTER_MODULE, {</span>
+<span id="L76" class="line"><a href="#L76">76</a>        dispatch = function() end,</span>
+<span id="L77" class="line"><a href="#L77">77</a>    })</span>
+<span id="L78" class="line"><a href="#L78">78</a>    mock.unload(MANAGER_MODULE)</span>
+<span id="L79" class="line"><a href="#L79">79</a></span>
+<span id="L80" class="line"><a href="#L80">80</a>    local Manager = require(MANAGER_MODULE)</span>
+<span id="L81" class="line"><a href="#L81">81</a>    local manager = Manager.new()</span>
+<span id="L82" class="line"><a href="#L82">82</a>    manager.localDataServer = localData</span>
+<span id="L83" class="line"><a href="#L83">83</a>    manager.updateTipView = spy.fn()</span>
+<span id="L84" class="line"><a href="#L84">84</a>    return manager</span>
+<span id="L85" class="line"><a href="#L85">85</a>end</span>
+<span id="L86" class="line"><a href="#L86">86</a></span>
+<span id="L87" class="line"><a href="#L87">87</a>local function createMapData(mapCount, claimedThrough)</span>
+<span id="L88" class="line"><a href="#L88">88</a>    local mapMetas = {}</span>
+<span id="L89" class="line"><a href="#L89">89</a>    local gemMaps = {}</span>
+<span id="L90" class="line"><a href="#L90">90</a>    for mapId = 0, mapCount - 1 do</span>
+<span id="L91" class="line"><a href="#L91">91</a>        mapMetas[#mapMetas + 1] = {</span>
+<span id="L92" class="line"><a href="#L92">92</a>            mapId = mapId,</span>
+<span id="L93" class="line"><a href="#L93">93</a>        }</span>
+<span id="L94" class="line"><a href="#L94">94</a>        gemMaps[tostring(mapId)] = {</span>
+<span id="L95" class="line"><a href="#L95">95</a>            progressReward = mapId &lt;= claimedThrough,</span>
+<span id="L96" class="line"><a href="#L96">96</a>            pointMap = {},</span>
+<span id="L97" class="line"><a href="#L97">97</a>        }</span>
+<span id="L98" class="line"><a href="#L98">98</a>    end</span>
+<span id="L99" class="line"><a href="#L99">99</a>    return mapMetas, gemMaps</span>
+<span id="L100" class="line"><a href="#L100">100</a>end</span>
+<span id="L101" class="line"><a href="#L101">101</a></span>
+<span id="L102" class="line"><a href="#L102">102</a>test.describe(&quot;GemMining map progress&quot;, function()</span>
+<span id="L103" class="line"><a href="#L103">103</a>    test.beforeEach(function()</span>
+<span id="L104" class="line"><a href="#L104">104</a>        mock.unload(MANAGER_MODULE)</span>
+<span id="L105" class="line"><a href="#L105">105</a>        mock.unload(LOCAL_SERVER_MODULE)</span>
+<span id="L106" class="line"><a href="#L106">106</a>    end)</span>
+<span id="L107" class="line"><a href="#L107">107</a></span>
+<span id="L108" class="line"><a href="#L108">108</a>    test.it(&quot;reads all 20 maps from activity config&quot;, function()</span>
+<span id="L109" class="line"><a href="#L109">109</a>        local mapMetas, gemMaps = createMapData(20, 4)</span>
+<span id="L110" class="line"><a href="#L110">110</a>        local localServer = loadLocalServer({</span>
+<span id="L111" class="line"><a href="#L111">111</a>            digGemMapMetaList = mapMetas,</span>
+<span id="L112" class="line"><a href="#L112">112</a>            gemMaps = gemMaps,</span>
+<span id="L113" class="line"><a href="#L113">113</a>        })</span>
+<span id="L114" class="line"><a href="#L114">114</a></span>
+<span id="L115" class="line"><a href="#L115">115</a>        assert.equals(localServer:getMapNum(), 20)</span>
+<span id="L116" class="line"><a href="#L116">116</a>        assert.equals(localServer:getNowMapId(), 5)</span>
+<span id="L117" class="line"><a href="#L117">117</a>        assert.falsy(localServer:hasClaimedAllMapRewards())</span>
+<span id="L118" class="line"><a href="#L118">118</a>    end)</span>
+<span id="L119" class="line"><a href="#L119">119</a></span>
+<span id="L120" class="line"><a href="#L120">120</a>    test.it(&quot;uses configured map ids instead of assuming contiguous ids&quot;, function()</span>
+<span id="L121" class="line"><a href="#L121">121</a>        local localServer = loadLocalServer({</span>
+<span id="L122" class="line"><a href="#L122">122</a>            digGemMapMetaList = {</span>
+<span id="L123" class="line"><a href="#L123">123</a>                { mapId = 20 },</span>
+<span id="L124" class="line"><a href="#L124">124</a>                { mapId = 2 },</span>
+<span id="L125" class="line"><a href="#L125">125</a>                { mapId = 10 },</span>
+<span id="L126" class="line"><a href="#L126">126</a>            },</span>
+<span id="L127" class="line"><a href="#L127">127</a>            gemMaps = {</span>
+<span id="L128" class="line"><a href="#L128">128</a>                [&quot;2&quot;] = { progressReward = true },</span>
+<span id="L129" class="line"><a href="#L129">129</a>                [&quot;10&quot;] = { progressReward = false },</span>
+<span id="L130" class="line"><a href="#L130">130</a>                [&quot;20&quot;] = { progressReward = false },</span>
+<span id="L131" class="line"><a href="#L131">131</a>            },</span>
+<span id="L132" class="line"><a href="#L132">132</a>        })</span>
+<span id="L133" class="line"><a href="#L133">133</a></span>
+<span id="L134" class="line"><a href="#L134">134</a>        assert.equals(localServer:getMapNum(), 3)</span>
+<span id="L135" class="line"><a href="#L135">135</a>        assert.equals(localServer:getNowMapId(), 10)</span>
+<span id="L136" class="line"><a href="#L136">136</a>    end)</span>
+<span id="L137" class="line"><a href="#L137">137</a></span>
+<span id="L138" class="line"><a href="#L138">138</a>    test.it(&quot;does not report graduation when configured map data is missing&quot;, function()</span>
+<span id="L139" class="line"><a href="#L139">139</a>        local localServer = loadLocalServer({</span>
+<span id="L140" class="line"><a href="#L140">140</a>            digGemMapMetaList = {</span>
+<span id="L141" class="line"><a href="#L141">141</a>                { mapId = 0 },</span>
+<span id="L142" class="line"><a href="#L142">142</a>                { mapId = 1 },</span>
+<span id="L143" class="line"><a href="#L143">143</a>            },</span>
+<span id="L144" class="line"><a href="#L144">144</a>            gemMaps = {</span>
+<span id="L145" class="line"><a href="#L145">145</a>                [&quot;0&quot;] = { progressReward = true },</span>
+<span id="L146" class="line"><a href="#L146">146</a>            },</span>
+<span id="L147" class="line"><a href="#L147">147</a>        })</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>        assert.falsy(localServer:hasClaimedAllMapRewards())</span>
+<span id="L150" class="line"><a href="#L150">150</a>    end)</span>
+<span id="L151" class="line"><a href="#L151">151</a></span>
+<span id="L152" class="line"><a href="#L152">152</a>    test.it(&quot;reports graduation only after every configured reward is claimed&quot;, function()</span>
+<span id="L153" class="line"><a href="#L153">153</a>        local mapMetas, gemMaps = createMapData(20, 19)</span>
+<span id="L154" class="line"><a href="#L154">154</a>        local localServer = loadLocalServer({</span>
+<span id="L155" class="line"><a href="#L155">155</a>            digGemMapMetaList = mapMetas,</span>
+<span id="L156" class="line"><a href="#L156">156</a>            gemMaps = gemMaps,</span>
+<span id="L157" class="line"><a href="#L157">157</a>        })</span>
+<span id="L158" class="line"><a href="#L158">158</a></span>
+<span id="L159" class="line"><a href="#L159">159</a>        assert.equals(localServer:getNowMapId(), -1)</span>
+<span id="L160" class="line"><a href="#L160">160</a>        assert.truthy(localServer:hasClaimedAllMapRewards())</span>
+<span id="L161" class="line"><a href="#L161">161</a>    end)</span>
+<span id="L162" class="line"><a href="#L162">162</a></span>
+<span id="L163" class="line"><a href="#L163">163</a>    test.it(&quot;does not reset the same period when id types differ&quot;, function()</span>
+<span id="L164" class="line"><a href="#L164">164</a>        local resetForNewPeriod = spy.fn()</span>
+<span id="L165" class="line"><a href="#L165">165</a>        local localData = {</span>
+<span id="L166" class="line"><a href="#L166">166</a>            getDataByKey = function(_, key)</span>
+<span id="L167" class="line"><a href="#L167">167</a>                if key == &quot;periodId&quot; then return &quot;7&quot; end</span>
+<span id="L168" class="line"><a href="#L168">168</a>            end,</span>
+<span id="L169" class="line"><a href="#L169">169</a>            resetForNewPeriod = resetForNewPeriod,</span>
+<span id="L170" class="line"><a href="#L170">170</a>            fromServer = spy.fn(),</span>
+<span id="L171" class="line"><a href="#L171">171</a>            setDataByKey = spy.fn(),</span>
+<span id="L172" class="line"><a href="#L172">172</a>        }</span>
+<span id="L173" class="line"><a href="#L173">173</a>        local manager = loadManager(localData)</span>
+<span id="L174" class="line"><a href="#L174">174</a></span>
+<span id="L175" class="line"><a href="#L175">175</a>        manager:parseData({</span>
+<span id="L176" class="line"><a href="#L176">176</a>            periodId = 7,</span>
+<span id="L177" class="line"><a href="#L177">177</a>        })</span>
+<span id="L178" class="line"><a href="#L178">178</a></span>
+<span id="L179" class="line"><a href="#L179">179</a>        assert.notCalled(resetForNewPeriod)</span>
+<span id="L180" class="line"><a href="#L180">180</a>        assert.called(localData.fromServer)</span>
+<span id="L181" class="line"><a href="#L181">181</a>    end)</span>
+<span id="L182" class="line"><a href="#L182">182</a></span>
+<span id="L183" class="line"><a href="#L183">183</a>    test.it(&quot;does not reset before the first server period is stored&quot;, function()</span>
+<span id="L184" class="line"><a href="#L184">184</a>        local resetForNewPeriod = spy.fn()</span>
+<span id="L185" class="line"><a href="#L185">185</a>        local localData = {</span>
+<span id="L186" class="line"><a href="#L186">186</a>            getDataByKey = function() end,</span>
+<span id="L187" class="line"><a href="#L187">187</a>            resetForNewPeriod = resetForNewPeriod,</span>
+<span id="L188" class="line"><a href="#L188">188</a>            fromServer = spy.fn(),</span>
+<span id="L189" class="line"><a href="#L189">189</a>            setDataByKey = spy.fn(),</span>
+<span id="L190" class="line"><a href="#L190">190</a>        }</span>
+<span id="L191" class="line"><a href="#L191">191</a>        local manager = loadManager(localData)</span>
+<span id="L192" class="line"><a href="#L192">192</a></span>
+<span id="L193" class="line"><a href="#L193">193</a>        manager:parseData({</span>
+<span id="L194" class="line"><a href="#L194">194</a>            periodId = 1,</span>
+<span id="L195" class="line"><a href="#L195">195</a>        })</span>
+<span id="L196" class="line"><a href="#L196">196</a></span>
+<span id="L197" class="line"><a href="#L197">197</a>        assert.notCalled(resetForNewPeriod)</span>
+<span id="L198" class="line"><a href="#L198">198</a>        assert.called(localData.fromServer)</span>
+<span id="L199" class="line"><a href="#L199">199</a>    end)</span>
+<span id="L200" class="line"><a href="#L200">200</a></span>
+<span id="L201" class="line"><a href="#L201">201</a>    test.it(&quot;clears period progress and keeps reusable config on period change&quot;, function()</span>
+<span id="L202" class="line"><a href="#L202">202</a>        local resetForNewPeriod = spy.fn()</span>
+<span id="L203" class="line"><a href="#L203">203</a>        local localData = {</span>
+<span id="L204" class="line"><a href="#L204">204</a>            getDataByKey = function(_, key)</span>
+<span id="L205" class="line"><a href="#L205">205</a>                if key == &quot;periodId&quot; then return 7 end</span>
+<span id="L206" class="line"><a href="#L206">206</a>                if key == &quot;localConfig&quot; then</span>
+<span id="L207" class="line"><a href="#L207">207</a>                    return {</span>
+<span id="L208" class="line"><a href="#L208">208</a>                        digGemMapMetaList = {</span>
+<span id="L209" class="line"><a href="#L209">209</a>                            { mapId = 0 },</span>
+<span id="L210" class="line"><a href="#L210">210</a>                        },</span>
+<span id="L211" class="line"><a href="#L211">211</a>                    }</span>
+<span id="L212" class="line"><a href="#L212">212</a>                end</span>
+<span id="L213" class="line"><a href="#L213">213</a>            end,</span>
+<span id="L214" class="line"><a href="#L214">214</a>            resetForNewPeriod = resetForNewPeriod,</span>
+<span id="L215" class="line"><a href="#L215">215</a>            fromServer = spy.fn(),</span>
+<span id="L216" class="line"><a href="#L216">216</a>            setDataByKey = spy.fn(),</span>
+<span id="L217" class="line"><a href="#L217">217</a>        }</span>
+<span id="L218" class="line"><a href="#L218">218</a>        local manager = loadManager(localData)</span>
+<span id="L219" class="line"><a href="#L219">219</a>        local serverData = {</span>
+<span id="L220" class="line"><a href="#L220">220</a>            periodId = 8,</span>
+<span id="L221" class="line"><a href="#L221">221</a>        }</span>
+<span id="L222" class="line"><a href="#L222">222</a></span>
+<span id="L223" class="line"><a href="#L223">223</a>        manager:parseData(serverData)</span>
+<span id="L224" class="line"><a href="#L224">224</a></span>
+<span id="L225" class="line"><a href="#L225">225</a>        assert.called(resetForNewPeriod)</span>
+<span id="L226" class="line"><a href="#L226">226</a>        assert.truthy(serverData.extra)</span>
+<span id="L227" class="line"><a href="#L227">227</a>        assert.called(localData.fromServer)</span>
+<span id="L228" class="line"><a href="#L228">228</a>    end)</span>
+<span id="L229" class="line"><a href="#L229">229</a></span>
+<span id="L230" class="line"><a href="#L230">230</a>    test.it(&quot;keeps cached actInfo while clearing period progress&quot;, function()</span>
+<span id="L231" class="line"><a href="#L231">231</a>        local storage = {</span>
+<span id="L232" class="line"><a href="#L232">232</a>            cachedActInfo = {</span>
+<span id="L233" class="line"><a href="#L233">233</a>                actId = 6057,</span>
+<span id="L234" class="line"><a href="#L234">234</a>                marker = &quot;online&quot;,</span>
+<span id="L235" class="line"><a href="#L235">235</a>            },</span>
+<span id="L236" class="line"><a href="#L236">236</a>            periodId = 7,</span>
+<span id="L237" class="line"><a href="#L237">237</a>            gemMaps = {</span>
+<span id="L238" class="line"><a href="#L238">238</a>                [&quot;0&quot;] = {</span>
+<span id="L239" class="line"><a href="#L239">239</a>                    progressReward = true,</span>
+<span id="L240" class="line"><a href="#L240">240</a>                },</span>
+<span id="L241" class="line"><a href="#L241">241</a>            },</span>
+<span id="L242" class="line"><a href="#L242">242</a>        }</span>
+<span id="L243" class="line"><a href="#L243">243</a>        local localServer = loadLocalServer(storage)</span>
+<span id="L244" class="line"><a href="#L244">244</a>        localServer.reset = function()</span>
+<span id="L245" class="line"><a href="#L245">245</a>            for key in pairs(storage) do</span>
+<span id="L246" class="line"><a href="#L246">246</a>                storage[key] = nil</span>
+<span id="L247" class="line"><a href="#L247">247</a>            end</span>
+<span id="L248" class="line"><a href="#L248">248</a>        end</span>
+<span id="L249" class="line"><a href="#L249">249</a></span>
+<span id="L250" class="line"><a href="#L250">250</a>        localServer:resetForNewPeriod()</span>
+<span id="L251" class="line"><a href="#L251">251</a></span>
+<span id="L252" class="line"><a href="#L252">252</a>        assert.equals(localServer:getCachedActInfo().marker, &quot;online&quot;)</span>
+<span id="L253" class="line"><a href="#L253">253</a>        assert.nilValue(storage.periodId)</span>
+<span id="L254" class="line"><a href="#L254">254</a>        assert.nilValue(storage.gemMaps)</span>
+<span id="L255" class="line"><a href="#L255">255</a>    end)</span>
+<span id="L256" class="line"><a href="#L256">256</a></span>
+<span id="L257" class="line"><a href="#L257">257</a>    test.it(&quot;treats the main end timestamp as reward phase only&quot;, function()</span>
+<span id="L258" class="line"><a href="#L258">258</a>        local now = 199</span>
+<span id="L259" class="line"><a href="#L259">259</a>        mock.global(&quot;TimeKit&quot;, {</span>
+<span id="L260" class="line"><a href="#L260">260</a>            timeInSec = function()</span>
+<span id="L261" class="line"><a href="#L261">261</a>                return now</span>
+<span id="L262" class="line"><a href="#L262">262</a>            end,</span>
+<span id="L263" class="line"><a href="#L263">263</a>        })</span>
+<span id="L264" class="line"><a href="#L264">264</a>        local localServer = loadLocalServer({})</span>
+<span id="L265" class="line"><a href="#L265">265</a>        localServer.actTime = {</span>
+<span id="L266" class="line"><a href="#L266">266</a>            mainBeginTime = 100,</span>
+<span id="L267" class="line"><a href="#L267">267</a>            mainEndTime = 200,</span>
+<span id="L268" class="line"><a href="#L268">268</a>            endTime = 300,</span>
+<span id="L269" class="line"><a href="#L269">269</a>        }</span>
+<span id="L270" class="line"><a href="#L270">270</a></span>
+<span id="L271" class="line"><a href="#L271">271</a>        assert.truthy(localServer:isActInMain())</span>
+<span id="L272" class="line"><a href="#L272">272</a>        assert.falsy(localServer:isActInReward())</span>
+<span id="L273" class="line"><a href="#L273">273</a></span>
+<span id="L274" class="line"><a href="#L274">274</a>        now = 200</span>
+<span id="L275" class="line"><a href="#L275">275</a></span>
+<span id="L276" class="line"><a href="#L276">276</a>        assert.falsy(localServer:isActInMain())</span>
+<span id="L277" class="line"><a href="#L277">277</a>        assert.truthy(localServer:isActInReward())</span>
+<span id="L278" class="line"><a href="#L278">278</a>    end)</span>
+<span id="L279" class="line"><a href="#L279">279</a></span>
+<span id="L280" class="line"><a href="#L280">280</a>    test.it(&quot;adds passed level collections during the main phase&quot;, function()</span>
+<span id="L281" class="line"><a href="#L281">281</a>        local addCollectNum = spy.fn()</span>
+<span id="L282" class="line"><a href="#L282">282</a>        local localData = {</span>
+<span id="L283" class="line"><a href="#L283">283</a>            isActInMain = function()</span>
+<span id="L284" class="line"><a href="#L284">284</a>                return true</span>
+<span id="L285" class="line"><a href="#L285">285</a>            end,</span>
+<span id="L286" class="line"><a href="#L286">286</a>            addCollectNum = addCollectNum,</span>
+<span id="L287" class="line"><a href="#L287">287</a>        }</span>
+<span id="L288" class="line"><a href="#L288">288</a>        local manager = loadManager(localData)</span>
+<span id="L289" class="line"><a href="#L289">289</a>        local passLevelJson = {</span>
+<span id="L290" class="line"><a href="#L290">290</a>            collectionInfo = {</span>
+<span id="L291" class="line"><a href="#L291">291</a>                [&quot;6057&quot;] = {</span>
+<span id="L292" class="line"><a href="#L292">292</a>                    totalCount = 5,</span>
+<span id="L293" class="line"><a href="#L293">293</a>                },</span>
+<span id="L294" class="line"><a href="#L294">294</a>            },</span>
+<span id="L295" class="line"><a href="#L295">295</a>        }</span>
+<span id="L296" class="line"><a href="#L296">296</a></span>
+<span id="L297" class="line"><a href="#L297">297</a>        manager:updatePassLevelData({</span>
+<span id="L298" class="line"><a href="#L298">298</a>            settleMentState = true,</span>
+<span id="L299" class="line"><a href="#L299">299</a>        }, 5, nil, {</span>
+<span id="L300" class="line"><a href="#L300">300</a>            passLevelJson = passLevelJson,</span>
+<span id="L301" class="line"><a href="#L301">301</a>        })</span>
+<span id="L302" class="line"><a href="#L302">302</a></span>
+<span id="L303" class="line"><a href="#L303">303</a>        assert.calledWith(addCollectNum, localData, 5)</span>
+<span id="L304" class="line"><a href="#L304">304</a>        assert.truthy(passLevelJson.collectionInfo)</span>
+<span id="L305" class="line"><a href="#L305">305</a>    end)</span>
+<span id="L306" class="line"><a href="#L306">306</a></span>
+<span id="L307" class="line"><a href="#L307">307</a>    test.it(&quot;keeps crossed-period display data but removes backend collections&quot;, function()</span>
+<span id="L308" class="line"><a href="#L308">308</a>        local addCollectNum = spy.fn()</span>
+<span id="L309" class="line"><a href="#L309">309</a>        local localData = {</span>
+<span id="L310" class="line"><a href="#L310">310</a>            isActInMain = function()</span>
+<span id="L311" class="line"><a href="#L311">311</a>                return false</span>
+<span id="L312" class="line"><a href="#L312">312</a>            end,</span>
+<span id="L313" class="line"><a href="#L313">313</a>            addCollectNum = addCollectNum,</span>
+<span id="L314" class="line"><a href="#L314">314</a>        }</span>
+<span id="L315" class="line"><a href="#L315">315</a>        local manager = loadManager(localData)</span>
+<span id="L316" class="line"><a href="#L316">316</a>        local passLevelJson = {</span>
+<span id="L317" class="line"><a href="#L317">317</a>            collectionInfo = {</span>
+<span id="L318" class="line"><a href="#L318">318</a>                [&quot;6057&quot;] = {</span>
+<span id="L319" class="line"><a href="#L319">319</a>                    totalCount = 5,</span>
+<span id="L320" class="line"><a href="#L320">320</a>                },</span>
+<span id="L321" class="line"><a href="#L321">321</a>            },</span>
+<span id="L322" class="line"><a href="#L322">322</a>            keepField = true,</span>
+<span id="L323" class="line"><a href="#L323">323</a>        }</span>
+<span id="L324" class="line"><a href="#L324">324</a>        local notifyViewData = {</span>
+<span id="L325" class="line"><a href="#L325">325</a>            collectionCount = 5,</span>
+<span id="L326" class="line"><a href="#L326">326</a>        }</span>
+<span id="L327" class="line"><a href="#L327">327</a></span>
+<span id="L328" class="line"><a href="#L328">328</a>        manager:updatePassLevelData({</span>
+<span id="L329" class="line"><a href="#L329">329</a>            settleMentState = true,</span>
+<span id="L330" class="line"><a href="#L330">330</a>        }, 5, nil, {</span>
+<span id="L331" class="line"><a href="#L331">331</a>            passLevelJson = passLevelJson,</span>
+<span id="L332" class="line"><a href="#L332">332</a>            notifyViewData = notifyViewData,</span>
+<span id="L333" class="line"><a href="#L333">333</a>        })</span>
+<span id="L334" class="line"><a href="#L334">334</a></span>
+<span id="L335" class="line"><a href="#L335">335</a>        assert.notCalled(addCollectNum)</span>
+<span id="L336" class="line"><a href="#L336">336</a>        assert.nilValue(passLevelJson.collectionInfo)</span>
+<span id="L337" class="line"><a href="#L337">337</a>        assert.truthy(passLevelJson.keepField)</span>
+<span id="L338" class="line"><a href="#L338">338</a>        assert.equals(notifyViewData.collectionCount, 5)</span>
+<span id="L339" class="line"><a href="#L339">339</a>    end)</span>
+<span id="L340" class="line"><a href="#L340">340</a>end)</span></pre></main></html>

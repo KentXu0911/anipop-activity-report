@@ -1,0 +1,77 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/underthesin/share/ResponseAskHelpShareHandler.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="833bce4f5459.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/underthesin/share/ResponseAskHelpShareHandler.lua</h1><p>SHA256 2910162d7823916fef362d0c16a4308e4da2a96a8cd8f238a6ab480f6cd9d968</p><pre><span id="L1" class="line"><a href="#L1">1</a>local ResponseActShareCommonHandler = require &quot;amf.middleware.share.openshare.handler.ResponseActShareCommonHandler&quot;</span>
+<span id="L2" class="line"><a href="#L2">2</a>local OpenShareEventCenter = require &quot;amf.middleware.share.openshare.event.OpenShareEventCenter&quot;</span>
+<span id="L3" class="line"><a href="#L3">3</a>local Handler = class(&quot;ResponseAskHelpShareHandler&quot;, ResponseActShareCommonHandler)</span>
+<span id="L4" class="line"><a href="#L4">4</a></span>
+<span id="L5" class="line"><a href="#L5">5</a>Handler.t1Table = {</span>
+<span id="L6" class="line"><a href="#L6">6</a>    k4001 = 8,  -- 卡片进</span>
+<span id="L7" class="line"><a href="#L7">7</a>    k4007 = 6,  -- 链接进</span>
+<span id="L8" class="line"><a href="#L8">8</a>    k1002 = 7,  -- 扫码进</span>
+<span id="L9" class="line"><a href="#L9">9</a>    k4002 = 7, -- 苹果扫码进</span>
+<span id="L10" class="line"><a href="#L10">10</a>    k4003 = 7, -- 苹果扫码进</span>
+<span id="L11" class="line"><a href="#L11">11</a>}</span>
+<span id="L12" class="line"><a href="#L12">12</a></span>
+<span id="L13" class="line"><a href="#L13">13</a>function Handler:init()</span>
+<span id="L14" class="line"><a href="#L14">14</a>    ResponseActShareCommonHandler.init(self)</span>
+<span id="L15" class="line"><a href="#L15">15</a>    OpenShareEventCenter:register(OpenShareEvent.DC_SHARE_ENTERGAME, self.onDcShareEnterGame, self)</span>
+<span id="L16" class="line"><a href="#L16">16</a>end</span>
+<span id="L17" class="line"><a href="#L17">17</a></span>
+<span id="L18" class="line"><a href="#L18">18</a>-- 必须返回string</span>
+<span id="L19" class="line"><a href="#L19">19</a>function Handler:getActId()</span>
+<span id="L20" class="line"><a href="#L20">20</a>    return tostring(_G.amfBean(&quot;UnderTheSinMgr&quot;):getConst().actId)</span>
+<span id="L21" class="line"><a href="#L21">21</a>end</span>
+<span id="L22" class="line"><a href="#L22">22</a></span>
+<span id="L23" class="line"><a href="#L23">23</a>function Handler:getActSource()</span>
+<span id="L24" class="line"><a href="#L24">24</a>    return &quot;underthesin/Config.lua&quot;</span>
+<span id="L25" class="line"><a href="#L25">25</a>end</span>
+<span id="L26" class="line"><a href="#L26">26</a>-- 帮助次数限制</span>
+<span id="L27" class="line"><a href="#L27">27</a>function Handler:getLimitNum()</span>
+<span id="L28" class="line"><a href="#L28">28</a>    return 3</span>
+<span id="L29" class="line"><a href="#L29">29</a>end</span>
+<span id="L30" class="line"><a href="#L30">30</a></span>
+<span id="L31" class="line"><a href="#L31">31</a>function Handler:getActName()</span>
+<span id="L32" class="line"><a href="#L32">32</a>    return _G.amfBean(&quot;UnderTheSinMgr&quot;):getConst().actChName</span>
+<span id="L33" class="line"><a href="#L33">33</a>end</span>
+<span id="L34" class="line"><a href="#L34">34</a></span>
+<span id="L35" class="line"><a href="#L35">35</a>function Handler:getShareType()</span>
+<span id="L36" class="line"><a href="#L36">36</a>    return OpenShareConst.ShareType.HELP_ACTIVITY</span>
+<span id="L37" class="line"><a href="#L37">37</a>end</span>
+<span id="L38" class="line"><a href="#L38">38</a></span>
+<span id="L39" class="line"><a href="#L39">39</a>-- 进游戏打点,依靠scene字符串后4位确定进入游戏的类型（链接、扫码、点击私聊卡片）</span>
+<span id="L40" class="line"><a href="#L40">40</a>function Handler:onDcShareEnterGame(evt)</span>
+<span id="L41" class="line"><a href="#L41">41</a>    if not EnvUtil:isDYMiniGame() then return end</span>
+<span id="L42" class="line"><a href="#L42">42</a>    local data = evt:getData() or {}</span>
+<span id="L43" class="line"><a href="#L43">43</a>    if table.isEmpty(data) then return end</span>
+<span id="L44" class="line"><a href="#L44">44</a>    if (not data.query) or table.isEmpty(data.query) then return end</span>
+<span id="L45" class="line"><a href="#L45">45</a>    local query = data.query</span>
+<span id="L46" class="line"><a href="#L46">46</a>    if not tonumber(query.actId) or (tonumber(query.actId) ~= tonumber(self:getActId())) then return end</span>
+<span id="L47" class="line"><a href="#L47">47</a>    </span>
+<span id="L48" class="line"><a href="#L48">48</a>    local sceneStr = data.query.scene</span>
+<span id="L49" class="line"><a href="#L49">49</a>    local last4 = string.sub(sceneStr, -4)</span>
+<span id="L50" class="line"><a href="#L50">50</a>    if not last4 then return end</span>
+<span id="L51" class="line"><a href="#L51">51</a>    local key = &#x27;k&#x27;..last4</span>
+<span id="L52" class="line"><a href="#L52">52</a>    if EnvUtil:isDevelopMode() then</span>
+<span id="L53" class="line"><a href="#L53">53</a>        UError(&quot;last4key:&quot;, key, Handler.t1Table[key])</span>
+<span id="L54" class="line"><a href="#L54">54</a>    end</span>
+<span id="L55" class="line"><a href="#L55">55</a>    data.dcParam.t1 = Handler.t1Table[key]</span>
+<span id="L56" class="line"><a href="#L56">56</a>end</span>
+<span id="L57" class="line"><a href="#L57">57</a></span>
+<span id="L58" class="line"><a href="#L58">58</a>function Handler:getLimitPassLevel()</span>
+<span id="L59" class="line"><a href="#L59">59</a>    return 100</span>
+<span id="L60" class="line"><a href="#L60">60</a>end</span>
+<span id="L61" class="line"><a href="#L61">61</a></span>
+<span id="L62" class="line"><a href="#L62">62</a>-- App 帮助成功面板走活动自己的 UI（需求「好友助力成功面板」：帮助成功 + 道具×n + 实物 banner + 去看看）：</span>
+<span id="L63" class="line"><a href="#L63">63</a>-- 面板和纹理都在主包内，奖励在 onGetShareRewardSuccess 里已经发过了，这里只管展示。</span>
+<span id="L64" class="line"><a href="#L64">64</a>-- 小游戏不走这条：需求「小游戏助力反馈」里小游戏有自己的帮助成功面板（加好友 + 道具气泡），仍走框架 SecondPanel。</span>
+<span id="L65" class="line"><a href="#L65">65</a>function Handler:showHelpSuccessPanel(resHelpContext, rewards, extra)</span>
+<span id="L66" class="line"><a href="#L66">66</a>    if not EnvUtil:isMiniGame() and not table.isEmpty(rewards) then</span>
+<span id="L67" class="line"><a href="#L67">67</a>        local SuccessHelpTipPanelVM = require &quot;amf.feature.localactivity.underthesin.view.SuccessHelpTipPanelVM&quot;</span>
+<span id="L68" class="line"><a href="#L68">68</a>        SuccessHelpTipPanelVM.Builder.new()</span>
+<span id="L69" class="line"><a href="#L69">69</a>            :setRewards(rewards)</span>
+<span id="L70" class="line"><a href="#L70">70</a>            :build()</span>
+<span id="L71" class="line"><a href="#L71">71</a>            :popout(nil, true, SceneLayerShowKey.SHARE_LAYER)</span>
+<span id="L72" class="line"><a href="#L72">72</a>        return</span>
+<span id="L73" class="line"><a href="#L73">73</a>    end</span>
+<span id="L74" class="line"><a href="#L74">74</a>    ResponseActShareCommonHandler.showHelpSuccessPanel(self, resHelpContext, rewards, extra)</span>
+<span id="L75" class="line"><a href="#L75">75</a>end</span>
+<span id="L76" class="line"><a href="#L76">76</a></span>
+<span id="L77" class="line"><a href="#L77">77</a>return Handler</span></pre></main></html>

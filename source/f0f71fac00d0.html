@@ -1,0 +1,822 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>amf/feature/localactivity/merge/config/MergeConfig.lua</title><link rel="stylesheet" href="../report.css"><main class="source"><p><a href="../index.html#coverage">返回报告</a> · <a href="f0f71fac00d0.lua" download>下载Lua原文</a></p><h1>amf/feature/localactivity/merge/config/MergeConfig.lua</h1><p>SHA256 cadcb94c1eb846c8e3f38f72e71dd0bd9f2040c6fad8b2ce4ebc74f8eac9ff67</p><pre><span id="L1" class="line"><a href="#L1">1</a>local MergeConfig = {}</span>
+<span id="L2" class="line"><a href="#L2">2</a></span>
+<span id="L3" class="line"><a href="#L3">3</a>MergeConfig.autoDownload = false</span>
+<span id="L4" class="line"><a href="#L4">4</a>MergeConfig.downloadLabels = {&quot;mergeItems&quot;}--&quot;merge&quot;</span>
+<span id="L5" class="line"><a href="#L5">5</a>MergeConfig.needLoadFiles = {</span>
+<span id="L6" class="line"><a href="#L6">6</a>    &quot;amf/activity/merge/materials/mergeItems.plist&quot;</span>
+<span id="L7" class="line"><a href="#L7">7</a>}</span>
+<span id="L8" class="line"><a href="#L8">8</a></span>
+<span id="L9" class="line"><a href="#L9">9</a>MergeConfig.logicVersion = 2</span>
+<span id="L10" class="line"><a href="#L10">10</a>MergeConfig.LUCKY_LAUNCH_CD = 10</span>
+<span id="L11" class="line"><a href="#L11">11</a>MergeConfig.KING_ORDER_TIP_THIRD_ORDER_INDEX = 5</span>
+<span id="L12" class="line"><a href="#L12">12</a>MergeConfig.POWER_MULTIPLIER_LOCAL_KEY = &quot;Merge_powerMultiplier&quot;</span>
+<span id="L13" class="line"><a href="#L13">13</a>MergeConfig.POWER_LEVEL_BY_MULTIPLIER = {</span>
+<span id="L14" class="line"><a href="#L14">14</a>    [1] = 1,</span>
+<span id="L15" class="line"><a href="#L15">15</a>    [2] = 2,</span>
+<span id="L16" class="line"><a href="#L16">16</a>    [4] = 3,</span>
+<span id="L17" class="line"><a href="#L17">17</a>    [8] = 4,</span>
+<span id="L18" class="line"><a href="#L18">18</a>}</span>
+<span id="L19" class="line"><a href="#L19">19</a>-- 一个风车币对应料理机多长时间</span>
+<span id="L20" class="line"><a href="#L20">20</a>MergeConfig.MACHINE_TIME_PER_GOLD = 60</span>
+<span id="L21" class="line"><a href="#L21">21</a></span>
+<span id="L22" class="line"><a href="#L22">22</a>MergeConfig.ActTimeString = &quot;活动&quot; --”春节“期间，有概率从以下发射器产出</span>
+<span id="L23" class="line"><a href="#L23">23</a>MergeConfig.ActString = &quot;中秋&quot; -- &quot;限定&quot; 角标</span>
+<span id="L24" class="line"><a href="#L24">24</a>MergeConfig.formatActString = function(str)</span>
+<span id="L25" class="line"><a href="#L25">25</a>    return string.format(str, MergeConfig.ActString)</span>
+<span id="L26" class="line"><a href="#L26">26</a>end</span>
+<span id="L27" class="line"><a href="#L27">27</a></span>
+<span id="L28" class="line"><a href="#L28">28</a>MergeConfig.ActChessString = &quot;月饼&quot;</span>
+<span id="L29" class="line"><a href="#L29">29</a>MergeConfig.formatActChessString = function(str)</span>
+<span id="L30" class="line"><a href="#L30">30</a>    return string.format(str, MergeConfig.ActChessString)</span>
+<span id="L31" class="line"><a href="#L31">31</a>end</span>
+<span id="L32" class="line"><a href="#L32">32</a></span>
+<span id="L33" class="line"><a href="#L33">33</a>MergeConfig.ActAndChessString = &quot;限定月饼&quot;</span>
+<span id="L34" class="line"><a href="#L34">34</a>MergeConfig.formatActAndChessString = function(str)</span>
+<span id="L35" class="line"><a href="#L35">35</a>    return string.format(str, MergeConfig.ActAndChessString)</span>
+<span id="L36" class="line"><a href="#L36">36</a>end</span>
+<span id="L37" class="line"><a href="#L37">37</a></span>
+<span id="L38" class="line"><a href="#L38">38</a>MergeConfig.montyName = &#x27;钞票&#x27;</span>
+<span id="L39" class="line"><a href="#L39">39</a>MergeConfig.hanmerName = &#x27;锤子&#x27;</span>
+<span id="L40" class="line"><a href="#L40">40</a>MergeConfig.hanmerRewardName = &#x27;小鸡&#x27;</span>
+<span id="L41" class="line"><a href="#L41">41</a></span>
+<span id="L42" class="line"><a href="#L42">42</a>MergeConfig.SheQuLink = &#x27;https://ff.happyelements.com/mobile/page/topic.html?tid=5099750&amp;app=1001&amp;ct=1562664000&amp;gohome=1&#x27;</span>
+<span id="L43" class="line"><a href="#L43">43</a></span>
+<span id="L44" class="line"><a href="#L44">44</a>MergeConfig.oneFrame = 1/30</span>
+<span id="L45" class="line"><a href="#L45">45</a>MergeConfig.colorType = _G.PanelColorConst.ColorType.kWelfare2024 --_G.PanelColorConst.ColorType.kChiefMystery26Red</span>
+<span id="L46" class="line"><a href="#L46">46</a>MergeConfig.colorType2 = _G.PanelColorConst.ColorType.kWelfare2024</span>
+<span id="L47" class="line"><a href="#L47">47</a>MergeConfig.ThreeTipsPanelColrtType = _G.ColorMaintainConfig.bg_gradient_orange</span>
+<span id="L48" class="line"><a href="#L48">48</a></span>
+<span id="L49" class="line"><a href="#L49">49</a>-- 用于全国排行榜引流，按周次和名次顺序排列</span>
+<span id="L50" class="line"><a href="#L50">50</a>MergeConfig.RealItemIds = {80306, 80301, 80272, 80281, 80300, 80254}</span>
+<span id="L51" class="line"><a href="#L51">51</a></span>
+<span id="L52" class="line"><a href="#L52">52</a>MergeConfig.RealItemInfo = {</span>
+<span id="L53" class="line"><a href="#L53">53</a>    [80306] = {</span>
+<span id="L54" class="line"><a href="#L54">54</a>        name = &quot;超级魔力鸟坐姿玩偶&quot;,</span>
+<span id="L55" class="line"><a href="#L55">55</a>        link = &quot;https://ff.happyelements.com/mobile/page/topic.html?tid=7132456&amp;app=1001&amp;ct=1667292000&amp;gohome=1&quot;,</span>
+<span id="L56" class="line"><a href="#L56">56</a>        minilink = &quot;afAsx_7EqL-NdgDCtTkRs3gASgN6RrMbGMzmZpkp_KPzRmo0kB5LXNSJKR5GtdCi7pkJIUU1XfYBNmmTVTAtOtblsO8i4pdv-tNz7XoxAkll8sVMv11CAjdRiWOZvGEj4qOrw9exoXi-Z2dTVjb5eoSUc9r-N1wiADRWUNdn1zzQo6qcHY1BGZrVn2geeSZiMZSyIE0yBHkzugfqj9xqesmXWPHjUmHjf28cUbPo06oekFmM7OZZISuJXGQ4XI7pQte-JKUonEAswJ--EGPCgVY-cBjBqGL1T6vt842l_hyEqHdO2uvm5lWhIEFedCtSqY2xEdAOc7IqtxnDOfoQWw&quot;,</span>
+<span id="L57" class="line"><a href="#L57">57</a>        rangeText = &quot;1-20名&quot;},</span>
+<span id="L58" class="line"><a href="#L58">58</a>    [80301] = {</span>
+<span id="L59" class="line"><a href="#L59">59</a>        name = &quot;菊花嘟嘟趴趴玩偶&quot;,</span>
+<span id="L60" class="line"><a href="#L60">60</a>        link = &quot;https://ff.happyelements.com/mobile/page/topic.html?tid=6986242&amp;app=1001&amp;ct=1562664000&amp;gohome=1&quot;,</span>
+<span id="L61" class="line"><a href="#L61">61</a>        minilink = &quot;afAsx_7EqL-NdgDCtTkRs0sAMa_tCYD8QLtz-n3dMR0nT899x_AS5rb7gG7twvi2vb52TAaItpDwEj0MQDYs1gdQVt37Qao04ZBPIRiwS6fjF7iVK3TDh0BXriyyEVeQ7ACi4ULewt-wd0FXI6iIj2G_RMc_Z_qq6Wo2oQB79V6qUg95RtJtSOo66serWZ3evVY6Zxt8I3BHk5fHGEPVH7tnYK0VcWNucmdF82XZJcrJYNlLOeuYFAnGobeUIF-K9QBeTJgMXbd7Veausf0Z36UfvoCNnysRumPthbr3eyLuW9AKgIA9fSI6wimkrcB1v2d-Yduz25Uhl0zhpoUr_A&quot;,</span>
+<span id="L62" class="line"><a href="#L62">62</a>        rangeText = &quot;21-50名&quot;},</span>
+<span id="L63" class="line"><a href="#L63">63</a>    [80272] = {</span>
+<span id="L64" class="line"><a href="#L64">64</a>        name = &quot;开心消消乐活力定制露营车&quot;,</span>
+<span id="L65" class="line"><a href="#L65">65</a>        link = &quot;https://ff.happyelements.com/mobile/page/topic.html?tid=6130260&amp;app=1001&amp;ct=1667292000&amp;gohome=1&quot;,</span>
+<span id="L66" class="line"><a href="#L66">66</a>        minilink = &quot;afAsx_7EqL-NdgDCtTkRs7eshVsY3_XixGr5eIYxOXY5_JKXmVg1laei00j66LpH5hKdAb3CtvsDPCatd-YLMIoDvCMYwbHc9PEPLzKnScmW_TSciCfWOkggGi5as3f5lL4SXxnV_owp6Uzi4w7O5q2PIa9kNdOeIRe6t26Uix9ev95dddMwxg3GE2FOXEJ7gTlikycPCVv9nSErQvNJL1xlSXTPdxC5jo7BpQ4U8IHPvMuoQHfEx8xGscEYJHG_J7VwWe0eyBk2D3MPyJC8PdKfmlzfycRwMhMZCxfK4bYjjXR3oSuuKXytPGFJPlvSd9BSTVqsa0IYh8CypYZ5pw&quot;,</span>
+<span id="L67" class="line"><a href="#L67">67</a>        rangeText = &quot;1-20名&quot;},</span>
+<span id="L68" class="line"><a href="#L68">68</a>    [80281] = {</span>
+<span id="L69" class="line"><a href="#L69">69</a>        name = &quot;飞机莱萌鸡玩偶&quot;,</span>
+<span id="L70" class="line"><a href="#L70">70</a>        link = &quot;https://ff.happyelements.com/mobile/page/topic.html?tid=6627686&amp;app=1001&amp;ct=1754470800&amp;gohome=1&quot;,</span>
+<span id="L71" class="line"><a href="#L71">71</a>        minilink = &quot;afAsx_7EqL-NdgDCtTkRs9RjFS6NJxGarcxF4V7VbFZcPZ_LR5onOc1if0QLcW7Y3NXmHVn_ws4NmFHC_qwCleJh6G6S67Bo5ihHy6BUAHvS-oQkQ9kUbaRZIVZRL56lD6ZGl3JiU5KuZH37dLAY3Kwr9bG-K7eBpx2Y-LSQKyekPcTaEnePRTlmvivsvLOAZ5dgY0qEXXo3_D4ep2PWeX_2QNF8jLj4ivZgxaLyexAzpr2MvlI62-A4vWQQCXx8N40my1QjPvcRXwfRL1o3DjxUd7szive61MqsZd7GeaUDgrkrRJZnYuXa73713Qm2ornTLqtHqa8erl9m_5xXzQ&quot;,</span>
+<span id="L72" class="line"><a href="#L72">72</a>        rangeText = &quot;21-50名&quot;},</span>
+<span id="L73" class="line"><a href="#L73">73</a>    [80300] = {</span>
+<span id="L74" class="line"><a href="#L74">74</a>        name = &quot;超级莱萌大玩偶&quot;,</span>
+<span id="L75" class="line"><a href="#L75">75</a>        link = &quot;https://ff.happyelements.com/mobile/page/topic.html?tid=6986239&amp;app=1001&amp;ct=1562664000&amp;gohome=1&quot;,</span>
+<span id="L76" class="line"><a href="#L76">76</a>        minilink = &quot;afAsx_7EqL-NdgDCtTkRs6uLzZy4OSVqtB78aAXMh6BoF20MyMpzSP5992fGdB-FhDR7Vt9lDR9NHiAVAjTpMixQiIMdEhoOBJrQyfy6Cj1WMUcv_zmuRNUIYqizdizarILuL0I56hvpWQKN1lNFq9Y2Q1OZS20QIZ_yPG22wB0GJFrgt-Ygqx7EDoZzk-jurj2WZcIY2s4L7BmTrOyCht4Svs9ou-Q8Ubn5r3_NoM3frcg6NkIZF1wQmaHwjpq39UQ19okzoMeMtEsx_yOwA7XM1SzrjN9J9LJvnvGJbu2yOiidDGoM3LKzUgY-S8QeIAjq9Ji8ZE573z4P5n9iFw&quot;,</span>
+<span id="L77" class="line"><a href="#L77">77</a>        rangeText = &quot;1-20名&quot;},</span>
+<span id="L78" class="line"><a href="#L78">78</a>    [80254] = {</span>
+<span id="L79" class="line"><a href="#L79">79</a>        name = &quot;《开心消消乐》栗熊长条抱枕&quot;,</span>
+<span id="L80" class="line"><a href="#L80">80</a>        link = &quot;https://ff.happyelements.com/mobile/page/topic.html?tid=5657964&amp;app=1001&amp;ct=1667292000&amp;gohome=1&quot;,</span>
+<span id="L81" class="line"><a href="#L81">81</a>        minilink = &quot;afAsx_7EqL-NdgDCtTkRs1Dln68w8_v-0Jgf_zmYN1lyndg2nHkutuqxpMYr0WOgAInzWM8879Ry3AIPN50GlF3PRCYNmfU7qdFxrPbXl52ta3UaRS7SJiifrJHsrA00ajXX4HGtt3m47Z5s6TCOaxqbPkoPCdBr2iK0KRweklkcl-kAm79wDNkzA1PdDZYfXEjwr5HUjcQrjInqCAuKHukm9-kA2-SPrCRuj-riRwr99Voey-r-woIpvHklwT3KkNem0LRQP_-lsTwH7-Nd3y5FIRhrCogaEAQE2R8SJlKOy4-LTYdkk-vBfp2NOS7Ss2tNatM_wJI8uOcaJibNrg&quot;,</span>
+<span id="L82" class="line"><a href="#L82">82</a>        rangeText = &quot;21-50名&quot;},</span>
+<span id="L83" class="line"><a href="#L83">83</a>}</span>
+<span id="L84" class="line"><a href="#L84">84</a></span>
+<span id="L85" class="line"><a href="#L85">85</a>--引导标记</span>
+<span id="L86" class="line"><a href="#L86">86</a>MergeConfig.GuideIds = {</span>
+<span id="L87" class="line"><a href="#L87">87</a>	kGuide1 = 1, --引导1</span>
+<span id="L88" class="line"><a href="#L88">88</a>    kGuide2 = 2,</span>
+<span id="L89" class="line"><a href="#L89">89</a>    kGuide3 = 3,</span>
+<span id="L90" class="line"><a href="#L90">90</a>    kGuide4 = 4,</span>
+<span id="L91" class="line"><a href="#L91">91</a>    kGuide5 = 5,</span>
+<span id="L92" class="line"><a href="#L92">92</a>    kGuideBonus = 66,</span>
+<span id="L93" class="line"><a href="#L93">93</a></span>
+<span id="L94" class="line"><a href="#L94">94</a>    kGuideFirstUnlockItemMaker = 6,--第一个解锁的发射器</span>
+<span id="L95" class="line"><a href="#L95">95</a></span>
+<span id="L96" class="line"><a href="#L96">96</a>    kChickenUnlock = 7, --鸡解锁</span>
+<span id="L97" class="line"><a href="#L97">97</a>    kMachineUnlock = 8, --机器解锁</span>
+<span id="L98" class="line"><a href="#L98">98</a></span>
+<span id="L99" class="line"><a href="#L99">99</a>    kDropTableHandAnim = 9 ,--奖励区小手</span>
+<span id="L100" class="line"><a href="#L100">100</a>    -- 领奖期全国榜</span>
+<span id="L101" class="line"><a href="#L101">101</a>    kNationRankReward = 10,</span>
+<span id="L102" class="line"><a href="#L102">102</a></span>
+<span id="L103" class="line"><a href="#L103">103</a>    kFirstUnlockLimitOrder = 11, --第一个解锁的限时订单</span>
+<span id="L104" class="line"><a href="#L104">104</a></span>
+<span id="L105" class="line"><a href="#L105">105</a>    kLengCangFirdtMakeItem = 12, --制冰机第一个产出</span>
+<span id="L106" class="line"><a href="#L106">106</a></span>
+<span id="L107" class="line"><a href="#L107">107</a>    kItemMakerClickTip1 =  13,</span>
+<span id="L108" class="line"><a href="#L108">108</a>    kItemMakerClickTip2 =  14,</span>
+<span id="L109" class="line"><a href="#L109">109</a>    kItemMakerClickTip3 =  15,</span>
+<span id="L110" class="line"><a href="#L110">110</a>    kItemMakerClickTip4 =  16,</span>
+<span id="L111" class="line"><a href="#L111">111</a></span>
+<span id="L112" class="line"><a href="#L112">112</a>    kMagicItemTipGuide1 =  17,</span>
+<span id="L113" class="line"><a href="#L113">113</a>    kMagicItemTipGuide2 =  18,</span>
+<span id="L114" class="line"><a href="#L114">114</a>    kMagicItemTipGuide3 =  19,</span>
+<span id="L115" class="line"><a href="#L115">115</a>    kMagicItemTipGuide4 =  20,</span>
+<span id="L116" class="line"><a href="#L116">116</a></span>
+<span id="L117" class="line"><a href="#L117">117</a>    kFirstChickenComplete = 21, --首次小鸡领奖成功</span>
+<span id="L118" class="line"><a href="#L118">118</a>    kFirstMachineComplete = 22, --首次机器领奖成功</span>
+<span id="L119" class="line"><a href="#L119">119</a>    kHandBook = 23, -- 图鉴</span>
+<span id="L120" class="line"><a href="#L120">120</a></span>
+<span id="L121" class="line"><a href="#L121">121</a>    -- 活动说明标记，需求2.4部分</span>
+<span id="L122" class="line"><a href="#L122">122</a>    kActDesc = 24,</span>
+<span id="L123" class="line"><a href="#L123">123</a></span>
+<span id="L124" class="line"><a href="#L124">124</a>    kGuideLengCangItem = 25, --冷藏箱引导</span>
+<span id="L125" class="line"><a href="#L125">125</a>    KGuideMergePeiGen = 26, --培根合成引导</span>
+<span id="L126" class="line"><a href="#L126">126</a>    kHeadFrame = 27,        -- 图鉴集齐头像框引导</span>
+<span id="L127" class="line"><a href="#L127">127</a></span>
+<span id="L128" class="line"><a href="#L128">128</a>    kGuideDoublePower = 28, --双倍体力道具</span>
+<span id="L129" class="line"><a href="#L129">129</a></span>
+<span id="L130" class="line"><a href="#L130">130</a>    kFistMoveItemToChicken = 29, --首次移动道具到小鸡</span>
+<span id="L131" class="line"><a href="#L131">131</a>    kFistMoveItemToMachine = 30, --首次移动道具到机器</span>
+<span id="L132" class="line"><a href="#L132">132</a></span>
+<span id="L133" class="line"><a href="#L133">133</a>    kFirstUnlockJiaotiao = 31, --首次解锁胶条</span>
+<span id="L134" class="line"><a href="#L134">134</a></span>
+<span id="L135" class="line"><a href="#L135">135</a>    kMagicItemTipGuide5 =  32,</span>
+<span id="L136" class="line"><a href="#L136">136</a></span>
+<span id="L137" class="line"><a href="#L137">137</a>    kGuideZhiBingItem = 33,--制冰机引导</span>
+<span id="L138" class="line"><a href="#L138">138</a></span>
+<span id="L139" class="line"><a href="#L139">139</a>    kHandBookGetEnergyPop = 34, --图鉴领体力强弹</span>
+<span id="L140" class="line"><a href="#L140">140</a></span>
+<span id="L141" class="line"><a href="#L141">141</a>    kMachineGuide2 = 35, --机器的冰块引导</span>
+<span id="L142" class="line"><a href="#L142">142</a></span>
+<span id="L143" class="line"><a href="#L143">143</a>    kChickenGoOutShowTip = 36, --首次出行的咦闹</span>
+<span id="L144" class="line"><a href="#L144">144</a></span>
+<span id="L145" class="line"><a href="#L145">145</a>    kSpringLimitGiftPop = 37, --春节限时礼包</span>
+<span id="L146" class="line"><a href="#L146">146</a></span>
+<span id="L147" class="line"><a href="#L147">147</a>    kSpringOrderGuide = 38, --春节限时订单引导</span>
+<span id="L148" class="line"><a href="#L148">148</a></span>
+<span id="L149" class="line"><a href="#L149">149</a>    kFistClickZiXuanBox = 39, --首次点击自选宝箱</span>
+<span id="L150" class="line"><a href="#L150">150</a></span>
+<span id="L151" class="line"><a href="#L151">151</a>    kOpenEggGuide1 = 40, -- 砸蛋引导</span>
+<span id="L152" class="line"><a href="#L152">152</a>    kOpenEggGuide2 = 41, -- 砸蛋引导</span>
+<span id="L153" class="line"><a href="#L153">153</a>    kOpenEggGuide3 = 42, -- 砸蛋引导</span>
+<span id="L154" class="line"><a href="#L154">154</a>    kOpenEggGuide0 = 43, -- 砸蛋浣熊头引导</span>
+<span id="L155" class="line"><a href="#L155">155</a>    kWeekRealItemRankGuide1 = 44, -- 周榜实物结算引导</span>
+<span id="L156" class="line"><a href="#L156">156</a>    kWeekRealItemRankGuide2 = 45, -- 周榜实物结算引导</span>
+<span id="L157" class="line"><a href="#L157">157</a>    kWeekRealItemRankGuide3 = 46, -- 周榜实物结算引导</span>
+<span id="L158" class="line"><a href="#L158">158</a>    kAnniversaryOrderGuide1 = 47, --周年限时订单引导</span>
+<span id="L159" class="line"><a href="#L159">159</a>    kAnniversaryOrderGuide2 = 48, --周年限时订单引导</span>
+<span id="L160" class="line"><a href="#L160">160</a>    kAnniversaryOrderGuide3 = 49, --周年限时订单引导</span>
+<span id="L161" class="line"><a href="#L161">161</a>    kOpenEggGuide4 = 50, -- 砸蛋引导</span>
+<span id="L162" class="line"><a href="#L162">162</a>    kOpenEggGuide5 = 51, -- 砸蛋引导</span>
+<span id="L163" class="line"><a href="#L163">163</a>    kOpenEggGuide6 = 52, -- 砸蛋引导</span>
+<span id="L164" class="line"><a href="#L164">164</a>    kOpenEggGuide7 = 53, -- 砸蛋引导</span>
+<span id="L165" class="line"><a href="#L165">165</a>    kOpenEggGuide8 = 54, -- 砸蛋引导</span>
+<span id="L166" class="line"><a href="#L166">166</a>    kOpenEggGuide9 = 55, -- 砸蛋引导</span>
+<span id="L167" class="line"><a href="#L167">167</a></span>
+<span id="L168" class="line"><a href="#L168">168</a>    kSkipGuide = 56, --跳过引导</span>
+<span id="L169" class="line"><a href="#L169">169</a></span>
+<span id="L170" class="line"><a href="#L170">170</a>    kGuideShiHeLv1Item = 57,--解锁1级食盒</span>
+<span id="L171" class="line"><a href="#L171">171</a>    kGuideShiHeLv2Item = 58,--解锁2级食盒</span>
+<span id="L172" class="line"><a href="#L172">172</a>    kFirstUnlockKingOrder = 59, --第一个解锁的皇帝订单</span>
+<span id="L173" class="line"><a href="#L173">173</a></span>
+<span id="L174" class="line"><a href="#L174">174</a>    kQueenMatchOpen = 100, -- 后宫厨神赛开启引导</span>
+<span id="L175" class="line"><a href="#L175">175</a>    kGiftBook = 501, -- 图鉴买过</span>
+<span id="L176" class="line"><a href="#L176">176</a>    kGiftProgress1 = 502, -- 进度礼包1买过</span>
+<span id="L177" class="line"><a href="#L177">177</a>    kGiftProgress2 = 503, -- 进度礼包2买过</span>
+<span id="L178" class="line"><a href="#L178">178</a></span>
+<span id="L179" class="line"><a href="#L179">179</a>    kFistMoveItemToMachine2 = 60, --首次移动道具到机器2</span>
+<span id="L180" class="line"><a href="#L180">180</a></span>
+<span id="L181" class="line"><a href="#L181">181</a>    kGuideDeleteItem = 61, --引导删除道具</span>
+<span id="L182" class="line"><a href="#L182">182</a>    kRestaurantRatingUnlockGuide = 62, --每日餐厅评级解锁引导</span>
+<span id="L183" class="line"><a href="#L183">183</a>    kFrozenFoodGuidePhase1 = 68, --冰冻棋子1阶新手引导</span>
+<span id="L184" class="line"><a href="#L184">184</a>    kFrozenFoodGuidePhase2 = 69, --冰冻棋子2阶新手引导</span>
+<span id="L185" class="line"><a href="#L185">185</a>    kPraiseFeedbackOrderGuide = 65, --好评回馈订单小手弱引导</span>
+<span id="L186" class="line"><a href="#L186">186</a>    kPraiseFeedbackRewardGuide = 67, --好评回馈领奖强引导</span>
+<span id="L187" class="line"><a href="#L187">187</a></span>
+<span id="L188" class="line"><a href="#L188">188</a>    kNewYearOrderGuide = 63, --订单大比拼开启</span>
+<span id="L189" class="line"><a href="#L189">189</a></span>
+<span id="L190" class="line"><a href="#L190">190</a>    kDoubleItemGuide = 64, --超级按钮介绍面板</span>
+<span id="L191" class="line"><a href="#L191">191</a>    kBubbleBought = 70, --买过泡泡，如果有这个标记，自动弹出气泡购买tip，没有就不弹</span>
+<span id="L192" class="line"><a href="#L192">192</a>    kPowerBottleGuide = 71, --体力瓶永久引导</span>
+<span id="L193" class="line"><a href="#L193">193</a>    kPowerChestGuide = 72, --体力箱子永久引导</span>
+<span id="L194" class="line"><a href="#L194">194</a>    kPowerMultiplierGuide = 73,</span>
+<span id="L195" class="line"><a href="#L195">195</a></span>
+<span id="L196" class="line"><a href="#L196">196</a>    -- 380 - 403 飘窗</span>
+<span id="L197" class="line"><a href="#L197">197</a></span>
+<span id="L198" class="line"><a href="#L198">198</a>    kQueenMatchEnter1 = 9999, -- 厨神第一次引导</span>
+<span id="L199" class="line"><a href="#L199">199</a>    -- 10000 以后是每期战报的标记</span>
+<span id="L200" class="line"><a href="#L200">200</a>    kMatchReport = 10000,</span>
+<span id="L201" class="line"><a href="#L201">201</a>}</span>
+<span id="L202" class="line"><a href="#L202">202</a></span>
+<span id="L203" class="line"><a href="#L203">203</a>MergeConfig.Keys = {</span>
+<span id="L204" class="line"><a href="#L204">204</a>    STRENGTH_PK_LAST_VALUE = &quot;strength_pk_last_value&quot;,</span>
+<span id="L205" class="line"><a href="#L205">205</a>    STRENGTH_PK_LAST_RANK = &quot;strength_pk_last_rank&quot;,</span>
+<span id="L206" class="line"><a href="#L206">206</a>    SHOW_NATIONAL_RANK_REWARD = &quot;show_national_rank_reward&quot;,</span>
+<span id="L207" class="line"><a href="#L207">207</a>    STRENGTH_PK_LAST_ROUND = &quot;strength_pk_last_round&quot;,</span>
+<span id="L208" class="line"><a href="#L208">208</a>    POP_BUY_ENERGY_GIFT_ROUND = &quot;pop_buy_energy_gift_round&quot;,</span>
+<span id="L209" class="line"><a href="#L209">209</a>    POP_BUY_TUJIAN_HALF = &quot;pop_buy_tujian_half&quot;,</span>
+<span id="L210" class="line"><a href="#L210">210</a>    POP_BUY_JINDU_HALF_GIFT = &quot;pop_buy_jindu_half_gift&quot;,</span>
+<span id="L211" class="line"><a href="#L211">211</a>    POP_BUY_JINDU_FULL_GIFT = &quot;pop_buy_jindu_full_gift&quot;,</span>
+<span id="L212" class="line"><a href="#L212">212</a>    ORDER_COMPLETE_INFO = &#x27;order_complete_info&#x27;,</span>
+<span id="L213" class="line"><a href="#L213">213</a>    POP_BUBBLE_DISCOUNT_PANEL = &#x27;pop_bubble_discount_panel&#x27;,</span>
+<span id="L214" class="line"><a href="#L214">214</a>    END_SOON_TIP_POP = &quot;end_soon_tip_pop&quot;,</span>
+<span id="L215" class="line"><a href="#L215">215</a></span>
+<span id="L216" class="line"><a href="#L216">216</a>}</span>
+<span id="L217" class="line"><a href="#L217">217</a></span>
+<span id="L218" class="line"><a href="#L218">218</a>MergeConfig.MaxPowerConfig = 9999</span>
+<span id="L219" class="line"><a href="#L219">219</a>MergeConfig.AutoAddMaxPowerConfig = 50</span>
+<span id="L220" class="line"><a href="#L220">220</a>MergeConfig.BuyPowerCountConfig = 50</span>
+<span id="L221" class="line"><a href="#L221">221</a>MergeConfig.PowerTipPowerConfig = 30</span>
+<span id="L222" class="line"><a href="#L222">222</a>MergeConfig.MaxBuyPowerDiscountTime = 5</span>
+<span id="L223" class="line"><a href="#L223">223</a>MergeConfig.PowerCollectItemConfig = {</span>
+<span id="L224" class="line"><a href="#L224">224</a>	under60 = 4,</span>
+<span id="L225" class="line"><a href="#L225">225</a>	under30 = 8,</span>
+<span id="L226" class="line"><a href="#L226">226</a>	undertop = 8,</span>
+<span id="L227" class="line"><a href="#L227">227</a>	colorStar = 8,</span>
+<span id="L228" class="line"><a href="#L228">228</a>    firstlevelLib = 10,</span>
+<span id="L229" class="line"><a href="#L229">229</a>    levelLib = 5,</span>
+<span id="L230" class="line"><a href="#L230">230</a>}</span>
+<span id="L231" class="line"><a href="#L231">231</a>MergeConfig.AutoAddPowerCDTime = 3600</span>
+<span id="L232" class="line"><a href="#L232">232</a>MergeConfig.OpenEggMoneyLimit = 170</span>
+<span id="L233" class="line"><a href="#L233">233</a></span>
+<span id="L234" class="line"><a href="#L234">234</a>MergeConfig.PowerBarPosConfig = {</span>
+<span id="L235" class="line"><a href="#L235">235</a>    x = 12,</span>
+<span id="L236" class="line"><a href="#L236">236</a>    y = 24,</span>
+<span id="L237" class="line"><a href="#L237">237</a>}</span>
+<span id="L238" class="line"><a href="#L238">238</a></span>
+<span id="L239" class="line"><a href="#L239">239</a>MergeConfig.BuyPowerValueConfig = {</span>
+<span id="L240" class="line"><a href="#L240">240</a>	[1] = {gold = 9, discount = 0.3},</span>
+<span id="L241" class="line"><a href="#L241">241</a>	[2] = {gold = 59, discount = 1.8},</span>
+<span id="L242" class="line"><a href="#L242">242</a>	[3] = {gold = 99, discount = 3},</span>
+<span id="L243" class="line"><a href="#L243">243</a>	[4] = {gold = 159, discount = 5},</span>
+<span id="L244" class="line"><a href="#L244">244</a>	[5] = {gold = 259, discount = 8},</span>
+<span id="L245" class="line"><a href="#L245">245</a>	[6] = {gold = 320, discount = nil},</span>
+<span id="L246" class="line"><a href="#L246">246</a>}</span>
+<span id="L247" class="line"><a href="#L247">247</a></span>
+<span id="L248" class="line"><a href="#L248">248</a>MergeConfig.CollectionId = 59335</span>
+<span id="L249" class="line"><a href="#L249">249</a>MergeConfig.MoneyId = 59336</span>
+<span id="L250" class="line"><a href="#L250">250</a>MergeConfig.DoubleBuffId = 59332</span>
+<span id="L251" class="line"><a href="#L251">251</a>MergeConfig.ScoreBuff20Id = 59330</span>
+<span id="L252" class="line"><a href="#L252">252</a>MergeConfig.ScoreBuff50Id = 59331</span>
+<span id="L253" class="line"><a href="#L253">253</a>-- MergeConfig.HeadFrameId = 66573</span>
+<span id="L254" class="line"><a href="#L254">254</a>MergeConfig.YuanBaoId = 58083</span>
+<span id="L255" class="line"><a href="#L255">255</a>--锤子id</span>
+<span id="L256" class="line"><a href="#L256">256</a>MergeConfig.hammerId = 59422</span>
+<span id="L257" class="line"><a href="#L257">257</a></span>
+<span id="L258" class="line"><a href="#L258">258</a>MergeConfig.Chicken = 59334 --小鸡</span>
+<span id="L259" class="line"><a href="#L259">259</a>MergeConfig.Machine = 59333 --料理机</span>
+<span id="L260" class="line"><a href="#L260">260</a>MergeConfig.StaticItemIconInfo = {</span>
+<span id="L261" class="line"><a href="#L261">261</a>    [MergeConfig.hammerId] = {Frame = &quot;mergeItems/yaoshi.png&quot;, Atlas = &quot;amf/activity/merge/materials/mergeItems.plist&quot;, IsPropPng = false},</span>
+<span id="L262" class="line"><a href="#L262">262</a>    [MergeConfig.CollectionId] = {Frame = &quot;mergeItems/collect.png&quot;, Atlas = &quot;amf/activity/merge/materials/mergeItems.plist&quot;, IsPropPng = false},</span>
+<span id="L263" class="line"><a href="#L263">263</a>    [MergeConfig.DoubleBuffId] = {Frame = &quot;mergeItems/collect.png&quot;, Atlas = &quot;amf/activity/merge/materials/mergeItems.plist&quot;, IsPropPng = false},</span>
+<span id="L264" class="line"><a href="#L264">264</a>    [MergeConfig.MoneyId] = {Frame = &quot;mergeItems/money.png&quot;, Atlas = &quot;amf/activity/merge/materials/mergeItems.plist&quot;, IsPropPng = false},</span>
+<span id="L265" class="line"><a href="#L265">265</a>    [MergeConfig.YuanBaoId] = {Frame = &quot;amf/activity/merge/materials/collection.png&quot;, Atlas = &quot;&quot;, IsPropPng = true},</span>
+<span id="L266" class="line"><a href="#L266">266</a></span>
+<span id="L267" class="line"><a href="#L267">267</a>    [MergeConfig.Chicken] = {Frame = &quot;mergeItems/&quot;..MergeConfig.Chicken..&quot;.png&quot;, Atlas = &quot;amf/activity/merge/materials/mergeItems.plist&quot;, IsPropPng = false},</span>
+<span id="L268" class="line"><a href="#L268">268</a>    [MergeConfig.Machine] = {Frame = &quot;mergeItems/&quot;..MergeConfig.Machine..&quot;.png&quot;, Atlas = &quot;amf/activity/merge/materials/mergeItems.plist&quot;, IsPropPng = false},</span>
+<span id="L269" class="line"><a href="#L269">269</a>}</span>
+<span id="L270" class="line"><a href="#L270">270</a></span>
+<span id="L271" class="line"><a href="#L271">271</a>--砸蛋最终奖励需要的鸡的数量</span>
+<span id="L272" class="line"><a href="#L272">272</a>MergeConfig.openEggNeedChickenNum = 12</span>
+<span id="L273" class="line"><a href="#L273">273</a></span>
+<span id="L274" class="line"><a href="#L274">274</a></span>
+<span id="L275" class="line"><a href="#L275">275</a>MergeConfig.HeadFrameIds = {66672,66673,66674}</span>
+<span id="L276" class="line"><a href="#L276">276</a></span>
+<span id="L277" class="line"><a href="#L277">277</a>MergeConfig.unlockOrder2NeedCompleteNum = 4</span>
+<span id="L278" class="line"><a href="#L278">278</a>MergeConfig.unlockOrder3NeedCompleteNum = 5</span>
+<span id="L279" class="line"><a href="#L279">279</a>MergeConfig.unlockLimitOrderNeedCompleteNum = 10</span>
+<span id="L280" class="line"><a href="#L280">280</a>MergeConfig.creteExtraItemNeedCompleteNum = 10</span>
+<span id="L281" class="line"><a href="#L281">281</a></span>
+<span id="L282" class="line"><a href="#L282">282</a>MergeConfig.kFlower20176 = 20207</span>
+<span id="L283" class="line"><a href="#L283">283</a>MergeConfig.kHeadIcon20177 = 21061</span>
+<span id="L284" class="line"><a href="#L284">284</a>MergeConfig.kNameCard20178 = 23015</span>
+<span id="L285" class="line"><a href="#L285">285</a></span>
+<span id="L286" class="line"><a href="#L286">286</a>MergeConfig.shop57054 = 57054</span>
+<span id="L287" class="line"><a href="#L287">287</a></span>
+<span id="L288" class="line"><a href="#L288">288</a>MergeConfig.StepTypes = {</span>
+<span id="L289" class="line"><a href="#L289">289</a>    kDailyPK = &quot;PER_DAY_PK&quot;, --pk赛</span>
+<span id="L290" class="line"><a href="#L290">290</a>    kCrushEgg = &quot;CRUSH_EGG&quot;, --砸蛋</span>
+<span id="L291" class="line"><a href="#L291">291</a>    KEndlessPower = &quot;ENDLESS_POWER&quot;,--无尽体力</span>
+<span id="L292" class="line"><a href="#L292">292</a>    kAnniversaryGiftt = &quot;ANNIVERSARY_GIFT&quot;, --周年礼包</span>
+<span id="L293" class="line"><a href="#L293">293</a>    kSurriseAssist = &quot;SURPRISE_ASSIST&quot;, --惊喜助力</span>
+<span id="L294" class="line"><a href="#L294">294</a>    kWeekRank = &quot;WEEKLY_RANK&quot;,--全国周榜</span>
+<span id="L295" class="line"><a href="#L295">295</a>    kKingOrder = &quot;KING_ORDER&quot;, -- 皇帝订单</span>
+<span id="L296" class="line"><a href="#L296">296</a>    kQueenMatch = &quot;COOK_MATCH&quot;, -- 后宫厨神赛</span>
+<span id="L297" class="line"><a href="#L297">297</a>    kBubbleDiscount = &#x27;BUBBLE_DISCOUNT&#x27;, --气泡折扣</span>
+<span id="L298" class="line"><a href="#L298">298</a>    kRestaurantPraise = &quot;RESTAURANT_PRAISE&quot;, -- 好评回馈</span>
+<span id="L299" class="line"><a href="#L299">299</a>    kGoodGift = &quot;GOOD_GIFT&quot;, -- 好礼连连</span>
+<span id="L300" class="line"><a href="#L300">300</a>}</span>
+<span id="L301" class="line"><a href="#L301">301</a></span>
+<span id="L302" class="line"><a href="#L302">302</a>MergeConfig.GotoPlayLevelDCId = {</span>
+<span id="L303" class="line"><a href="#L303">303</a>    DOUBLEB_BUFF_TIP = 1,</span>
+<span id="L304" class="line"><a href="#L304">304</a>    BUY_POWER_LIST = 2,</span>
+<span id="L305" class="line"><a href="#L305">305</a>    BUY_POWER = 3,</span>
+<span id="L306" class="line"><a href="#L306">306</a>}</span>
+<span id="L307" class="line"><a href="#L307">307</a></span>
+<span id="L308" class="line"><a href="#L308">308</a>MergeConfig.ItemText = {</span>
+<span id="L309" class="line"><a href="#L309">309</a>    [&quot;59337&quot;] = {</span>
+<span id="L310" class="line"><a href="#L310">310</a>        name = &quot;水果篮&quot;,</span>
+<span id="L311" class="line"><a href="#L311">311</a>        desc = &quot;点击可以产出神秘水果哦，快来试试吧！&quot;,</span>
+<span id="L312" class="line"><a href="#L312">312</a>        desc2 = MergeConfig.formatActChessString(&quot;点击可以产出神秘水果和%s哦，快来试试吧！&quot;),</span>
+<span id="L313" class="line"><a href="#L313">313</a>        cdDesc = &quot;花费风车币可让水果篮立刻完成备货&quot;</span>
+<span id="L314" class="line"><a href="#L314">314</a>    },</span>
+<span id="L315" class="line"><a href="#L315">315</a>    [&quot;59338&quot;] = {</span>
+<span id="L316" class="line"><a href="#L316">316</a>        name = &quot;冰箱&quot;,</span>
+<span id="L317" class="line"><a href="#L317">317</a>        desc = &quot;点击产出海鲜和冰饮哦，快来试试吧！&quot;,</span>
+<span id="L318" class="line"><a href="#L318">318</a>        desc2 = MergeConfig.formatActChessString(&quot;点击可以产出海鲜、冰饮和%s哦，快来试试吧！&quot;),</span>
+<span id="L319" class="line"><a href="#L319">319</a>        cdDesc = &quot;花费风车币可让冰箱立刻完成备货&quot;</span>
+<span id="L320" class="line"><a href="#L320">320</a>    },</span>
+<span id="L321" class="line"><a href="#L321">321</a>    [&quot;59340&quot;] = {</span>
+<span id="L322" class="line"><a href="#L322">322</a>        name = &quot;蜂巢&quot;,</span>
+<span id="L323" class="line"><a href="#L323">323</a>        desc = &quot;点击产出蜂蜜哦，快来试试吧！&quot;,</span>
+<span id="L324" class="line"><a href="#L324">324</a>        desc2 = MergeConfig.formatActChessString(&quot;点击产出蜂蜜和%s哦，快来试试吧！&quot;),</span>
+<span id="L325" class="line"><a href="#L325">325</a>        cdDesc = &quot;花费风车币可让蜂巢立刻完成备货&quot;</span>
+<span id="L326" class="line"><a href="#L326">326</a>    },</span>
+<span id="L327" class="line"><a href="#L327">327</a>    [&quot;59339&quot;] = {</span>
+<span id="L328" class="line"><a href="#L328">328</a>        name = &quot;蔬菜篮&quot;,</span>
+<span id="L329" class="line"><a href="#L329">329</a>        desc = &quot;点击产出蔬菜哦，快来试试吧！&quot;,</span>
+<span id="L330" class="line"><a href="#L330">330</a>        desc2 = MergeConfig.formatActChessString(&quot;点击产出蔬菜和%s哦，快来试试吧！&quot;),</span>
+<span id="L331" class="line"><a href="#L331">331</a>        cdDesc = &quot;花费风车币可让蔬菜篮立刻完成备货&quot;</span>
+<span id="L332" class="line"><a href="#L332">332</a>    },</span>
+<span id="L333" class="line"><a href="#L333">333</a>    [&quot;59424&quot;] = {</span>
+<span id="L334" class="line"><a href="#L334">334</a>        name = &quot;竹篮&quot;,</span>
+<span id="L335" class="line"><a href="#L335">335</a>        desc = &quot;点击产出面食和醋哦，快来试试吧&quot;,</span>
+<span id="L336" class="line"><a href="#L336">336</a>        desc2 = MergeConfig.formatActChessString(&quot;点击产出面食、醋和%s哦，快来试试吧&quot;),</span>
+<span id="L337" class="line"><a href="#L337">337</a>        cdDesc = &quot;花费风车币可让竹篮立刻完成备货&quot;</span>
+<span id="L338" class="line"><a href="#L338">338</a>    },</span>
+<span id="L339" class="line"><a href="#L339">339</a>    [&quot;59341&quot;] = {</span>
+<span id="L340" class="line"><a href="#L340">340</a>        name = &quot;樱桃&quot;,</span>
+<span id="L341" class="line"><a href="#L341">341</a>        desc = &quot;一口一个，甜里带一丝俏皮的酸。&quot;</span>
+<span id="L342" class="line"><a href="#L342">342</a>    },</span>
+<span id="L343" class="line"><a href="#L343">343</a>    [&quot;59342&quot;] = {</span>
+<span id="L344" class="line"><a href="#L344">344</a>        name = &quot;猕猴桃&quot;,</span>
+<span id="L345" class="line"><a href="#L345">345</a>        desc = &quot;外表毛茸茸，内心很细腻，酸甜刚刚好。&quot;</span>
+<span id="L346" class="line"><a href="#L346">346</a>    },</span>
+<span id="L347" class="line"><a href="#L347">347</a>    [&quot;59343&quot;] = {</span>
+<span id="L348" class="line"><a href="#L348">348</a>        name = &quot;橙子&quot;,</span>
+<span id="L349" class="line"><a href="#L349">349</a>        desc = &quot;剥开就是清香，满满都是阳光的味道。&quot;</span>
+<span id="L350" class="line"><a href="#L350">350</a>    },</span>
+<span id="L351" class="line"><a href="#L351">351</a>    [&quot;59344&quot;] = {</span>
+<span id="L352" class="line"><a href="#L352">352</a>        name = &quot;苹果&quot;,</span>
+<span id="L353" class="line"><a href="#L353">353</a>        desc = &quot;脆爽清甜，一天一个，健康又美味。&quot;</span>
+<span id="L354" class="line"><a href="#L354">354</a>    },</span>
+<span id="L355" class="line"><a href="#L355">355</a>    [&quot;59345&quot;] = {</span>
+<span id="L356" class="line"><a href="#L356">356</a>        name = &quot;牛油果&quot;,</span>
+<span id="L357" class="line"><a href="#L357">357</a>        desc = &quot;绵密似乳酪，带着独特的坚果香味。&quot;</span>
+<span id="L358" class="line"><a href="#L358">358</a>    },</span>
+<span id="L359" class="line"><a href="#L359">359</a>    [&quot;59346&quot;] = {</span>
+<span id="L360" class="line"><a href="#L360">360</a>        name = &quot;葡萄&quot;,</span>
+<span id="L361" class="line"><a href="#L361">361</a>        desc = &quot;一串串的小快乐，忍不住多吃几颗。&quot;</span>
+<span id="L362" class="line"><a href="#L362">362</a>    },</span>
+<span id="L363" class="line"><a href="#L363">363</a>    [&quot;59347&quot;] = {</span>
+<span id="L364" class="line"><a href="#L364">364</a>        name = &quot;香蕉&quot;,</span>
+<span id="L365" class="line"><a href="#L365">365</a>        desc = &quot;自带“打开即食”属性，软糯又治愈。&quot;</span>
+<span id="L366" class="line"><a href="#L366">366</a>    },</span>
+<span id="L367" class="line"><a href="#L367">367</a>    [&quot;59348&quot;] = {</span>
+<span id="L368" class="line"><a href="#L368">368</a>        name = &quot;柚子&quot;,</span>
+<span id="L369" class="line"><a href="#L369">369</a>        desc = &quot;剥开厚厚棉袄，瓣瓣果肉清甜。&quot;</span>
+<span id="L370" class="line"><a href="#L370">370</a>    },</span>
+<span id="L371" class="line"><a href="#L371">371</a>    [&quot;59349&quot;] = {</span>
+<span id="L372" class="line"><a href="#L372">372</a>        name = &quot;哈密瓜&quot;,</span>
+<span id="L373" class="line"><a href="#L373">373</a>        desc = &quot;甜到心里去，一口就有度假的感觉。&quot;</span>
+<span id="L374" class="line"><a href="#L374">374</a>    },</span>
+<span id="L375" class="line"><a href="#L375">375</a>    [&quot;59350&quot;] = {</span>
+<span id="L376" class="line"><a href="#L376">376</a>        name = &quot;冰棍&quot;,</span>
+<span id="L377" class="line"><a href="#L377">377</a>        desc = &quot;简单直接，一口下去，立刻冰爽。&quot;,</span>
+<span id="L378" class="line"><a href="#L378">378</a>    },</span>
+<span id="L379" class="line"><a href="#L379">379</a>    [&quot;59351&quot;] = {</span>
+<span id="L380" class="line"><a href="#L380">380</a>        name = &quot;果味冰棍&quot;,</span>
+<span id="L381" class="line"><a href="#L381">381</a>        desc = &quot;酸酸甜甜水果派对，吃一口活力满满。&quot;,</span>
+<span id="L382" class="line"><a href="#L382">382</a>    },</span>
+<span id="L383" class="line"><a href="#L383">383</a>    [&quot;59352&quot;] = {</span>
+<span id="L384" class="line"><a href="#L384">384</a>        name = &quot;西瓜冰棍&quot;,</span>
+<span id="L385" class="line"><a href="#L385">385</a>        desc = &quot;凉爽中带着清甜，满满的夏天的味道。&quot;,</span>
+<span id="L386" class="line"><a href="#L386">386</a>    },</span>
+<span id="L387" class="line"><a href="#L387">387</a>    [&quot;59353&quot;] = {</span>
+<span id="L388" class="line"><a href="#L388">388</a>        name = &quot;小雪人雪糕&quot;,</span>
+<span id="L389" class="line"><a href="#L389">389</a>        desc = &quot;戴可可帽的雪人，可爱得让人舍不得咬。&quot;,</span>
+<span id="L390" class="line"><a href="#L390">390</a>    },</span>
+<span id="L391" class="line"><a href="#L391">391</a>    [&quot;59354&quot;] = {</span>
+<span id="L392" class="line"><a href="#L392">392</a>        name = &quot;巧克力夹心雪糕&quot;,</span>
+<span id="L393" class="line"><a href="#L393">393</a>        desc = &quot;香脆巧克力外壳下，藏着丝滑的奶油。&quot;,</span>
+<span id="L394" class="line"><a href="#L394">394</a>    },</span>
+<span id="L395" class="line"><a href="#L395">395</a>    [&quot;59355&quot;] = {</span>
+<span id="L396" class="line"><a href="#L396">396</a>        name = &quot;巧克力甜筒&quot;,</span>
+<span id="L397" class="line"><a href="#L397">397</a>        desc = &quot;蛋筒酥脆，巧克力香浓，每一口都满足。&quot;,</span>
+<span id="L398" class="line"><a href="#L398">398</a>    },</span>
+<span id="L399" class="line"><a href="#L399">399</a>    [&quot;59356&quot;] = {</span>
+<span id="L400" class="line"><a href="#L400">400</a>        name = &quot;巧克力果味甜筒&quot;,</span>
+<span id="L401" class="line"><a href="#L401">401</a>        desc = &quot;巧克力打底，果香偷偷加分。&quot;,</span>
+<span id="L402" class="line"><a href="#L402">402</a>    },</span>
+<span id="L403" class="line"><a href="#L403">403</a>    [&quot;59357&quot;] = {</span>
+<span id="L404" class="line"><a href="#L404">404</a>        name = &quot;莱萌限定甜筒&quot;,</span>
+<span id="L405" class="line"><a href="#L405">405</a>        desc = &quot;造型可爱，美味不减。&quot;,</span>
+<span id="L406" class="line"><a href="#L406">406</a>    },</span>
+<span id="L407" class="line"><a href="#L407">407</a>    [&quot;59358&quot;] = {</span>
+<span id="L408" class="line"><a href="#L408">408</a>        name = &quot;扇贝&quot;,</span>
+<span id="L409" class="line"><a href="#L409">409</a>        desc = &quot;合上是安静，打开是鲜甜的小惊喜。&quot;</span>
+<span id="L410" class="line"><a href="#L410">410</a>    },</span>
+<span id="L411" class="line"><a href="#L411">411</a>    [&quot;59359&quot;] = {</span>
+<span id="L412" class="line"><a href="#L412">412</a>        name = &quot;海螺&quot;,</span>
+<span id="L413" class="line"><a href="#L413">413</a>        desc = &quot;螺肉紧实弹韧，嚼劲里全是海味。&quot;</span>
+<span id="L414" class="line"><a href="#L414">414</a>    },</span>
+<span id="L415" class="line"><a href="#L415">415</a>    [&quot;59360&quot;] = {</span>
+<span id="L416" class="line"><a href="#L416">416</a>        name = &quot;生蚝&quot;,</span>
+<span id="L417" class="line"><a href="#L417">417</a>        desc = &quot;入口嫩滑，爆出咸鲜汁水。&quot;</span>
+<span id="L418" class="line"><a href="#L418">418</a>    },</span>
+<span id="L419" class="line"><a href="#L419">419</a>    [&quot;59361&quot;] = {</span>
+<span id="L420" class="line"><a href="#L420">420</a>        name = &quot;对虾&quot;,</span>
+<span id="L421" class="line"><a href="#L421">421</a>        desc = &quot;肉质紧实弹牙，鲜甜本味十足。&quot;</span>
+<span id="L422" class="line"><a href="#L422">422</a>    },</span>
+<span id="L423" class="line"><a href="#L423">423</a>    [&quot;59362&quot;] = {</span>
+<span id="L424" class="line"><a href="#L424">424</a>        name = &quot;鱼块&quot;,</span>
+<span id="L425" class="line"><a href="#L425">425</a>        desc = &quot;去刺留香，简单烹饪就超美味。&quot;</span>
+<span id="L426" class="line"><a href="#L426">426</a>    },</span>
+<span id="L427" class="line"><a href="#L427">427</a>    [&quot;59363&quot;] = {</span>
+<span id="L428" class="line"><a href="#L428">428</a>        name = &quot;东星斑&quot;,</span>
+<span id="L429" class="line"><a href="#L429">429</a>        desc = &quot;名气在外，细嫩入口，确实名不虚传。&quot;</span>
+<span id="L430" class="line"><a href="#L430">430</a>    },</span>
+<span id="L431" class="line"><a href="#L431">431</a>    [&quot;59364&quot;] = {</span>
+<span id="L432" class="line"><a href="#L432">432</a>        name = &quot;大鱿鱼&quot;,</span>
+<span id="L433" class="line"><a href="#L433">433</a>        desc = &quot;弹牙脆爽，嚼劲十足。&quot;</span>
+<span id="L434" class="line"><a href="#L434">434</a>    },</span>
+<span id="L435" class="line"><a href="#L435">435</a>    [&quot;59365&quot;] = {</span>
+<span id="L436" class="line"><a href="#L436">436</a>        name = &quot;大龙虾&quot;,</span>
+<span id="L437" class="line"><a href="#L437">437</a>        desc = &quot;壳很硬，肉很嫩，一上桌就是主角。&quot;</span>
+<span id="L438" class="line"><a href="#L438">438</a>    },</span>
+<span id="L439" class="line"><a href="#L439">439</a>    [&quot;59366&quot;] = {</span>
+<span id="L440" class="line"><a href="#L440">440</a>        name = &quot;大闸蟹&quot;,</span>
+<span id="L441" class="line"><a href="#L441">441</a>        desc = &quot;膏黄丰满流油，蟹肉丝丝清甜。&quot;</span>
+<span id="L442" class="line"><a href="#L442">442</a>    },</span>
+<span id="L443" class="line"><a href="#L443">443</a>    [&quot;59367&quot;] = {</span>
+<span id="L444" class="line"><a href="#L444">444</a>        name = &quot;一勺蜂蜜&quot;,</span>
+<span id="L445" class="line"><a href="#L445">445</a>        desc = &quot;亮晶晶的一勺，能拉出长长的蜜丝儿。&quot;</span>
+<span id="L446" class="line"><a href="#L446">446</a>    },</span>
+<span id="L447" class="line"><a href="#L447">447</a>    [&quot;59368&quot;] = {</span>
+<span id="L448" class="line"><a href="#L448">448</a>        name = &quot;一块蜂蜜&quot;,</span>
+<span id="L449" class="line"><a href="#L449">449</a>        desc = &quot;金黄剔透，满口留香。&quot;</span>
+<span id="L450" class="line"><a href="#L450">450</a>    },</span>
+<span id="L451" class="line"><a href="#L451">451</a>    [&quot;59369&quot;] = {</span>
+<span id="L452" class="line"><a href="#L452">452</a>        name = &quot;一碟蜂蜜&quot;,</span>
+<span id="L453" class="line"><a href="#L453">453</a>        desc = &quot;金灿灿的一碟，蘸什么都好吃。&quot;</span>
+<span id="L454" class="line"><a href="#L454">454</a>    },</span>
+<span id="L455" class="line"><a href="#L455">455</a>    [&quot;59370&quot;] = {</span>
+<span id="L456" class="line"><a href="#L456">456</a>        name = &quot;一碗蜂蜜&quot;,</span>
+<span id="L457" class="line"><a href="#L457">457</a>        desc = &quot;甜得很扎实，份量看着就安心。&quot;</span>
+<span id="L458" class="line"><a href="#L458">458</a>    },</span>
+<span id="L459" class="line"><a href="#L459">459</a>    [&quot;59371&quot;] = {</span>
+<span id="L460" class="line"><a href="#L460">460</a>        name = &quot;大碗蜂浆&quot;,</span>
+<span id="L461" class="line"><a href="#L461">461</a>        desc = &quot;浓稠饱满，满满都是能量感。&quot;</span>
+<span id="L462" class="line"><a href="#L462">462</a>    },</span>
+<span id="L463" class="line"><a href="#L463">463</a>    [&quot;59372&quot;] = {</span>
+<span id="L464" class="line"><a href="#L464">464</a>        name = &quot;大罐蜂王浆&quot;,</span>
+<span id="L465" class="line"><a href="#L465">465</a>        desc = &quot;一大罐蜂王浆，甜蜜加倍。&quot;</span>
+<span id="L466" class="line"><a href="#L466">466</a>    },</span>
+<span id="L467" class="line"><a href="#L467">467</a>    [&quot;59373&quot;] = {</span>
+<span id="L468" class="line"><a href="#L468">468</a>        name = &quot;黄瓜&quot;,</span>
+<span id="L469" class="line"><a href="#L469">469</a>        desc = &quot;清脆爽口，咬下去清新水润。&quot;</span>
+<span id="L470" class="line"><a href="#L470">470</a>    },</span>
+<span id="L471" class="line"><a href="#L471">471</a>    [&quot;59374&quot;] = {</span>
+<span id="L472" class="line"><a href="#L472">472</a>        name = &quot;胡萝卜&quot;,</span>
+<span id="L473" class="line"><a href="#L473">473</a>        desc = &quot;脆里带甜，越嚼越有味道。&quot;</span>
+<span id="L474" class="line"><a href="#L474">474</a>    },</span>
+<span id="L475" class="line"><a href="#L475">475</a>    [&quot;59375&quot;] = {</span>
+<span id="L476" class="line"><a href="#L476">476</a>        name = &quot;生菜&quot;,</span>
+<span id="L477" class="line"><a href="#L477">477</a>        desc = &quot;轻轻一片，让口感更清爽。&quot;</span>
+<span id="L478" class="line"><a href="#L478">478</a>    },</span>
+<span id="L479" class="line"><a href="#L479">479</a>    [&quot;59376&quot;] = {</span>
+<span id="L480" class="line"><a href="#L480">480</a>        name = &quot;菌菇&quot;,</span>
+<span id="L481" class="line"><a href="#L481">481</a>        desc = &quot;看着低调，香气却很扎实。&quot;</span>
+<span id="L482" class="line"><a href="#L482">482</a>    },</span>
+<span id="L483" class="line"><a href="#L483">483</a>    [&quot;59377&quot;] = {</span>
+<span id="L484" class="line"><a href="#L484">484</a>        name = &quot;西蓝花&quot;,</span>
+<span id="L485" class="line"><a href="#L485">485</a>        desc = &quot;一朵一朵，都是营养担当。&quot;</span>
+<span id="L486" class="line"><a href="#L486">486</a>    },</span>
+<span id="L487" class="line"><a href="#L487">487</a>    [&quot;59378&quot;] = {</span>
+<span id="L488" class="line"><a href="#L488">488</a>        name = &quot;洋葱&quot;,</span>
+<span id="L489" class="line"><a href="#L489">489</a>        desc = &quot;切时流泪，吃时真香。&quot;</span>
+<span id="L490" class="line"><a href="#L490">490</a>    },</span>
+<span id="L491" class="line"><a href="#L491">491</a>    [&quot;59379&quot;] = {</span>
+<span id="L492" class="line"><a href="#L492">492</a>        name = &quot;南瓜&quot;,</span>
+<span id="L493" class="line"><a href="#L493">493</a>        desc = &quot;软糯香甜，暖胃又暖心。&quot;</span>
+<span id="L494" class="line"><a href="#L494">494</a>    },</span>
+<span id="L495" class="line"><a href="#L495">495</a>    [&quot;59380&quot;] = {</span>
+<span id="L496" class="line"><a href="#L496">496</a>        name = &quot;樱桃果酱&quot;,</span>
+<span id="L497" class="line"><a href="#L497">497</a>        desc = &quot;红宝石般剔透，甜中藏一点淘气的酸。&quot;</span>
+<span id="L498" class="line"><a href="#L498">498</a>    },</span>
+<span id="L499" class="line"><a href="#L499">499</a>    [&quot;59381&quot;] = {</span>
+<span id="L500" class="line"><a href="#L500">500</a>        name = &quot;橙子果酱&quot;,</span>
+<span id="L501" class="line"><a href="#L501">501</a>        desc = &quot;满满果粒，散发着阳光般的柑橘香气。&quot;</span>
+<span id="L502" class="line"><a href="#L502">502</a>    },</span>
+<span id="L503" class="line"><a href="#L503">503</a>    [&quot;59382&quot;] = {</span>
+<span id="L504" class="line"><a href="#L504">504</a>        name = &quot;牛油果果酱&quot;,</span>
+<span id="L505" class="line"><a href="#L505">505</a>        desc = &quot;柔滑绵密，带着淡淡坚果香。&quot;,</span>
+<span id="L506" class="line"><a href="#L506">506</a>    },</span>
+<span id="L507" class="line"><a href="#L507">507</a>    [&quot;59383&quot;] = {</span>
+<span id="L508" class="line"><a href="#L508">508</a>        name = &quot;葡萄果酱&quot;,</span>
+<span id="L509" class="line"><a href="#L509">509</a>        desc = &quot;紫晶般浓郁，是秋日葡萄园的来信。&quot;</span>
+<span id="L510" class="line"><a href="#L510">510</a>    },</span>
+<span id="L511" class="line"><a href="#L511">511</a>    [&quot;59384&quot;] = {</span>
+<span id="L512" class="line"><a href="#L512">512</a>        name = &quot;香蕉果酱&quot;,</span>
+<span id="L513" class="line"><a href="#L513">513</a>        desc = &quot;金黄软糯，散发着温暖馥郁的熟甜气息。&quot;,</span>
+<span id="L514" class="line"><a href="#L514">514</a>    },</span>
+<span id="L515" class="line"><a href="#L515">515</a>    [&quot;59385&quot;] = {</span>
+<span id="L516" class="line"><a href="#L516">516</a>        name = &quot;哈密瓜果酱&quot;,</span>
+<span id="L517" class="line"><a href="#L517">517</a>        desc = &quot;清甜如蜜，封存了满满一夏的香气。&quot;</span>
+<span id="L518" class="line"><a href="#L518">518</a>    },</span>
+<span id="L519" class="line"><a href="#L519">519</a>    [&quot;59386&quot;] = {</span>
+<span id="L520" class="line"><a href="#L520">520</a>        name = &quot;蒸海蛎&quot;,</span>
+<span id="L521" class="line"><a href="#L521">521</a>        desc = &quot;原壳蒸出大海本味，肉质滑嫩汤汁鲜甜。&quot;</span>
+<span id="L522" class="line"><a href="#L522">522</a>    },</span>
+<span id="L523" class="line"><a href="#L523">523</a>    [&quot;59387&quot;] = {</span>
+<span id="L524" class="line"><a href="#L524">524</a>        name = &quot;菌菇烩虾仁&quot;,</span>
+<span id="L525" class="line"><a href="#L525">525</a>        desc = &quot;山珍与海味交融，虾嫩菇滑。&quot;</span>
+<span id="L526" class="line"><a href="#L526">526</a>    },</span>
+<span id="L527" class="line"><a href="#L527">527</a>    [&quot;59388&quot;] = {</span>
+<span id="L528" class="line"><a href="#L528">528</a>        name = &quot;香煎三文鱼&quot;,</span>
+<span id="L529" class="line"><a href="#L529">529</a>        desc = &quot;鱼肉鲜美，外酥里嫩，肥而不腻。&quot;</span>
+<span id="L530" class="line"><a href="#L530">530</a>    },</span>
+<span id="L531" class="line"><a href="#L531">531</a>    [&quot;59389&quot;] = {</span>
+<span id="L532" class="line"><a href="#L532">532</a>        name = &quot;铁板鱿鱼&quot;,</span>
+<span id="L533" class="line"><a href="#L533">533</a>        desc = &quot;滋啦一声，香味立刻满场。&quot;</span>
+<span id="L534" class="line"><a href="#L534">534</a>    },</span>
+<span id="L535" class="line"><a href="#L535">535</a>    [&quot;59390&quot;] = {</span>
+<span id="L536" class="line"><a href="#L536">536</a>        name = &quot;美味虾煲&quot;,</span>
+<span id="L537" class="line"><a href="#L537">537</a>        desc = &quot;虾肉饱满，鲜香入味。&quot;</span>
+<span id="L538" class="line"><a href="#L538">538</a>    },</span>
+<span id="L539" class="line"><a href="#L539">539</a>    [&quot;59391&quot;] = {</span>
+<span id="L540" class="line"><a href="#L540">540</a>        name = &quot;豪华蟹煲&quot;,</span>
+<span id="L541" class="line"><a href="#L541">541</a>        desc = &quot;蟹肉鲜甜，配菜丰富，满煲皆是精华。&quot;</span>
+<span id="L542" class="line"><a href="#L542">542</a>    },</span>
+<span id="L543" class="line"><a href="#L543">543</a>    [&quot;59392&quot;] = {</span>
+<span id="L544" class="line"><a href="#L544">544</a>        name = &quot;猕猴桃冰淇淋碗&quot;,</span>
+<span id="L545" class="line"><a href="#L545">545</a>        desc = &quot;酸甜清爽的猕猴桃片平衡了冰淇淋的甜腻。&quot;</span>
+<span id="L546" class="line"><a href="#L546">546</a>    },</span>
+<span id="L547" class="line"><a href="#L547">547</a>    [&quot;59393&quot;] = {</span>
+<span id="L548" class="line"><a href="#L548">548</a>        name = &quot;橙子冰淇淋碗&quot;,</span>
+<span id="L549" class="line"><a href="#L549">549</a>        desc = &quot;柑橘清香融入每一勺冰凉之中。&quot;</span>
+<span id="L550" class="line"><a href="#L550">550</a>    },</span>
+<span id="L551" class="line"><a href="#L551">551</a>    [&quot;59394&quot;] = {</span>
+<span id="L552" class="line"><a href="#L552">552</a>        name = &quot;苹果冰淇淋碗&quot;,</span>
+<span id="L553" class="line"><a href="#L553">553</a>        desc = &quot;果香明亮，甜得轻快不腻。&quot;</span>
+<span id="L554" class="line"><a href="#L554">554</a>    },</span>
+<span id="L555" class="line"><a href="#L555">555</a>    [&quot;59395&quot;] = {</span>
+<span id="L556" class="line"><a href="#L556">556</a>        name = &quot;葡萄冰淇淋碗&quot;,</span>
+<span id="L557" class="line"><a href="#L557">557</a>        desc = &quot;果味与巧克力交织，层次感拉满。&quot;</span>
+<span id="L558" class="line"><a href="#L558">558</a>    },</span>
+<span id="L559" class="line"><a href="#L559">559</a>    [&quot;59396&quot;] = {</span>
+<span id="L560" class="line"><a href="#L560">560</a>        name = &quot;香蕉冰淇淋碗&quot;,</span>
+<span id="L561" class="line"><a href="#L561">561</a>        desc = &quot;软糯香蕉片点缀，享受双倍香浓丝滑。&quot;</span>
+<span id="L562" class="line"><a href="#L562">562</a>    },</span>
+<span id="L563" class="line"><a href="#L563">563</a>    [&quot;59397&quot;] = {</span>
+<span id="L564" class="line"><a href="#L564">564</a>        name = &quot;柚子冰淇淋碗&quot;,</span>
+<span id="L565" class="line"><a href="#L565">565</a>        desc = &quot;微苦回甘，清凉得很有个性。&quot;</span>
+<span id="L566" class="line"><a href="#L566">566</a>    },</span>
+<span id="L567" class="line"><a href="#L567">567</a>    [&quot;59398&quot;] = {</span>
+<span id="L568" class="line"><a href="#L568">568</a>        name = &quot;橙子沙拉&quot;,</span>
+<span id="L569" class="line"><a href="#L569">569</a>        desc = &quot;橙瓣多汁，酸酸甜甜让人胃口大开。&quot;</span>
+<span id="L570" class="line"><a href="#L570">570</a>    },</span>
+<span id="L571" class="line"><a href="#L571">571</a>    [&quot;59399&quot;] = {</span>
+<span id="L572" class="line"><a href="#L572">572</a>        name = &quot;苹果沙拉&quot;,</span>
+<span id="L573" class="line"><a href="#L573">573</a>        desc = &quot;脆甜苹果丁裹上柔滑酱汁，清爽不腻。&quot;</span>
+<span id="L574" class="line"><a href="#L574">574</a>    },</span>
+<span id="L575" class="line"><a href="#L575">575</a>    [&quot;59400&quot;] = {</span>
+<span id="L576" class="line"><a href="#L576">576</a>        name = &quot;葡萄沙拉&quot;,</span>
+<span id="L577" class="line"><a href="#L577">577</a>        desc = &quot;葡萄颗颗晶莹，清甜里带点活泼。&quot;</span>
+<span id="L578" class="line"><a href="#L578">578</a>    },</span>
+<span id="L579" class="line"><a href="#L579">579</a>    [&quot;59401&quot;] = {</span>
+<span id="L580" class="line"><a href="#L580">580</a>        name = &quot;香蕉沙拉&quot;,</span>
+<span id="L581" class="line"><a href="#L581">581</a>        desc = &quot;软糯香蕉片带来自然甜香，口感温柔绵密。&quot;</span>
+<span id="L582" class="line"><a href="#L582">582</a>    },</span>
+<span id="L583" class="line"><a href="#L583">583</a>    [&quot;59402&quot;] = {</span>
+<span id="L584" class="line"><a href="#L584">584</a>        name = &quot;柚子沙拉&quot;,</span>
+<span id="L585" class="line"><a href="#L585">585</a>        desc = &quot;清香微苦，反而更显清爽。&quot;</span>
+<span id="L586" class="line"><a href="#L586">586</a>    },</span>
+<span id="L587" class="line"><a href="#L587">587</a>    [&quot;59403&quot;] = {</span>
+<span id="L588" class="line"><a href="#L588">588</a>        name = &quot;哈密瓜沙拉&quot;,</span>
+<span id="L589" class="line"><a href="#L589">589</a>        desc = &quot;清甜瓜瓣水润爽口，每一口都像咬住夏天。&quot;</span>
+<span id="L590" class="line"><a href="#L590">590</a>    },</span>
+<span id="L591" class="line"><a href="#L591">591</a>    [&quot;59404&quot;] = {</span>
+<span id="L592" class="line"><a href="#L592">592</a>        name = &quot;无限体力&quot;,</span>
+<span id="L593" class="line"><a href="#L593">593</a>        desc = &quot;连续点击两次可获得20秒的无限体力&quot;,</span>
+<span id="L594" class="line"><a href="#L594">594</a>    },</span>
+<span id="L595" class="line"><a href="#L595">595</a>    [&quot;59405&quot;] = {</span>
+<span id="L596" class="line"><a href="#L596">596</a>        name = &quot;剪刀&quot;,</span>
+<span id="L597" class="line"><a href="#L597">597</a>        desc = &quot;拖拽到目标食材上，获得两个低一级的食材&quot;,</span>
+<span id="L598" class="line"><a href="#L598">598</a>    },</span>
+<span id="L599" class="line"><a href="#L599">599</a>    [&quot;59406&quot;] = {</span>
+<span id="L600" class="line"><a href="#L600">600</a>        name = &quot;秒表&quot;,</span>
+<span id="L601" class="line"><a href="#L601">601</a>        desc = &quot;拖拽到备货中的物品上，使时间前进&quot;,</span>
+<span id="L602" class="line"><a href="#L602">602</a>    },</span>
+<span id="L603" class="line"><a href="#L603">603</a>    [&quot;59407&quot;] = {</span>
+<span id="L604" class="line"><a href="#L604">604</a>        name = &quot;升级卡&quot;,</span>
+<span id="L605" class="line"><a href="#L605">605</a>        desc = &quot;拖拽到目标食材上，获得一个更高一级的食材&quot;,</span>
+<span id="L606" class="line"><a href="#L606">606</a>    },</span>
+<span id="L607" class="line"><a href="#L607">607</a>    [&quot;59409&quot;] = {</span>
+<span id="L608" class="line"><a href="#L608">608</a>        name = &quot;一块月饼&quot;,</span>
+<span id="L609" class="line"><a href="#L609">609</a>        desc = &quot;酥皮金黄，小小一口甜进心里。&quot;,</span>
+<span id="L610" class="line"><a href="#L610">610</a>    },</span>
+<span id="L611" class="line"><a href="#L611">611</a>    [&quot;59410&quot;] = {</span>
+<span id="L612" class="line"><a href="#L612">612</a>        name = &quot;花纹月饼&quot;,</span>
+<span id="L613" class="line"><a href="#L613">613</a>        desc = &quot;花纹圆圆，香气悄悄冒出来。&quot;,</span>
+<span id="L614" class="line"><a href="#L614">614</a>    },</span>
+<span id="L615" class="line"><a href="#L615">615</a>    [&quot;59411&quot;] = {</span>
+<span id="L616" class="line"><a href="#L616">616</a>        name = &quot;锦垫月饼&quot;,</span>
+<span id="L617" class="line"><a href="#L617">617</a>        desc = &quot;月饼摆好啦，团圆味更浓了。&quot;,</span>
+<span id="L618" class="line"><a href="#L618">618</a>    },</span>
+<span id="L619" class="line"><a href="#L619">619</a>    [&quot;59412&quot;] = {</span>
+<span id="L620" class="line"><a href="#L620">620</a>        name = &quot;团圆月饼盘&quot;,</span>
+<span id="L621" class="line"><a href="#L621">621</a>        desc = &quot;圆月满盘，甜蜜一起分享吧！&quot;,</span>
+<span id="L622" class="line"><a href="#L622">622</a>    },</span>
+<span id="L623" class="line"><a href="#L623">623</a>    [&quot;59413&quot;] = {</span>
+<span id="L624" class="line"><a href="#L624">624</a>        name = &quot;一块月饼&quot;,</span>
+<span id="L625" class="line"><a href="#L625">625</a>        desc = &quot;酥皮金黄，小小一口甜进心里。&quot;,</span>
+<span id="L626" class="line"><a href="#L626">626</a>    },</span>
+<span id="L627" class="line"><a href="#L627">627</a>    [&quot;59414&quot;] = {</span>
+<span id="L628" class="line"><a href="#L628">628</a>        name = &quot;花纹月饼&quot;,</span>
+<span id="L629" class="line"><a href="#L629">629</a>        desc = &quot;花纹圆圆，香气悄悄冒出来。&quot;,</span>
+<span id="L630" class="line"><a href="#L630">630</a>    },</span>
+<span id="L631" class="line"><a href="#L631">631</a>    [&quot;59415&quot;] = {</span>
+<span id="L632" class="line"><a href="#L632">632</a>        name = &quot;锦垫月饼&quot;,</span>
+<span id="L633" class="line"><a href="#L633">633</a>        desc = &quot;月饼摆好啦，团圆味更浓了。&quot;,</span>
+<span id="L634" class="line"><a href="#L634">634</a>    },</span>
+<span id="L635" class="line"><a href="#L635">635</a>    [&quot;59416&quot;] = {</span>
+<span id="L636" class="line"><a href="#L636">636</a>        name = &quot;团圆月饼盘&quot;,</span>
+<span id="L637" class="line"><a href="#L637">637</a>        desc = &quot;圆月满盘，甜蜜一起分享吧！&quot;,</span>
+<span id="L638" class="line"><a href="#L638">638</a>    },</span>
+<span id="L639" class="line"><a href="#L639">639</a>    [&quot;59417&quot;] = {</span>
+<span id="L640" class="line"><a href="#L640">640</a>        name = &quot;一块月饼&quot;,</span>
+<span id="L641" class="line"><a href="#L641">641</a>        desc = &quot;酥皮金黄，小小一口甜进心里。&quot;,</span>
+<span id="L642" class="line"><a href="#L642">642</a>    },</span>
+<span id="L643" class="line"><a href="#L643">643</a>    [&quot;59418&quot;] = {</span>
+<span id="L644" class="line"><a href="#L644">644</a>        name = &quot;花纹月饼&quot;,</span>
+<span id="L645" class="line"><a href="#L645">645</a>        desc = &quot;花纹圆圆，香气悄悄冒出来。&quot;,</span>
+<span id="L646" class="line"><a href="#L646">646</a>    },</span>
+<span id="L647" class="line"><a href="#L647">647</a>    [&quot;59419&quot;] = {</span>
+<span id="L648" class="line"><a href="#L648">648</a>        name = &quot;锦垫月饼&quot;,</span>
+<span id="L649" class="line"><a href="#L649">649</a>        desc = &quot;月饼摆好啦，团圆味更浓了。&quot;,</span>
+<span id="L650" class="line"><a href="#L650">650</a>    },</span>
+<span id="L651" class="line"><a href="#L651">651</a>    [&quot;59420&quot;] = {</span>
+<span id="L652" class="line"><a href="#L652">652</a>        name = &quot;团圆月饼盘&quot;,</span>
+<span id="L653" class="line"><a href="#L653">653</a>        desc = &quot;圆月满盘，甜蜜一起分享吧！&quot;,</span>
+<span id="L654" class="line"><a href="#L654">654</a>    },</span>
+<span id="L655" class="line"><a href="#L655">655</a>    [&quot;59421&quot;] = {</span>
+<span id="L656" class="line"><a href="#L656">656</a>        name = &quot;食材自选箱&quot;,</span>
+<span id="L657" class="line"><a href="#L657">657</a>        desc = &quot;可选择1个想要的食材。&quot;,</span>
+<span id="L658" class="line"><a href="#L658">658</a>    },</span>
+<span id="L659" class="line"><a href="#L659">659</a>    [&quot;59425&quot;] = {</span>
+<span id="L660" class="line"><a href="#L660">660</a>        name = &quot;面粉&quot;,</span>
+<span id="L661" class="line"><a href="#L661">661</a>        desc = &quot;雪白面粉，揉进日常的香气里。&quot;,</span>
+<span id="L662" class="line"><a href="#L662">662</a>    },</span>
+<span id="L663" class="line"><a href="#L663">663</a>    [&quot;59426&quot;] = {</span>
+<span id="L664" class="line"><a href="#L664">664</a>        name = &quot;面糊&quot;,</span>
+<span id="L665" class="line"><a href="#L665">665</a>        desc = &quot;搅开柔软面糊，煎烤蒸炸都藏着惊喜。&quot;,</span>
+<span id="L666" class="line"><a href="#L666">666</a>    },</span>
+<span id="L667" class="line"><a href="#L667">667</a>    [&quot;59427&quot;] = {</span>
+<span id="L668" class="line"><a href="#L668">668</a>        name = &quot;面团&quot;,</span>
+<span id="L669" class="line"><a href="#L669">669</a>        desc = &quot;揉出面团，醒一醒就是家的味道。&quot;,</span>
+<span id="L670" class="line"><a href="#L670">670</a>    },</span>
+<span id="L671" class="line"><a href="#L671">671</a>    [&quot;59428&quot;] = {</span>
+<span id="L672" class="line"><a href="#L672">672</a>        name = &quot;莜面&quot;,</span>
+<span id="L673" class="line"><a href="#L673">673</a>        desc = &quot;带着谷物清香入口，朴实一口越嚼越香。&quot;,</span>
+<span id="L674" class="line"><a href="#L674">674</a>    },</span>
+<span id="L675" class="line"><a href="#L675">675</a>    [&quot;59429&quot;] = {</span>
+<span id="L676" class="line"><a href="#L676">676</a>        name = &quot;面条&quot;,</span>
+<span id="L677" class="line"><a href="#L677">677</a>        desc = &quot;根根顺滑有劲道，嗦一口就是踏实满足。&quot;,</span>
+<span id="L678" class="line"><a href="#L678">678</a>    },</span>
+<span id="L679" class="line"><a href="#L679">679</a>    [&quot;59430&quot;] = {</span>
+<span id="L680" class="line"><a href="#L680">680</a>        name = &quot;清汤面&quot;,</span>
+<span id="L681" class="line"><a href="#L681">681</a>        desc = &quot;汤清味暖，面香淡淡，吃得心里熨帖。&quot;,</span>
+<span id="L682" class="line"><a href="#L682">682</a>    },</span>
+<span id="L683" class="line"><a href="#L683">683</a>    [&quot;59431&quot;] = {</span>
+<span id="L684" class="line"><a href="#L684">684</a>        name = &quot;肉酱面&quot;,</span>
+<span id="L685" class="line"><a href="#L685">685</a>        desc = &quot;浓香肉酱裹满面条，每一口都扎实过瘾。&quot;,</span>
+<span id="L686" class="line"><a href="#L686">686</a>    },</span>
+<span id="L687" class="line"><a href="#L687">687</a>    [&quot;59432&quot;] = {</span>
+<span id="L688" class="line"><a href="#L688">688</a>        name = &quot;牛肉面&quot;,</span>
+<span id="L689" class="line"><a href="#L689">689</a>        desc = &quot;牛肉鲜香，面条筋道，一碗暖到胃里。&quot;,</span>
+<span id="L690" class="line"><a href="#L690">690</a>    },</span>
+<span id="L691" class="line"><a href="#L691">691</a>    [&quot;59433&quot;] = {</span>
+<span id="L692" class="line"><a href="#L692">692</a>        name = &quot;一碟醋&quot;,</span>
+<span id="L693" class="line"><a href="#L693">693</a>        desc = &quot;小小一碟，蘸出滋味。&quot;,</span>
+<span id="L694" class="line"><a href="#L694">694</a>    },</span>
+<span id="L695" class="line"><a href="#L695">695</a>    [&quot;59434&quot;] = {</span>
+<span id="L696" class="line"><a href="#L696">696</a>        name = &quot;一碗醋&quot;,</span>
+<span id="L697" class="line"><a href="#L697">697</a>        desc = &quot;满满一碗，酸爽开胃。&quot;,</span>
+<span id="L698" class="line"><a href="#L698">698</a>    },</span>
+<span id="L699" class="line"><a href="#L699">699</a>    [&quot;59435&quot;] = {</span>
+<span id="L700" class="line"><a href="#L700">700</a>        name = &quot;小瓶醋&quot;,</span>
+<span id="L701" class="line"><a href="#L701">701</a>        desc = &quot;小瓶一倒，鲜味就到。&quot;,</span>
+<span id="L702" class="line"><a href="#L702">702</a>    },</span>
+<span id="L703" class="line"><a href="#L703">703</a>    [&quot;59436&quot;] = {</span>
+<span id="L704" class="line"><a href="#L704">704</a>        name = &quot;大瓶醋&quot;,</span>
+<span id="L705" class="line"><a href="#L705">705</a>        desc = &quot;大瓶在手，醋味常有。&quot;,</span>
+<span id="L706" class="line"><a href="#L706">706</a>    },</span>
+<span id="L707" class="line"><a href="#L707">707</a>    [&quot;59437&quot;] = {</span>
+<span id="L708" class="line"><a href="#L708">708</a>        name = &quot;大坛醋&quot;,</span>
+<span id="L709" class="line"><a href="#L709">709</a>        desc = &quot;大坛藏香，一勺提鲜。&quot;,</span>
+<span id="L710" class="line"><a href="#L710">710</a>    },</span>
+<span id="L711" class="line"><a href="#L711">711</a>    [&quot;59445&quot;] = {</span>
+<span id="L712" class="line"><a href="#L712">712</a>        name = &quot;榴莲&quot;,</span>
+<span id="L713" class="line"><a href="#L713">713</a>        desc = &quot;金黄果肉，绵密香甜像奶油在舌尖融化。&quot;,</span>
+<span id="L714" class="line"><a href="#L714">714</a>    },</span>
+<span id="L715" class="line"><a href="#L715">715</a>    [&quot;59446&quot;] = {</span>
+<span id="L716" class="line"><a href="#L716">716</a>        name = &quot;小熊臻享甜筒&quot;,</span>
+<span id="L717" class="line"><a href="#L717">717</a>        desc = &quot;熊熊臻选，夏日中的甜蜜伴侣。&quot;,</span>
+<span id="L718" class="line"><a href="#L718">718</a>    },</span>
+<span id="L719" class="line"><a href="#L719">719</a>    [&quot;59447&quot;] = {</span>
+<span id="L720" class="line"><a href="#L720">720</a>        name = &quot;大桶蜂王浆&quot;,</span>
+<span id="L721" class="line"><a href="#L721">721</a>        desc = &quot;一大桶蜂王浆，蜜蜂的辛勤成果！&quot;,</span>
+<span id="L722" class="line"><a href="#L722">722</a>    },</span>
+<span id="L723" class="line"><a href="#L723">723</a>    [&quot;59448&quot;] = {</span>
+<span id="L724" class="line"><a href="#L724">724</a>        name = &quot;精美蜂浆&quot;,</span>
+<span id="L725" class="line"><a href="#L725">725</a>        desc = &quot;一瓶精美封存好的精华，看着就珍贵。&quot;,</span>
+<span id="L726" class="line"><a href="#L726">726</a>    },</span>
+<span id="L727" class="line"><a href="#L727">727</a>    [&quot;59449&quot;] = {</span>
+<span id="L728" class="line"><a href="#L728">728</a>        name = &quot;洋蓟&quot;,</span>
+<span id="L729" class="line"><a href="#L729">729</a>        desc = &quot;罕见珍品，层层叠叠散发香气。&quot;,</span>
+<span id="L730" class="line"><a href="#L730">730</a>    },</span>
+<span id="L731" class="line"><a href="#L731">731</a>    [&quot;59450&quot;] = {</span>
+<span id="L732" class="line"><a href="#L732">732</a>        name = &quot;体力瓶&quot;,</span>
+<span id="L733" class="line"><a href="#L733">733</a>        desc = &quot;可向上合成或双击生成%d体力！&quot;,</span>
+<span id="L734" class="line"><a href="#L734">734</a>    },</span>
+<span id="L735" class="line"><a href="#L735">735</a>    [&quot;59451&quot;] = {</span>
+<span id="L736" class="line"><a href="#L736">736</a>        name = &quot;体力瓶&quot;,</span>
+<span id="L737" class="line"><a href="#L737">737</a>        desc = &quot;可向上合成或双击生成%d体力！&quot;,</span>
+<span id="L738" class="line"><a href="#L738">738</a>    },</span>
+<span id="L739" class="line"><a href="#L739">739</a>    [&quot;59452&quot;] = {</span>
+<span id="L740" class="line"><a href="#L740">740</a>        name = &quot;体力瓶&quot;,</span>
+<span id="L741" class="line"><a href="#L741">741</a>        desc = &quot;可向上合成或双击生成%d体力！&quot;,</span>
+<span id="L742" class="line"><a href="#L742">742</a>    },</span>
+<span id="L743" class="line"><a href="#L743">743</a>    [&quot;59453&quot;] = {</span>
+<span id="L744" class="line"><a href="#L744">744</a>        name = &quot;体力瓶&quot;,</span>
+<span id="L745" class="line"><a href="#L745">745</a>        desc = &quot;可向上合成或双击生成%d体力！&quot;,</span>
+<span id="L746" class="line"><a href="#L746">746</a>    },</span>
+<span id="L747" class="line"><a href="#L747">747</a>    [&quot;59454&quot;] = {</span>
+<span id="L748" class="line"><a href="#L748">748</a>        name = &quot;体力瓶&quot;,</span>
+<span id="L749" class="line"><a href="#L749">749</a>        desc = &quot;可向上合成或双击生成%d体力！&quot;,</span>
+<span id="L750" class="line"><a href="#L750">750</a>    },</span>
+<span id="L751" class="line"><a href="#L751">751</a>    [&quot;59455&quot;] = {</span>
+<span id="L752" class="line"><a href="#L752">752</a>        name = &quot;体力瓶&quot;,</span>
+<span id="L753" class="line"><a href="#L753">753</a>        desc = &quot;最高等级体力瓶，双击生成%d体力！&quot;,</span>
+<span id="L754" class="line"><a href="#L754">754</a>    },</span>
+<span id="L755" class="line"><a href="#L755">755</a>    [&quot;59456&quot;] = {</span>
+<span id="L756" class="line"><a href="#L756">756</a>        name = &quot;低级体力宝箱&quot;,</span>
+<span id="L757" class="line"><a href="#L757">757</a>        desc = &quot;可向上合成或产出体力瓶！&quot;,</span>
+<span id="L758" class="line"><a href="#L758">758</a>    },</span>
+<span id="L759" class="line"><a href="#L759">759</a>    [&quot;59457&quot;] = {</span>
+<span id="L760" class="line"><a href="#L760">760</a>        name = &quot;高级体力宝箱&quot;,</span>
+<span id="L761" class="line"><a href="#L761">761</a>        desc = &quot;最高等级体力宝箱，可产出大量体力瓶！&quot;,</span>
+<span id="L762" class="line"><a href="#L762">762</a>    },</span>
+<span id="L763" class="line"><a href="#L763">763</a>}</span>
+<span id="L764" class="line"><a href="#L764">764</a></span>
+<span id="L765" class="line"><a href="#L765">765</a>MergeConfig.BubbleItemText = {</span>
+<span id="L766" class="line"><a href="#L766">766</a>    [1] = {</span>
+<span id="L767" class="line"><a href="#L767">767</a>        name = &quot;普通气泡&quot;,</span>
+<span id="L768" class="line"><a href="#L768">768</a>        desc = &quot;花费风车币可获得气泡中的食材。&quot;</span>
+<span id="L769" class="line"><a href="#L769">769</a>    },</span>
+<span id="L770" class="line"><a href="#L770">770</a>    [2] = {</span>
+<span id="L771" class="line"><a href="#L771">771</a>        name = &quot;高级气泡&quot;,</span>
+<span id="L772" class="line"><a href="#L772">772</a>        desc = &quot;花费风车币购买可以获得气泡中的食材，直接完成订单。&quot;</span>
+<span id="L773" class="line"><a href="#L773">773</a>    },</span>
+<span id="L774" class="line"><a href="#L774">774</a>    [3] = {</span>
+<span id="L775" class="line"><a href="#L775">775</a>        name = &quot;折扣气泡&quot;,</span>
+<span id="L776" class="line"><a href="#L776">776</a>        desc = &quot;花费风车币购买可以获得气泡中的食材，直接完成订单。&quot;</span>
+<span id="L777" class="line"><a href="#L777">777</a>    },</span>
+<span id="L778" class="line"><a href="#L778">778</a>    [4] = {</span>
+<span id="L779" class="line"><a href="#L779">779</a>        name = &quot;折扣气泡&quot;,</span>
+<span id="L780" class="line"><a href="#L780">780</a>        desc = &quot;花费风车币购买可以获得气泡中的食材，直接完成订单。&quot;</span>
+<span id="L781" class="line"><a href="#L781">781</a>    }</span>
+<span id="L782" class="line"><a href="#L782">782</a>}</span>
+<span id="L783" class="line"><a href="#L783">783</a></span>
+<span id="L784" class="line"><a href="#L784">784</a>MergeConfig.ChickText = {</span>
+<span id="L785" class="line"><a href="#L785">785</a>    name = &quot;旅行小鸡&quot;,</span>
+<span id="L786" class="line"><a href="#L786">786</a>    desc = &quot;填入旅行小鸡所需要的食材，旅行归来后带回丰厚奖励&quot;,</span>
+<span id="L787" class="line"><a href="#L787">787</a>    cdDesc = &quot;花费风车币可让小鸡立刻旅行归来&quot;,</span>
+<span id="L788" class="line"><a href="#L788">788</a>}</span>
+<span id="L789" class="line"><a href="#L789">789</a>MergeConfig.MachineText = {</span>
+<span id="L790" class="line"><a href="#L790">790</a>    name = &quot;神奇料理机&quot;,</span>
+<span id="L791" class="line"><a href="#L791">791</a>    desc = &quot;拖动食材进入料理机，可做出不同美味&quot;,</span>
+<span id="L792" class="line"><a href="#L792">792</a>    cdDesc = &quot;花费风车币可让料理机立刻完成菜品&quot;</span>
+<span id="L793" class="line"><a href="#L793">793</a>}</span>
+<span id="L794" class="line"><a href="#L794">794</a></span>
+<span id="L795" class="line"><a href="#L795">795</a>MergeConfig.LockedText = &quot;暂未解锁，快去合成提交订单吧&quot;</span>
+<span id="L796" class="line"><a href="#L796">796</a></span>
+<span id="L797" class="line"><a href="#L797">797</a>MergeConfig.POP_STAGE_4_GIFT_ENERGY_LIMIT = 30</span>
+<span id="L798" class="line"><a href="#L798">798</a>MergeConfig.POP_STAGE_4_GIFT_TIME_LIMIT = 2</span>
+<span id="L799" class="line"><a href="#L799">799</a>MergeConfig.ENERGY_PK_COST_MAX = 150</span>
+<span id="L800" class="line"><a href="#L800">800</a>MergeConfig.GroupRewardMinMoney = 1500</span>
+<span id="L801" class="line"><a href="#L801">801</a>MergeConfig.ENERGY_PK_TRIGGER_ENERGY = 30</span>
+<span id="L802" class="line"><a href="#L802">802</a>MergeConfig.ENERGY_PK_TRIGGER_MONEY = 650</span>
+<span id="L803" class="line"><a href="#L803">803</a>MergeConfig.ENERGY_PK_MAX_ENERGY = 150</span>
+<span id="L804" class="line"><a href="#L804">804</a>MergeConfig.selectBox = 59421</span>
+<span id="L805" class="line"><a href="#L805">805</a>MergeConfig.highPayTag = 5</span>
+<span id="L806" class="line"><a href="#L806">806</a>MergeConfig.actId = 6074</span>
+<span id="L807" class="line"><a href="#L807">807</a>MergeConfig.actChName = &quot;美味合合&quot;            -- 活动中文名</span>
+<span id="L808" class="line"><a href="#L808">808</a>MergeConfig.actSource = &quot;merge2025/Config.lua&quot;  -- 活动路径</span>
+<span id="L809" class="line"><a href="#L809">809</a></span>
+<span id="L810" class="line"><a href="#L810">810</a>MergeConfig.GiftTypeEnum = {</span>
+<span id="L811" class="line"><a href="#L811">811</a>    FLOW = &quot;FLOW&quot;,</span>
+<span id="L812" class="line"><a href="#L812">812</a>    SUPPLY = &quot;SUPPLY&quot;,</span>
+<span id="L813" class="line"><a href="#L813">813</a>    ENERGY = &quot;ENERGY&quot;,</span>
+<span id="L814" class="line"><a href="#L814">814</a>    BUFF = &quot;BUFF&quot;,</span>
+<span id="L815" class="line"><a href="#L815">815</a>    BOOK = &quot;BOOK&quot;,</span>
+<span id="L816" class="line"><a href="#L816">816</a>    PROGRESS = &quot;PROGRESS&quot;,</span>
+<span id="L817" class="line"><a href="#L817">817</a>    RANK = &quot;RANK&quot;,</span>
+<span id="L818" class="line"><a href="#L818">818</a>    DISCOUNT = &quot;DISCOUNT&quot;,</span>
+<span id="L819" class="line"><a href="#L819">819</a>    CRUSH = &quot;CRUSH&quot;,</span>
+<span id="L820" class="line"><a href="#L820">820</a>}</span>
+<span id="L821" class="line"><a href="#L821">821</a></span>
+<span id="L822" class="line"><a href="#L822">822</a>return MergeConfig</span></pre></main></html>
